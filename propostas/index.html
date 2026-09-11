@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finanz · propostas</title>
+<style>
+  :root { --fundo:#0A0A0C; --cartao:#141118; --texto:#F4F0E7; --suave:#C9C1B2;
+          --fraco:#7C7362; --ouro:#E9B44C; --borda:rgba(233,180,76,.18);
+          --verde:#3DDC84; --vermelho:#F87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:20px 16px 60px; background:var(--fundo); color:var(--texto);
+         font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; letter-spacing:.04em; }
+  .sub { color:var(--fraco); font-size:13px; margin:0 0 22px; }
+  .vazio { color:var(--suave); background:var(--cartao); border:1px solid var(--borda);
+           border-radius:16px; padding:22px; text-align:center; }
+  .p { background:var(--cartao); border:1px solid var(--borda); border-radius:16px;
+       padding:16px; margin-bottom:18px; }
+  .n { color:var(--ouro); font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
+  .t { font-size:17px; font-weight:600; margin:2px 0 10px; }
+  .par { display:flex; gap:10px; margin:12px 0 6px; }
+  .par figure { flex:1 1 0; margin:0; min-width:0; }
+  .par figcaption { font-size:11px; color:var(--fraco); text-transform:uppercase;
+                    letter-spacing:.08em; margin-bottom:5px; }
+  .par img { width:100%; border-radius:10px; border:1px solid var(--borda); display:block; }
+  .leia { font-size:13.5px; color:var(--suave); white-space:pre-wrap; margin-top:10px; }
+  .como { margin-top:26px; border-top:1px solid var(--borda); padding-top:16px;
+          color:var(--fraco); font-size:13px; }
+  a { color:var(--ouro); }
+</style>
+</head>
+<body>
+<h1>FINANZ · PROPOSTAS</h1>
+<p class="sub">1 esperando a sua decisão · nada disso está no ar.</p>
+<div class="p">
+  <div class="n">Proposta 0001</div>
+  <div class="t">O aviso da fatura vira etiqueta, em vez de sumir no meio da linha</div>
+  <div class="par">
+    <figure><figcaption>Antes</figcaption><img src="0001-selo-nao-conta/antes.png" alt="antes"></figure>
+    <figure><figcaption>Depois</figcaption><img src="0001-selo-nao-conta/depois.png" alt="depois"></figure>
+  </div>
+  <div class="leia">
+Hoje o aviso de que um lançamento não entra no total de despesas é emendado
+no subtítulo, depois da categoria e da conta. Numa tela de celular a linha
+estoura e o aviso é cortado: fica "Outros · C6 Bank · não conta …", que é
+justamente a parte que importa sendo escondida.
+
+A proposta tira esse texto do subtítulo e põe embaixo, como etiqueta
+discreta, do mesmo jeito que a etiqueta "cai hoje" da lista de clientes.
+
+O que ela NÃO faz: não muda nenhuma conta. O valor, o total de despesas e a
+regra de quando um lançamento conta continuam idênticos — é só onde o aviso
+aparece.
+
+Risco: baixo. Mexe em uma função de desenho (linhaLancamento) e acrescenta
+uma classe de estilo. A suíte inteira passou, 47/47, sem ajuste em teste.
+
+Arquivos: index.html (linhaLancamento e uma regra .etiqueta.fora).
+  </div>
+</div>
+<div class="como">
+  Para aceitar, diga os números na conversa: <b>&ldquo;aceito a 1 e a 3, recusa a 2&rdquo;</b>.
+  As aceitas viram uma versão nova; as recusadas são apagadas junto com o código delas.
+</div>
+</body>
+</html>
