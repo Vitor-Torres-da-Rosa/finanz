@@ -32,13 +32,13 @@
 </head>
 <body>
 <h1>FINANZ · PROPOSTAS</h1>
-<p class="sub">1 esperando a sua decisão · nada disso está no ar.</p>
+<p class="sub">2 esperando a sua decisão · nada disso está no ar.</p>
 <div class="p">
   <div class="n">Proposta 0001</div>
   <div class="t">O aviso da fatura vira etiqueta, em vez de sumir no meio da linha</div>
   <div class="par">
-    <figure><figcaption>Antes</figcaption><img src="0001-selo-nao-conta/antes.png" alt="antes"></figure>
-    <figure><figcaption>Depois</figcaption><img src="0001-selo-nao-conta/depois.png" alt="depois"></figure>
+    <figure><figcaption>Antes</figcaption><img loading="lazy" src="0001-selo-nao-conta/antes.png" alt="antes"></figure>
+    <figure><figcaption>Depois</figcaption><img loading="lazy" src="0001-selo-nao-conta/depois.png" alt="depois"></figure>
   </div>
   <div class="leia">
 Hoje o aviso de que um lançamento não entra no total de despesas é emendado
@@ -57,6 +57,42 @@ Risco: baixo. Mexe em uma função de desenho (linhaLancamento) e acrescenta
 uma classe de estilo. A suíte inteira passou, 47/47, sem ajuste em teste.
 
 Arquivos: index.html (linhaLancamento e uma regra .etiqueta.fora).
+  </div>
+</div>
+<div class="p">
+  <div class="n">Proposta 0002</div>
+  <div class="t">A dívida de cartões só crescia: nada nunca abatia</div>
+  <div class="par">
+    <figure><figcaption>Antes</figcaption><img loading="lazy" src="0002-divida-cartao/antes.png" alt="antes"></figure>
+    <figure><figcaption>Depois</figcaption><img loading="lazy" src="0002-divida-cartao/depois.png" alt="depois"></figure>
+  </div>
+  <div class="leia">
+Cada compra no cartão somava na dívida, mas o pagamento da fatura nunca
+descontava. É que o pagamento vem do extrato da conta corrente como saída
+de lá — nunca como entrada no cartão. Resultado: a dívida acumulava todo
+mês, para sempre.
+
+No print, três meses de cartão com as duas primeiras faturas pagas em dia.
+A linha do cartão mostra R$ 770,00 de fatura em aberto, que é o certo, e
+logo embaixo o total dizia R$ 2.310,00 — a soma dos três meses. As duas
+linhas do mesmo cartão se contradiziam na mesma tela.
+
+O que a proposta faz: o pagamento de fatura e a transferência com destino
+no cartão passam a abater a dívida. O abatimento nunca passa do que foi
+devido, então a dívida não vira número negativo, e sem compra lançada não
+há fatura para abater.
+
+Isso também conserta o patrimônio líquido, que é património = contas +
+investimentos − dívida de cartões. Ele estava sendo puxado para baixo pelo
+mesmo valor errado.
+
+O que ela NÃO faz: não mexe no saldo das contas, nem no total de despesas,
+nem na análise. Só na conta da dívida.
+
+Risco: baixo, mas é conta de dinheiro. A suíte inteira passou, 47/47, sem
+ajuste em teste nenhum.
+
+Arquivos: index.html (dividaDeCartoes).
   </div>
 </div>
 <div class="como">
