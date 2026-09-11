@@ -32,7 +32,7 @@
 </head>
 <body>
 <h1>FINANZ · PROPOSTAS</h1>
-<p class="sub">4 esperando a sua decisão · nada disso está no ar.</p>
+<p class="sub">5 esperando a sua decisão · nada disso está no ar.</p>
 <div class="p">
   <div class="n">Proposta 0001</div>
   <div class="t">O aviso da fatura vira etiqueta, em vez de sumir no meio da linha</div>
@@ -155,6 +155,38 @@ Risco: baixo. Acrescenta uma linha de texto na tela Planejar, sem tocar em
 conta nenhuma. A suíte inteira passou, 47/47.
 
 Arquivos: index.html (o bloco "Por categoria" em desenharPlanejamento).
+  </div>
+</div>
+<div class="p">
+  <div class="n">Proposta 0005</div>
+  <div class="t">O relatório de IR não juntava os gastos de saúde e educação</div>
+  <div class="par">
+    <figure><figcaption>Antes</figcaption><img loading="lazy" src="0005-ir-dedutiveis/antes.png" alt="antes"></figure>
+    <figure><figcaption>Depois</figcaption><img loading="lazy" src="0005-ir-dedutiveis/depois.png" alt="depois"></figure>
+  </div>
+  <div class="leia">
+O relatório de apoio ao imposto de renda trazia a posição dos ativos em
+31/12 e os rendimentos do ano, e parava aí. Saúde e educação, que são o que
+quase todo mundo procura na hora de declarar, continuavam espalhados no
+extrato do ano inteiro para você garimpar na mão.
+
+O que a proposta faz: uma seção nova com todas as saídas do ano nessas duas
+categorias — data, categoria, descrição e valor —, o total de cada uma e o
+total das duas. É o trabalho chato de procurar, feito.
+
+O que ela NÃO faz, e isto é de propósito: não chama nada de dedutível e não
+calcula dedução nenhuma. O app não sabe o que entra na sua declaração, com
+que limite ou com que comprovante — isso é regra da Receita e conversa com
+quem faz a sua declaração. O relatório diz isso com todas as letras embaixo
+da tabela. Preferi entregar a lista honesta a entregar uma conta que pode
+te levar a errar com o Leão.
+
+Também não mexe em cálculo nenhum do app: só lê lançamentos que já existem.
+
+Risco: baixo. Acrescenta uma seção de leitura a um relatório. A suíte
+inteira passou, 47/47.
+
+Arquivos: index.html (o bloco tipo === 'ir' em abrirRelatorio).
   </div>
 </div>
 <div class="como">
