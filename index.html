@@ -1600,7 +1600,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.8.2';
+  var VERSAO = '5.9.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1609,6 +1609,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.0',
+      data: '2026-09-13',
+      itens: [
+        'O cartão passou a ter limite. Na tela do cartão aparece a barra: "R$ 1.200,00 de R$ 5.000,00 · R$ 3.800,00 livre nesta fatura", em verde, ouro ou vermelho conforme aperta. Na lista de cartões, a linha diz a porcentagem do limite que a fatura em aberto já ocupa.',
+        'A conta é só da fatura em aberto, e a tela diz isso. Pagamento de fatura sai da conta corrente, não do cartão, então o app não tem como saber qual fatura fechada já foi paga — prometer um "disponível" exato seria chute.',
+        'Cartão sem gasto nenhum agora tem o botão "Importar fatura" na tela, em vez de só um texto dizendo para importar. O de cima continua onde estava.',
+        'A folha do cartão deixou de perguntar a cor: ela vem da marca do banco. Em conta a cor continua sendo escolhida à mão.'
+      ]
+    },
     {
       versao: '5.8.2',
       data: '2026-09-13',
@@ -3033,7 +3043,8 @@
           cor: /^#[0-9a-fA-F]{6}$/.test(c.cor) ? c.cor : CORES[0],
           banco: texto(c.banco).slice(0, 20),
           fechamento: Math.min(Math.max(inteiro(c.fechamento), 0), 31),
-          vencimento: Math.min(Math.max(inteiro(c.vencimento), 0), 31)
+          vencimento: Math.min(Math.max(inteiro(c.vencimento), 0), 31),
+          limite: Math.max(inteiro(c.limite), 0)
         };
       });
     }
@@ -3712,7 +3723,8 @@
       contas: estado.contas.map(function (c) {
         return { id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
                  saldo_inicial: c.saldoInicial, cor: c.cor, banco: c.banco || '',
-                 fechamento: c.fechamento || 0, vencimento: c.vencimento || 0 };
+                 fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
+                 limite: c.limite || 0 };
       }),
       lancamentos: estado.lancamentos.map(function (l) {
         return {
@@ -3823,7 +3835,7 @@
   // faria o app reenviar sem aquele campo e apagar no servidor um dado que
   // estava certo. Adivinhar a coluna pela mensagem é perigoso; uma lista
   // fechada não é.
-  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'] };
+  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'], contas: ['limite'] };
 
   function oQueFaltou(e, tabela) {
     var opcionais = COLUNAS_OPCIONAIS[tabela];
@@ -4004,7 +4016,8 @@
     novo.contas = (r.contas || []).map(function (c) {
       return { id: c.id, nome: c.nome, tipo: c.tipo, saldoInicial: c.saldo_inicial,
                cor: c.cor, banco: c.banco || '',
-               fechamento: c.fechamento || 0, vencimento: c.vencimento || 0 };
+               fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
+               limite: c.limite || 0 };
     });
 
     novo.lancamentos = (r.lancamentos || []).map(function (l) {
@@ -6937,7 +6950,8 @@
         seloDeConta(cart),
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', cart.nome),
-          no('div', 'linha-sub', f.rotuloCurto)),
+          no('div', 'linha-sub', f.rotuloCurto +
+            (cart.limite > 0 ? ' · ' + Math.round(pct(Math.max(f.total - f.pago, 0), cart.limite)) + '% do limite' : ''))),
         juntar(no('div', 'linha-fim'),
           no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
       );
@@ -7094,6 +7108,26 @@
       if (aberta.pago) nota.push(emReais(aberta.pago) + ' já pago');
       if (nota.length) topo.appendChild(no('div', 'linha-nota', nota.join(' · ')));
 
+      // Quanto do limite a fatura em aberto já ocupa. Só a fatura em aberto:
+      // pagamento de fatura sai da conta corrente, não do cartão, então o
+      // app não sabe dizer qual fatura fechada foi paga. Prometer
+      // "disponível" seria chutar; isto aqui é o que dá para afirmar.
+      if (cart.limite > 0) {
+        topo.appendChild(no('div', 'rotulo', 'Limite'));
+        var usado = Math.max(aberta.total - aberta.pago, 0);
+        var livre = Math.max(cart.limite - usado, 0);
+        var quanto = pct(usado, cart.limite);
+        topo.appendChild(progresso(usado, cart.limite,
+          quanto > 90 ? 'var(--vermelho)' : quanto > 70 ? 'var(--ouro)' : 'var(--verde)'));
+        topo.appendChild(no('div', 'linha-nota',
+          emReais(usado) + ' de ' + emReais(cart.limite) + ' · ' +
+          emReais(livre) + ' livre nesta fatura'));
+        if (usado > cart.limite) {
+          topo.appendChild(no('div', 'linha-nota vermelho',
+            'A fatura em aberto já passou do limite em ' + emReais(usado - cart.limite) + '.'));
+        }
+      }
+
       var acoesTopo = no('div', 'duas');
       acoesTopo.style.marginTop = '14px';
       var importar = rotuloDeArquivo('arquivoExtrato', 'btn btn-fantasma');
@@ -7108,8 +7142,16 @@
 
       var todas = faturasDoCartao(id);
       if (!todas.length) {
-        folha.appendChild(estadoVazio('Sem gastos ainda',
-          'Importe a fatura do banco ou registre um gasto neste cartão.'));
+        var vazio = cartao('liso');
+        vazio.appendChild(estadoVazio('Sem gastos ainda',
+          'Importe a fatura do banco em PDF, OFX, CSV ou Excel, ou registre um gasto neste cartão.'));
+        // O texto sozinho não leva a lugar nenhum: aqui o botão abre o
+        // arquivo, igual ao de cima.
+        var importarVazio = rotuloDeArquivo('arquivoExtrato', 'btn btn-ouro');
+        importarVazio.textContent = 'Importar fatura';
+        importarVazio.style.margin = '0 16px 16px';
+        vazio.appendChild(importarVazio);
+        folha.appendChild(vazio);
         return;
       }
 
@@ -13671,8 +13713,12 @@
         notaCartao.hidden = !cartao;
         nota.hidden = cartao;
         caixaSaldo.hidden = cartao;
+        // Num cartão a cor vem da marca do banco, e escolher à mão só
+        // atrapalha; o limite, ao contrário, só existe em cartão.
+        caixaLimite.hidden = !cartao;
+        notaLimite.hidden = !cartao;
+        caixaCor.hidden = cartao;
       }
-      mostrarCamposDeCartao();
 
       var paleta = no('div', 'chips');
       function pintarPaleta() {
@@ -13697,7 +13743,21 @@
         });
       }
       pintarPaleta();
-      forma.appendChild(campo('Cor', paleta));
+      var caixaCor = campo('Cor', paleta);
+      forma.appendChild(caixaCor);
+
+      // O limite é o número que a pessoa olha no aplicativo do banco junto
+      // com a fatura: sem ele não dá para dizer quanto ainda cabe.
+      var campoLimite = entradaValor(existente ? (existente.limite || 0) : 0, false);
+      var caixaLimite = campo('Limite do cartão', campoLimite);
+      forma.appendChild(caixaLimite);
+      var notaLimite = no('div', 'linha-nota',
+        'Opcional. Com ele eu mostro quanto da fatura em aberto já ocupa o limite.');
+      notaLimite.style.marginTop = '-8px';
+      notaLimite.style.marginBottom = '14px';
+      forma.appendChild(notaLimite);
+
+      mostrarCamposDeCartao();
 
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
@@ -13716,13 +13776,15 @@
           existente.banco = chaveBanco;
           existente.fechamento = cartaoAgora ? fecha : 0;
           existente.vencimento = cartaoAgora ? vence : 0;
+          existente.limite = cartaoAgora ? digitosParaCentavos(campoLimite.value) : 0;
         } else {
           estado.contas.push({
             id: novoId(), nome: nome, tipo: campoTipo.value,
             saldoInicial: cartaoAgora ? 0 : digitosParaCentavos(campoSaldo.value), cor: cor,
             banco: chaveBanco,
             fechamento: cartaoAgora ? fecha : 0,
-            vencimento: cartaoAgora ? vence : 0
+            vencimento: cartaoAgora ? vence : 0,
+            limite: cartaoAgora ? digitosParaCentavos(campoLimite.value) : 0
           });
         }
         salvar();

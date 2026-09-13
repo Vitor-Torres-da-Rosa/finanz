@@ -28,7 +28,7 @@ Vai aparecer um punhado de mensagens `NOTICE: ... does not exist, skipping`. **�
 
 O `schema.sql` é a foto de agora e pode ser rodado de novo por cima sem
 estragar nada. Se preferir aplicar só o que mudou, os arquivos
-`migracao-01.sql` … `migracao-05.sql` trazem cada leva em separado, na
+`migracao-01.sql` … `migracao-06.sql` trazem cada leva em separado, na
 ordem do número. Rode os que ainda não rodou.
 
 A `migracao-05.sql` é a das categorias em dois andares: acrescenta a coluna
@@ -36,6 +36,10 @@ A `migracao-05.sql` é a das categorias em dois andares: acrescenta a coluna
 Enquanto ela não roda, o app continua funcionando e nada se perde — ele
 percebe que a coluna não existe, manda o resto e guarda a subcategoria no
 aparelho até a coluna aparecer.
+
+A `migracao-06.sql` é a do limite do cartão: acrescenta a coluna `limite`
+em `contas`. Vale a mesma coisa — sem ela o app funciona igual e guarda o
+limite no aparelho.
 
 ### Conferindo se a segurança ficou de pé
 

@@ -85,6 +85,7 @@ create table if not exists public.contas (
   banco         text        not null default '',
   fechamento    smallint    not null default 0,
   vencimento    smallint    not null default 0,
+  limite        bigint      not null default 0,
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   excluido_em   timestamptz

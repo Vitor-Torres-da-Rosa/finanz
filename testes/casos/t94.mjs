@@ -59,6 +59,9 @@ conferir('5. pergunta o melhor dia de compra e o vencimento, e mostra o fechamen
   campos.some(t => /Melhor dia de compra/.test(t)) && campos.some(t => /Vence no dia/.test(t)) &&
   campos.some(t => /A fatura fecha no dia/.test(t)) && !campos.some(t => /^Fecha no dia$/.test(t.trim())),
   campos.join(' | '));
+conferir('5a. pergunta o limite e não pergunta a cor',
+  campos.some(t => /Limite do cartão/.test(t)) && !campos.some(t => /^Cor$/.test(t.trim())),
+  campos.join(' | '));
 
 // --- no cartão, o banco só oferece os que a pessoa já usa ---
 await page.click('#folha .campo:has-text("Banco") .selecao'); await page.waitForTimeout(800);
@@ -108,21 +111,47 @@ await page.screenshot({ path: dir+'/s01-cartao.png', fullPage: true });
 
 // --- e o cartão salva como cartão, não como conta corrente ---
 await page.locator('#folha input.entrada[type=text]').first().fill('C6 Bank cartão');
+const campoLimite = page.locator('#folha .campo:has-text("Limite do cartão") input');
+await campoLimite.click();
+for (let i = 0; i < 14; i++) await campoLimite.press('Backspace');
+await campoLimite.type('200000'); await page.waitForTimeout(500);
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(1600);
 const inicio = limpo(await page.textContent('#telaInicio'));
 conferir('10. ele entrou na lista de cartões, não na de contas',
   /Cartões.*C6 Bank cartão/.test(inicio) && !/Contas\+ NovaC6 Bank cartão/.test(inicio),
   (inicio.match(/Cartões.{0,60}/) || ['?'])[0]);
 
+// --- o limite aparece na tela do cartão e na linha da lista ---
+await page.locator('#telaInicio .cartao', { hasText: 'Cartões' })
+  .locator('.linha-alvo').first().click({ force: true });
+await page.waitForTimeout(1500);
+const telaCartao = limpo(await page.textContent('#folha'));
+console.log('tela do cartão:', telaCartao.slice(0, 240));
+conferir('10b. a tela do cartão mostra o limite e o que sobra',
+  /Limite/.test(telaCartao) && /R\$ 0,00 de R\$ 2\.000,00/.test(telaCartao) &&
+  /R\$ 2\.000,00 livre nesta fatura/.test(telaCartao), telaCartao.slice(0, 160));
+conferir('10c. sem gastos, ele oferece importar a fatura num botão',
+  /Sem gastos ainda/.test(telaCartao) && /Importar fatura/.test(telaCartao));
+await page.screenshot({ path: dir+'/s02-limite.png', fullPage: true });
+await page.goBack(); await folhaFechou(); await page.waitForTimeout(1200);
+await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1400);
+conferir('10d. a linha da lista diz quanto do limite já foi',
+  /0% do limite/.test(limpo(await page.textContent('#telaInicio'))),
+  (limpo(await page.textContent('#telaInicio')).match(/C6 Bank cartão.{0,60}/) || ['?'])[0]);
+
 // Reabrindo, o melhor dia volta como 4: o app guardou o fechamento (3) e
 // mostra de novo o dia que a pessoa escolheu.
-await page.locator('#telaInicio .cartao:has-text("Cartões") .linha-acao').first().click({ force: true });
+await page.locator('#telaInicio .cartao', { hasText: 'Cartões' })
+  .locator('.linha-acao').first().click({ force: true });
 await page.waitForTimeout(1400);
 const melhorReaberto = limpo(await page.textContent('#folha .campo:has-text("Melhor dia de compra") .selecao'));
 conferir('11. reabrindo, o melhor dia volta como dia 4',
   /Dia 4/.test(melhorReaberto), melhorReaberto);
 conferir('12. e o fechamento derivado continua sendo o dia 3',
   /Dia 3/.test(await campoMelhor()), await campoMelhor());
+conferir('13. o limite voltou guardado',
+  /2\.000,00/.test(await page.locator('#folha .campo:has-text("Limite do cartão") input').inputValue()),
+  await page.locator('#folha .campo:has-text("Limite do cartão") input').inputValue());
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
