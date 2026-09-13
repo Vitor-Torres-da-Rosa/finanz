@@ -84,6 +84,11 @@ conferir('2. achou exatamente 2 pares', linhas.length === 2, String(linhas.lengt
 conferir('3. o par de 2 dias entrou, mesmo com nomes diferentes',
   /R\$ 541,40/.test(todas) && /C6 Bank → Itaú/.test(todas));
 conferir('4. e diz de quanto foi a diferença', /chegou 2 dias depois/.test(todas));
+conferir('4b. mostra as duas transações, cada uma com data, conta e descrição',
+  /Saiu 01\/09\/2026\s*·\s*C6 Bank/.test(todas) &&
+  /Pix Enviado Para Vitor Torres F Da Rosa/.test(todas) &&
+  /Entrou 03\/09\/2026\s*·\s*Itaú/.test(todas) &&
+  /PIX TRANSF VITOR T29\/08/.test(todas));
 conferir('5. o par de 6 dias ficou de fora', !/R\$ 777,00/.test(todas));
 conferir('6. com duas candidatas, ganha a mais perto (Itaú, 1 dia)',
   /R\$ 300,00/.test(todas) && /C6 Bank → Itaú.*chegou 1 dia depois/.test(todas), todas.slice(0, 120));

@@ -116,6 +116,14 @@ ele aceitar quando quiser. Não propor de novo por conta própria.
 - [parada 0012] Conferir saldo conta lançamento futuro e oferece ajustar o
   saldo inicial para um valor errado.
 
+## Achado sem reprodução firme
+
+- Uma vez, no t91, a transferência recém-juntada apareceu como "— → —" no
+  lugar das contas: o lançamento existia com o valor certo e sem contaId.
+  Não repetiu em três execuções seguidas nem na versão anterior, então é
+  corrida entre gravar e sincronizar, não a mudança daquele dia. Se voltar,
+  olhar a ordem de nuvemEnviar/nuvemBaixar em aplicarTransferencias.
+
 ## Ideias que não existiam
 
 Estas eu tinha escrito de memória e fui conferir no código: são falsas.

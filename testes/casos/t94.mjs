@@ -1,0 +1,87 @@
+// Novo cartão: o tipo não se pergunta (já está decidido) e os dois dias da
+// fatura viram a conta que a pessoa usa — o melhor dia para comprar.
+import { chromium, dir, ENDERECO } from '../comum.mjs';
+const browser = await chromium.launch();
+const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
+page.on('pageerror', e => console.log('PAGEERROR:', e.message));
+await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
+await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1800);
+await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
+await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
+const c = page.locator('.ent-campo input');
+await c.nth(0).fill('Vitor'); await c.nth(1).fill('t94'+Date.now()+'-'+process.pid+'@exemplo.com'); await c.nth(3).fill('senha123');
+await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(400);
+await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(400);
+await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
+
+let falhas = 0;
+const conferir = (rotulo, ok, achado) => {
+  if (!ok) falhas++;
+  console.log((ok ? 'ok   ' : 'FALHA') + ' · ' + rotulo + (achado === undefined ? '' : ' · ' + achado));
+};
+const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
+const folhaFechou = () => page.waitForFunction(
+  () => !document.getElementById('folha').classList.contains('aberta'), null, { timeout: 20000 });
+const visiveis = () => page.$$eval('#folha .campo',
+  ns => ns.filter(n => n.offsetParent !== null).map(n => (n.querySelector('label') || {}).textContent || ''));
+
+// --- nova conta: cartão sai da lista de tipos ---
+await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
+await page.locator('#telaInicio .cartao-acao', { hasText: '+ Nova' }).first().click({ force: true });
+await page.waitForTimeout(1300);
+conferir('1. "Nova conta" ainda pergunta o tipo',
+  (await visiveis()).some(t => /Tipo/.test(t)));
+await page.click('#folha .campo:has-text("Tipo") .selecao'); await page.waitForTimeout(800);
+const tipos = await page.$$eval('#escolhaLista .escolha-item', ns => ns.map(x => x.textContent.replace(/[✓\s]+/g, ' ').trim()));
+console.log('tipos oferecidos numa conta:', tipos.join(', '));
+conferir('2. mas cartão de crédito não está entre eles: ele nasce do outro lado',
+  !tipos.some(t => /Cartão de crédito/.test(t)), tipos.join(', '));
+await page.click('#escolhaRodape button:has-text("Cancelar")'); await page.waitForTimeout(700);
+await page.goBack(); await folhaFechou(); await page.waitForTimeout(1000);
+
+// --- novo cartão: sem campo de tipo ---
+await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
+await page.locator('#telaInicio .cartao-acao', { hasText: '+ Novo' }).first().click({ force: true });
+await page.waitForTimeout(1300);
+conferir('3. a folha é a do cartão', /Novo cartão/.test(await page.textContent('#folhaTitulo')));
+const campos = await visiveis();
+console.log('campos visíveis:', campos.join(' | '));
+conferir('4. não pergunta o tipo', !campos.some(t => /^Tipo$/.test(t.trim())), campos.join(' | '));
+conferir('5. pergunta os dois dias da fatura',
+  campos.some(t => /Fecha no dia/.test(t)) && campos.some(t => /Vence no dia/.test(t)));
+
+const nota = () => page.$$eval('#folha .linha-nota',
+  ns => ns.filter(n => n.offsetParent !== null).map(n => n.textContent.replace(/\s+/g, ' ').trim()).join(' ~ '));
+console.log('nota sem os dias:', await nota());
+conferir('6. sem o dia de fechamento, ela pede o dado em vez de inventar conta',
+  /melhor dia para comprar/.test(await nota()));
+
+await page.click('#folha .campo:has-text("Fecha no dia") .selecao'); await page.waitForTimeout(800);
+await page.locator('#escolhaLista').getByText('Dia 3', { exact: true }).click(); await page.waitForTimeout(900);
+console.log('nota só com o fechamento:', await nota());
+conferir('7. com o fechamento, já diz o melhor dia de compra',
+  /Melhor dia de compra: dia 4/.test(await nota()), await nota());
+
+await page.click('#folha .campo:has-text("Vence no dia") .selecao'); await page.waitForTimeout(800);
+await page.locator('#escolhaLista').getByText('Dia 13', { exact: true }).click(); await page.waitForTimeout(900);
+const completa = await nota();
+console.log('nota completa:', completa);
+conferir('8. com os dois, diz a data e quantos dias você ganha',
+  /Melhor dia de compra: dia 4/.test(completa) && /\d+ dias depois/.test(completa), completa);
+const dias = +(completa.match(/(\d+) dias depois/) || [0, 0])[1];
+conferir('9. a conta bate: comprando dia 4, fecha dia 3 do mês seguinte e vence dia 13',
+  dias >= 38 && dias <= 41, String(dias));
+await page.screenshot({ path: dir+'/s01-cartao.png', fullPage: true });
+
+// --- e o cartão salva como cartão, não como conta corrente ---
+await page.locator('#folha input.entrada[type=text]').first().fill('C6 Bank cartão');
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(1600);
+const inicio = limpo(await page.textContent('#telaInicio'));
+conferir('10. ele entrou na lista de cartões, não na de contas',
+  /Cartões.*C6 Bank cartão/.test(inicio) && !/Contas\+ NovaC6 Bank cartão/.test(inicio),
+  (inicio.match(/Cartões.{0,60}/) || ['?'])[0]);
+
+await browser.close();
+if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
+console.log('\ntudo certo: novo cartão sem tipo, com o melhor dia de compra calculado');

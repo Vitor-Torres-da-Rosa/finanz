@@ -863,14 +863,22 @@
   .lista-extrato { display: flex; flex-direction: column; }
   .item-extrato { display: flex; align-items: center; gap: 11px; padding: 10px 2px;
     border-top: 1px solid var(--borda); }
+  .item-extrato.alto { align-items: flex-start; }
   .item-extrato.apagado { opacity: .42; }
   .item-meio { flex: 1 1 auto; min-width: 0; }
   .item-desc { font-size: 13.5px; line-height: 1.3; word-break: break-word; }
   .item-sub { display: flex; align-items: center; gap: 8px; margin-top: 3px;
     font-size: 11.5px; color: var(--suave); flex-wrap: wrap; }
   .item-valor { flex: 0 0 auto; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .par-lados { margin-top: 7px; border-left: 2px solid var(--borda); padding-left: 10px;
+    display: flex; flex-direction: column; gap: 7px; }
+  .par-topo { display: flex; align-items: baseline; gap: 7px; font-size: 11.5px;
+    color: var(--suave); flex-wrap: wrap; }
+  .par-sinal { font-weight: 700; font-size: 12.5px; }
+  .par-desc { font-size: 12.5px; line-height: 1.3; word-break: break-word; }
   .etiqueta-cat { background: rgba(255,255,255,.05); border: 1px solid var(--borda);
     border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+  .etiqueta-vazia { border-style: dashed; color: var(--fraco); font-weight: 400; }
   .ja-tem { color: var(--ouro); }
   .caixinha { flex: 0 0 auto; width: 23px; height: 23px; border-radius: 7px;
     border: 1px solid var(--borda-viva); background: transparent; color: #1A1408;
@@ -1586,7 +1594,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.7.0';
+  var VERSAO = '5.8.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1595,6 +1603,18 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.8.0',
+      data: '2026-09-13',
+      itens: [
+        'Na conferência de transferências entre contas, cada par mostra os dois lançamentos inteiros: o que saiu e o que entrou, cada um com a sua data, a sua conta e o que o banco escreveu. Só a descrição da saída deixava a decisão no escuro — dois lançamentos de R$ 100,00 com dias de diferença podem ser o mesmo dinheiro ou um saque e um depósito que nada têm a ver.',
+        'Na importação, a subcategoria aparece ao lado da categoria e dá para trocar do mesmo jeito: o app já chuta pelo texto ("OFICINA DO JOAO" vira Transporte · Manutenção) e onde ele não sabe, a etiqueta convida a escolher. Trocando a categoria, a subcategoria antiga não fica pendurada.',
+        'Novo cartão não pergunta mais o tipo: ele já nasce cartão de crédito. E "Nova conta" deixou de oferecer cartão, porque cartão nasce do outro lado.',
+        'O cartão agora diz o melhor dia de compra. Fechando no dia 3 e vencendo no dia 13: "Melhor dia de compra: dia 4. Comprando nele, a fatura só vence em 13/10 — 39 dias depois." E avisa qual é o pior dia.',
+        'Correção na sincronia: a tolerância a coluna que ainda não existe no servidor ficou presa a uma lista fechada. Antes, um erro qualquer que mencionasse o nome de um campo podia fazer o app reenviar sem aquele campo e apagar no servidor um dado que estava certo.',
+        'Juntar transferência exige as duas contas: sem elas, os dois lançamentos ficariam apagados e no lugar sobraria uma linha sem origem nem destino.'
+      ]
+    },
     {
       versao: '5.7.0',
       data: '2026-09-13',
@@ -3771,13 +3791,29 @@
     });
   }
 
-  function oQueFaltou(e, linhas) {
+  // Só estas podem ser deixadas de fora. A lista é curta de propósito: é o
+  // conjunto das colunas que nasceram depois e que o app sabe viver sem.
+  //
+  // Sem esse cerco, um erro qualquer que mencionasse o nome de um campo
+  // — "null value in column X", uma chave estrangeira com o nome dentro —
+  // faria o app reenviar sem aquele campo e apagar no servidor um dado que
+  // estava certo. Adivinhar a coluna pela mensagem é perigoso; uma lista
+  // fechada não é.
+  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'] };
+
+  function oQueFaltou(e, tabela) {
+    var opcionais = COLUNAS_OPCIONAIS[tabela];
+    if (!opcionais) return null;
     var msg = String((e && e.message) || '').toLowerCase();
-    if (msg.indexOf('column') < 0 && msg.indexOf('coluna') < 0 &&
-        String((e && e.codigo) || '') !== 'PGRST204') return null;
-    var campos = {};
-    linhas.forEach(function (l) { Object.keys(l).forEach(function (k) { campos[k] = true; }); });
-    var achados = Object.keys(campos).filter(function (k) { return msg.indexOf(k.toLowerCase()) >= 0; });
+    var codigo = String((e && e.codigo) || '');
+    // PGRST204 é o "não achei essa coluna" do PostgREST; as outras duas são
+    // as frases do Postgres para o mesmo caso.
+    var ehColunaQueNaoExiste = codigo === 'PGRST204' ||
+      /could not find the '[^']*' column/.test(msg) ||
+      /column "[^"]*" of relation .* does not exist/.test(msg) ||
+      /column [^ ]* does not exist/.test(msg);
+    if (!ehColunaQueNaoExiste) return null;
+    var achados = opcionais.filter(function (c) { return msg.indexOf(c.toLowerCase()) >= 0; });
     return achados.length ? achados : null;
   }
 
@@ -3792,7 +3828,7 @@
       corpo: corpo,
       cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
     }).catch(function (e) {
-      var faltando = oQueFaltou(e, corpo);
+      var faltando = oQueFaltou(e, tabela);
       if (faltando) {
         faltaNoBanco['colunas:' + tabela] = tirar.concat(faltando);
         return enviarLinhas(tabela, linhas, aoConflito);
@@ -6666,7 +6702,7 @@
         var para = achar(estado.contas, p.entrada.contaId);
         var ligado = !!marcados[p.chave];
 
-        var linha = no('div', 'item-extrato' + (ligado ? '' : ' apagado'));
+        var linha = no('div', 'item-extrato alto' + (ligado ? '' : ' apagado'));
         var marca = botao('caixinha' + (ligado ? ' marcada' : ''), ligado ? '✓' : '', function () {
           marcados[p.chave] = !marcados[p.chave];
           montarFolhaTransferencias(pares, marcados);
@@ -6683,21 +6719,36 @@
         meio.appendChild(caminho);
         meio.appendChild(no('div', 'item-desc',
           (de ? de.nome : 'conta apagada') + ' → ' + (para ? para.nome : 'conta apagada')));
-        var sub = no('div', 'item-sub');
-        // Com a janela de dias, a data sozinha não basta: quem confere
-        // precisa ver de quanto foi a diferença para decidir.
+        // Os dois lançamentos, inteiros, um debaixo do outro. Mostrar só a
+        // descrição da saída deixava a decisão no escuro: duas linhas de
+        // R$ 100,00 com cinco dias de diferença podem ser o mesmo dinheiro
+        // ou um saque e um depósito que nada têm a ver. Quem decide precisa
+        // ler as duas — data, conta e o que o banco escreveu em cada uma.
+        var lados = no('div', 'par-lados');
+        [[p.saida, de, 'Saiu', '−', 'vermelho'],
+         [p.entrada, para, 'Entrou', '+', 'verde']].forEach(function (lado) {
+          var bloco = no('div');
+          var topo = no('div', 'par-topo');
+          juntar(topo,
+            no('span', 'par-sinal ' + lado[4], lado[3]),
+            no('span', null, lado[2] + ' ' + dataBr(lado[0].data)),
+            no('span', null, '·'),
+            no('span', null, lado[1] ? lado[1].nome : 'conta apagada'));
+          bloco.appendChild(topo);
+          bloco.appendChild(no('div', 'par-desc', lado[0].descricao || lado[0].categoria));
+          lados.appendChild(bloco);
+        });
+        meio.appendChild(lados);
+
+        // Com a janela de dias, a diferença é o que mais pesa na decisão.
         if (p.dias) {
           var quantos = Math.abs(p.dias);
-          sub.appendChild(no('span', null,
-            dataBr(p.saida.data) + ' → ' + dataBr(p.entrada.data)));
-          sub.appendChild(no('span', 'ouro',
+          var nota = no('div', 'item-sub');
+          nota.appendChild(no('span', 'ouro',
             'chegou ' + quantos + (quantos === 1 ? ' dia ' : ' dias ') +
             (p.dias > 0 ? 'depois' : 'antes')));
-        } else {
-          sub.appendChild(no('span', null, dataBr(p.saida.data)));
+          meio.appendChild(nota);
         }
-        sub.appendChild(no('span', null, (p.saida.descricao || p.saida.categoria).slice(0, 34)));
-        meio.appendChild(sub);
         linha.appendChild(meio);
 
         linha.appendChild(no('div', 'item-valor azul', emReais(p.saida.valor)));
@@ -6743,6 +6794,10 @@
 
       var fora = {};
       juntar.forEach(function (p, i) {
+        // Transferência sem as duas contas não é transferência: apagaria os
+        // dois lançamentos e deixaria no lugar uma linha que não diz de onde
+        // nem para onde. Nesse caso é melhor não mexer.
+        if (!achar(estado.contas, p.saida.contaId) || !achar(estado.contas, p.entrada.contaId)) return;
         fora[p.saida.id] = true;
         fora[p.entrada.id] = true;
         marcarExcluido('lancamentos', p.saida.id);
@@ -6773,6 +6828,32 @@
   // ---------- Cartões de crédito ----------
 
   function ehCartao(c) { return c && c.tipo === 'Cartão de crédito'; }
+
+  // O dia seguinte ao fechamento: uma compra feita nele entra na fatura que
+  // só fecha um mês depois, então é a que demora mais para ser cobrada.
+  //
+  // Fechamento de 28 para cima vira dia 1: fevereiro não tem dia 29 todo
+  // ano, e um "melhor dia" que às vezes não existe não serve para nada.
+  function melhorDiaDeCompra(fechamento) {
+    if (!fechamento) return 0;
+    return fechamento >= 28 ? 1 : fechamento + 1;
+  }
+
+  // Comprando no melhor dia, quando essa compra é cobrada e quantos dias
+  // depois. A conta é feita em datas de verdade, a partir deste mês, porque
+  // mês tem 28, 30 ou 31 dias e a diferença aparece no resultado.
+  function prazoDaCompra(fechamento, vencimento) {
+    var hoje = partes(hojeTexto());
+    var compra = new Date(hoje.ano, hoje.mes, melhorDiaDeCompra(fechamento));
+    var fecha = new Date(hoje.ano, hoje.mes, fechamento);
+    if (fecha <= compra) fecha = new Date(hoje.ano, hoje.mes + 1, fechamento);
+    var vence = new Date(fecha.getFullYear(), fecha.getMonth(), vencimento);
+    if (vence < fecha) vence = new Date(fecha.getFullYear(), fecha.getMonth() + 1, vencimento);
+    return {
+      vence: deData(vence),
+      dias: Math.round((vence - compra) / 86400000)
+    };
+  }
 
   function diasDoMes(vazio) {
     var lista = [{ valor: '', rotulo: vazio }];
@@ -13287,19 +13368,10 @@
         }, function () {
           var novo = coletar();
           novo.categoriaTocada = true;
-          var alvo = dados.categoria;
-          abrirFolhaTexto('Nova subcategoria', 'Nome da subcategoria', '',
-            'Ex.: Pedágio, Frete, Curso',
-            function (nome) {
-              var lim = nome.trim().slice(0, 30);
-              if (lim && subcategoriasDe(dados.tipo, alvo).indexOf(lim) < 0) {
-                guardarSubcategoria(dados.tipo, alvo, lim);
-                salvar();
-              }
-              if (lim) novo.subcategoria = lim;
-              abrirFolhaLancamento(id, novo);
-            },
-            function () { abrirFolhaLancamento(id, novo); });
+          criarSubcategoria(dados.tipo, dados.categoria, function (nome) {
+            if (nome) novo.subcategoria = nome;
+            abrirFolhaLancamento(id, novo);
+          });
         }));
       }
 
@@ -13433,11 +13505,21 @@
       linhaBanco.appendChild(campoBanco);
       forma.appendChild(campo('Banco', linhaBanco));
 
-      var campoTipo = entradaSelecao(TIPOS_CONTA.map(function (t) {
+      // Vindo do "+ Novo" dos cartões, o tipo já está decidido: perguntar
+      // de novo é oferecer quatro respostas erradas. Vindo do "+ Nova" das
+      // contas, cartão sai da lista pelo mesmo motivo — ele nasce do outro
+      // lado. Editando, a lista volta inteira: é o único lugar onde dá para
+      // consertar um tipo escolhido errado.
+      // A lista precisa conter o tipo escolhido: sem ele, `value` cai na
+      // primeira opção e o cartão nasceria como conta corrente.
+      var tiposOferecidos = existente ? TIPOS_CONTA
+        : ehNovoCartao ? ['Cartão de crédito']
+        : TIPOS_CONTA.filter(function (t) { return t !== 'Cartão de crédito'; });
+      var campoTipo = entradaSelecao(tiposOferecidos.map(function (t) {
         return { valor: t, rotulo: t };
       }), existente ? existente.tipo : (ehNovoCartao ? 'Cartão de crédito' : 'Conta corrente'));
       campoTipo.aoMudar = function () { mostrarCamposDeCartao(); };
-      forma.appendChild(campo('Tipo', campoTipo));
+      if (!ehNovoCartao) forma.appendChild(campo('Tipo', campoTipo));
 
       var campoSaldo = entradaValor(existente ? existente.saldoInicial : 0, false);
       var caixaSaldo = campo('Saldo inicial', campoSaldo);
@@ -13456,11 +13538,40 @@
       caixaDias.appendChild(campo('Fecha no dia', campoFecha));
       caixaDias.appendChild(campo('Vence no dia', campoVence));
       forma.appendChild(caixaDias);
-      var notaCartao = no('div', 'linha-nota',
-        'Com o dia de fechamento eu separo os gastos por fatura. Sem ele, uso o mês do lançamento.');
+      var notaCartao = no('div', 'linha-nota');
       notaCartao.style.marginTop = '-8px';
       notaCartao.style.marginBottom = '14px';
       forma.appendChild(notaCartao);
+
+      // Os dois dias que o banco informa dizem uma terceira coisa, que é a
+      // que a pessoa usa no dia a dia: em que dia comprar para pagar o mais
+      // tarde possível. É a conta que todo mundo faz de cabeça e erra.
+      function pintarNotaCartao() {
+        notaCartao.textContent = '';
+        var fecha = comoNumero(campoFecha.value, 0);
+        var vence = comoNumero(campoVence.value, 0);
+        if (!fecha) {
+          notaCartao.appendChild(no('div', null,
+            'Diga o dia em que a fatura fecha e eu separo os gastos por fatura — e digo o melhor dia para comprar. Sem ele, uso o mês do lançamento.'));
+          return;
+        }
+        var melhor = melhorDiaDeCompra(fecha);
+        var linha = 'Melhor dia de compra: dia ' + melhor + '.';
+        if (vence) {
+          var conta = prazoDaCompra(fecha, vence);
+          linha += ' Comprando nele, a fatura só vence em ' + dataBr(conta.vence) +
+                   ' — ' + conta.dias + ' dias depois.';
+        } else {
+          linha += ' Diga também o dia do vencimento e eu mostro quantos dias você ganha.';
+        }
+        notaCartao.appendChild(no('div', 'ouro', linha));
+        notaCartao.appendChild(no('div', null,
+          'O pior é o dia ' + fecha + ': a fatura fecha no mesmo dia, e a cobrança chega quase um mês antes. ' +
+          'Com o dia de fechamento eu também separo os gastos por fatura.'));
+      }
+      campoFecha.aoMudar = pintarNotaCartao;
+      campoVence.aoMudar = pintarNotaCartao;
+      pintarNotaCartao();
 
       function mostrarCamposDeCartao() {
         var cartao = campoTipo.value === 'Cartão de crédito';
@@ -16937,6 +17048,40 @@
       function () { aoEscolher(null); });
   }
 
+  // O mesmo seletor da categoria, um andar abaixo. "Sem subcategoria"
+  // primeiro, porque ela é opcional. `aoEscolher` recebe null quando a
+  // pessoa desiste e '' quando ela escolhe ficar sem nenhuma.
+  function escolherSubcategoria(tipo, categoria, atual, aoEscolher) {
+    var opcoes = [{ valor: '', rotulo: 'Sem subcategoria' }].concat(
+      subcategoriasDe(tipo, categoria).map(function (sc) {
+        return { valor: sc, rotulo: sc, icone: subDeFabrica(tipo, categoria, sc) ? null : 'lapis' };
+      }));
+    abrirEscolha({
+      titulo: 'Subcategoria de ' + categoria,
+      valor: atual || '',
+      opcoes: opcoes,
+      acao: {
+        rotulo: '+ Criar subcategoria',
+        aoTocar: function () { criarSubcategoria(tipo, categoria, aoEscolher); }
+      }
+    }, function (v) { aoEscolher(v == null ? null : v); });
+  }
+
+  function criarSubcategoria(tipo, categoria, aoTerminar) {
+    abrirFolhaTexto('Nova subcategoria', 'Nome da subcategoria', '',
+      'Ex.: Pedágio, Frete, Curso',
+      function (nome) {
+        var limpo = nome.trim().slice(0, 30);
+        if (!limpo) { aoTerminar(null); return; }
+        if (subcategoriasDe(tipo, categoria).indexOf(limpo) < 0) {
+          guardarSubcategoria(tipo, categoria, limpo);
+          salvar();
+        }
+        aoTerminar(limpo);
+      },
+      function () { aoTerminar(null); });
+  }
+
   function mexerNaCategoria(tipo, nome, atual, aoEscolher) {
     abrirEscolha({
       titulo: nome,
@@ -17742,12 +17887,26 @@
           escolherCategoria(it.tipo, it.categoria, function (v) {
             if (!v || v === it.categoria) { montarFolhaExtrato(); return; }
             it.categoria = v;
+            // A subcategoria pertencia à categoria de antes; mudando de
+            // categoria ela não quer dizer mais nada.
+            it.subcategoria = '';
             it.categoriaTrocada = true;
             perguntarSeValeParaTodos(it, v);
           });
         });
         cat.style.color = corDeCategoria(it.categoria);
         sub.appendChild(cat);
+
+        // A leitura do extrato já chuta a subcategoria pelo texto; aqui dá
+        // para conferir e trocar, do mesmo jeito que a categoria.
+        var subEtiqueta = botao('etiqueta-cat' + (it.subcategoria ? '' : ' etiqueta-vazia'),
+          it.subcategoria || '+ subcategoria', function () {
+            escolherSubcategoria(it.tipo, it.categoria, it.subcategoria || '', function (v) {
+              if (v != null) it.subcategoria = v;
+              montarFolhaExtrato();
+            });
+          });
+        sub.appendChild(subEtiqueta);
         if (it.repetido) sub.appendChild(no('span', 'ja-tem', 'já existe'));
         meio.appendChild(sub);
         linha.appendChild(meio);
@@ -17761,7 +17920,7 @@
       if (paginas > 1) lista.appendChild(barraDePaginas());
 
       forma.insertBefore(no('p', 'ajuda',
-        'Confira as categorias antes de lançar: toque na etiqueta para trocar. O arquivo foi lido aqui no seu aparelho, nada dele sai para a internet.'), acoes);
+        'Confira antes de lançar: toque na categoria ou na subcategoria para trocar. O arquivo foi lido aqui no seu aparelho, nada dele sai para a internet.'), acoes);
 
       pintarResumo();
       folha.appendChild(forma);
@@ -17800,7 +17959,11 @@
       ok: 'Sim, todos', cancelar: 'Só este',
       aoCancelar: function () { montarFolhaExtrato(); }
     }, function () {
-      iguais.forEach(function (o) { o.categoria = categoria; o.categoriaTrocada = true; });
+      iguais.forEach(function (o) {
+        o.categoria = categoria;
+        o.subcategoria = '';
+        o.categoriaTrocada = true;
+      });
       if (!estado.regrasCategoria) estado.regrasCategoria = {};
       estado.regrasCategoria[chave] = categoria;
       salvar();

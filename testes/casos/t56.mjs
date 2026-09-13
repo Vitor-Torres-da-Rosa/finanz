@@ -33,13 +33,13 @@ console.log('   campos:', rotulos);
 await page.click('#folha .selecao >> nth=0'); await page.waitForTimeout(700);
 await page.click('#escolhaLista .escolha-item:has-text("C6 Bank")'); await page.waitForTimeout(800);
 console.log('3. nome preenchido:', await folha().locator('input.entrada[type=text]').first().inputValue());
-console.log('   tipo:', await page.textContent('#folha .selecao >> nth=1'));
-// dias
-await page.click('#folha .selecao >> nth=2'); await page.waitForTimeout(700);
-await page.click('#escolhaLista .escolha-item:has-text("Dia 25")'); await page.waitForTimeout(700);
-await page.click('#folha .selecao >> nth=3'); await page.waitForTimeout(700);
-await page.click('#escolhaLista .escolha-item:has-text("Dia 5")'); await page.waitForTimeout(700);
-console.log('4. fecha/vence:', await page.textContent('#folha .selecao >> nth=2'), '/', await page.textContent('#folha .selecao >> nth=3'));
+const diaDe = (rotulo) => page.locator(`#folha .campo:has-text("${rotulo}") .selecao`).first();
+await diaDe('Fecha no dia').click(); await page.waitForTimeout(700);
+await page.locator('#escolhaLista').getByText('Dia 25', { exact: true }).click(); await page.waitForTimeout(700);
+await diaDe('Vence no dia').click(); await page.waitForTimeout(700);
+await page.locator('#escolhaLista').getByText('Dia 5', { exact: true }).click(); await page.waitForTimeout(700);
+console.log('4. fecha/vence:', await diaDe('Fecha no dia').textContent(), '/', await diaDe('Vence no dia').textContent());
+console.log('   melhor dia:', (await page.textContent('#folha .linha-nota.ouro').catch(()=>'-')).replace(/\s+/g,' '));
 await page.screenshot({ path: dir+'/f02-novo-cartao.png', fullPage:true });
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1500);
 
