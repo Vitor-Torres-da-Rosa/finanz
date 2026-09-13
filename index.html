@@ -1600,7 +1600,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.8.1';
+  var VERSAO = '5.8.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1609,6 +1609,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.8.2',
+      data: '2026-09-13',
+      itens: [
+        'O cartão passou a perguntar o melhor dia de compra, e não o dia de fechamento. É o que o aplicativo do banco mostra — muitos nem mostram o fechamento —, então é o dado que você tem na mão.',
+        'O dia em que a fatura fecha sai daí sozinho, e aparece logo abaixo junto com o prazo: melhor dia 4 e vencimento no 13 dão "Dia 3 · 39 dias para pagar".',
+        'O fechamento continua sendo o que separa os gastos por fatura aqui dentro; só deixou de ser perguntado. Cartão já cadastrado não muda de lugar: ele volta mostrando o melhor dia que corresponde ao fechamento guardado.'
+      ]
+    },
     {
       versao: '5.8.1',
       data: '2026-09-13',
@@ -6871,6 +6880,14 @@
   function melhorDiaDeCompra(fechamento) {
     if (!fechamento) return 0;
     return fechamento >= 28 ? 1 : fechamento + 1;
+  }
+
+  // O caminho de volta. O app guarda o dia de fechamento, porque é ele que
+  // separa as compras por fatura; mas o que o banco mostra no aplicativo é
+  // o melhor dia de compra, e é esse que a pessoa tem na mão.
+  function fechamentoPeloMelhorDia(melhor) {
+    if (!melhor) return 0;
+    return melhor <= 1 ? 28 : melhor - 1;
   }
 
   // Comprando no melhor dia, quando essa compra é cobrada e quantos dias
@@ -13588,21 +13605,25 @@
       nota.style.marginBottom = '14px';
       forma.appendChild(nota);
 
-      // Fechamento e vencimento: só fazem sentido em cartão de crédito.
+      // Os dois dias do cartão, e só fazem sentido em cartão de crédito.
+      //
+      // Pergunto o melhor dia de compra, não o dia de fechamento: é o que o
+      // aplicativo do banco mostra, e muitos nem mostram o fechamento. O
+      // fechamento sai dele — é o dia anterior — e continua sendo o que
+      // separa as compras por fatura aqui dentro.
+      var fechaGuardado = existente && existente.fechamento ? existente.fechamento : 0;
       var caixaDias = no('div', 'duas');
-      var campoFecha = entradaSelecao(diasDoMes('Sem dia certo'),
-        String(existente && existente.fechamento ? existente.fechamento : ''), 'Fecha no dia');
+      var campoMelhor = entradaSelecao(diasDoMes('Sem dia certo'),
+        String(fechaGuardado ? melhorDiaDeCompra(fechaGuardado) : ''), 'Melhor dia de compra');
       var campoVence = entradaSelecao(diasDoMes('Sem dia certo'),
         String(existente && existente.vencimento ? existente.vencimento : ''), 'Vence no dia');
-      caixaDias.appendChild(campo('Fecha no dia', campoFecha));
+      caixaDias.appendChild(campo('Melhor dia de compra', campoMelhor));
       caixaDias.appendChild(campo('Vence no dia', campoVence));
       forma.appendChild(caixaDias);
-      // Os dois dias que o banco informa dizem uma terceira coisa, e é essa
-      // que a pessoa usa: em que dia comprar para pagar o mais tarde
-      // possível. Fica como campo, do tamanho dos outros, porque é a
-      // resposta que ela vem buscar aqui — não um rodapé.
+      // Dos dois dias sai o que a pessoa teria de descobrir sozinha: em que
+      // dia a fatura fecha, e quantos dias ela ganha comprando no melhor.
       var valorMelhor = no('div', 'entrada melhor-dia');
-      var caixaMelhor = campo('Melhor dia de compra', valorMelhor);
+      var caixaMelhor = campo('A fatura fecha no dia', valorMelhor);
       forma.appendChild(caixaMelhor);
 
       var notaCartao = no('div', 'linha-nota');
@@ -13613,21 +13634,20 @@
       function pintarNotaCartao() {
         notaCartao.textContent = '';
         valorMelhor.textContent = '';
-        var fecha = comoNumero(campoFecha.value, 0);
+        var melhor = comoNumero(campoMelhor.value, 0);
         var vence = comoNumero(campoVence.value, 0);
 
-        if (!fecha) {
+        if (!melhor) {
           valorMelhor.classList.add('sem-conta');
-          valorMelhor.textContent = 'Depende do dia de fechamento';
+          valorMelhor.textContent = 'Depende do melhor dia de compra';
           notaCartao.appendChild(no('div', null,
-            'Diga o dia em que a fatura fecha e eu digo o melhor dia para comprar. ' +
-            'Ele também separa os gastos por fatura; sem ele, uso o mês do lançamento.'));
+            'O melhor dia de compra é o que o aplicativo do banco mostra. Dele eu tiro o dia em que a fatura fecha, que é o que separa os gastos por fatura. Sem ele, uso o mês do lançamento.'));
           return;
         }
 
+        var fecha = fechamentoPeloMelhorDia(melhor);
         valorMelhor.classList.remove('sem-conta');
-        var melhor = melhorDiaDeCompra(fecha);
-        valorMelhor.appendChild(no('span', 'melhor-dia-num', 'Dia ' + melhor));
+        valorMelhor.appendChild(no('span', 'melhor-dia-num', 'Dia ' + fecha));
         if (vence) {
           var conta = prazoDaCompra(fecha, vence);
           valorMelhor.appendChild(no('span', 'melhor-dia-prazo', conta.dias + ' dias para pagar'));
@@ -13640,7 +13660,7 @@
         notaCartao.appendChild(no('div', null,
           'O pior é o dia ' + fecha + ': a fatura fecha no mesmo dia, e a cobrança chega quase um mês antes.'));
       }
-      campoFecha.aoMudar = pintarNotaCartao;
+      campoMelhor.aoMudar = pintarNotaCartao;
       campoVence.aoMudar = pintarNotaCartao;
       pintarNotaCartao();
 
@@ -13685,7 +13705,7 @@
         if (!nome) { mostrarErro(forma, 'Dê um nome para a conta.'); return; }
 
         var cartaoAgora = campoTipo.value === 'Cartão de crédito';
-        var fecha = inteiro(campoFecha.value);
+        var fecha = fechamentoPeloMelhorDia(inteiro(campoMelhor.value));
         var vence = inteiro(campoVence.value);
 
         if (existente) {
