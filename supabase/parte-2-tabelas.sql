@@ -64,6 +64,15 @@ create table if not exists public.categorias_extras (
   primary key (user_id, tipo, nome)
 );
 
+create table if not exists public.subcategorias_extras (
+  user_id       uuid        not null default auth.uid() references auth.users (id) on delete cascade,
+  tipo          text        not null check (tipo in ('entrada', 'saida')),
+  categoria     text        not null check (length(categoria) between 1 and 30),
+  nome          text        not null check (length(nome) between 1 and 30),
+  criado_em     timestamptz not null default now(),
+  primary key (user_id, tipo, categoria, nome)
+);
+
 -- ------------------------------------------------------------
 -- Empreendedor: clientes, serviços e pagamentos
 -- ------------------------------------------------------------

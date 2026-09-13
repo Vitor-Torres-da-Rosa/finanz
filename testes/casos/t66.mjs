@@ -28,7 +28,7 @@ const cats = async () => page.$$eval('#folha .item-extrato .etiqueta-cat', ns=>n
 await importar(amostras+'/c6-repetido.pdf');
 console.log('1. categorias iniciais:', (await cats()).join(', '));
 await page.click('#folha .item-extrato:nth-child(1) .etiqueta-cat'); await page.waitForTimeout(800);
-await page.click('#escolhaLista .escolha-item:has-text("Mercado")'); await page.waitForTimeout(1000);
+await page.click(`#escolhaLista .escolha-item:has-text("Alimentação")`); await page.waitForTimeout(1000);
 console.log('2. perguntou?', await page.textContent('#dialogoTitulo').catch(()=>'NÃO'));
 console.log('   texto:', (await page.textContent('#dialogoTexto').catch(()=>'-')).replace(/\s+/g,' '));
 await page.screenshot({ path: dir+'/m10-vale-todos.png' });

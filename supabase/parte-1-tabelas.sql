@@ -84,6 +84,7 @@ create table if not exists public.lancamentos (
   valor             bigint      not null check (valor > 0),
   descricao         text        not null default '',
   categoria         text        not null default 'Outros',
+  subcategoria      text        not null default '',
   data              date        not null,
   conta_id          text        references public.contas (id) on delete set null,
   conta_destino_id  text        references public.contas (id) on delete set null,

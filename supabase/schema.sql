@@ -101,6 +101,7 @@ create table if not exists public.lancamentos (
   valor             bigint      not null check (valor > 0),
   descricao         text        not null default '',
   categoria         text        not null default 'Outros',
+  subcategoria      text        not null default '',
   data              date        not null,
   conta_id          text        references public.contas (id) on delete set null,
   conta_destino_id  text        references public.contas (id) on delete set null,
@@ -172,6 +173,15 @@ create table if not exists public.categorias_extras (
   nome          text        not null check (length(nome) between 1 and 30),
   criado_em     timestamptz not null default now(),
   primary key (user_id, tipo, nome)
+);
+
+create table if not exists public.subcategorias_extras (
+  user_id       uuid        not null default auth.uid() references auth.users (id) on delete cascade,
+  tipo          text        not null check (tipo in ('entrada', 'saida')),
+  categoria     text        not null check (length(categoria) between 1 and 30),
+  nome          text        not null check (length(nome) between 1 and 30),
+  criado_em     timestamptz not null default now(),
+  primary key (user_id, tipo, categoria, nome)
 );
 
 -- ------------------------------------------------------------
@@ -268,7 +278,7 @@ declare
   t text;
   tabelas text[] := array[
     'contas', 'lancamentos', 'ativos', 'ativo_historico', 'metas',
-    'orcamentos', 'categorias_extras', 'clientes', 'servicos', 'pagamentos', 'parcelas'
+    'orcamentos', 'categorias_extras', 'subcategorias_extras', 'clientes', 'servicos', 'pagamentos', 'parcelas'
   ];
 begin
   -- Perfil: a chave é a própria id do usuário.

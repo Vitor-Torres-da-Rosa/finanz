@@ -316,6 +316,9 @@
     color: var(--texto);
   }
   .chip[aria-pressed="true"] { background: var(--dourado); border-color: transparent; color: #1A1408; font-weight: 600; }
+  .chip-mais { border-style: dashed; color: var(--ouro); }
+  .chip-mais[aria-pressed="true"] { background: var(--cartao-2); border-color: var(--borda);
+                                    color: var(--ouro); font-weight: 400; }
 
   /* ---------- Busca ---------- */
 
@@ -1583,7 +1586,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.6.1';
+  var VERSAO = '5.7.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1592,6 +1595,20 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.7.0',
+      data: '2026-09-13',
+      itens: [
+        'As categorias agora têm dois andares. Em cima ficaram doze de saída — Moradia, Alimentação, Transporte, Saúde, Educação, Pessoal, Lazer, Família, Negócio, Impostos e taxas, Financeiro e Outros — e sete de entrada: Trabalho, Serviços, Vendas, Aplicativos, Rendimentos, Reembolsos e Outros. O detalhe desceu para a subcategoria.',
+        'Trinta categorias soltas davam uma grade que não cabia no polegar e um gráfico de fatias de 2%. Agora a categoria responde "para onde foi o dinheiro" e a subcategoria responde "no quê".',
+        'Nada se perdeu: o que era categoria virou subcategoria com a grafia arrumada, levando os lançamentos junto. "Combustível" é Transporte · Combustível, "Custo Juridico" é Negócio · Custo jurídico, "Uber" é Aplicativos · Uber. Categoria que você criou e não estava nessa lista continua sendo categoria sua.',
+        'O teto de orçamento seguiu junto. Dois tetos que caíram na mesma categoria somaram: R$ 800,00 em Mercado e R$ 200,00 em Alimentação viraram R$ 1.000,00 em Alimentação.',
+        'Cada lista tem um "+ Adicionar" no fim, nos dois andares: dá para criar categoria e subcategoria sem sair do lançamento, e o que você já tinha digitado volta preenchido.',
+        'A subcategoria aparece na linha do lançamento, junto da categoria, e entra na busca de Transações.',
+        'O resumo, o orçamento e o gráfico continuam contando pela categoria de cima. A subcategoria é etiqueta: nunca muda um número sozinha.',
+        'A sugestão pela descrição e a leitura do extrato também ficaram em dois andares: "posto" cai em Transporte · Combustível, "ifood" em Alimentação · Delivery, "advogado" em Negócio · Custo jurídico.'
+      ]
+    },
     {
       versao: '5.6.1',
       data: '2026-09-13',
@@ -2105,11 +2122,100 @@
     }
   ];
 
+  // As categorias em dois andares: poucas em cima, o detalhe embaixo.
+  //
+  // Trinta categorias soltas na tela de lançamento davam uma grade que não
+  // cabia no polegar, e o gráfico virava uma rosca de fatias de 2%. Aqui em
+  // cima ficam as doze que respondem "para onde foi o dinheiro"; a
+  // subcategoria responde "no quê", sem poluir nenhum total.
+  //
+  // O resumo, o orçamento e o gráfico continuam contando pela categoria de
+  // cima. A subcategoria é etiqueta: aparece na linha, entra na busca, e
+  // nunca muda um número sozinha.
+  var CATEGORIAS_ARVORE = {
+    saida: [
+      { nome: 'Moradia', subs: ['Aluguel', 'Condomínio', 'Financiamento', 'Água', 'Luz', 'Gás',
+        'Internet', 'Telefone', 'Celular', 'IPTU', 'Reforma', 'Móveis e eletro', 'Limpeza',
+        'Seguro da casa'] },
+      { nome: 'Alimentação', subs: ['Mercado', 'Feira', 'Açougue', 'Padaria', 'Restaurante',
+        'Delivery', 'Lanche', 'Café', 'Bebidas'] },
+      { nome: 'Transporte', subs: ['Combustível', 'Estacionamento', 'Pedágio', 'Aplicativo',
+        'Ônibus e metrô', 'Manutenção', 'Peças', 'Lavagem', 'IPVA', 'Licenciamento',
+        'Seguro do veículo', 'Multa', 'Financiamento do veículo'] },
+      { nome: 'Saúde', subs: ['Plano de saúde', 'Consulta', 'Exame', 'Farmácia', 'Dentista',
+        'Terapia', 'Academia', 'Óculos e lentes'] },
+      { nome: 'Educação', subs: ['Faculdade', 'Curso', 'Escola', 'Material escolar', 'Livros',
+        'Certificação', 'Idiomas'] },
+      { nome: 'Pessoal', subs: ['Barbearia e salão', 'Roupas', 'Calçados', 'Cosméticos',
+        'Presentes', 'Pet', 'Doação'] },
+      { nome: 'Lazer', subs: ['Assinaturas', 'Streaming', 'Cinema e shows', 'Jogos', 'Viagem',
+        'Hospedagem', 'Passagem', 'Bar e balada', 'Hobby'] },
+      { nome: 'Família', subs: ['Filhos', 'Escola dos filhos', 'Pensão', 'Babá',
+        'Ajuda a familiar'] },
+      { nome: 'Negócio', subs: ['Ferramentas', 'Peças', 'Material', 'Mercadoria para revenda',
+        'Serviço de terceiro', 'Serviço para cliente', 'Frete', 'Custo jurídico', 'Contador',
+        'Marketing', 'Software', 'Aluguel do ponto', 'Funcionário', 'Maquininha',
+        'Custo operacional'] },
+      { nome: 'Impostos e taxas', subs: ['Simples e DAS', 'Imposto de renda', 'INSS',
+        'Tarifa bancária', 'Juros', 'IOF', 'Multa e mora', 'Anuidade'] },
+      { nome: 'Financeiro', subs: ['Pagamento de fatura', 'Empréstimo', 'Financiamento',
+        'Investimento', 'Reserva', 'Seguro', 'Transferência entre contas'] },
+      { nome: 'Outros', subs: [] }
+    ],
+    entrada: [
+      { nome: 'Trabalho', subs: ['Salário', '13º', 'Férias', 'Horas extras', 'Comissão', 'Vale',
+        'Rescisão'] },
+      { nome: 'Serviços', subs: ['Serviço prestado', 'Mão de obra', 'Oficina', 'Manutenção',
+        'Consultoria', 'Freela'] },
+      { nome: 'Vendas', subs: ['Produto', 'Mercadoria', 'Peça', 'Usado'] },
+      { nome: 'Aplicativos', subs: ['Uber', '99', 'iFood', 'Rappi', 'Entregas'] },
+      { nome: 'Rendimentos', subs: ['Juros', 'Dividendos', 'Aluguel recebido', 'Resgate',
+        'Cashback'] },
+      { nome: 'Reembolsos', subs: ['Estorno', 'Devolução', 'Reembolso',
+        'Empréstimo recebido'] },
+      { nome: 'Outros', subs: [] }
+    ]
+  };
+
   var CATEGORIAS = {
-    saida: ['Moradia', 'Transporte', 'Combustível', 'Alimentação', 'Mercado', 'Casa', 'Manutenção',
-            'Peças', 'Ferramentas', 'Saúde', 'Educação', 'Lazer', 'Assinaturas', 'Impostos',
-            'Investimentos', 'Outros'],
-    entrada: ['Salário', 'Serviços', 'Uber', 'Oficina', 'Freela', 'Venda', 'Rendimentos', 'Outros']
+    saida: CATEGORIAS_ARVORE.saida.map(function (c) { return c.nome; }),
+    entrada: CATEGORIAS_ARVORE.entrada.map(function (c) { return c.nome; })
+  };
+
+  // Para onde foi cada categoria da lista antiga. O nome velho não some:
+  // vira subcategoria, com a grafia arrumada. Categoria que a pessoa criou
+  // e não está aqui continua de pé como categoria dela.
+  var CATEGORIA_ANTIGA = {
+    saida: {
+      'Casa': ['Moradia', 'Limpeza'],
+      'Recarga celular': ['Moradia', 'Celular'],
+      'Mercado': ['Alimentação', 'Mercado'],
+      'Combustível': ['Transporte', 'Combustível'],
+      'Estacionamento': ['Transporte', 'Estacionamento'],
+      'Veículo': ['Transporte', 'Manutenção'],
+      'Manutenção': ['Transporte', 'Manutenção'],
+      'Assinaturas': ['Lazer', 'Assinaturas'],
+      'Barbearia': ['Pessoal', 'Barbearia e salão'],
+      'Peças': ['Negócio', 'Peças'],
+      'Ferramentas': ['Negócio', 'Ferramentas'],
+      'Serviços': ['Negócio', 'Serviço de terceiro'],
+      'Custo operacional': ['Negócio', 'Custo operacional'],
+      'Custo Juridico': ['Negócio', 'Custo jurídico'],
+      'Custo Jurídico': ['Negócio', 'Custo jurídico'],
+      'Serviço/mercadoria p/ terceiro': ['Negócio', 'Serviço para cliente'],
+      'Impostos': ['Impostos e taxas', 'Simples e DAS'],
+      'Investimentos': ['Financeiro', 'Investimento'],
+      'Pagamento Fatura': ['Financeiro', 'Pagamento de fatura'],
+      'Transferência entre contas': ['Financeiro', 'Transferência entre contas']
+    },
+    entrada: {
+      'Salário': ['Trabalho', 'Salário'],
+      'Uber': ['Aplicativos', 'Uber'],
+      'Oficina': ['Serviços', 'Oficina'],
+      'Freela': ['Serviços', 'Freela'],
+      'Venda': ['Vendas', ''],
+      'Vendas': ['Vendas', '']
+    }
   };
 
   var CLASSES_ATIVO = ['Renda Fixa', 'Ações', 'FIIs', 'Exterior', 'Cripto', 'Outros'];
@@ -2121,15 +2227,13 @@
   // A cor de cada categoria vem do nome, nunca da posição na lista. Assim,
   // criar uma categoria nova não embaralha a cor das que já estavam lá.
   var CORES_CATEGORIA = {
-    'Moradia': '#E9B44C', 'Transporte': '#60A5FA', 'Combustível': '#22D3EE',
-    'Alimentação': '#F472B6', 'Mercado': '#A78BFA', 'Casa': '#34D399',
-    'Manutenção': '#F87171', 'Peças': '#FB923C', 'Ferramentas': '#C084FC',
-    'Saúde': '#4ADE80', 'Educação': '#38BDF8', 'Lazer': '#FACC15',
-    'Assinaturas': '#FB7185', 'Impostos': '#94A3B8', 'Investimentos': '#2DD4BF',
+    'Moradia': '#E9B44C', 'Alimentação': '#F472B6', 'Transporte': '#60A5FA',
+    'Saúde': '#4ADE80', 'Educação': '#38BDF8', 'Pessoal': '#C084FC',
+    'Lazer': '#FACC15', 'Família': '#FB7185', 'Negócio': '#FB923C',
+    'Impostos e taxas': '#94A3B8', 'Financeiro': '#2DD4BF',
     'Outros': '#9A8F7B',
-    'Salário': '#34D399', 'Serviços': '#E9B44C', 'Uber': '#60A5FA',
-    'Oficina': '#FB923C', 'Freela': '#A78BFA', 'Venda': '#22D3EE',
-    'Rendimentos': '#4ADE80',
+    'Trabalho': '#34D399', 'Serviços': '#E9B44C', 'Vendas': '#22D3EE',
+    'Aplicativos': '#60A5FA', 'Rendimentos': '#4ADE80', 'Reembolsos': '#A78BFA',
     'Renda Fixa': '#E9B44C', 'Ações': '#60A5FA', 'FIIs': '#22D3EE',
     'Exterior': '#A78BFA', 'Cripto': '#FB923C'
   };
@@ -2153,24 +2257,85 @@
   var DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira',
                      'quinta-feira', 'sexta-feira', 'sábado'];
 
-  // Palavras que sugerem categoria a partir da descrição.
+  // Palavras que sugerem categoria e subcategoria a partir da descrição.
+  // Cada linha é [categoria, subcategoria, palavras]; subcategoria vazia
+  // quando a palavra só diz o andar de cima.
   var PISTAS = [
-    ['Transporte', ['uber', '99', 'taxi', 'táxi', 'onibus', 'ônibus', 'metro', 'metrô', 'passagem', 'estacionamento', 'pedagio', 'pedágio']],
-    ['Combustível', ['posto', 'gasolina', 'etanol', 'alcool', 'álcool', 'diesel', 'combustivel', 'combustível', 'abastec', 'shell', 'ipiranga', 'petrobras']],
-    ['Alimentação', ['ifood', 'rappi', 'restaurante', 'lanche', 'lanchonete', 'padaria', 'pizza', 'burger', 'cafe', 'café', 'almoço', 'almoco', 'janta']],
-    ['Mercado', ['mercado', 'supermercado', 'zaffari', 'carrefour', 'atacad', 'assai', 'assaí', 'big', 'hortifruti', 'feira']],
-    ['Moradia', ['aluguel', 'condominio', 'condomínio', 'luz', 'energia', 'agua', 'água', 'internet', 'iptu', 'gas', 'gás']],
-    ['Assinaturas', ['netflix', 'spotify', 'assinatura', 'prime', 'disney', 'hbo', 'max', 'youtube', 'icloud', 'google one', 'plano']],
-    ['Saúde', ['farmacia', 'farmácia', 'drogaria', 'consulta', 'medico', 'médico', 'dentista', 'exame', 'hospital', 'plano de saude', 'unimed']],
-    ['Educação', ['curso', 'faculdade', 'escola', 'livro', 'mensalidade', 'udemy', 'alura']],
-    ['Lazer', ['cinema', 'bar', 'show', 'viagem', 'hotel', 'jogo', 'steam', 'ingresso']],
-    ['Peças', ['peça', 'peca', 'pneu', 'freio', 'pastilha', 'oleo', 'óleo', 'bateria', 'autopeç', 'autopec']],
-    ['Ferramentas', ['ferramenta', 'chave de', 'furadeira', 'parafusadeira', 'esmerilhadeira']],
-    ['Manutenção', ['manutenç', 'manutenc', 'revisão', 'revisao', 'conserto', 'reparo', 'oficina']],
-    ['Impostos', ['imposto', 'ipva', 'darf', 'inss', 'taxa', 'licenciamento', 'multa']],
-    ['Salário', ['salario', 'salário', 'pagamento', 'holerite', 'folha']],
-    ['Uber', ['uber', '99pop', 'corrida']],
-    ['Rendimentos', ['rendimento', 'juros', 'dividendo', 'cdb', 'tesouro']]
+    ['Transporte', 'Combustível', ['posto', 'gasolina', 'etanol', 'alcool', 'álcool', 'diesel', 'combustivel', 'combustível', 'abastec', 'shell', 'ipiranga', 'petrobras']],
+    ['Transporte', 'Estacionamento', ['estacionamento', 'zona azul', 'valet']],
+    ['Transporte', 'Pedágio', ['pedagio', 'pedágio', 'sem parar', 'conectcar']],
+    ['Transporte', 'Aplicativo', ['uber', '99pop', 'cabify', 'taxi', 'táxi']],
+    ['Transporte', 'Ônibus e metrô', ['onibus', 'ônibus', 'metro', 'metrô', 'passagem urbana']],
+    ['Transporte', 'Peças', ['pneu', 'freio', 'pastilha', 'oleo', 'óleo', 'bateria', 'autopeç', 'autopec']],
+    ['Transporte', 'Manutenção', ['manutenç', 'manutenc', 'revisão', 'revisao', 'conserto', 'reparo', 'oficina', 'funilaria']],
+    ['Transporte', 'IPVA', ['ipva']],
+    ['Transporte', 'Licenciamento', ['licenciamento', 'detran']],
+    ['Alimentação', 'Mercado', ['mercado', 'supermercado', 'zaffari', 'carrefour', 'atacad', 'assai', 'assaí', 'hortifruti']],
+    ['Alimentação', 'Feira', ['feira', 'sacolao', 'sacolão']],
+    ['Alimentação', 'Açougue', ['acougue', 'açougue']],
+    ['Alimentação', 'Padaria', ['padaria']],
+    ['Alimentação', 'Delivery', ['ifood', 'rappi', 'delivery']],
+    ['Alimentação', 'Restaurante', ['restaurante', 'pizza', 'burger', 'churrasc', 'almoço', 'almoco', 'janta']],
+    ['Alimentação', 'Lanche', ['lanche', 'lanchonete']],
+    ['Alimentação', 'Café', ['cafe', 'café']],
+    ['Moradia', 'Aluguel', ['aluguel', 'imobiliaria', 'imobiliária']],
+    ['Moradia', 'Condomínio', ['condominio', 'condomínio']],
+    ['Moradia', 'Luz', ['luz', 'energia', 'cemig', 'copel', 'celesc', 'cpfl', 'enel']],
+    ['Moradia', 'Água', ['agua', 'água', 'sanepar', 'corsan', 'sabesp']],
+    ['Moradia', 'Gás', ['gas', 'gás']],
+    ['Moradia', 'Internet', ['internet', 'banda larga']],
+    ['Moradia', 'Celular', ['recarga', 'celular', 'vivo', 'claro', 'tim ']],
+    ['Moradia', 'IPTU', ['iptu']],
+    ['Saúde', 'Farmácia', ['farmacia', 'farmácia', 'drogaria', 'panvel']],
+    ['Saúde', 'Dentista', ['dentista', 'odonto']],
+    ['Saúde', 'Exame', ['exame', 'laboratorio', 'laboratório']],
+    ['Saúde', 'Plano de saúde', ['plano de saude', 'plano de saúde', 'unimed', 'amil']],
+    ['Saúde', 'Academia', ['academia', 'smart fit', 'crossfit']],
+    ['Saúde', 'Consulta', ['consulta', 'medico', 'médico', 'hospital', 'clinica', 'clínica']],
+    ['Educação', 'Faculdade', ['faculdade', 'universidade', 'cesumar', 'uniasselvi', 'estacio', 'estácio']],
+    ['Educação', 'Curso', ['curso', 'udemy', 'alura']],
+    ['Educação', 'Escola', ['escola', 'colegio', 'colégio', 'mensalidade']],
+    ['Educação', 'Livros', ['livro', 'livraria']],
+    ['Lazer', 'Streaming', ['netflix', 'spotify', 'prime', 'disney', 'hbo', 'globoplay', 'deezer']],
+    ['Lazer', 'Assinaturas', ['assinatura', 'icloud', 'google one', 'youtube premium']],
+    ['Lazer', 'Cinema e shows', ['cinema', 'teatro', 'show', 'ingresso']],
+    ['Lazer', 'Jogos', ['steam', 'playstation', 'xbox', 'nintendo', 'jogo']],
+    ['Lazer', 'Viagem', ['viagem', 'hotel', 'pousada', 'airbnb', 'booking']],
+    ['Lazer', 'Bar e balada', ['bar ', 'balada', 'pub ']],
+    ['Pessoal', 'Barbearia e salão', ['barbearia', 'barbeiro', 'salao', 'salão', 'cabelo']],
+    ['Pessoal', 'Pet', ['petshop', 'pet shop', 'veterinar']],
+    ['Pessoal', 'Roupas', ['renner', 'riachuelo', 'roupa', 'shein']],
+    ['Negócio', 'Ferramentas', ['ferramenta', 'chave de', 'furadeira', 'parafusadeira', 'esmerilhadeira']],
+    ['Negócio', 'Material', ['material de construcao', 'material de construção', 'leroy', 'telha norte']],
+    ['Negócio', 'Contador', ['contador', 'contabil', 'contábil']],
+    ['Negócio', 'Custo jurídico', ['advogad', 'juridic', 'jurídic', 'cartorio', 'cartório']],
+    ['Negócio', 'Maquininha', ['maquininha', 'stone', 'pagseguro', 'sumup', 'cielo', 'getnet']],
+    ['Negócio', 'Frete', ['frete', 'transportadora', 'sedex', 'correios']],
+    ['Impostos e taxas', 'Simples e DAS', ['imposto', 'darf', 'das ', 'simples nacional']],
+    ['Impostos e taxas', 'INSS', ['inss', 'gps ']],
+    ['Impostos e taxas', 'Tarifa bancária', ['tarifa', 'cesta de servico', 'cesta de serviço', 'pacote de servico']],
+    ['Impostos e taxas', 'Juros', ['juros', 'cheque especial', 'limite da conta']],
+    ['Impostos e taxas', 'IOF', ['iof']],
+    ['Impostos e taxas', 'Multa e mora', ['multa', 'mora', 'encargo']],
+    ['Impostos e taxas', 'Anuidade', ['anuidade']],
+    ['Financeiro', 'Pagamento de fatura', ['pagamento de fatura', 'pagto fatura', 'pag fatura', 'fatura cartao', 'fatura cartão']],
+    ['Financeiro', 'Investimento', ['aplicacao', 'aplicação', 'investiment', 'tesouro', 'cdb', 'lci', 'lca', 'corretora']],
+    ['Financeiro', 'Empréstimo', ['emprestimo', 'empréstimo']],
+    ['Financeiro', 'Seguro', ['seguro']],
+    ['Trabalho', 'Salário', ['salario', 'salário', 'holerite', 'folha de pagamento']],
+    ['Trabalho', '13º', ['13o', '13º', 'decimo terceiro', 'décimo terceiro']],
+    ['Trabalho', 'Férias', ['ferias', 'férias']],
+    ['Aplicativos', 'Uber', ['uber', '99pop', 'corrida']],
+    ['Aplicativos', 'iFood', ['ifood']],
+    ['Serviços', 'Oficina', ['oficina', 'mecanic', 'mecânic', 'funilaria']],
+    ['Serviços', 'Freela', ['freela']],
+    ['Serviços', 'Serviço prestado', ['servico', 'serviço', 'prestacao', 'prestação', 'mao de obra', 'mão de obra']],
+    ['Rendimentos', 'Juros', ['rendimento', 'juros', 'remuneracao de saldo']],
+    ['Rendimentos', 'Dividendos', ['dividendo', 'provento']],
+    ['Rendimentos', 'Cashback', ['cashback']],
+    ['Rendimentos', 'Resgate', ['resgate']],
+    ['Reembolsos', 'Estorno', ['estorno', 'devolucao', 'devolução', 'reembolso']],
+    ['Vendas', '', ['venda']]
   ];
 
   var $ = function (id) { return document.getElementById(id); };
@@ -2296,6 +2461,7 @@
       metas: [],
       orcamentos: { geral: 0, categorias: {} },
       categoriasExtras: { saida: [], entrada: [] },
+      subcategoriasExtras: { saida: {}, entrada: {} },
       // Nome de origem -> categoria. O que a pessoa ensina numa importação
       // vale nas próximas.
       regrasCategoria: {},
@@ -2329,7 +2495,7 @@
   // categoria nova.
   function categoriaDoRegistro(servico) {
     var t = servico ? (servico.tipo || TIPO_PADRAO) : TIPO_PADRAO;
-    if (t === 'Venda' || t === 'Vendas') return 'Venda';
+    if (t === 'Venda' || t === 'Vendas') return 'Vendas';
     if (t === 'Outro' || t === 'Outros') return 'Outros';
     if (t === 'Serviço' || t === 'Serviços') return 'Serviços';
     return CATEGORIAS.entrada.indexOf(t) >= 0 ? t : 'Serviços';
@@ -2349,6 +2515,38 @@
     var base = CATEGORIAS[tipo].slice();
     extras.forEach(function (c) { if (base.indexOf(c) < 0) base.splice(base.length - 1, 0, c); });
     return base;
+  }
+
+  function subsDeFabrica(tipo, categoria) {
+    var lista = CATEGORIAS_ARVORE[tipo] || [];
+    for (var i = 0; i < lista.length; i++) {
+      if (lista[i].nome === categoria) return lista[i].subs || [];
+    }
+    return [];
+  }
+
+  // Subcategorias de fábrica mais as que a pessoa criou dentro daquela
+  // categoria. Categoria criada por ela começa sem nenhuma, e é só ir
+  // acrescentando.
+  function subcategoriasDe(tipo, categoria) {
+    if (!categoria) return [];
+    var guardadas = (estado && estado.subcategoriasExtras && estado.subcategoriasExtras[tipo]) || {};
+    var extras = guardadas[categoria] || [];
+    var base = subsDeFabrica(tipo, categoria).slice();
+    extras.forEach(function (sc) { if (base.indexOf(sc) < 0) base.push(sc); });
+    return base;
+  }
+
+  function subDeFabrica(tipo, categoria, nome) {
+    return subsDeFabrica(tipo, categoria).indexOf(nome) >= 0;
+  }
+
+  function guardarSubcategoria(tipo, categoria, nome) {
+    if (!estado.subcategoriasExtras) estado.subcategoriasExtras = { saida: {}, entrada: {} };
+    if (!estado.subcategoriasExtras[tipo]) estado.subcategoriasExtras[tipo] = {};
+    var lista = estado.subcategoriasExtras[tipo][categoria] ||
+                (estado.subcategoriasExtras[tipo][categoria] = []);
+    if (lista.indexOf(nome) < 0) lista.push(nome);
   }
 
   function novoId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -2596,6 +2794,23 @@
       });
     }
 
+    if (bruto.subcategoriasExtras && typeof bruto.subcategoriasExtras === 'object') {
+      ['saida', 'entrada'].forEach(function (tipo) {
+        var mapa = bruto.subcategoriasExtras[tipo];
+        if (!mapa || typeof mapa !== 'object') return;
+        var guardado = {};
+        Object.keys(mapa).slice(0, 60).forEach(function (cat) {
+          if (!Array.isArray(mapa[cat])) return;
+          var lista = mapa[cat]
+            .filter(function (sc) { return typeof sc === 'string' && sc.trim(); })
+            .map(function (sc) { return sc.trim().slice(0, 30); })
+            .slice(0, 40);
+          if (lista.length) guardado[String(cat).slice(0, 30)] = lista;
+        });
+        limpo.subcategoriasExtras[tipo] = guardado;
+      });
+    }
+
     if (Array.isArray(bruto.importacoes)) {
       limpo.importacoes = bruto.importacoes.filter(function (i) {
         return i && typeof i === 'object' && typeof i.id === 'string';
@@ -2792,6 +3007,7 @@
           descricao: semRepeticao(texto(l.descricao)).slice(0, 80),
           importacaoId: texto(l.importacaoId),
           categoria: texto(l.categoria) || 'Outros',
+          subcategoria: texto(l.subcategoria),
           data: soData(l.data),
           contaId: texto(l.contaId),
           contaDestinoId: texto(l.contaDestinoId),
@@ -2845,7 +3061,61 @@
       }
     }
 
+    arrumarCategorias(limpo);
     return limpo;
+  }
+
+  // Passa os dados da lista antiga de categorias para os dois andares.
+  //
+  // Roda toda vez que o estado é lido, e por isso precisa ser inofensiva na
+  // segunda passada: nome que já é categoria de cima fica quieto. O que era
+  // categoria e virou subcategoria desce para o lugar novo levando o
+  // lançamento junto, com a grafia arrumada — "Custo Juridico" vira
+  // "Negócio · Custo jurídico".
+  //
+  // Categoria que a pessoa criou e não está na tabela continua sendo
+  // categoria dela: mexer nisso seria jogar fora o que ela organizou.
+  function arrumarCategorias(e) {
+    function destino(tipo, nome) {
+      var mapa = CATEGORIA_ANTIGA[tipo] || {};
+      if (mapa[nome]) return mapa[nome];
+      return null;
+    }
+
+    e.lancamentos.forEach(function (l) {
+      if (l.tipo === 'transferencia') return;
+      var d = destino(l.tipo, l.categoria);
+      if (!d) return;
+      l.categoria = d[0];
+      if (!l.subcategoria && d[1]) l.subcategoria = d[1];
+    });
+
+    // O que virou subcategoria sai da lista de categorias criadas na mão,
+    // senão continuaria aparecendo como chip lá em cima.
+    ['saida', 'entrada'].forEach(function (tipo) {
+      var lista = e.categoriasExtras[tipo] || [];
+      e.categoriasExtras[tipo] = lista.filter(function (nome) {
+        return !destino(tipo, nome) && CATEGORIAS[tipo].indexOf(nome) < 0;
+      });
+    });
+
+    // Teto de orçamento segue a categoria. Dois tetos que caem na mesma
+    // categoria somam: eram dois pedaços do mesmo gasto.
+    var tetos = {};
+    Object.keys(e.orcamentos.categorias).forEach(function (nome) {
+      var d = destino('saida', nome);
+      var alvo = d ? d[0] : nome;
+      tetos[alvo] = (tetos[alvo] || 0) + e.orcamentos.categorias[nome];
+    });
+    e.orcamentos.categorias = tetos;
+
+    // O que a pessoa ensinou na importação ("esse nome é Combustível")
+    // continua valendo, apontando para o lugar novo.
+    var regras = e.regrasCategoria || {};
+    Object.keys(regras).forEach(function (chave) {
+      var d = destino('saida', regras[chave]) || destino('entrada', regras[chave]);
+      if (d) regras[chave] = d[0];
+    });
   }
 
   function migrarDaV1() {
@@ -3403,7 +3673,8 @@
       lancamentos: estado.lancamentos.map(function (l) {
         return {
           id: l.id, user_id: uid, tipo: l.tipo, valor: l.valor, descricao: l.descricao,
-          categoria: l.categoria, data: l.data, importacao_id: l.importacaoId || '',
+          categoria: l.categoria, subcategoria: l.subcategoria || '',
+          data: l.data, importacao_id: l.importacaoId || '',
           conta_id: ouNulo(l.contaId), conta_destino_id: ouNulo(l.contaDestinoId)
         };
       }),
@@ -3485,13 +3756,55 @@
     };
   }
 
+  // Colunas e tabelas que nasceram depois do banco de alguém. Enquanto a
+  // migração não roda lá, o servidor recusa o pedido inteiro — e a
+  // sincronia de tudo parava por causa de um campo novo. Aqui o app percebe
+  // o que falta, manda de novo sem aquilo e segue. O dado continua guardado
+  // no aparelho e sobe sozinho assim que a coluna existir.
+  var faltaNoBanco = {};
+
+  function semColunas(linhas, colunas) {
+    return linhas.map(function (l) {
+      var copia = {};
+      Object.keys(l).forEach(function (k) { if (colunas.indexOf(k) < 0) copia[k] = l[k]; });
+      return copia;
+    });
+  }
+
+  function oQueFaltou(e, linhas) {
+    var msg = String((e && e.message) || '').toLowerCase();
+    if (msg.indexOf('column') < 0 && msg.indexOf('coluna') < 0 &&
+        String((e && e.codigo) || '') !== 'PGRST204') return null;
+    var campos = {};
+    linhas.forEach(function (l) { Object.keys(l).forEach(function (k) { campos[k] = true; }); });
+    var achados = Object.keys(campos).filter(function (k) { return msg.indexOf(k.toLowerCase()) >= 0; });
+    return achados.length ? achados : null;
+  }
+
   function enviarLinhas(tabela, linhas, aoConflito) {
     if (!linhas.length) return Promise.resolve();
+    if (faltaNoBanco['tabela:' + tabela]) return Promise.resolve();
+    var tirar = faltaNoBanco['colunas:' + tabela] || [];
+    var corpo = tirar.length ? semColunas(linhas, tirar) : linhas;
     var caminho = '/rest/v1/' + tabela + (aoConflito ? '?on_conflict=' + aoConflito : '');
     return pedirNuvem(caminho, {
       metodo: 'POST',
-      corpo: linhas,
+      corpo: corpo,
       cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+    }).catch(function (e) {
+      var faltando = oQueFaltou(e, corpo);
+      if (faltando) {
+        faltaNoBanco['colunas:' + tabela] = tirar.concat(faltando);
+        return enviarLinhas(tabela, linhas, aoConflito);
+      }
+      // Tabela que ainda não existe: some desta sincronia, volta na próxima
+      // sessão, depois de a migração rodar.
+      if (String((e && e.codigo) || '') === 'PGRST205' ||
+          /relation .* does not exist|could not find the table/i.test(String((e && e.message) || ''))) {
+        faltaNoBanco['tabela:' + tabela] = true;
+        return null;
+      }
+      throw e;
     });
   }
 
@@ -3529,6 +3842,21 @@
         });
       });
       return enviarLinhas('categorias_extras', extras, 'user_id,tipo,nome');
+    }).then(function () {
+      if (faltaNoBanco['tabela:subcategorias_extras']) return null;
+      return pedirNuvem('/rest/v1/subcategorias_extras?user_id=eq.' + uid, { metodo: 'DELETE' })
+        .catch(function () { return null; });
+    }).then(function () {
+      var subs = [];
+      ['saida', 'entrada'].forEach(function (tipo) {
+        var mapa = (estado.subcategoriasExtras && estado.subcategoriasExtras[tipo]) || {};
+        Object.keys(mapa).forEach(function (cat) {
+          (mapa[cat] || []).forEach(function (nome) {
+            subs.push({ user_id: uid, tipo: tipo, categoria: cat, nome: nome });
+          });
+        });
+      });
+      return enviarLinhas('subcategorias_extras', subs, 'user_id,tipo,categoria,nome');
     });
 
     // Marca como excluído o que a pessoa apagou aqui.
@@ -3567,7 +3895,12 @@
       return pedirNuvem('/rest/v1/orcamentos?select=*', {});
     }).then(function (r) { recolhido.orcamentos = r || []; })
       .then(function () { return pedirNuvem('/rest/v1/categorias_extras?select=*', {}); })
-      .then(function (r) { recolhido.categorias_extras = r || []; });
+      .then(function (r) { recolhido.categorias_extras = r || []; })
+      // Banco sem a migração nova: volta vazio em vez de derrubar a leitura.
+      .then(function () {
+        return pedirNuvem('/rest/v1/subcategorias_extras?select=*', {}).catch(function () { return []; });
+      })
+      .then(function (r) { recolhido.subcategorias_extras = r || []; });
 
     return tarefa.then(function () { return montarEstadoDeLinhas(recolhido); });
   }
@@ -3617,7 +3950,7 @@
     novo.lancamentos = (r.lancamentos || []).map(function (l) {
       return {
         id: l.id, tipo: l.tipo, valor: l.valor, descricao: l.descricao || '',
-        categoria: l.categoria || 'Outros', data: l.data,
+        categoria: l.categoria || 'Outros', subcategoria: l.subcategoria || '', data: l.data,
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
@@ -3685,6 +4018,11 @@
     (r.orcamentos || []).forEach(function (o) { novo.orcamentos.categorias[o.categoria] = o.valor; });
     (r.categorias_extras || []).forEach(function (c) {
       if (novo.categoriasExtras[c.tipo]) novo.categoriasExtras[c.tipo].push(c.nome);
+    });
+    (r.subcategorias_extras || []).forEach(function (sc) {
+      var mapa = novo.subcategoriasExtras[sc.tipo];
+      if (!mapa) return;
+      (mapa[sc.categoria] || (mapa[sc.categoria] = [])).push(sc.nome);
     });
 
     return limparEstado(novo);
@@ -3998,9 +4336,20 @@
   // O cartão "Fluxo de caixa" é caixa, e diz isso na tela.
   var TEXTO_FATURA = /(pag(amento|to)?\.?\s*(de\s*)?\.?\s*fat(ura)?|fat(ura)?\s*(do\s*)?cart|pgto\s*fat)/;
 
+  // Aporte é a saída marcada como investimento — antes era a categoria
+  // "Investimentos", hoje é a subcategoria de Financeiro. As duas contam,
+  // porque backup antigo restaurado ainda traz a categoria velha.
+  function ehAporte(l) {
+    return l.categoria === 'Investimentos' ||
+           (l.categoria === 'Financeiro' && l.subcategoria === 'Investimento');
+  }
+
   function ehPagamentoDeFatura(l) {
     if (l.tipo !== 'saida') return false;
     if (ehCartao(achar(estado.contas, l.contaId))) return false;
+    // Arquivar em Financeiro · Pagamento de fatura é dizer, na mão, o que a
+    // descrição às vezes não diz. Vale tanto quanto o texto do extrato.
+    if (l.categoria === 'Financeiro' && l.subcategoria === 'Pagamento de fatura') return true;
     return TEXTO_FATURA.test(semAcentoSimples(l.descricao || ''));
   }
 
@@ -10013,7 +10362,8 @@
     var itens = lancamentosDoPeriodo().filter(function (l) {
       if (filtroTransacoes !== 'todas' && l.tipo !== filtroTransacoes) return false;
       if (!termo) return true;
-      return (l.descricao + ' ' + l.categoria).toLowerCase().indexOf(termo) >= 0;
+      return (l.descricao + ' ' + l.categoria + ' ' + (l.subcategoria || ''))
+        .toLowerCase().indexOf(termo) >= 0;
     });
 
     if (!itens.length) {
@@ -10092,7 +10442,10 @@
       sub = (origem ? origem.nome : '—') + ' → ' + (destino ? destino.nome : '—');
     } else {
       var conta = achar(estado.contas, l.contaId);
-      sub = l.categoria + (conta ? ' · ' + conta.nome : '');
+      // A subcategoria fica encostada na categoria, com o mesmo separador
+      // do resto da linha: é detalhe da categoria, não um terceiro assunto.
+      sub = l.categoria + (l.subcategoria ? ' · ' + l.subcategoria : '') +
+            (conta ? ' · ' + conta.nome : '');
     }
 
     // A linha continua aqui, com o valor certo — ela só não entra no total
@@ -11357,7 +11710,7 @@
     // isso não é um defeito, é uma etapa que ainda não começou.
     var aporte = 0;
     lancamentosDoMes(ano, mes).forEach(function (l) {
-      if (l.tipo === 'saida' && l.categoria === 'Investimentos') aporte += l.valor;
+      if (l.tipo === 'saida' && ehAporte(l)) aporte += l.valor;
     });
     if (estado.ativos.length || aporte > 0) {
       var pctAporte = t.entradas > 0 ? (aporte / t.entradas) * 100 : 0;
@@ -12755,19 +13108,29 @@
     return i;
   }
 
-  function grupoChips(opcoes, selecionado, aoEscolher) {
+  // `aoAdicionar` põe um chip "+ Adicionar" no fim do grupo. Ele não é
+  // escolha: nunca fica marcado e não entra no rodízio do aria-pressed.
+  function grupoChips(opcoes, selecionado, aoEscolher, aoAdicionar) {
     var caixa = no('div', 'chips');
     caixa.setAttribute('role', 'group');
     opcoes.forEach(function (op) {
-      var c = botao('chip', op, function () {
+      var rotulo = typeof op === 'string' ? op : op.rotulo;
+      var valor = typeof op === 'string' ? op : op.valor;
+      var c = botao('chip', rotulo, function () {
         Array.prototype.forEach.call(caixa.children, function (outro) {
+          if (outro.classList.contains('chip-mais')) return;
           outro.setAttribute('aria-pressed', outro === c ? 'true' : 'false');
         });
-        aoEscolher(op);
+        aoEscolher(valor);
       });
-      c.setAttribute('aria-pressed', op === selecionado ? 'true' : 'false');
+      c.setAttribute('aria-pressed', valor === selecionado ? 'true' : 'false');
       caixa.appendChild(c);
     });
+    if (aoAdicionar) {
+      var mais = botao('chip chip-mais', '+ Adicionar', aoAdicionar);
+      mais.setAttribute('aria-pressed', 'false');
+      caixa.appendChild(mais);
+    }
     return caixa;
   }
 
@@ -12792,15 +13155,20 @@
     var iguais = estado.lancamentos.filter(function (l) {
       return l.tipo === tipo && l.descricao && l.descricao.toLowerCase().trim() === texto;
     });
-    if (iguais.length) return iguais[iguais.length - 1].categoria;
+    if (iguais.length) {
+      var ultimo = iguais[iguais.length - 1];
+      return { categoria: ultimo.categoria, subcategoria: ultimo.subcategoria || '' };
+    }
 
     // 2) Palavras conhecidas
     for (var i = 0; i < PISTAS.length; i++) {
       var categoria = PISTAS[i][0];
       if (categoriasDe(tipo).indexOf(categoria) < 0) continue;
-      var palavras = PISTAS[i][1];
+      var palavras = PISTAS[i][2];
       for (var j = 0; j < palavras.length; j++) {
-        if (texto.indexOf(palavras[j]) >= 0) return categoria;
+        if (texto.indexOf(palavras[j]) >= 0) {
+          return { categoria: categoria, subcategoria: PISTAS[i][1] || '' };
+        }
       }
     }
     return null;
@@ -12819,6 +13187,7 @@
       valor: existente.valor,
       descricao: existente.descricao,
       categoria: existente.categoria,
+      subcategoria: existente.subcategoria || '',
       data: existente.data,
       contaId: existente.contaId || estado.contas[0].id,
       contaDestinoId: existente.contaDestinoId || ''
@@ -12827,6 +13196,7 @@
       valor: 0,
       descricao: '',
       categoria: 'Outros',
+      subcategoria: '',
       data: dataPadrao(),
       contaId: estado.contas[0].id,
       contaDestinoId: estado.contas.length > 1 ? estado.contas[1].id : ''
@@ -12847,7 +13217,10 @@
         var novo = coletar();
         novo.tipo = v;
         novo.categoriaTocada = categoriaTocada;
-        if (v !== 'transferencia' && categoriasDe(v).indexOf(novo.categoria) < 0) novo.categoria = 'Outros';
+        if (v !== 'transferencia' && categoriasDe(v).indexOf(novo.categoria) < 0) {
+          novo.categoria = 'Outros';
+          novo.subcategoria = '';
+        }
         abrirFolhaLancamento(id, novo);
       });
       forma.appendChild(tipos);
@@ -12860,22 +13233,74 @@
       forma.appendChild(campo('Descrição', campoDescricao));
 
       var caixaChips = null;
+      var caixaSub = null;
       if (dados.tipo !== 'transferencia') {
+        // Criar categoria abre outra folha por cima desta, então o que está
+        // digitado vai junto e volta preenchido — como já acontece ao
+        // trocar de tipo.
+        function comCategoriaNova() {
+          var novo = coletar();
+          novo.categoriaTocada = true;
+          criarCategoria(dados.tipo, function (nome) {
+            if (nome) { novo.categoria = nome; novo.subcategoria = ''; }
+            abrirFolhaLancamento(id, novo);
+          });
+        }
+
         caixaChips = grupoChips(categoriasDe(dados.tipo), dados.categoria, function (c) {
           dados.categoria = c;
+          dados.subcategoria = '';
           categoriaTocada = true;
-        });
+          pintarSubs();
+        }, comCategoriaNova);
         forma.appendChild(campo('Categoria', caixaChips));
+
+        caixaSub = no('div');
+        forma.appendChild(campo('Subcategoria', caixaSub));
+        pintarSubs();
 
         campoDescricao.addEventListener('input', function () {
           if (categoriaTocada) return;
           var sugerida = sugerirCategoria(campoDescricao.value, dados.tipo);
-          if (!sugerida || sugerida === dados.categoria) return;
-          dados.categoria = sugerida;
+          if (!sugerida || sugerida.categoria === dados.categoria) return;
+          dados.categoria = sugerida.categoria;
+          dados.subcategoria = sugerida.subcategoria || '';
           Array.prototype.forEach.call(caixaChips.children, function (chip) {
-            chip.setAttribute('aria-pressed', chip.textContent === sugerida ? 'true' : 'false');
+            if (chip.classList.contains('chip-mais')) return;
+            chip.setAttribute('aria-pressed', chip.textContent === sugerida.categoria ? 'true' : 'false');
           });
+          pintarSubs();
         });
+      }
+
+      function pintarSubs() {
+        if (!caixaSub) return;
+        caixaSub.textContent = '';
+        var subs = subcategoriasDe(dados.tipo, dados.categoria);
+        // "Nenhuma" primeiro, porque subcategoria é opcional e precisa ter
+        // como voltar atrás sem trocar de categoria.
+        var opcoes = [{ valor: '', rotulo: 'Nenhuma' }].concat(subs.map(function (sc) {
+          return { valor: sc, rotulo: sc };
+        }));
+        caixaSub.appendChild(grupoChips(opcoes, dados.subcategoria || '', function (sc) {
+          dados.subcategoria = sc;
+        }, function () {
+          var novo = coletar();
+          novo.categoriaTocada = true;
+          var alvo = dados.categoria;
+          abrirFolhaTexto('Nova subcategoria', 'Nome da subcategoria', '',
+            'Ex.: Pedágio, Frete, Curso',
+            function (nome) {
+              var lim = nome.trim().slice(0, 30);
+              if (lim && subcategoriasDe(dados.tipo, alvo).indexOf(lim) < 0) {
+                guardarSubcategoria(dados.tipo, alvo, lim);
+                salvar();
+              }
+              if (lim) novo.subcategoria = lim;
+              abrirFolhaLancamento(id, novo);
+            },
+            function () { abrirFolhaLancamento(id, novo); });
+        }));
       }
 
       var campoConta = entradaSelecao(opcoesDeConta(), dados.contaId);
@@ -12896,6 +13321,7 @@
           valor: digitosParaCentavos(campoValorEl.value),
           descricao: campoDescricao.value,
           categoria: dados.categoria,
+          subcategoria: dados.subcategoria || '',
           data: campoData.value,
           contaId: campoConta.value,
           contaDestinoId: campoDestino ? campoDestino.value : dados.contaDestinoId
@@ -12920,6 +13346,7 @@
           valor: valor,
           descricao: campoDescricao.value.trim(),
           categoria: dados.tipo === 'transferencia' ? 'Transferência' : dados.categoria,
+          subcategoria: dados.tipo === 'transferencia' ? '' : (dados.subcategoria || ''),
           data: campoData.value,
           contaId: campoConta.value,
           contaDestinoId: dados.tipo === 'transferencia' ? campoDestino.value : '',
@@ -16091,39 +16518,88 @@
     var SAIDA = /(enviad|pagament|pagto|compra|debito|saida|saque|tarifa|taxa|iof|juros|anuidade|boleto|fatura|transferencia enviada|ted enviad|doc enviad|cobranca|desconto|aplicacao)/;
     var ENTRADA = /(recebid|entrada|credito|salario|rendiment|deposito|estorno|resgate|reembolso|devolucao|transferencia recebida|ted recebid|doc recebid|provento|cashback|premio)/;
 
+    // [regex, categoria, subcategoria]
     var CATEGORIA_POR_PALAVRA = [
-      [/(\bposto|combustivel|gasolina|etanol|ipiranga|shell|petrobras|br distribuidora|ale combust)/, 'Combustível'],
-      [/(uber|99app|99 tecnologia|cabify|taxi|onibus|metro|passagem|estacionamento|pedagio|sem parar|conectcar)/, 'Transporte'],
-      [/(supermercado|\bmercado(?! ?(livre|pago|libre))|atacad|carrefour|assai|\bbig\b|zaffari|\bsuper(?!ior|vis|intend)|hortifrut|acougue|sacolao)/, 'Mercado'],
-      [/(restaurante|lanchonete|padaria|pizzar|burger|mc ?donalds|bk |subway|ifood|rappi|cafe|bar |churrasc)/, 'Alimentação'],
-      [/(farmacia|drogaria|droga ?raia|panvel|pague menos|hospital|clinica|laboratorio|unimed|amil|dentist|medic|psicolog)/, 'Saúde'],
-      [/(escola|colegio|faculdade|universidade|cesumar|uniasselvi|estacio|curso|udemy|alura|ensino superior|mensalidade escolar)/, 'Educação'],
-      [/(netflix|spotify|amazon prime|disney|hbo|max |globoplay|youtube premium|deezer|assinatura|apple.com|google ?one|microsoft)/, 'Assinaturas'],
-      [/(cinema|teatro|show|ingresso|steam|playstation|xbox|nintendo|viagem|hotel|pousada|airbnb|booking)/, 'Lazer'],
-      [/(aluguel|condominio|imobiliaria|energia|luz |cemig|copel|celesc|rge |cpfl|enel|agua|sanepar|corsan|sabesp|gas |internet|vivo|claro|tim |oi fixo|net )/, 'Moradia'],
-      [/(peca|auto ?peca|autopeca|latoari|latarias|demolidora|retifica|pneu|borracharia)/, 'Peças'],
-      [/(oficina|mecanic|funilaria|auto center|autocenter|garra auto|revisao)/, 'Manutenção'],
-      [/(ferramenta|parafuso|material de construcao|construcao|home center|leroy|telha norte)/, 'Ferramentas'],
-      [/(magalu|magazine|americanas|shopee|mercado ?livre|aliexpress|shein|amazon|casas bahia|renner|riachuelo)/, 'Casa'],
-      [/(imposto|darf|das |gps |inss|iptu|ipva|receita federal|prefeitura|detran|licenciamento)/, 'Impostos'],
-      [/(aplicacao|investiment|tesouro|cdb|lci|lca|corretora|xp |rico |clear|nuinvest|btg)/, 'Investimentos'],
-      [/(iof|tarifa|anuidade|juros|multa|encargo|cesta)/, 'Impostos']
+      [/(\bposto|combustivel|gasolina|etanol|ipiranga|shell|petrobras|br distribuidora|ale combust)/, 'Transporte', 'Combustível'],
+      [/(estacionamento|zona azul)/, 'Transporte', 'Estacionamento'],
+      [/(pedagio|sem parar|conectcar)/, 'Transporte', 'Pedágio'],
+      [/(uber|99app|99 tecnologia|cabify|taxi)/, 'Transporte', 'Aplicativo'],
+      [/(onibus|metro|passagem)/, 'Transporte', 'Ônibus e metrô'],
+      [/(supermercado|\bmercado(?! ?(livre|pago|libre))|atacad|carrefour|assai|\bbig\b|zaffari|\bsuper(?!ior|vis|intend)|hortifrut)/, 'Alimentação', 'Mercado'],
+      [/(acougue|sacolao)/, 'Alimentação', 'Açougue'],
+      [/(ifood|rappi)/, 'Alimentação', 'Delivery'],
+      [/(padaria)/, 'Alimentação', 'Padaria'],
+      [/(restaurante|lanchonete|pizzar|burger|mc ?donalds|bk |subway|churrasc)/, 'Alimentação', 'Restaurante'],
+      [/(cafe|bar )/, 'Alimentação', 'Café'],
+      [/(farmacia|drogaria|droga ?raia|panvel|pague menos)/, 'Saúde', 'Farmácia'],
+      [/(unimed|amil|plano de saude)/, 'Saúde', 'Plano de saúde'],
+      [/(dentist|odonto)/, 'Saúde', 'Dentista'],
+      [/(laboratorio|exame)/, 'Saúde', 'Exame'],
+      [/(hospital|clinica|medic|psicolog)/, 'Saúde', 'Consulta'],
+      [/(faculdade|universidade|cesumar|uniasselvi|estacio|ensino superior)/, 'Educação', 'Faculdade'],
+      [/(curso|udemy|alura)/, 'Educação', 'Curso'],
+      [/(escola|colegio|mensalidade escolar)/, 'Educação', 'Escola'],
+      [/(netflix|spotify|amazon prime|disney|hbo|max |globoplay|deezer)/, 'Lazer', 'Streaming'],
+      [/(assinatura|apple.com|google ?one|microsoft|youtube premium)/, 'Lazer', 'Assinaturas'],
+      [/(cinema|teatro|show|ingresso)/, 'Lazer', 'Cinema e shows'],
+      [/(steam|playstation|xbox|nintendo)/, 'Lazer', 'Jogos'],
+      [/(viagem|hotel|pousada|airbnb|booking)/, 'Lazer', 'Viagem'],
+      [/(aluguel|condominio|imobiliaria)/, 'Moradia', 'Aluguel'],
+      [/(energia|luz |cemig|copel|celesc|rge |cpfl|enel)/, 'Moradia', 'Luz'],
+      [/(agua|sanepar|corsan|sabesp)/, 'Moradia', 'Água'],
+      [/(internet|oi fixo|net )/, 'Moradia', 'Internet'],
+      [/(vivo|claro|tim |recarga)/, 'Moradia', 'Celular'],
+      [/(gas )/, 'Moradia', 'Gás'],
+      [/(magalu|magazine|americanas|shopee|mercado ?livre|aliexpress|shein|amazon|casas bahia)/, 'Moradia', 'Móveis e eletro'],
+      [/(renner|riachuelo)/, 'Pessoal', 'Roupas'],
+      [/(barbearia|barbeiro|salao)/, 'Pessoal', 'Barbearia e salão'],
+      [/(petshop|pet shop|veterinar)/, 'Pessoal', 'Pet'],
+      [/(peca|auto ?peca|autopeca|latoari|latarias|demolidora|retifica|pneu|borracharia)/, 'Negócio', 'Peças'],
+      [/(oficina|mecanic|funilaria|auto center|autocenter|garra auto|revisao)/, 'Transporte', 'Manutenção'],
+      [/(ferramenta|parafuso|material de construcao|construcao|home center|leroy|telha norte)/, 'Negócio', 'Ferramentas'],
+      [/(stone|pagseguro|sumup|cielo|getnet|maquininha)/, 'Negócio', 'Maquininha'],
+      [/(advogad|juridic|cartorio)/, 'Negócio', 'Custo jurídico'],
+      [/(contabil|contador)/, 'Negócio', 'Contador'],
+      [/(imposto|darf|das |receita federal)/, 'Impostos e taxas', 'Simples e DAS'],
+      [/(gps |inss)/, 'Impostos e taxas', 'INSS'],
+      [/(iptu)/, 'Moradia', 'IPTU'],
+      [/(ipva)/, 'Transporte', 'IPVA'],
+      [/(detran|licenciamento)/, 'Transporte', 'Licenciamento'],
+      [/(aplicacao|investiment|tesouro|cdb|lci|lca|corretora|xp |rico |clear|nuinvest|btg)/, 'Financeiro', 'Investimento'],
+      [/(pag(amento|to)? ?(de )?fatura|fatura cartao)/, 'Financeiro', 'Pagamento de fatura'],
+      [/(emprestimo)/, 'Financeiro', 'Empréstimo'],
+      [/(seguro)/, 'Financeiro', 'Seguro'],
+      [/(iof)/, 'Impostos e taxas', 'IOF'],
+      [/(anuidade)/, 'Impostos e taxas', 'Anuidade'],
+      [/(juros|cheque especial|limite da conta)/, 'Impostos e taxas', 'Juros'],
+      [/(multa|encargo|mora)/, 'Impostos e taxas', 'Multa e mora'],
+      [/(tarifa|cesta)/, 'Impostos e taxas', 'Tarifa bancária']
     ];
 
     var CATEGORIA_ENTRADA = [
-      [/(salario|folha|pagamento de salario|holerite|adiantamento|13o|ferias)/, 'Salário'],
-      [/(rendiment|juros|cashback|dividendo|provento|remuneracao de saldo|resgate)/, 'Rendimentos'],
-      [/(uber|99app|99 tecnologia)/, 'Uber'],
-      [/(oficina|mecanic|funilaria)/, 'Oficina'],
-      [/(freela|servico|prestacao)/, 'Serviços'],
-      [/(venda|pix recebido|transferencia recebida|ted recebid)/, 'Venda']
+      [/(salario|folha|pagamento de salario|holerite|adiantamento)/, 'Trabalho', 'Salário'],
+      [/(13o|decimo terceiro)/, 'Trabalho', '13º'],
+      [/(ferias)/, 'Trabalho', 'Férias'],
+      [/(rendiment|juros|remuneracao de saldo)/, 'Rendimentos', 'Juros'],
+      [/(dividendo|provento)/, 'Rendimentos', 'Dividendos'],
+      [/(cashback)/, 'Rendimentos', 'Cashback'],
+      [/(resgate)/, 'Rendimentos', 'Resgate'],
+      [/(estorno|reembolso|devolucao)/, 'Reembolsos', 'Estorno'],
+      [/(uber|99app|99 tecnologia)/, 'Aplicativos', 'Uber'],
+      [/(ifood)/, 'Aplicativos', 'iFood'],
+      [/(oficina|mecanic|funilaria)/, 'Serviços', 'Oficina'],
+      [/(freela)/, 'Serviços', 'Freela'],
+      [/(servico|prestacao|mao de obra)/, 'Serviços', 'Serviço prestado'],
+      [/(venda|pix recebido|transferencia recebida|ted recebid)/, 'Vendas', '']
     ];
 
     function categoriaDe(descricao, tipo) {
       var s = semAcento(descricao);
       var tabela = tipo === 'entrada' ? CATEGORIA_ENTRADA : CATEGORIA_POR_PALAVRA;
-      for (var i = 0; i < tabela.length; i++) if (tabela[i][0].test(s)) return tabela[i][1];
-      return tipo === 'entrada' ? 'Outros' : 'Outros';
+      for (var i = 0; i < tabela.length; i++) {
+        if (tabela[i][0].test(s)) return { categoria: tabela[i][1], subcategoria: tabela[i][2] || '' };
+      }
+      return { categoria: 'Outros', subcategoria: '' };
     }
 
     // Ano do cabeçalho: "Setembro 2025", "Período ... de 2025 até ... de 2026".
@@ -16141,8 +16617,12 @@
       itens.forEach(function (it) {
         // Numa fatura não existe coluna "Tipo": o que eu tirei era descrição.
         if (it.descricaoCheia) it.descricao = it.descricaoCheia.slice(0, 80);
-        if (it.credito) { it.tipo = 'entrada'; it.categoria = categoriaDe(it.descricao, 'entrada'); }
-        else if (!it.negativoNoTexto) { it.tipo = 'saida'; it.categoria = categoriaDe(it.descricao, 'saida'); }
+        if (it.credito || !it.negativoNoTexto) {
+          it.tipo = it.credito ? 'entrada' : 'saida';
+          var d = categoriaDe(it.descricao, it.tipo);
+          it.categoria = d.categoria;
+          it.subcategoria = d.subcategoria;
+        }
       });
       return itens;
     }
@@ -16219,9 +16699,10 @@
         if (!descricao) descricao = tipo === 'entrada' ? 'Entrada' : 'Saída';
 
         // A categoria sai do texto inteiro: a coluna de tipo também dá pista.
+        var achada = categoriaDe(textoCheio, tipo);
         itens.push({
           data: d.data, descricao: descricao.slice(0, 80), valor: v.valor, tipo: tipo,
-          categoria: categoriaDe(textoCheio, tipo),
+          categoria: achada.categoria, subcategoria: achada.subcategoria,
           descricaoCheia: textoCheio,
           negativoNoTexto: v.negativo || (marca && marca[1] === 'D'),
           credito: CREDITO_NA_FATURA.test(semAcento(textoCheio))
@@ -16272,8 +16753,9 @@
         if (!isFinite(n) || !n) return;
         var desc = campo('MEMO') || campo('NAME') || 'Lançamento';
         var tipo = n < 0 ? 'saida' : 'entrada';
+        var achadaOfx = categoriaDe(desc, tipo);
         itens.push({ data: data, descricao: desc.slice(0, 80), valor: Math.round(Math.abs(n) * 100),
-                     tipo: tipo, categoria: categoriaDe(desc, tipo),
+                     tipo: tipo, categoria: achadaOfx.categoria, subcategoria: achadaOfx.subcategoria,
                      negativoNoTexto: n < 0, credito: CREDITO_NA_FATURA.test(semAcento(desc)) });
       });
       var fatura = pareceFatura(texto, nomeArquivo);
@@ -16372,8 +16854,9 @@
         desc = arrumarDescricao(desc);
         if (!desc) desc = tipo === 'entrada' ? 'Entrada' : 'Saída';
 
+        var achadaPdf = categoriaDe(textoCheio || desc, tipo);
         itens.push({ data: data, descricao: desc.slice(0, 80), valor: valor.valor, tipo: tipo,
-                     categoria: categoriaDe(textoCheio || desc, tipo),
+                     categoria: achadaPdf.categoria, subcategoria: achadaPdf.subcategoria,
                      negativoNoTexto: negativo, credito: credito });
       });
 
@@ -17026,6 +17509,9 @@
     itens.forEach(function (it) {
       var jaSabe = regraDeCategoria(it.descricao);
       if (jaSabe && categoriasDe(it.tipo).indexOf(jaSabe) >= 0) {
+        // A regra só guarda a categoria de cima. Mudando de categoria, a
+        // subcategoria que o texto sugeriu não vale mais.
+        if (jaSabe !== it.categoria) it.subcategoria = '';
         it.categoria = jaSabe;
         it.veioDeRegra = true;
       }
@@ -17383,6 +17869,7 @@
         estado.lancamentos.push({
           id: novoId(), tipo: it.tipo, valor: it.valor,
           descricao: it.descricao, categoria: it.categoria,
+          subcategoria: it.subcategoria || '',
           data: it.data, contaId: contaId, contaDestinoId: '',
           importacaoId: importacaoId,
           criadoEm: agora + i

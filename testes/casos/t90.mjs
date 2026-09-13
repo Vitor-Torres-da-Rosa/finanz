@@ -95,10 +95,10 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 await fatia('Demais').click(); await page.waitForTimeout(1400);
 const demais = limpo(await page.textContent('#folha'));
 console.log('folha Demais:', demais.slice(0, 260));
-conferir('7. "Demais" soma R$ 180,00 (Educação + Impostos + Custo operacional)',
+conferir('7. "Demais" soma R$ 180,00 (Educação + Impostos e taxas + Negócio)',
   /R\$ 180,00/.test(demais), demais.slice(0, 60));
 conferir('8. diz que categorias juntou',
-  /Junta 3 categorias/.test(demais) && /Educação, Impostos, Custo operacional/.test(demais));
+  /Junta 3 categorias/.test(demais) && /Educação, Impostos e taxas, Negócio/.test(demais));
 conferir('9. traz os lançamentos das três',
   /Curso/.test(demais) && /DAS/.test(demais) && /Taxa/.test(demais));
 await page.screenshot({ path: dir+'/w02-demais.png', fullPage: true });

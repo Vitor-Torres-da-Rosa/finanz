@@ -24,6 +24,19 @@ No fim você me manda duas chaves e eu escrevo a sincronização.
 
 Vai aparecer um punhado de mensagens `NOTICE: ... does not exist, skipping`. **É normal** — o arquivo foi escrito para poder ser rodado de novo sem quebrar, então ele tenta apagar coisas que ainda não existem na primeira vez.
 
+### Projeto que já estava de pé
+
+O `schema.sql` é a foto de agora e pode ser rodado de novo por cima sem
+estragar nada. Se preferir aplicar só o que mudou, os arquivos
+`migracao-01.sql` … `migracao-05.sql` trazem cada leva em separado, na
+ordem do número. Rode os que ainda não rodou.
+
+A `migracao-05.sql` é a das categorias em dois andares: acrescenta a coluna
+`subcategoria` em `lancamentos` e cria a tabela `subcategorias_extras`.
+Enquanto ela não roda, o app continua funcionando e nada se perde — ele
+percebe que a coluna não existe, manda o resto e guarda a subcategoria no
+aparelho até a coluna aparecer.
+
 ### Conferindo se a segurança ficou de pé
 
 Rode esta consulta numa aba nova do SQL Editor:

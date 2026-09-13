@@ -17,7 +17,7 @@ declare
   t text;
   tabelas text[] := array[
     'contas', 'lancamentos', 'ativos', 'ativo_historico', 'metas',
-    'orcamentos', 'categorias_extras', 'clientes', 'servicos', 'pagamentos'
+    'orcamentos', 'categorias_extras', 'subcategorias_extras', 'clientes', 'servicos', 'pagamentos'
   ];
 begin
   -- Perfil: a chave é a própria id do usuário.
