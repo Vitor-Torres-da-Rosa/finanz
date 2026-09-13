@@ -38,7 +38,9 @@ console.log('tipos oferecidos numa conta:', tipos.join(', '));
 conferir('2. mas cartão de crédito não está entre eles: ele nasce do outro lado',
   !tipos.some(t => /Cartão de crédito/.test(t)), tipos.join(', '));
 await page.click('#escolhaRodape button:has-text("Cancelar")'); await page.waitForTimeout(700);
-await page.goBack(); await folhaFechou(); await page.waitForTimeout(1000);
+await page.click('#folha .campo:has-text("Banco") .selecao'); await page.waitForTimeout(800);
+await page.locator('#escolhaLista').getByText('C6 Bank', { exact: true }).click(); await page.waitForTimeout(900);
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(1500);
 
 // --- novo cartão: sem campo de tipo ---
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
@@ -48,28 +50,51 @@ conferir('3. a folha é a do cartão', /Novo cartão/.test(await page.textConten
 const campos = await visiveis();
 console.log('campos visíveis:', campos.join(' | '));
 conferir('4. não pergunta o tipo', !campos.some(t => /^Tipo$/.test(t.trim())), campos.join(' | '));
-conferir('5. pergunta os dois dias da fatura',
-  campos.some(t => /Fecha no dia/.test(t)) && campos.some(t => /Vence no dia/.test(t)));
+conferir('5. pergunta os dois dias da fatura e mostra o melhor dia de compra',
+  campos.some(t => /Fecha no dia/.test(t)) && campos.some(t => /Vence no dia/.test(t)) &&
+  campos.some(t => /Melhor dia de compra/.test(t)), campos.join(' | '));
+
+// --- no cartão, o banco só oferece os que a pessoa já usa ---
+await page.click('#folha .campo:has-text("Banco") .selecao'); await page.waitForTimeout(800);
+const bancos = await page.$$eval('#escolhaLista .escolha-item', ns => ns.map(x => x.textContent.replace(/[✓\s]+/g, ' ').trim()));
+console.log('bancos num cartão:', bancos.join(', '));
+conferir('5b. no cartão o banco começa só com os que eu já uso',
+  bancos.length === 3 && bancos.some(b => /Nenhum \/ outro/.test(b)) &&
+  bancos.some(b => /^C6 Bank$/.test(b)) && bancos.some(b => /Ver todos os bancos/.test(b)),
+  bancos.join(', '));
+
+// Mas não tranca: "Ver todos os bancos" abre a lista inteira.
+await page.locator('#escolhaLista').getByText('Ver todos os bancos', { exact: true }).click();
+await page.waitForTimeout(1100);
+const todos = await page.$$eval('#escolhaLista .escolha-item', ns => ns.map(x => x.textContent.replace(/[✓\s]+/g, ' ').trim()));
+console.log('depois de "ver todos":', todos.length, 'bancos');
+conferir('5c. "Ver todos os bancos" abre a lista inteira', todos.length > 5, String(todos.length));
+
+await page.click('#escolhaRodape button:has-text("Cancelar")'); await page.waitForTimeout(700);
 
 const nota = () => page.$$eval('#folha .linha-nota',
   ns => ns.filter(n => n.offsetParent !== null).map(n => n.textContent.replace(/\s+/g, ' ').trim()).join(' ~ '));
+const campoMelhor = () => page.textContent('#folha .melhor-dia').then(t => (t || '').replace(/\s+/g, ' ').trim());
 console.log('nota sem os dias:', await nota());
-conferir('6. sem o dia de fechamento, ela pede o dado em vez de inventar conta',
-  /melhor dia para comprar/.test(await nota()));
+conferir('6. sem o dia de fechamento, o campo diz do que depende em vez de inventar',
+  /Depende do dia de fechamento/.test(await campoMelhor()), await campoMelhor());
 
 await page.click('#folha .campo:has-text("Fecha no dia") .selecao'); await page.waitForTimeout(800);
 await page.locator('#escolhaLista').getByText('Dia 3', { exact: true }).click(); await page.waitForTimeout(900);
-console.log('nota só com o fechamento:', await nota());
-conferir('7. com o fechamento, já diz o melhor dia de compra',
-  /Melhor dia de compra: dia 4/.test(await nota()), await nota());
+console.log('campo só com o fechamento:', await campoMelhor());
+conferir('7. com o fechamento, o campo já mostra o dia 4',
+  /^Dia 4$/.test(await campoMelhor()), await campoMelhor());
 
 await page.click('#folha .campo:has-text("Vence no dia") .selecao'); await page.waitForTimeout(800);
 await page.locator('#escolhaLista').getByText('Dia 13', { exact: true }).click(); await page.waitForTimeout(900);
-const completa = await nota();
-console.log('nota completa:', completa);
-conferir('8. com os dois, diz a data e quantos dias você ganha',
-  /Melhor dia de compra: dia 4/.test(completa) && /\d+ dias depois/.test(completa), completa);
-const dias = +(completa.match(/(\d+) dias depois/) || [0, 0])[1];
+const completa = await campoMelhor();
+const explicacao = await nota();
+console.log('campo completo:', completa, '| nota:', explicacao);
+conferir('8. com os dois, o campo mostra o dia e o prazo, e a nota mostra a data',
+  /Dia 4/.test(completa) && /\d+ dias para pagar/.test(completa) &&
+  /a fatura só vence em \d{2}\/\d{2}\/\d{4}/.test(explicacao), completa + ' ~ ' + explicacao);
+// "Dia 4" e "39 dias" ficam colados no textContent; leio o pedaço certo.
+const dias = +(await page.textContent('#folha .melhor-dia-prazo')).replace(/\D/g, '');
 conferir('9. a conta bate: comprando dia 4, fecha dia 3 do mês seguinte e vence dia 13',
   dias >= 38 && dias <= 41, String(dias));
 await page.screenshot({ path: dir+'/s01-cartao.png', fullPage: true });

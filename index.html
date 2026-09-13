@@ -447,6 +447,12 @@
     font-size: 15px;
   }
   .entrada:focus { border-color: var(--ouro); }
+  .melhor-dia { display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    background: rgba(233,180,76,.07); border-color: rgba(233,180,76,.35); }
+  .melhor-dia.sem-conta { background: var(--cartao); border-color: var(--borda);
+    color: var(--fraco); font-size: 14px; }
+  .melhor-dia-num { color: var(--ouro); font-weight: 700; }
+  .melhor-dia-prazo { color: var(--suave); font-size: 12.5px; }
   input[type="date"].entrada { min-height: 47px; }
   ::placeholder { color: var(--fraco); }
 
@@ -1594,7 +1600,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.8.0';
+  var VERSAO = '5.8.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1603,6 +1609,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.8.1',
+      data: '2026-09-13',
+      itens: [
+        'O melhor dia de compra virou campo, do tamanho dos outros, em vez de ficar escondido num rodapé: "Dia 4 · 39 dias para pagar", logo abaixo do fechamento e do vencimento. Sem o dia de fechamento ele diz do que depende, em vez de sumir.',
+        'No cartão, a lista de bancos começa só com os que você já usa. Dezenas de nomes para achar um não ajudavam. "Ver todos os bancos" abre a lista inteira quando o cartão for de um banco onde você ainda não tem conta, e quem não tem conta nenhuma já vê a lista inteira.',
+        'Na conta, a lista de bancos continua inteira: é lá que um banco novo entra pela primeira vez.'
+      ]
+    },
     {
       versao: '5.8.0',
       data: '2026-09-13',
@@ -6828,6 +6843,25 @@
   // ---------- Cartões de crédito ----------
 
   function ehCartao(c) { return c && c.tipo === 'Cartão de crédito'; }
+
+  // Os bancos que já aparecem nas contas da pessoa, sem repetir. `manter` é
+  // a chave que precisa continuar na lista mesmo sem conta — o banco do
+  // cartão que está sendo editado —, senão o seletor cairia na primeira
+  // opção e trocaria o banco sozinho.
+  function bancosQueUso(manter) {
+    var vistos = {};
+    var lista = [];
+    function juntarBanco(chave) {
+      if (!chave || vistos[chave]) return;
+      var b = Extrato.bancoPorChave(chave);
+      if (!b) return;
+      vistos[chave] = true;
+      lista.push(b);
+    }
+    estado.contas.forEach(function (c) { juntarBanco(c.banco); });
+    juntarBanco(manter);
+    return lista;
+  }
 
   // O dia seguinte ao fechamento: uma compra feita nele entra na fatura que
   // só fecha um mês depois, então é a que demora mais para ser cobrada.
@@ -13477,6 +13511,7 @@
     var cor = existente ? existente.cor : CORES[estado.contas.length % CORES.length];
     var chaveBanco = existente ? (existente.banco || '') : '';
     var ehNovoCartao = !existente && nasceCartao;
+    var ehFolhaDeCartao = ehNovoCartao || (existente && ehCartao(existente));
 
     var titulo = existente ? (ehCartao(existente) ? 'Editar cartão' : 'Editar conta')
                            : (ehNovoCartao ? 'Novo cartão' : 'Nova conta');
@@ -13488,12 +13523,36 @@
       forma.appendChild(campo('Nome', campoNome));
 
       // Banco: escolher aqui já traz a cor e a marca.
+      //
+      // Num cartão a lista é só a dos bancos que a pessoa usa: o cartão vem
+      // de onde ela já tem conta, e a lista inteira do app são dezenas de
+      // nomes para achar um. Numa conta a lista continua inteira — é lá que
+      // um banco novo entra pela primeira vez.
+      function comoOpcoes(bancos) {
+        return [{ valor: '', rotulo: 'Nenhum / outro' }].concat(
+          bancos.map(function (b) { return { valor: b.chave, rotulo: b.nome }; }));
+      }
+
+      // Num cartão a lista começa curta: os bancos que a pessoa já usa. A
+      // lista inteira do app são dezenas de nomes para achar um.
+      //
+      // Ela não fica trancada nessa lista: "Ver todos os bancos" abre a
+      // lista inteira. E quem ainda não tem conta nenhuma vê logo a lista
+      // inteira, senão o primeiro cartão de um app novo nasceria sem banco
+      // — sem cor, sem marca e sem casar com o extrato importado.
+      var meusBancos = bancosQueUso(chaveBanco);
+      var listaCurta = ehFolhaDeCartao && meusBancos.length > 0;
+      var opcoesBanco = comoOpcoes(listaCurta ? meusBancos : Extrato.listaDeBancos());
+      if (listaCurta) opcoesBanco.push({ valor: '__todos', rotulo: 'Ver todos os bancos' });
+
       var linhaBanco = no('div', 'linha-dupla-campo');
-      var campoBanco = entradaSelecao(
-        [{ valor: '', rotulo: 'Nenhum / outro' }].concat(
-          Extrato.listaDeBancos().map(function (b) { return { valor: b.chave, rotulo: b.nome }; })),
-        chaveBanco, 'De qual banco?');
+      var campoBanco = entradaSelecao(opcoesBanco, chaveBanco, 'De qual banco?');
       campoBanco.aoMudar = function (v) {
+        if (v === '__todos') {
+          campoBanco.trocarOpcoes(comoOpcoes(Extrato.listaDeBancos()), chaveBanco);
+          campoBanco.click();
+          return;
+        }
         chaveBanco = v;
         var b = v ? Extrato.bancoPorChave(v) : null;
         if (b) {
@@ -13538,36 +13597,48 @@
       caixaDias.appendChild(campo('Fecha no dia', campoFecha));
       caixaDias.appendChild(campo('Vence no dia', campoVence));
       forma.appendChild(caixaDias);
+      // Os dois dias que o banco informa dizem uma terceira coisa, e é essa
+      // que a pessoa usa: em que dia comprar para pagar o mais tarde
+      // possível. Fica como campo, do tamanho dos outros, porque é a
+      // resposta que ela vem buscar aqui — não um rodapé.
+      var valorMelhor = no('div', 'entrada melhor-dia');
+      var caixaMelhor = campo('Melhor dia de compra', valorMelhor);
+      forma.appendChild(caixaMelhor);
+
       var notaCartao = no('div', 'linha-nota');
       notaCartao.style.marginTop = '-8px';
       notaCartao.style.marginBottom = '14px';
       forma.appendChild(notaCartao);
 
-      // Os dois dias que o banco informa dizem uma terceira coisa, que é a
-      // que a pessoa usa no dia a dia: em que dia comprar para pagar o mais
-      // tarde possível. É a conta que todo mundo faz de cabeça e erra.
       function pintarNotaCartao() {
         notaCartao.textContent = '';
+        valorMelhor.textContent = '';
         var fecha = comoNumero(campoFecha.value, 0);
         var vence = comoNumero(campoVence.value, 0);
+
         if (!fecha) {
+          valorMelhor.classList.add('sem-conta');
+          valorMelhor.textContent = 'Depende do dia de fechamento';
           notaCartao.appendChild(no('div', null,
-            'Diga o dia em que a fatura fecha e eu separo os gastos por fatura — e digo o melhor dia para comprar. Sem ele, uso o mês do lançamento.'));
+            'Diga o dia em que a fatura fecha e eu digo o melhor dia para comprar. ' +
+            'Ele também separa os gastos por fatura; sem ele, uso o mês do lançamento.'));
           return;
         }
+
+        valorMelhor.classList.remove('sem-conta');
         var melhor = melhorDiaDeCompra(fecha);
-        var linha = 'Melhor dia de compra: dia ' + melhor + '.';
+        valorMelhor.appendChild(no('span', 'melhor-dia-num', 'Dia ' + melhor));
         if (vence) {
           var conta = prazoDaCompra(fecha, vence);
-          linha += ' Comprando nele, a fatura só vence em ' + dataBr(conta.vence) +
-                   ' — ' + conta.dias + ' dias depois.';
+          valorMelhor.appendChild(no('span', 'melhor-dia-prazo', conta.dias + ' dias para pagar'));
+          notaCartao.appendChild(no('div', 'ouro',
+            'Comprando no dia ' + melhor + ', a fatura só vence em ' + dataBr(conta.vence) + '.'));
         } else {
-          linha += ' Diga também o dia do vencimento e eu mostro quantos dias você ganha.';
+          notaCartao.appendChild(no('div', 'ouro',
+            'Diga também o dia do vencimento e eu mostro quantos dias você ganha.'));
         }
-        notaCartao.appendChild(no('div', 'ouro', linha));
         notaCartao.appendChild(no('div', null,
-          'O pior é o dia ' + fecha + ': a fatura fecha no mesmo dia, e a cobrança chega quase um mês antes. ' +
-          'Com o dia de fechamento eu também separo os gastos por fatura.'));
+          'O pior é o dia ' + fecha + ': a fatura fecha no mesmo dia, e a cobrança chega quase um mês antes.'));
       }
       campoFecha.aoMudar = pintarNotaCartao;
       campoVence.aoMudar = pintarNotaCartao;
@@ -13576,6 +13647,7 @@
       function mostrarCamposDeCartao() {
         var cartao = campoTipo.value === 'Cartão de crédito';
         caixaDias.hidden = !cartao;
+        caixaMelhor.hidden = !cartao;
         notaCartao.hidden = !cartao;
         nota.hidden = cartao;
         caixaSaldo.hidden = cartao;
