@@ -1600,7 +1600,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.0';
+  var VERSAO = '5.9.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1609,6 +1609,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.1',
+      data: '2026-09-20',
+      itens: [
+        'Em Transações, o "Saldo do período" agora soma o que está na tela. Com um filtro ou uma busca ligados, o mesmo cartão dizia 35 lançamentos e somava os milhares que estavam fora deles — os dois números não tinham nada a ver um com o outro.',
+        'Filtrando "Receitas", as saídas do resumo vão a zero; buscando "Mercado", ele soma só o que a busca achou.',
+        'E o rodapé diz o que está sendo somado: "De 01/09 a 30/09. Somando só o que está nesta lista: só receitas."'
+      ]
+    },
     {
       versao: '5.9.0',
       data: '2026-09-13',
@@ -10569,8 +10578,15 @@
       alvo.appendChild(cartaoDia);
     });
 
-    var totais = totaisNaFaixa(faixa);
+    // O resumo soma o que está na tela, não o período inteiro.
+    //
+    // Antes, "Lançamentos" vinha da lista filtrada e "Entradas"/"Saídas"
+    // vinham do período cru. Com um filtro ou uma busca ligados, o mesmo
+    // cartão dizia 35 lançamentos e somava os milhares que estavam fora
+    // dele — um número não tinha nada a ver com o outro.
+    var totais = totaisDaLista(itens);
     var entradas = totais.entradas, saidas = totais.saidas, saldo = totais.saldo;
+    var recortado = filtroTransacoes !== 'todas' || !!termo;
 
     var resumo = cartao();
     resumo.style.marginTop = '16px';
@@ -10600,7 +10616,19 @@
       resumo.appendChild(notaFat);
     }
     resumo.appendChild(gradeResumo);
-    resumo.appendChild(no('div', 'linha-nota', 'De ' + dataBr(faixa.de) + ' a ' + dataBr(faixa.ate) + '.'));
+    var rodape = 'De ' + dataBr(faixa.de) + ' a ' + dataBr(faixa.ate) + '.';
+    // Com filtro ou busca ligados, dizer só o período faria pensar que a
+    // soma é de tudo o que aconteceu nele.
+    if (recortado) {
+      var recorte = [];
+      if (filtroTransacoes !== 'todas') {
+        recorte.push({ entrada: 'só receitas', saida: 'só despesas',
+                       transferencia: 'só transferências' }[filtroTransacoes] || 'filtrado');
+      }
+      if (termo) recorte.push('busca por "' + buscaTransacoes.trim() + '"');
+      rodape += ' Somando só o que está nesta lista: ' + recorte.join(' e ') + '.';
+    }
+    resumo.appendChild(no('div', 'linha-nota', rodape));
     alvo.appendChild(resumo);
   }
 
