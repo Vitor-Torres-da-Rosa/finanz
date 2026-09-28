@@ -447,6 +447,12 @@
     font-size: 15px;
   }
   .entrada:focus { border-color: var(--ouro); }
+  .melhor-dia { display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    background: rgba(233,180,76,.07); border-color: rgba(233,180,76,.35); }
+  .melhor-dia.sem-conta { background: var(--cartao); border-color: var(--borda);
+    color: var(--fraco); font-size: 14px; }
+  .melhor-dia-num { color: var(--ouro); font-weight: 700; }
+  .melhor-dia-prazo { color: var(--suave); font-size: 12.5px; }
   input[type="date"].entrada { min-height: 47px; }
   ::placeholder { color: var(--fraco); }
 
@@ -1267,6 +1273,11 @@
   }
 
   .sociais-linha { display: flex; flex-direction: column; gap: 10px; }
+  .ent-aviso { margin: 20px 0 0; padding: 14px 16px; border-radius: 14px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--borda);
+    color: var(--suave); font-size: 13px; line-height: 1.45;
+    display: flex; flex-direction: column; gap: 7px; }
+  .ent-aviso-motivo { color: var(--ouro); font-size: 12.5px; word-break: break-word; }
   .social {
     position: relative;
     width: 100%;
@@ -1594,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.7.0';
+  var VERSAO = '5.9.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1603,6 +1614,55 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.1',
+      data: '2026-09-20',
+      itens: [
+        'Em Transações, o "Saldo do período" agora soma o que está na tela. Com um filtro ou uma busca ligados, o mesmo cartão dizia 35 lançamentos e somava os milhares que estavam fora deles — os dois números não tinham nada a ver um com o outro.',
+        'Filtrando "Receitas", as saídas do resumo vão a zero; buscando "Mercado", ele soma só o que a busca achou.',
+        'E o rodapé diz o que está sendo somado: "De 01/09 a 30/09. Somando só o que está nesta lista: só receitas."'
+      ]
+    },
+    {
+      versao: '5.9.0',
+      data: '2026-09-13',
+      itens: [
+        'O cartão passou a ter limite. Na tela do cartão aparece a barra: "R$ 1.200,00 de R$ 5.000,00 · R$ 3.800,00 livre nesta fatura", em verde, ouro ou vermelho conforme aperta. Na lista de cartões, a linha diz a porcentagem do limite que a fatura em aberto já ocupa.',
+        'A conta é só da fatura em aberto, e a tela diz isso. Pagamento de fatura sai da conta corrente, não do cartão, então o app não tem como saber qual fatura fechada já foi paga — prometer um "disponível" exato seria chute.',
+        'Cartão sem gasto nenhum agora tem o botão "Importar fatura" na tela, em vez de só um texto dizendo para importar. O de cima continua onde estava.',
+        'A folha do cartão deixou de perguntar a cor: ela vem da marca do banco. Em conta a cor continua sendo escolhida à mão.'
+      ]
+    },
+    {
+      versao: '5.8.2',
+      data: '2026-09-13',
+      itens: [
+        'O cartão passou a perguntar o melhor dia de compra, e não o dia de fechamento. É o que o aplicativo do banco mostra — muitos nem mostram o fechamento —, então é o dado que você tem na mão.',
+        'O dia em que a fatura fecha sai daí sozinho, e aparece logo abaixo junto com o prazo: melhor dia 4 e vencimento no 13 dão "Dia 3 · 39 dias para pagar".',
+        'O fechamento continua sendo o que separa os gastos por fatura aqui dentro; só deixou de ser perguntado. Cartão já cadastrado não muda de lugar: ele volta mostrando o melhor dia que corresponde ao fechamento guardado.'
+      ]
+    },
+    {
+      versao: '5.8.1',
+      data: '2026-09-13',
+      itens: [
+        'O melhor dia de compra virou campo, do tamanho dos outros, em vez de ficar escondido num rodapé: "Dia 4 · 39 dias para pagar", logo abaixo do fechamento e do vencimento. Sem o dia de fechamento ele diz do que depende, em vez de sumir.',
+        'No cartão, a lista de bancos começa só com os que você já usa. Dezenas de nomes para achar um não ajudavam. "Ver todos os bancos" abre a lista inteira quando o cartão for de um banco onde você ainda não tem conta, e quem não tem conta nenhuma já vê a lista inteira.',
+        'Na conta, a lista de bancos continua inteira: é lá que um banco novo entra pela primeira vez.'
+      ]
+    },
+    {
+      versao: '5.8.0',
+      data: '2026-09-13',
+      itens: [
+        'Na conferência de transferências entre contas, cada par mostra os dois lançamentos inteiros: o que saiu e o que entrou, cada um com a sua data, a sua conta e o que o banco escreveu. Só a descrição da saída deixava a decisão no escuro — dois lançamentos de R$ 100,00 com dias de diferença podem ser o mesmo dinheiro ou um saque e um depósito que nada têm a ver.',
+        'Na importação, a subcategoria aparece ao lado da categoria e dá para trocar do mesmo jeito: o app já chuta pelo texto ("OFICINA DO JOAO" vira Transporte · Manutenção) e onde ele não sabe, a etiqueta convida a escolher. Trocando a categoria, a subcategoria antiga não fica pendurada.',
+        'Novo cartão não pergunta mais o tipo: ele já nasce cartão de crédito. E "Nova conta" deixou de oferecer cartão, porque cartão nasce do outro lado.',
+        'O cartão agora diz o melhor dia de compra. Fechando no dia 3 e vencendo no dia 13: "Melhor dia de compra: dia 4. Comprando nele, a fatura só vence em 13/10 — 39 dias depois." E avisa qual é o pior dia.',
+        'Correção na sincronia: a tolerância a coluna que ainda não existe no servidor ficou presa a uma lista fechada. Antes, um erro qualquer que mencionasse o nome de um campo podia fazer o app reenviar sem aquele campo e apagar no servidor um dado que estava certo.',
+        'Juntar transferência exige as duas contas: sem elas, os dois lançamentos ficariam apagados e no lugar sobraria uma linha sem origem nem destino.'
+      ]
+    },
     {
       versao: '5.7.0',
       data: '2026-09-13',
@@ -2997,7 +3057,8 @@
           cor: /^#[0-9a-fA-F]{6}$/.test(c.cor) ? c.cor : CORES[0],
           banco: texto(c.banco).slice(0, 20),
           fechamento: Math.min(Math.max(inteiro(c.fechamento), 0), 31),
-          vencimento: Math.min(Math.max(inteiro(c.vencimento), 0), 31)
+          vencimento: Math.min(Math.max(inteiro(c.vencimento), 0), 31),
+          limite: Math.max(inteiro(c.limite), 0)
         };
       });
     }
@@ -3563,21 +3624,35 @@
     });
   }
 
+  // Para onde o Google devolve a pessoa depois do login. Esse endereço
+  // precisa estar, letra por letra, na lista de Redirect URLs do Supabase.
+  //
+  // Por isso ele é normalizado: abrindo o app por ".../finanz/index.html" o
+  // caminho saía diferente de ".../finanz/", que é o que o atalho da tela
+  // inicial usa. Mesma tela, dois endereços — e o Supabase recusava o que
+  // não estivesse na lista, com "requested path is invalid".
   function nuvemEnderecoRetorno() {
-    return location.origin + location.pathname;
+    return location.origin + location.pathname.replace(/index\.html?$/i, '');
   }
 
   // O servidor diz quais logins sociais estão ligados. Sem isso o app
   // mandaria a pessoa para uma página de erro em JSON.
   var provedoresLigados = null;
+  var falhaDosProvedores = '';
 
   function carregarProvedores() {
     if (!NUVEM.ligada || provedoresLigados) return;
     pedirNuvem('/auth/v1/settings', { token: false }).then(function (r) {
       var ext = (r && r.external) || {};
       provedoresLigados = { google: !!ext.google, apple: !!ext.apple, facebook: !!ext.facebook };
-    }).catch(function () {
+      falhaDosProvedores = '';
+    }).catch(function (e) {
       provedoresLigados = { google: false, apple: false, facebook: false };
+      // Sem guardar o motivo, o botão do Google simplesmente sumia da tela
+      // e não havia como saber se ele foi desligado no servidor ou se o
+      // servidor não respondeu — que é o que acontece com o projeto
+      // pausado. Desaparecer em silêncio é o pior dos dois.
+      falhaDosProvedores = (e && e.message) || 'o servidor não respondeu';
     }).then(function () {
       if (!$('entrada').classList.contains('escondida')) montarEntrada();
     });
@@ -3676,7 +3751,8 @@
       contas: estado.contas.map(function (c) {
         return { id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
                  saldo_inicial: c.saldoInicial, cor: c.cor, banco: c.banco || '',
-                 fechamento: c.fechamento || 0, vencimento: c.vencimento || 0 };
+                 fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
+                 limite: c.limite || 0 };
       }),
       lancamentos: estado.lancamentos.map(function (l) {
         return {
@@ -3787,7 +3863,7 @@
   // faria o app reenviar sem aquele campo e apagar no servidor um dado que
   // estava certo. Adivinhar a coluna pela mensagem é perigoso; uma lista
   // fechada não é.
-  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'] };
+  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'], contas: ['limite'] };
 
   function oQueFaltou(e, tabela) {
     var opcionais = COLUNAS_OPCIONAIS[tabela];
@@ -3968,7 +4044,8 @@
     novo.contas = (r.contas || []).map(function (c) {
       return { id: c.id, nome: c.nome, tipo: c.tipo, saldoInicial: c.saldo_inicial,
                cor: c.cor, banco: c.banco || '',
-               fechamento: c.fechamento || 0, vencimento: c.vencimento || 0 };
+               fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
+               limite: c.limite || 0 };
     });
 
     novo.lancamentos = (r.lancamentos || []).map(function (l) {
@@ -5186,6 +5263,12 @@
       if (provedoresLigados.apple) sociais.appendChild(botaoSocial('Continuar com Apple', logoApple(), 'apple'));
       if (provedoresLigados.facebook) sociais.appendChild(botaoSocial('Continuar com Facebook', logoFacebook(), 'facebook'));
       fundo.appendChild(sociais);
+    } else if (falhaDosProvedores) {
+      var aviso = no('p', 'ent-aviso');
+      aviso.appendChild(no('div', null, 'Não falei com o servidor, então o login com Google não aparece agora.'));
+      aviso.appendChild(no('div', 'ent-aviso-motivo', falhaDosProvedores));
+      aviso.appendChild(no('div', null, 'Entrar com e-mail e senha também depende dele. Sem internet ou com o servidor fora do ar, o app continua funcionando só neste aparelho.'));
+      fundo.appendChild(aviso);
     }
 
     var termos = no('p', 'termos');
@@ -6817,6 +6900,25 @@
 
   function ehCartao(c) { return c && c.tipo === 'Cartão de crédito'; }
 
+  // Os bancos que já aparecem nas contas da pessoa, sem repetir. `manter` é
+  // a chave que precisa continuar na lista mesmo sem conta — o banco do
+  // cartão que está sendo editado —, senão o seletor cairia na primeira
+  // opção e trocaria o banco sozinho.
+  function bancosQueUso(manter) {
+    var vistos = {};
+    var lista = [];
+    function juntarBanco(chave) {
+      if (!chave || vistos[chave]) return;
+      var b = Extrato.bancoPorChave(chave);
+      if (!b) return;
+      vistos[chave] = true;
+      lista.push(b);
+    }
+    estado.contas.forEach(function (c) { juntarBanco(c.banco); });
+    juntarBanco(manter);
+    return lista;
+  }
+
   // O dia seguinte ao fechamento: uma compra feita nele entra na fatura que
   // só fecha um mês depois, então é a que demora mais para ser cobrada.
   //
@@ -6825,6 +6927,14 @@
   function melhorDiaDeCompra(fechamento) {
     if (!fechamento) return 0;
     return fechamento >= 28 ? 1 : fechamento + 1;
+  }
+
+  // O caminho de volta. O app guarda o dia de fechamento, porque é ele que
+  // separa as compras por fatura; mas o que o banco mostra no aplicativo é
+  // o melhor dia de compra, e é esse que a pessoa tem na mão.
+  function fechamentoPeloMelhorDia(melhor) {
+    if (!melhor) return 0;
+    return melhor <= 1 ? 28 : melhor - 1;
   }
 
   // Comprando no melhor dia, quando essa compra é cobrada e quantos dias
@@ -6874,7 +6984,8 @@
         seloDeConta(cart),
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', cart.nome),
-          no('div', 'linha-sub', f.rotuloCurto)),
+          no('div', 'linha-sub', f.rotuloCurto +
+            (cart.limite > 0 ? ' · ' + Math.round(pct(Math.max(f.total - f.pago, 0), cart.limite)) + '% do limite' : ''))),
         juntar(no('div', 'linha-fim'),
           no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
       );
@@ -7031,6 +7142,26 @@
       if (aberta.pago) nota.push(emReais(aberta.pago) + ' já pago');
       if (nota.length) topo.appendChild(no('div', 'linha-nota', nota.join(' · ')));
 
+      // Quanto do limite a fatura em aberto já ocupa. Só a fatura em aberto:
+      // pagamento de fatura sai da conta corrente, não do cartão, então o
+      // app não sabe dizer qual fatura fechada foi paga. Prometer
+      // "disponível" seria chutar; isto aqui é o que dá para afirmar.
+      if (cart.limite > 0) {
+        topo.appendChild(no('div', 'rotulo', 'Limite'));
+        var usado = Math.max(aberta.total - aberta.pago, 0);
+        var livre = Math.max(cart.limite - usado, 0);
+        var quanto = pct(usado, cart.limite);
+        topo.appendChild(progresso(usado, cart.limite,
+          quanto > 90 ? 'var(--vermelho)' : quanto > 70 ? 'var(--ouro)' : 'var(--verde)'));
+        topo.appendChild(no('div', 'linha-nota',
+          emReais(usado) + ' de ' + emReais(cart.limite) + ' · ' +
+          emReais(livre) + ' livre nesta fatura'));
+        if (usado > cart.limite) {
+          topo.appendChild(no('div', 'linha-nota vermelho',
+            'A fatura em aberto já passou do limite em ' + emReais(usado - cart.limite) + '.'));
+        }
+      }
+
       var acoesTopo = no('div', 'duas');
       acoesTopo.style.marginTop = '14px';
       var importar = rotuloDeArquivo('arquivoExtrato', 'btn btn-fantasma');
@@ -7045,8 +7176,16 @@
 
       var todas = faturasDoCartao(id);
       if (!todas.length) {
-        folha.appendChild(estadoVazio('Sem gastos ainda',
-          'Importe a fatura do banco ou registre um gasto neste cartão.'));
+        var vazio = cartao('liso');
+        vazio.appendChild(estadoVazio('Sem gastos ainda',
+          'Importe a fatura do banco em PDF, OFX, CSV ou Excel, ou registre um gasto neste cartão.'));
+        // O texto sozinho não leva a lugar nenhum: aqui o botão abre o
+        // arquivo, igual ao de cima.
+        var importarVazio = rotuloDeArquivo('arquivoExtrato', 'btn btn-ouro');
+        importarVazio.textContent = 'Importar fatura';
+        importarVazio.style.margin = '0 16px 16px';
+        vazio.appendChild(importarVazio);
+        folha.appendChild(vazio);
         return;
       }
 
@@ -10464,8 +10603,15 @@
       alvo.appendChild(cartaoDia);
     });
 
-    var totais = totaisNaFaixa(faixa);
+    // O resumo soma o que está na tela, não o período inteiro.
+    //
+    // Antes, "Lançamentos" vinha da lista filtrada e "Entradas"/"Saídas"
+    // vinham do período cru. Com um filtro ou uma busca ligados, o mesmo
+    // cartão dizia 35 lançamentos e somava os milhares que estavam fora
+    // dele — um número não tinha nada a ver com o outro.
+    var totais = totaisDaLista(itens);
     var entradas = totais.entradas, saidas = totais.saidas, saldo = totais.saldo;
+    var recortado = filtroTransacoes !== 'todas' || !!termo;
 
     var resumo = cartao();
     resumo.style.marginTop = '16px';
@@ -10495,7 +10641,19 @@
       resumo.appendChild(notaFat);
     }
     resumo.appendChild(gradeResumo);
-    resumo.appendChild(no('div', 'linha-nota', 'De ' + dataBr(faixa.de) + ' a ' + dataBr(faixa.ate) + '.'));
+    var rodape = 'De ' + dataBr(faixa.de) + ' a ' + dataBr(faixa.ate) + '.';
+    // Com filtro ou busca ligados, dizer só o período faria pensar que a
+    // soma é de tudo o que aconteceu nele.
+    if (recortado) {
+      var recorte = [];
+      if (filtroTransacoes !== 'todas') {
+        recorte.push({ entrada: 'só receitas', saida: 'só despesas',
+                       transferencia: 'só transferências' }[filtroTransacoes] || 'filtrado');
+      }
+      if (termo) recorte.push('busca por "' + buscaTransacoes.trim() + '"');
+      rodape += ' Somando só o que está nesta lista: ' + recorte.join(' e ') + '.';
+    }
+    resumo.appendChild(no('div', 'linha-nota', rodape));
     alvo.appendChild(resumo);
   }
 
@@ -13465,6 +13623,7 @@
     var cor = existente ? existente.cor : CORES[estado.contas.length % CORES.length];
     var chaveBanco = existente ? (existente.banco || '') : '';
     var ehNovoCartao = !existente && nasceCartao;
+    var ehFolhaDeCartao = ehNovoCartao || (existente && ehCartao(existente));
 
     var titulo = existente ? (ehCartao(existente) ? 'Editar cartão' : 'Editar conta')
                            : (ehNovoCartao ? 'Novo cartão' : 'Nova conta');
@@ -13476,12 +13635,36 @@
       forma.appendChild(campo('Nome', campoNome));
 
       // Banco: escolher aqui já traz a cor e a marca.
+      //
+      // Num cartão a lista é só a dos bancos que a pessoa usa: o cartão vem
+      // de onde ela já tem conta, e a lista inteira do app são dezenas de
+      // nomes para achar um. Numa conta a lista continua inteira — é lá que
+      // um banco novo entra pela primeira vez.
+      function comoOpcoes(bancos) {
+        return [{ valor: '', rotulo: 'Nenhum / outro' }].concat(
+          bancos.map(function (b) { return { valor: b.chave, rotulo: b.nome }; }));
+      }
+
+      // Num cartão a lista começa curta: os bancos que a pessoa já usa. A
+      // lista inteira do app são dezenas de nomes para achar um.
+      //
+      // Ela não fica trancada nessa lista: "Ver todos os bancos" abre a
+      // lista inteira. E quem ainda não tem conta nenhuma vê logo a lista
+      // inteira, senão o primeiro cartão de um app novo nasceria sem banco
+      // — sem cor, sem marca e sem casar com o extrato importado.
+      var meusBancos = bancosQueUso(chaveBanco);
+      var listaCurta = ehFolhaDeCartao && meusBancos.length > 0;
+      var opcoesBanco = comoOpcoes(listaCurta ? meusBancos : Extrato.listaDeBancos());
+      if (listaCurta) opcoesBanco.push({ valor: '__todos', rotulo: 'Ver todos os bancos' });
+
       var linhaBanco = no('div', 'linha-dupla-campo');
-      var campoBanco = entradaSelecao(
-        [{ valor: '', rotulo: 'Nenhum / outro' }].concat(
-          Extrato.listaDeBancos().map(function (b) { return { valor: b.chave, rotulo: b.nome }; })),
-        chaveBanco, 'De qual banco?');
+      var campoBanco = entradaSelecao(opcoesBanco, chaveBanco, 'De qual banco?');
       campoBanco.aoMudar = function (v) {
+        if (v === '__todos') {
+          campoBanco.trocarOpcoes(comoOpcoes(Extrato.listaDeBancos()), chaveBanco);
+          campoBanco.click();
+          return;
+        }
         chaveBanco = v;
         var b = v ? Extrato.bancoPorChave(v) : null;
         if (b) {
@@ -13517,58 +13700,78 @@
       nota.style.marginBottom = '14px';
       forma.appendChild(nota);
 
-      // Fechamento e vencimento: só fazem sentido em cartão de crédito.
+      // Os dois dias do cartão, e só fazem sentido em cartão de crédito.
+      //
+      // Pergunto o melhor dia de compra, não o dia de fechamento: é o que o
+      // aplicativo do banco mostra, e muitos nem mostram o fechamento. O
+      // fechamento sai dele — é o dia anterior — e continua sendo o que
+      // separa as compras por fatura aqui dentro.
+      var fechaGuardado = existente && existente.fechamento ? existente.fechamento : 0;
       var caixaDias = no('div', 'duas');
-      var campoFecha = entradaSelecao(diasDoMes('Sem dia certo'),
-        String(existente && existente.fechamento ? existente.fechamento : ''), 'Fecha no dia');
+      var campoMelhor = entradaSelecao(diasDoMes('Sem dia certo'),
+        String(fechaGuardado ? melhorDiaDeCompra(fechaGuardado) : ''), 'Melhor dia de compra');
       var campoVence = entradaSelecao(diasDoMes('Sem dia certo'),
         String(existente && existente.vencimento ? existente.vencimento : ''), 'Vence no dia');
-      caixaDias.appendChild(campo('Fecha no dia', campoFecha));
+      caixaDias.appendChild(campo('Melhor dia de compra', campoMelhor));
       caixaDias.appendChild(campo('Vence no dia', campoVence));
       forma.appendChild(caixaDias);
+      // Dos dois dias sai o que a pessoa teria de descobrir sozinha: em que
+      // dia a fatura fecha, e quantos dias ela ganha comprando no melhor.
+      var valorMelhor = no('div', 'entrada melhor-dia');
+      var caixaMelhor = campo('A fatura fecha no dia', valorMelhor);
+      forma.appendChild(caixaMelhor);
+
       var notaCartao = no('div', 'linha-nota');
       notaCartao.style.marginTop = '-8px';
       notaCartao.style.marginBottom = '14px';
       forma.appendChild(notaCartao);
 
-      // Os dois dias que o banco informa dizem uma terceira coisa, que é a
-      // que a pessoa usa no dia a dia: em que dia comprar para pagar o mais
-      // tarde possível. É a conta que todo mundo faz de cabeça e erra.
       function pintarNotaCartao() {
         notaCartao.textContent = '';
-        var fecha = comoNumero(campoFecha.value, 0);
+        valorMelhor.textContent = '';
+        var melhor = comoNumero(campoMelhor.value, 0);
         var vence = comoNumero(campoVence.value, 0);
-        if (!fecha) {
+
+        if (!melhor) {
+          valorMelhor.classList.add('sem-conta');
+          valorMelhor.textContent = 'Depende do melhor dia de compra';
           notaCartao.appendChild(no('div', null,
-            'Diga o dia em que a fatura fecha e eu separo os gastos por fatura — e digo o melhor dia para comprar. Sem ele, uso o mês do lançamento.'));
+            'O melhor dia de compra é o que o aplicativo do banco mostra. Dele eu tiro o dia em que a fatura fecha, que é o que separa os gastos por fatura. Sem ele, uso o mês do lançamento.'));
           return;
         }
-        var melhor = melhorDiaDeCompra(fecha);
-        var linha = 'Melhor dia de compra: dia ' + melhor + '.';
+
+        var fecha = fechamentoPeloMelhorDia(melhor);
+        valorMelhor.classList.remove('sem-conta');
+        valorMelhor.appendChild(no('span', 'melhor-dia-num', 'Dia ' + fecha));
         if (vence) {
           var conta = prazoDaCompra(fecha, vence);
-          linha += ' Comprando nele, a fatura só vence em ' + dataBr(conta.vence) +
-                   ' — ' + conta.dias + ' dias depois.';
+          valorMelhor.appendChild(no('span', 'melhor-dia-prazo', conta.dias + ' dias para pagar'));
+          notaCartao.appendChild(no('div', 'ouro',
+            'Comprando no dia ' + melhor + ', a fatura só vence em ' + dataBr(conta.vence) + '.'));
         } else {
-          linha += ' Diga também o dia do vencimento e eu mostro quantos dias você ganha.';
+          notaCartao.appendChild(no('div', 'ouro',
+            'Diga também o dia do vencimento e eu mostro quantos dias você ganha.'));
         }
-        notaCartao.appendChild(no('div', 'ouro', linha));
         notaCartao.appendChild(no('div', null,
-          'O pior é o dia ' + fecha + ': a fatura fecha no mesmo dia, e a cobrança chega quase um mês antes. ' +
-          'Com o dia de fechamento eu também separo os gastos por fatura.'));
+          'O pior é o dia ' + fecha + ': a fatura fecha no mesmo dia, e a cobrança chega quase um mês antes.'));
       }
-      campoFecha.aoMudar = pintarNotaCartao;
+      campoMelhor.aoMudar = pintarNotaCartao;
       campoVence.aoMudar = pintarNotaCartao;
       pintarNotaCartao();
 
       function mostrarCamposDeCartao() {
         var cartao = campoTipo.value === 'Cartão de crédito';
         caixaDias.hidden = !cartao;
+        caixaMelhor.hidden = !cartao;
         notaCartao.hidden = !cartao;
         nota.hidden = cartao;
         caixaSaldo.hidden = cartao;
+        // Num cartão a cor vem da marca do banco, e escolher à mão só
+        // atrapalha; o limite, ao contrário, só existe em cartão.
+        caixaLimite.hidden = !cartao;
+        notaLimite.hidden = !cartao;
+        caixaCor.hidden = cartao;
       }
-      mostrarCamposDeCartao();
 
       var paleta = no('div', 'chips');
       function pintarPaleta() {
@@ -13593,7 +13796,21 @@
         });
       }
       pintarPaleta();
-      forma.appendChild(campo('Cor', paleta));
+      var caixaCor = campo('Cor', paleta);
+      forma.appendChild(caixaCor);
+
+      // O limite é o número que a pessoa olha no aplicativo do banco junto
+      // com a fatura: sem ele não dá para dizer quanto ainda cabe.
+      var campoLimite = entradaValor(existente ? (existente.limite || 0) : 0, false);
+      var caixaLimite = campo('Limite do cartão', campoLimite);
+      forma.appendChild(caixaLimite);
+      var notaLimite = no('div', 'linha-nota',
+        'Opcional. Com ele eu mostro quanto da fatura em aberto já ocupa o limite.');
+      notaLimite.style.marginTop = '-8px';
+      notaLimite.style.marginBottom = '14px';
+      forma.appendChild(notaLimite);
+
+      mostrarCamposDeCartao();
 
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
@@ -13601,7 +13818,7 @@
         if (!nome) { mostrarErro(forma, 'Dê um nome para a conta.'); return; }
 
         var cartaoAgora = campoTipo.value === 'Cartão de crédito';
-        var fecha = inteiro(campoFecha.value);
+        var fecha = fechamentoPeloMelhorDia(inteiro(campoMelhor.value));
         var vence = inteiro(campoVence.value);
 
         if (existente) {
@@ -13612,13 +13829,15 @@
           existente.banco = chaveBanco;
           existente.fechamento = cartaoAgora ? fecha : 0;
           existente.vencimento = cartaoAgora ? vence : 0;
+          existente.limite = cartaoAgora ? digitosParaCentavos(campoLimite.value) : 0;
         } else {
           estado.contas.push({
             id: novoId(), nome: nome, tipo: campoTipo.value,
             saldoInicial: cartaoAgora ? 0 : digitosParaCentavos(campoSaldo.value), cor: cor,
             banco: chaveBanco,
             fechamento: cartaoAgora ? fecha : 0,
-            vencimento: cartaoAgora ? vence : 0
+            vencimento: cartaoAgora ? vence : 0,
+            limite: cartaoAgora ? digitosParaCentavos(campoLimite.value) : 0
           });
         }
         salvar();

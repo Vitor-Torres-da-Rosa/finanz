@@ -70,11 +70,32 @@ Se alguma linha vier com `rls_ligada = false`, **pare e me avise**. Uma tabela s
 **Authentication** → **URL Configuration**:
 
 - **Site URL**: `https://vitor-torres-da-rosa.github.io/finanz/`
-- **Redirect URLs**: adicione as duas linhas
+- **Redirect URLs**: adicione as três linhas
   - `https://vitor-torres-da-rosa.github.io/finanz/`
+  - `https://vitor-torres-da-rosa.github.io/finanz/**`
   - `http://localhost:8811/` *(para eu conseguir testar aqui)*
 
-Sem isso o login com Google volta com erro de redirecionamento.
+Sem isso o login com Google volta com erro de redirecionamento
+(`requested path is invalid`).
+
+### Se o login com Google parar de funcionar
+
+Quase sempre é um destes quatro, nesta ordem:
+
+1. **Projeto pausado.** O Supabase gratuito pausa o projeto depois de uns
+   dias parado. Abra o painel: se aparecer um botão de restaurar, é isso —
+   nada no app precisa mudar. Enquanto está pausado, o login com Google e
+   o de e-mail e senha não funcionam, e o app avisa na tela de entrada.
+2. **O endereço do site mudou.** O repositório se chamava `caixa` e virou
+   `finanz`, e com isso o endereço do GitHub Pages mudou junto. O que está
+   aqui em cima é o de hoje; se não bater com o que está no painel, é essa
+   a causa.
+3. **Tela de permissão do Google em modo Teste.** Nesse modo só os e-mails
+   cadastrados como testadores entram, e o acesso vence sozinho depois de
+   uns dias. Para valer para sempre é preciso publicar o app na tela de
+   permissão OAuth.
+4. **Chave secreta do cliente trocada ou vencida** no Google Cloud. Gere
+   outra e cole de novo em Authentication → Providers → Google.
 
 ---
 
