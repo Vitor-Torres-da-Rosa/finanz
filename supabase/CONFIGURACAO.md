@@ -82,10 +82,21 @@ Sem isso o login com Google volta com erro de redirecionamento
 
 Quase sempre é um destes quatro, nesta ordem:
 
-1. **Projeto pausado.** O Supabase gratuito pausa o projeto depois de uns
-   dias parado. Abra o painel: se aparecer um botão de restaurar, é isso —
-   nada no app precisa mudar. Enquanto está pausado, o login com Google e
-   o de e-mail e senha não funcionam, e o app avisa na tela de entrada.
+1. **Projeto pausado.** É a causa mais comum, e já aconteceu uma vez
+   (03/10/2026). O Supabase gratuito pausa o projeto depois de **7 dias
+   sem nenhum pedido**, e manda um e-mail avisando. Pausado, o endereço
+   `<id>.supabase.co` deixa de existir no DNS: o navegador nem chega a ter
+   resposta, e o app mostra "não achei o servidor" na tela de entrada.
+
+   **Conserto:** abra o painel do Supabase e clique em restaurar. Volta com
+   o mesmo endereço e a mesma chave — nada no app precisa mudar. Dá para
+   restaurar em até 90 dias; depois disso os dados continuam disponíveis
+   para download, mas o projeto não volta.
+
+   **Para não repetir:** usar o app pelo menos uma vez por semana já conta
+   como atividade, porque toda sincronização é um pedido ao servidor. Quem
+   não quer depender disso tem duas saídas: o plano Pro, que não pausa, ou
+   um agendamento no GitHub Actions batendo no servidor uma vez por semana.
 2. **O endereço do site mudou.** O repositório se chamava `caixa` e virou
    `finanz`, e com isso o endereço do GitHub Pages mudou junto. O que está
    aqui em cima é o de hoje; se não bater com o que está no painel, é essa

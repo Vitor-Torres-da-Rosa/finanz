@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.2';
+  var VERSAO = '5.9.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.3',
+      data: '2026-10-03',
+      itens: [
+        '"Failed to fetch" saiu da tela. Esse é o recado cru do navegador quando o pedido nem chega a ter resposta, e ele não ajuda ninguém. Agora o app diz o que está acontecendo: sem internet no aparelho é uma coisa, servidor que não responde é outra — e nesse caso ele mostra o endereço configurado, que é o que você compara com o painel.',
+        'Vale também para o aviso de sincronização, que mostrava a mesma frase crua.'
+      ]
+    },
     {
       versao: '5.9.2',
       data: '2026-09-28',
@@ -3648,6 +3656,29 @@
   var provedoresLigados = null;
   var falhaDosProvedores = '';
 
+  // "Failed to fetch" é o que o navegador diz quando o pedido nem chegou a
+  // ter resposta: sem internet, servidor fora do ar ou endereço que não
+  // existe mais. Para quem está olhando a tela, essa frase não ajuda em
+  // nada — e as três causas têm conserto diferente.
+  //
+  // O aparelho sabe se tem internet. Com internet e sem resposta, o
+  // problema é do outro lado, e aí vale mostrar o endereço configurado:
+  // é ele que a pessoa compara com o painel do Supabase.
+  function motivoDaFalhaDeRede(e) {
+    var msg = String((e && e.message) || '');
+    if (!/failed to fetch|networkerror|load failed|network request failed/i.test(msg)) {
+      return msg || 'o servidor não respondeu';
+    }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return 'Este aparelho está sem internet.';
+    }
+    var onde = '';
+    try { onde = new URL(NUVEM.url).host; } catch (erro) { onde = NUVEM.url || ''; }
+    return 'Este aparelho tem internet, mas não achei o servidor' +
+      (onde ? ' (' + onde + ')' : '') +
+      '. Ele pode estar fora do ar, pausado, ou o endereço pode ter mudado.';
+  }
+
   function carregarProvedores() {
     if (!NUVEM.ligada || provedoresLigados) return;
     pedirNuvem('/auth/v1/settings', { token: false }).then(function (r) {
@@ -3660,7 +3691,7 @@
       // e não havia como saber se ele foi desligado no servidor ou se o
       // servidor não respondeu — que é o que acontece com o projeto
       // pausado. Desaparecer em silêncio é o pior dos dois.
-      falhaDosProvedores = (e && e.message) || 'o servidor não respondeu';
+      falhaDosProvedores = motivoDaFalhaDeRede(e);
     }).then(function () {
       if (!$('entrada').classList.contains('escondida')) montarEntrada();
     });
@@ -4162,7 +4193,7 @@
   function marcarFalhaDeSincronia(e) {
     var seguidas = (falhaDaSincronia ? falhaDaSincronia.seguidas : 0) + 1;
     falhaDaSincronia = {
-      mensagem: (e && e.message) || 'motivo desconhecido',
+      mensagem: motivoDaFalhaDeRede(e) || 'motivo desconhecido',
       quando: Date.now(), seguidas: seguidas
     };
     return falhaDaSincronia;

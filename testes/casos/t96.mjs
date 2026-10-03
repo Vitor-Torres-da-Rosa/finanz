@@ -48,6 +48,11 @@ const entrada = limpo(await page.textContent('#entrada'));
 console.log('entrada:', entrada.slice(-320));
 conferir('2. sem resposta do servidor, ele diz que não falou com o servidor',
   /Não falei com o servidor/.test(entrada), entrada.slice(-160));
+// "Failed to fetch" não diz nada para quem está olhando a tela.
+conferir('2b. e traduz o erro cru do navegador, nomeando o servidor',
+  !/Failed to fetch/.test(entrada) &&
+  /não achei o servidor/.test(entrada) && /127\.0\.0\.1|localhost/.test(entrada),
+  (entrada.match(/tem internet.{0,90}/) || ['?'])[0]);
 conferir('3. e diz que o e-mail e senha dependem dele também',
   /Entrar com e-mail e senha também depende dele/.test(entrada));
 conferir('4. o botão do Google não fica lá prometendo o que não funciona',

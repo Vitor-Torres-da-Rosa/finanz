@@ -212,7 +212,8 @@ conferir('19. cada mês do histórico vem colorido pelo sinal',
   cores.length >= 3 && cores.some(c => /verde/.test(c)) && cores.some(c => /vermelho/.test(c)),
   cores.join(' | '));
 conferir('20. o mês negativo aparece com o valor, não como zero',
-  /jul −R\$ 300,00/.test(mais), (mais.match(/Últimos meses:.{0,70}/) || [''])[0]);
+  /\w+ −R\$ 300,00/.test(mais) && !/\w+ R\$ 0,00/.test(mais),
+  (mais.match(/Últimos meses:.{0,70}/) || [''])[0]);
 await page.screenshot({ path: dir+'/u14-meta.png', fullPage: true });
 
 await browser.close();
