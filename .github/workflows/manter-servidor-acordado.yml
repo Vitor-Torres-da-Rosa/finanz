@@ -1,0 +1,91 @@
+# Mantém o projeto do Supabase acordado.
+#
+# O plano gratuito pausa o projeto depois de 7 dias sem nenhum pedido. Em
+# 03/10/2026 isso aconteceu: o endereço sumiu do DNS e o app ficou sem
+# login e sem sincronização até alguém restaurar na mão.
+#
+# Este agendamento faz um pedido por dia. É de graça, não precisa de senha
+# nenhuma e não guarda nada: ele lê o endereço e a chave pública do
+# próprio config.js, que já estão no repositório e são públicos por
+# natureza — quem protege os dados é o RLS do banco, não o sigilo delas.
+#
+# Se o servidor não responder, o passo falha de propósito: o GitHub manda
+# um e-mail, e você fica sabendo no mesmo dia em vez de descobrir quando
+# for usar o app.
+
+name: Manter o servidor acordado
+
+on:
+  schedule:
+    # Todo dia às 11:00 UTC (8:00 em Brasília). Sete dias é o limite; um
+    # dia dá folga de sobra para uma falha isolada não virar pausa.
+    - cron: '0 11 * * *'
+  # Para rodar na hora, pelo botão, sem esperar o horário.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acordar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pegar o endereço e a chave pública do config.js
+        uses: actions/checkout@v4
+
+      - name: Bater no servidor
+        run: |
+          set -u
+
+          URL=$(grep -oE "supabaseUrl: *'[^']+'" config.js | head -1 | cut -d"'" -f2)
+          CHAVE=$(grep -oE "supabaseAnonKey: *'[^']+'" config.js | head -1 | cut -d"'" -f2)
+
+          if [ -z "$URL" ] || [ -z "$CHAVE" ]; then
+            echo "Não achei supabaseUrl ou supabaseAnonKey no config.js."
+            exit 1
+          fi
+          echo "Servidor: $URL"
+
+          # Duas batidas, porque elas provam coisas diferentes:
+          #
+          # 1) /auth/v1/health responde sem chave e diz que o serviço de
+          #    login está de pé.
+          # 2) a consulta no PostgREST encosta no Postgres de verdade, que
+          #    é o que conta como atividade do banco. Com a chave pública e
+          #    sem login, o RLS devolve lista vazia — e é isso mesmo: o que
+          #    importa é a consulta ter rodado, não trazer dado.
+          FALHOU=0
+
+          # O curl escreve o %{http_code} uma vez por tentativa, então com
+          # repetição saía "000000"; e o arquivo de saída fica com o corpo
+          # da chamada anterior quando a conexão nem abre. Daí o tail e o
+          # esvaziar antes.
+          bater() {
+            : > /tmp/corpo.txt
+            curl -sS -o /tmp/corpo.txt -w '%{http_code}' --max-time 30 \
+              --retry 2 --retry-delay 5 --retry-all-errors "$@" | tail -c 3
+          }
+
+          echo "--- /auth/v1/health"
+          CODIGO=$(bater "$URL/auth/v1/health" || echo "000")
+          echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/corpo.txt; echo
+          case "$CODIGO" in 2*) ;; *) FALHOU=1 ;; esac
+
+          echo "--- /rest/v1/perfis"
+          CODIGO=$(bater -H "apikey: $CHAVE" -H "Authorization: Bearer $CHAVE" \
+            "$URL/rest/v1/perfis?select=id&limit=1" || echo "000")
+          echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/corpo.txt; echo
+          # 200 (lista vazia pelo RLS) e 401 (RLS barrou) valem igual: as
+          # duas significam que o servidor está de pé e respondeu.
+          case "$CODIGO" in 2*|401) ;; *) FALHOU=1 ;; esac
+
+          if [ "$FALHOU" = "1" ]; then
+            echo
+            echo "O servidor não respondeu como esperado."
+            echo "Quase sempre é o projeto pausado: abra o painel do Supabase e restaure."
+            echo "O passo a passo está em supabase/CONFIGURACAO.md."
+            exit 1
+          fi
+
+          echo
+          echo "Servidor acordado."

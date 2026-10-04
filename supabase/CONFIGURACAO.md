@@ -93,10 +93,17 @@ Quase sempre é um destes quatro, nesta ordem:
    restaurar em até 90 dias; depois disso os dados continuam disponíveis
    para download, mas o projeto não volta.
 
-   **Para não repetir:** usar o app pelo menos uma vez por semana já conta
-   como atividade, porque toda sincronização é um pedido ao servidor. Quem
-   não quer depender disso tem duas saídas: o plano Pro, que não pausa, ou
-   um agendamento no GitHub Actions batendo no servidor uma vez por semana.
+   **Para não repetir:** já existe um agendamento no GitHub Actions que
+   bate no servidor todo dia às 8:00 de Brasília —
+   `.github/workflows/manter-servidor-acordado.yml`. Ele é de graça, não
+   precisa de senha nenhuma (lê o endereço e a chave pública do próprio
+   `config.js`) e, se o servidor não responder, o passo falha de propósito
+   para o GitHub mandar um e-mail no mesmo dia.
+
+   Dois detalhes do GitHub que vale saber: agendamento só roda a partir da
+   branch padrão, e o GitHub desliga agendamentos de repositório que fica
+   60 dias sem nenhuma atividade — avisando por e-mail antes. Qualquer
+   commit zera essa contagem.
 2. **O endereço do site mudou.** O repositório se chamava `caixa` e virou
    `finanz`, e com isso o endereço do GitHub Pages mudou junto. O que está
    aqui em cima é o de hoje; se não bater com o que está no painel, é essa
