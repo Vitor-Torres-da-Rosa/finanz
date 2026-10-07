@@ -24,12 +24,19 @@ No fim você me manda duas chaves e eu escrevo a sincronização.
 
 Vai aparecer um punhado de mensagens `NOTICE: ... does not exist, skipping`. **É normal** — o arquivo foi escrito para poder ser rodado de novo sem quebrar, então ele tenta apagar coisas que ainda não existem na primeira vez.
 
-### Projeto que já estava de pé
+### Um arquivo só
 
-O `schema.sql` é a foto de agora e pode ser rodado de novo por cima sem
-estragar nada. Se preferir aplicar só o que mudou, os arquivos
-`migracao-01.sql` … `migracao-06.sql` trazem cada leva em separado, na
-ordem do número. Rode os que ainda não rodou.
+O `schema.sql` é a foto de agora: num projeto novo ele cria tudo — tabelas,
+colunas, índices, RLS e gatilhos — e **não precisa de mais nenhum arquivo**.
+Conferido em 07/10/2026 contra um banco zerado: 144 colunas nas 13 tabelas,
+idêntico a um banco que tivesse rodado o schema mais as seis migrações, com
+RLS ligada em todas. A suíte inteira (57 testes) passou contra ele.
+
+Ele também pode ser rodado de novo por cima de um projeto que já existe,
+sem estragar nada.
+
+As `migracao-01.sql` … `migracao-06.sql` servem só para quem quer aplicar
+leva por leva num projeto antigo. Quem está começando pode ignorá-las.
 
 A `migracao-05.sql` é a das categorias em dois andares: acrescenta a coluna
 `subcategoria` em `lancamentos` e cria a tabela `subcategorias_extras`.
@@ -64,6 +71,35 @@ lancamentos, metas, orcamentos, pagamentos, perfis, servicos
 Se alguma linha vier com `rls_ligada = false`, **pare e me avise**. Uma tabela sem RLS fica legível por qualquer pessoa que tenha a chave pública — que é justamente o erro mais comum de quem usa Supabase.
 
 ---
+
+## 2b. Trocar de projeto (quando o antigo não volta)
+
+Projeto pausado que não restaura é caso de suporte do Supabase. Se não der
+para esperar, dá para subir outro do zero sem perder nada, porque o
+aparelho guarda a base inteira.
+
+A ordem importa:
+
+1. **Backup primeiro.** No app: **Mais → 💾 Fazer backup (JSON)**. Se não
+   conseguir entrar, a tela de entrada tem **"Abrir os dados deste
+   aparelho"**, que abre o cofre local sem servidor nenhum. O arquivo leva
+   tudo, Empreendedor incluído: clientes, registros, parcelas, pagamentos e
+   orçamentos.
+2. **Projeto novo** no Supabase, em <https://supabase.com/dashboard>. Nome
+   livre, região São Paulo, e **anote a senha do banco** num gerenciador —
+   ela não é usada pelo app e não deve ser compartilhada com ninguém.
+3. **Rode o `schema.sql`** no SQL Editor. Um arquivo só.
+4. **Endereços** (seção 3 aqui embaixo) e **login com Google** (seção 4),
+   agora com a *callback* do projeto novo.
+5. **Troque o `config.js`** com a URL e a chave publicável do projeto novo.
+   Essas duas são públicas por natureza. A `service_role` / `sb_secret_` e
+   a senha do banco **nunca** entram no repositório nem numa conversa.
+6. **Entre na conta** pelo app e espere a sincronização. Se a base local
+   tiver ficado para trás, use **Mais → Restaurar backup** com o arquivo do
+   passo 1.
+7. **Rode o agendamento** uma vez pelo botão, em **Actions → Manter o
+   servidor acordado → Run workflow**, para confirmar que ele alcança o
+   projeto novo.
 
 ## 3. Endereços do aplicativo
 
