@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.3';
+  var VERSAO = '5.9.4';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.4',
+      data: '2026-10-07',
+      itens: [
+        'Servidor fora do ar não tira mais você de dentro do app. Abrindo com o servidor pausado, qualquer falha de rede caía num conserto que apagava a sessão e mandava para a tela de login — bem na hora em que o login também não funciona. Quem tinha conta na nuvem ficava sem o app e sem os próprios dados, que estavam o tempo todo guardados no aparelho.',
+        'Agora o app abre com os dados deste aparelho e avisa: "Sem falar com o servidor. Abri os seus dados deste aparelho." A sessão continua guardada e a sincronização volta sozinha quando o servidor voltar.',
+        'Só o servidor dizendo que o token não vale mais (401 ou 403) é motivo para pedir login de novo. Sem internet, servidor pausado ou fora do ar são problema do caminho, não da sua identidade.'
+      ]
+    },
     {
       versao: '5.9.3',
       data: '2026-10-03',
@@ -3553,6 +3562,7 @@
     if (!msg) msg = 'O servidor respondeu ' + status + '.';
     var e = new Error(msg);
     e.codigo = String(codigo);
+    e.status = status;
     return e;
   }
 
@@ -3655,6 +3665,7 @@
   // mandaria a pessoa para uma página de erro em JSON.
   var provedoresLigados = null;
   var falhaDosProvedores = '';
+  var semServidorAgora = false;
 
   // "Failed to fetch" é o que o navegador diz quando o pedido nem chegou a
   // ter resposta: sem internet, servidor fora do ar ou endereço que não
@@ -4242,8 +4253,28 @@
   }
 
   // Abre o cofre local do usuário da nuvem e entra no app.
+  // Só o servidor dizendo que o token não vale mais é motivo para esquecer
+  // a sessão. Qualquer outra coisa — sem internet, servidor fora do ar,
+  // projeto pausado — é problema do caminho, não da identidade.
+  function ehTokenRecusado(e) {
+    return !!e && (e.status === 401 || e.status === 403);
+  }
+
   function entrarComoUsuarioDaNuvem(primeiroAcesso) {
-    return nuvemBuscarUsuario().then(function () {
+    return nuvemBuscarUsuario().catch(function (e) {
+      // Sem conseguir falar com o servidor não dá para perguntar quem é a
+      // pessoa — mas isso já está guardado desde a última vez que deu
+      // certo. Abrir o cofre deste aparelho não depende do servidor.
+      //
+      // Antes, qualquer falha caía no catch de comecar(), que apagava a
+      // sessão e mandava para a tela de login — bem na hora em que o login
+      // também não funciona. Quem tinha conta na nuvem ficava sem o app e
+      // sem os próprios dados por causa de um servidor pausado.
+      if (ehTokenRecusado(e)) throw e;
+      if (!sessaoNuvem || !sessaoNuvem.usuario || !sessaoNuvem.usuario.id) throw e;
+      semServidorAgora = true;
+      return null;
+    }).then(function () {
       return chaveDoAparelho();
     }).then(function (chave) {
       var uid = sessaoNuvem.usuario.id;
@@ -4270,6 +4301,11 @@
       telaAtiva = 'inicio';
       iniciarNavegacao();
       desenhar();
+      if (semServidorAgora) {
+        semServidorAgora = false;
+        avisar('Sem falar com o servidor. Abri os seus dados deste aparelho.');
+        return null;
+      }
       return sincronizar(true);
     });
   }
@@ -18672,8 +18708,11 @@
       sessaoNuvem = lerSessaoNuvem();
       if (!sessaoNuvem) { estado = estadoPadrao(); mostrarEntrada('abertura'); return; }
       entrarComoUsuarioDaNuvem(veioDoGoogle && !localStorage.getItem('caixa.importado.v3'))
-        .catch(function () {
-          nuvemEsquecer();
+        .catch(function (e) {
+          // Token recusado é sessão morta mesmo: esquecer é o certo. O
+          // resto não — apagar a sessão por causa de rede tiraria da
+          // pessoa o acesso ao cofre deste aparelho.
+          if (ehTokenRecusado(e)) nuvemEsquecer();
           sessao = null;
           estado = estadoPadrao();
           mostrarEntrada('login');

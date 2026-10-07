@@ -1273,6 +1273,11 @@
   }
 
   .sociais-linha { display: flex; flex-direction: column; gap: 10px; }
+  .ent-aviso { margin: 20px 0 0; padding: 14px 16px; border-radius: 14px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--borda);
+    color: var(--suave); font-size: 13px; line-height: 1.45;
+    display: flex; flex-direction: column; gap: 7px; }
+  .ent-aviso-motivo { color: var(--ouro); font-size: 12.5px; word-break: break-word; }
   .social {
     position: relative;
     width: 100%;
@@ -1600,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.8.1';
+  var VERSAO = '5.9.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1609,6 +1614,50 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.3',
+      data: '2026-10-03',
+      itens: [
+        '"Failed to fetch" saiu da tela. Esse é o recado cru do navegador quando o pedido nem chega a ter resposta, e ele não ajuda ninguém. Agora o app diz o que está acontecendo: sem internet no aparelho é uma coisa, servidor que não responde é outra — e nesse caso ele mostra o endereço configurado, que é o que você compara com o painel.',
+        'Vale também para o aviso de sincronização, que mostrava a mesma frase crua.'
+      ]
+    },
+    {
+      versao: '5.9.2',
+      data: '2026-09-28',
+      itens: [
+        'O endereço de retorno do login com Google virou um só. Abrindo o app por ".../finanz/index.html" ele saía diferente de ".../finanz/", que é o que o atalho da tela inicial usa — mesma tela, dois endereços —, e o Supabase recusava o que não estivesse na lista dele.',
+        'Servidor sem responder não some mais com o botão do Google em silêncio. A tela de entrada passa a dizer que não falou com o servidor, mostra o motivo e lembra que o e-mail e senha dependem dele também. Sem servidor o app continua funcionando só no aparelho.'
+      ]
+    },
+    {
+      versao: '5.9.1',
+      data: '2026-09-20',
+      itens: [
+        'Em Transações, o "Saldo do período" agora soma o que está na tela. Com um filtro ou uma busca ligados, o mesmo cartão dizia 35 lançamentos e somava os milhares que estavam fora deles — os dois números não tinham nada a ver um com o outro.',
+        'Filtrando "Receitas", as saídas do resumo vão a zero; buscando "Mercado", ele soma só o que a busca achou.',
+        'E o rodapé diz o que está sendo somado: "De 01/09 a 30/09. Somando só o que está nesta lista: só receitas."'
+      ]
+    },
+    {
+      versao: '5.9.0',
+      data: '2026-09-13',
+      itens: [
+        'O cartão passou a ter limite. Na tela do cartão aparece a barra: "R$ 1.200,00 de R$ 5.000,00 · R$ 3.800,00 livre nesta fatura", em verde, ouro ou vermelho conforme aperta. Na lista de cartões, a linha diz a porcentagem do limite que a fatura em aberto já ocupa.',
+        'A conta é só da fatura em aberto, e a tela diz isso. Pagamento de fatura sai da conta corrente, não do cartão, então o app não tem como saber qual fatura fechada já foi paga — prometer um "disponível" exato seria chute.',
+        'Cartão sem gasto nenhum agora tem o botão "Importar fatura" na tela, em vez de só um texto dizendo para importar. O de cima continua onde estava.',
+        'A folha do cartão deixou de perguntar a cor: ela vem da marca do banco. Em conta a cor continua sendo escolhida à mão.'
+      ]
+    },
+    {
+      versao: '5.8.2',
+      data: '2026-09-13',
+      itens: [
+        'O cartão passou a perguntar o melhor dia de compra, e não o dia de fechamento. É o que o aplicativo do banco mostra — muitos nem mostram o fechamento —, então é o dado que você tem na mão.',
+        'O dia em que a fatura fecha sai daí sozinho, e aparece logo abaixo junto com o prazo: melhor dia 4 e vencimento no 13 dão "Dia 3 · 39 dias para pagar".',
+        'O fechamento continua sendo o que separa os gastos por fatura aqui dentro; só deixou de ser perguntado. Cartão já cadastrado não muda de lugar: ele volta mostrando o melhor dia que corresponde ao fechamento guardado.'
+      ]
+    },
     {
       versao: '5.8.1',
       data: '2026-09-13',
@@ -3024,7 +3073,8 @@
           cor: /^#[0-9a-fA-F]{6}$/.test(c.cor) ? c.cor : CORES[0],
           banco: texto(c.banco).slice(0, 20),
           fechamento: Math.min(Math.max(inteiro(c.fechamento), 0), 31),
-          vencimento: Math.min(Math.max(inteiro(c.vencimento), 0), 31)
+          vencimento: Math.min(Math.max(inteiro(c.vencimento), 0), 31),
+          limite: Math.max(inteiro(c.limite), 0)
         };
       });
     }
@@ -3503,6 +3553,7 @@
     if (!msg) msg = 'O servidor respondeu ' + status + '.';
     var e = new Error(msg);
     e.codigo = String(codigo);
+    e.status = status;
     return e;
   }
 
@@ -3590,21 +3641,59 @@
     });
   }
 
+  // Para onde o Google devolve a pessoa depois do login. Esse endereço
+  // precisa estar, letra por letra, na lista de Redirect URLs do Supabase.
+  //
+  // Por isso ele é normalizado: abrindo o app por ".../finanz/index.html" o
+  // caminho saía diferente de ".../finanz/", que é o que o atalho da tela
+  // inicial usa. Mesma tela, dois endereços — e o Supabase recusava o que
+  // não estivesse na lista, com "requested path is invalid".
   function nuvemEnderecoRetorno() {
-    return location.origin + location.pathname;
+    return location.origin + location.pathname.replace(/index\.html?$/i, '');
   }
 
   // O servidor diz quais logins sociais estão ligados. Sem isso o app
   // mandaria a pessoa para uma página de erro em JSON.
   var provedoresLigados = null;
+  var falhaDosProvedores = '';
+  var semServidorAgora = false;
+
+  // "Failed to fetch" é o que o navegador diz quando o pedido nem chegou a
+  // ter resposta: sem internet, servidor fora do ar ou endereço que não
+  // existe mais. Para quem está olhando a tela, essa frase não ajuda em
+  // nada — e as três causas têm conserto diferente.
+  //
+  // O aparelho sabe se tem internet. Com internet e sem resposta, o
+  // problema é do outro lado, e aí vale mostrar o endereço configurado:
+  // é ele que a pessoa compara com o painel do Supabase.
+  function motivoDaFalhaDeRede(e) {
+    var msg = String((e && e.message) || '');
+    if (!/failed to fetch|networkerror|load failed|network request failed/i.test(msg)) {
+      return msg || 'o servidor não respondeu';
+    }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return 'Este aparelho está sem internet.';
+    }
+    var onde = '';
+    try { onde = new URL(NUVEM.url).host; } catch (erro) { onde = NUVEM.url || ''; }
+    return 'Este aparelho tem internet, mas não achei o servidor' +
+      (onde ? ' (' + onde + ')' : '') +
+      '. Ele pode estar fora do ar, pausado, ou o endereço pode ter mudado.';
+  }
 
   function carregarProvedores() {
     if (!NUVEM.ligada || provedoresLigados) return;
     pedirNuvem('/auth/v1/settings', { token: false }).then(function (r) {
       var ext = (r && r.external) || {};
       provedoresLigados = { google: !!ext.google, apple: !!ext.apple, facebook: !!ext.facebook };
-    }).catch(function () {
+      falhaDosProvedores = '';
+    }).catch(function (e) {
       provedoresLigados = { google: false, apple: false, facebook: false };
+      // Sem guardar o motivo, o botão do Google simplesmente sumia da tela
+      // e não havia como saber se ele foi desligado no servidor ou se o
+      // servidor não respondeu — que é o que acontece com o projeto
+      // pausado. Desaparecer em silêncio é o pior dos dois.
+      falhaDosProvedores = motivoDaFalhaDeRede(e);
     }).then(function () {
       if (!$('entrada').classList.contains('escondida')) montarEntrada();
     });
@@ -3703,7 +3792,8 @@
       contas: estado.contas.map(function (c) {
         return { id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
                  saldo_inicial: c.saldoInicial, cor: c.cor, banco: c.banco || '',
-                 fechamento: c.fechamento || 0, vencimento: c.vencimento || 0 };
+                 fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
+                 limite: c.limite || 0 };
       }),
       lancamentos: estado.lancamentos.map(function (l) {
         return {
@@ -3814,7 +3904,7 @@
   // faria o app reenviar sem aquele campo e apagar no servidor um dado que
   // estava certo. Adivinhar a coluna pela mensagem é perigoso; uma lista
   // fechada não é.
-  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'] };
+  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'], contas: ['limite'] };
 
   function oQueFaltou(e, tabela) {
     var opcionais = COLUNAS_OPCIONAIS[tabela];
@@ -3995,7 +4085,8 @@
     novo.contas = (r.contas || []).map(function (c) {
       return { id: c.id, nome: c.nome, tipo: c.tipo, saldoInicial: c.saldo_inicial,
                cor: c.cor, banco: c.banco || '',
-               fechamento: c.fechamento || 0, vencimento: c.vencimento || 0 };
+               fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
+               limite: c.limite || 0 };
     });
 
     novo.lancamentos = (r.lancamentos || []).map(function (l) {
@@ -4104,7 +4195,7 @@
   function marcarFalhaDeSincronia(e) {
     var seguidas = (falhaDaSincronia ? falhaDaSincronia.seguidas : 0) + 1;
     falhaDaSincronia = {
-      mensagem: (e && e.message) || 'motivo desconhecido',
+      mensagem: motivoDaFalhaDeRede(e) || 'motivo desconhecido',
       quando: Date.now(), seguidas: seguidas
     };
     return falhaDaSincronia;
@@ -4153,8 +4244,28 @@
   }
 
   // Abre o cofre local do usuário da nuvem e entra no app.
+  // Só o servidor dizendo que o token não vale mais é motivo para esquecer
+  // a sessão. Qualquer outra coisa — sem internet, servidor fora do ar,
+  // projeto pausado — é problema do caminho, não da identidade.
+  function ehTokenRecusado(e) {
+    return !!e && (e.status === 401 || e.status === 403);
+  }
+
   function entrarComoUsuarioDaNuvem(primeiroAcesso) {
-    return nuvemBuscarUsuario().then(function () {
+    return nuvemBuscarUsuario().catch(function (e) {
+      // Sem conseguir falar com o servidor não dá para perguntar quem é a
+      // pessoa — mas isso já está guardado desde a última vez que deu
+      // certo. Abrir o cofre deste aparelho não depende do servidor.
+      //
+      // Antes, qualquer falha caía no catch de comecar(), que apagava a
+      // sessão e mandava para a tela de login — bem na hora em que o login
+      // também não funciona. Quem tinha conta na nuvem ficava sem o app e
+      // sem os próprios dados por causa de um servidor pausado.
+      if (ehTokenRecusado(e)) throw e;
+      if (!sessaoNuvem || !sessaoNuvem.usuario || !sessaoNuvem.usuario.id) throw e;
+      semServidorAgora = true;
+      return null;
+    }).then(function () {
       return chaveDoAparelho();
     }).then(function (chave) {
       var uid = sessaoNuvem.usuario.id;
@@ -4181,6 +4292,11 @@
       telaAtiva = 'inicio';
       iniciarNavegacao();
       desenhar();
+      if (semServidorAgora) {
+        semServidorAgora = false;
+        avisar('Sem falar com o servidor. Abri os seus dados deste aparelho.');
+        return null;
+      }
       return sincronizar(true);
     });
   }
@@ -5213,6 +5329,12 @@
       if (provedoresLigados.apple) sociais.appendChild(botaoSocial('Continuar com Apple', logoApple(), 'apple'));
       if (provedoresLigados.facebook) sociais.appendChild(botaoSocial('Continuar com Facebook', logoFacebook(), 'facebook'));
       fundo.appendChild(sociais);
+    } else if (falhaDosProvedores) {
+      var aviso = no('p', 'ent-aviso');
+      aviso.appendChild(no('div', null, 'Não falei com o servidor, então o login com Google não aparece agora.'));
+      aviso.appendChild(no('div', 'ent-aviso-motivo', falhaDosProvedores));
+      aviso.appendChild(no('div', null, 'Entrar com e-mail e senha também depende dele. Sem internet ou com o servidor fora do ar, o app continua funcionando só neste aparelho.'));
+      fundo.appendChild(aviso);
     }
 
     var termos = no('p', 'termos');
@@ -6928,7 +7050,8 @@
         seloDeConta(cart),
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', cart.nome),
-          no('div', 'linha-sub', f.rotuloCurto)),
+          no('div', 'linha-sub', f.rotuloCurto +
+            (cart.limite > 0 ? ' · ' + Math.round(pct(Math.max(f.total - f.pago, 0), cart.limite)) + '% do limite' : ''))),
         juntar(no('div', 'linha-fim'),
           no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
       );
@@ -7085,6 +7208,26 @@
       if (aberta.pago) nota.push(emReais(aberta.pago) + ' já pago');
       if (nota.length) topo.appendChild(no('div', 'linha-nota', nota.join(' · ')));
 
+      // Quanto do limite a fatura em aberto já ocupa. Só a fatura em aberto:
+      // pagamento de fatura sai da conta corrente, não do cartão, então o
+      // app não sabe dizer qual fatura fechada foi paga. Prometer
+      // "disponível" seria chutar; isto aqui é o que dá para afirmar.
+      if (cart.limite > 0) {
+        topo.appendChild(no('div', 'rotulo', 'Limite'));
+        var usado = Math.max(aberta.total - aberta.pago, 0);
+        var livre = Math.max(cart.limite - usado, 0);
+        var quanto = pct(usado, cart.limite);
+        topo.appendChild(progresso(usado, cart.limite,
+          quanto > 90 ? 'var(--vermelho)' : quanto > 70 ? 'var(--ouro)' : 'var(--verde)'));
+        topo.appendChild(no('div', 'linha-nota',
+          emReais(usado) + ' de ' + emReais(cart.limite) + ' · ' +
+          emReais(livre) + ' livre nesta fatura'));
+        if (usado > cart.limite) {
+          topo.appendChild(no('div', 'linha-nota vermelho',
+            'A fatura em aberto já passou do limite em ' + emReais(usado - cart.limite) + '.'));
+        }
+      }
+
       var acoesTopo = no('div', 'duas');
       acoesTopo.style.marginTop = '14px';
       var importar = rotuloDeArquivo('arquivoExtrato', 'btn btn-fantasma');
@@ -7099,8 +7242,16 @@
 
       var todas = faturasDoCartao(id);
       if (!todas.length) {
-        folha.appendChild(estadoVazio('Sem gastos ainda',
-          'Importe a fatura do banco ou registre um gasto neste cartão.'));
+        var vazio = cartao('liso');
+        vazio.appendChild(estadoVazio('Sem gastos ainda',
+          'Importe a fatura do banco em PDF, OFX, CSV ou Excel, ou registre um gasto neste cartão.'));
+        // O texto sozinho não leva a lugar nenhum: aqui o botão abre o
+        // arquivo, igual ao de cima.
+        var importarVazio = rotuloDeArquivo('arquivoExtrato', 'btn btn-ouro');
+        importarVazio.textContent = 'Importar fatura';
+        importarVazio.style.margin = '0 16px 16px';
+        vazio.appendChild(importarVazio);
+        folha.appendChild(vazio);
         return;
       }
 
@@ -10518,8 +10669,15 @@
       alvo.appendChild(cartaoDia);
     });
 
-    var totais = totaisNaFaixa(faixa);
+    // O resumo soma o que está na tela, não o período inteiro.
+    //
+    // Antes, "Lançamentos" vinha da lista filtrada e "Entradas"/"Saídas"
+    // vinham do período cru. Com um filtro ou uma busca ligados, o mesmo
+    // cartão dizia 35 lançamentos e somava os milhares que estavam fora
+    // dele — um número não tinha nada a ver com o outro.
+    var totais = totaisDaLista(itens);
     var entradas = totais.entradas, saidas = totais.saidas, saldo = totais.saldo;
+    var recortado = filtroTransacoes !== 'todas' || !!termo;
 
     var resumo = cartao();
     resumo.style.marginTop = '16px';
@@ -10549,7 +10707,19 @@
       resumo.appendChild(notaFat);
     }
     resumo.appendChild(gradeResumo);
-    resumo.appendChild(no('div', 'linha-nota', 'De ' + dataBr(faixa.de) + ' a ' + dataBr(faixa.ate) + '.'));
+    var rodape = 'De ' + dataBr(faixa.de) + ' a ' + dataBr(faixa.ate) + '.';
+    // Com filtro ou busca ligados, dizer só o período faria pensar que a
+    // soma é de tudo o que aconteceu nele.
+    if (recortado) {
+      var recorte = [];
+      if (filtroTransacoes !== 'todas') {
+        recorte.push({ entrada: 'só receitas', saida: 'só despesas',
+                       transferencia: 'só transferências' }[filtroTransacoes] || 'filtrado');
+      }
+      if (termo) recorte.push('busca por "' + buscaTransacoes.trim() + '"');
+      rodape += ' Somando só o que está nesta lista: ' + recorte.join(' e ') + '.';
+    }
+    resumo.appendChild(no('div', 'linha-nota', rodape));
     alvo.appendChild(resumo);
   }
 
@@ -13662,8 +13832,12 @@
         notaCartao.hidden = !cartao;
         nota.hidden = cartao;
         caixaSaldo.hidden = cartao;
+        // Num cartão a cor vem da marca do banco, e escolher à mão só
+        // atrapalha; o limite, ao contrário, só existe em cartão.
+        caixaLimite.hidden = !cartao;
+        notaLimite.hidden = !cartao;
+        caixaCor.hidden = cartao;
       }
-      mostrarCamposDeCartao();
 
       var paleta = no('div', 'chips');
       function pintarPaleta() {
@@ -13688,7 +13862,21 @@
         });
       }
       pintarPaleta();
-      forma.appendChild(campo('Cor', paleta));
+      var caixaCor = campo('Cor', paleta);
+      forma.appendChild(caixaCor);
+
+      // O limite é o número que a pessoa olha no aplicativo do banco junto
+      // com a fatura: sem ele não dá para dizer quanto ainda cabe.
+      var campoLimite = entradaValor(existente ? (existente.limite || 0) : 0, false);
+      var caixaLimite = campo('Limite do cartão', campoLimite);
+      forma.appendChild(caixaLimite);
+      var notaLimite = no('div', 'linha-nota',
+        'Opcional. Com ele eu mostro quanto da fatura em aberto já ocupa o limite.');
+      notaLimite.style.marginTop = '-8px';
+      notaLimite.style.marginBottom = '14px';
+      forma.appendChild(notaLimite);
+
+      mostrarCamposDeCartao();
 
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
@@ -13707,13 +13895,15 @@
           existente.banco = chaveBanco;
           existente.fechamento = cartaoAgora ? fecha : 0;
           existente.vencimento = cartaoAgora ? vence : 0;
+          existente.limite = cartaoAgora ? digitosParaCentavos(campoLimite.value) : 0;
         } else {
           estado.contas.push({
             id: novoId(), nome: nome, tipo: campoTipo.value,
             saldoInicial: cartaoAgora ? 0 : digitosParaCentavos(campoSaldo.value), cor: cor,
             banco: chaveBanco,
             fechamento: cartaoAgora ? fecha : 0,
-            vencimento: cartaoAgora ? vence : 0
+            vencimento: cartaoAgora ? vence : 0,
+            limite: cartaoAgora ? digitosParaCentavos(campoLimite.value) : 0
           });
         }
         salvar();
@@ -18509,8 +18699,11 @@
       sessaoNuvem = lerSessaoNuvem();
       if (!sessaoNuvem) { estado = estadoPadrao(); mostrarEntrada('abertura'); return; }
       entrarComoUsuarioDaNuvem(veioDoGoogle && !localStorage.getItem('caixa.importado.v3'))
-        .catch(function () {
-          nuvemEsquecer();
+        .catch(function (e) {
+          // Token recusado é sessão morta mesmo: esquecer é o certo. O
+          // resto não — apagar a sessão por causa de rede tiraria da
+          // pessoa o acesso ao cofre deste aparelho.
+          if (ehTokenRecusado(e)) nuvemEsquecer();
           sessao = null;
           estado = estadoPadrao();
           mostrarEntrada('login');
