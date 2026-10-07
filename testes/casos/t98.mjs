@@ -5,6 +5,7 @@
 // de entrada só oferecia login, que também não funciona com o servidor
 // fora. Os dados estavam guardados e cifrados aqui o tempo todo, sem
 // porta. Este teste é essa porta.
+import fs from 'node:fs';
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
@@ -41,6 +42,30 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); aw
 conferir('1. os dados entraram com o servidor de pé',
   /543,21/.test(limpo(await page.textContent('#telaInicio'))));
 
+// O Empreendedor também: cliente, registro e parcelas. É a parte que mais
+// assusta perder, e tem de sair no backup junto com o resto.
+await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1400);
+await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")');
+await page.waitForTimeout(1200);
+await page.locator('#folha input.entrada').nth(0).fill('Gustavo do teste');
+await page.locator('#folha input[type=tel]').first().fill('51994923028');
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(1200);
+await page.click('#telaInicio .linha-alvo:has-text("Gustavo do teste")'); await page.waitForTimeout(1500);
+await page.click('#folha .btn-ouro:has-text("Nova venda ou serviço")'); await page.waitForTimeout(1200);
+await page.locator('#folha .campo:has-text("Valor combinado") input').fill('120000');
+await page.locator('#folha input.entrada[type=text]').first().fill('Motor retificado');
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2200);
+await page.click('#dialogoAcoes button:has-text("Combinar parcelas")'); await page.waitForTimeout(1600);
+await page.click('#folha .campo:has-text("Em quantas vezes") .selecao'); await page.waitForTimeout(800);
+await page.click('#escolhaLista .escolha-item:has-text("3x")'); await page.waitForTimeout(900);
+await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await page.waitForTimeout(1000);
+await page.click('#dialogoAcoes button:has-text("Confirmar")'); await page.waitForTimeout(2500);
+const ficha = limpo(await page.textContent('#folha'));
+conferir('1b. o cliente, o registro e as 3 parcelas estão na ficha',
+  /Gustavo do teste/.test(ficha) && /400,00/.test(ficha), ficha.slice(0, 120));
+await page.goBack(); await page.waitForTimeout(1200);
+await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
+
 // --- o estrago do bug antigo: a sessão apagada, servidor fora ---
 await page.evaluate(() => { localStorage.removeItem('caixa.nuvem.v3'); });
 await page.route('**/auth/v1/**', (rota) => rota.abort('failed'));
@@ -74,6 +99,25 @@ const arquivo = await baixou;
 console.log('arquivo:', arquivo.suggestedFilename());
 conferir('8. e o arquivo sai mesmo', /finanz-backup-.*\.json/.test(arquivo.suggestedFilename()),
   arquivo.suggestedFilename());
+
+// --- o que o arquivo leva dentro ---
+const caminho = await arquivo.path();
+const pacote = JSON.parse(fs.readFileSync(caminho, 'utf8'));
+const d = pacote.dados || {};
+console.log('o backup tem:', Object.keys(d).join(', '));
+conferir('9. o backup leva o caixa', (d.lancamentos || []).length >= 1 && (d.contas || []).length >= 1,
+  (d.lancamentos || []).length + ' lançamento(s), ' + (d.contas || []).length + ' conta(s)');
+conferir('10. e leva o Empreendedor inteiro: cliente, registro, parcelas',
+  (d.clientes || []).some(c => /Gustavo do teste/.test(c.nome)) &&
+  (d.servicos || []).some(x => /Motor retificado/.test(x.nome)) &&
+  (d.parcelas || []).length === 3,
+  (d.clientes || []).length + ' cliente(s), ' + (d.servicos || []).length +
+  ' registro(s), ' + (d.parcelas || []).length + ' parcela(s), ' +
+  (d.pagamentos || []).length + ' pagamento(s)');
+conferir('11. e as outras gavetas vêm no pacote, mesmo vazias',
+  ['metas', 'ativos', 'propostas', 'orcamentos', 'perfil', 'tiposRegistro']
+    .every(k => Object.prototype.hasOwnProperty.call(d, k)),
+  Object.keys(d).join(', '));
 await page.screenshot({ path: dir+'/i02-backup.png', fullPage: true });
 
 // --- sem cofre guardado, a porta não aparece prometendo nada ---
@@ -83,7 +127,7 @@ await limpa.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
 await limpa.reload({ waitUntil:'networkidle' }); await limpa.waitForTimeout(2500);
 await limpa.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await limpa.waitForTimeout(800);
-conferir('9. em aparelho sem dados, a porta não aparece',
+conferir('12. em aparelho sem dados, a porta não aparece',
   !/Abrir os dados deste aparelho/.test(limpo(await limpa.textContent('#entrada'))));
 
 await browser.close();
