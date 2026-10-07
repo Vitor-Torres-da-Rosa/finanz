@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.4';
+  var VERSAO = '5.9.5';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.5',
+      data: '2026-10-07',
+      itens: [
+        'Dá para abrir os seus dados sem servidor nenhum. Se existir cofre guardado neste aparelho, a tela de entrada passa a oferecer "Abrir os dados deste aparelho" — e de lá dá para usar o app e tirar o backup em Mais normalmente.',
+        'Isso conserta um estrago que o próprio app fez: até a 5.9.3, falha de rede no arranque apagava a sessão. Quem abriu o app com o servidor pausado ficou sem token, e sem token a entrada só oferecia login, que também não funciona com o servidor fora. Os dados estavam aqui o tempo todo, sem porta.',
+        'A porta só aparece quando há dados que realmente abrem com a chave deste aparelho. Cofre de conta com e-mail e senha é cifrado com a senha e continua pedindo a senha, como tem de ser.',
+        'Quando o servidor voltar, é só entrar na conta: o cofre é o mesmo e tudo sobe para a nuvem.'
+      ]
+    },
     {
       versao: '5.9.4',
       data: '2026-10-07',
@@ -3666,6 +3676,19 @@
   var provedoresLigados = null;
   var falhaDosProvedores = '';
   var semServidorAgora = false;
+  var cofreLocalAberto = null;
+
+  // Saber se existe cofre abrível aqui é uma conta rápida, mas assíncrona.
+  // Faço uma vez e redesenho a entrada, igual ao que já acontece com os
+  // provedores de login.
+  function verificarCofreLocal() {
+    if (cofreLocalAberto !== null) return;
+    cofreLocalAberto = false;
+    cofresQueAbrem().then(function (bons) {
+      cofreLocalAberto = bons.length > 0;
+      if (cofreLocalAberto && !$('entrada').classList.contains('escondida')) montarEntrada();
+    });
+  }
 
   // "Failed to fetch" é o que o navegador diz quando o pedido nem chegou a
   // ter resposta: sem internet, servidor fora do ar ou endereço que não
@@ -3691,6 +3714,7 @@
   }
 
   function carregarProvedores() {
+    verificarCofreLocal();
     if (!NUVEM.ligada || provedoresLigados) return;
     pedirNuvem('/auth/v1/settings', { token: false }).then(function (r) {
       var ext = (r && r.external) || {};
@@ -4258,6 +4282,85 @@
   // projeto pausado — é problema do caminho, não da identidade.
   function ehTokenRecusado(e) {
     return !!e && (e.status === 401 || e.status === 403);
+  }
+
+  // ---------- Entrar sem servidor, com o cofre deste aparelho ----------
+  //
+  // O cofre da conta da nuvem é cifrado com a chave deste aparelho, e as
+  // duas coisas ficam guardadas aqui. Quer dizer que dá para abrir os
+  // dados sem falar com servidor nenhum.
+  //
+  // Isso existe por causa de um estrago que o próprio app fez: até a
+  // 5.9.3, falha de rede no arranque apagava a sessão. Quem abriu o app
+  // com o servidor pausado ficou sem token, e sem token a tela de entrada
+  // só oferecia login — que também não funciona com o servidor fora. Os
+  // dados estavam aqui o tempo todo, sem porta.
+  function cofresDesteAparelho() {
+    var achados = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('caixa.cofre.') === 0) {
+          achados.push({ uid: k.slice('caixa.cofre.'.length), cofre: localStorage.getItem(k) });
+        }
+      }
+    } catch (e) { /* sem acesso ao armazenamento, segue sem oferecer */ }
+    return achados;
+  }
+
+  function temChaveDesteAparelho() {
+    try { return !!localStorage.getItem(CHAVE_APARELHO); } catch (e) { return false; }
+  }
+
+  // Só vale oferecer o que realmente abre. Cofre de conta com e-mail e
+  // senha é cifrado com a senha, não com a chave do aparelho, e esse não
+  // abre aqui — nem deve.
+  function cofresQueAbrem() {
+    if (!cripto || !temChaveDesteAparelho()) return Promise.resolve([]);
+    var lista = cofresDesteAparelho();
+    if (!lista.length) return Promise.resolve([]);
+    return chaveDoAparelho().then(function (chave) {
+      var fila = Promise.resolve([]);
+      lista.forEach(function (item) {
+        fila = fila.then(function (bons) {
+          return decifrar(chave, item.cofre).then(function (dados) {
+            var limpo = limparEstado(dados);
+            bons.push({ uid: item.uid, chave: chave, estado: limpo,
+                        quantos: limpo.lancamentos.length });
+            return bons;
+          }).catch(function () { return bons; });
+        });
+      });
+      return fila;
+    }).catch(function () { return []; });
+  }
+
+  function abrirCofreLocal(item) {
+    sessao = { contaId: item.uid, chave: item.chave };
+    estado = item.estado;
+    esconderEntrada();
+    telaAtiva = 'inicio';
+    iniciarNavegacao();
+    desenhar();
+    avisar('Abri os dados deste aparelho. Sem servidor, nada sai daqui.');
+  }
+
+  function entrarSemServidor() {
+    cofresQueAbrem().then(function (bons) {
+      if (!bons.length) { avisar('Não achei dados guardados neste aparelho.'); return; }
+      if (bons.length === 1) { abrirCofreLocal(bons[0]); return; }
+      abrirEscolha({
+        titulo: 'Quais dados abrir?',
+        semMarca: true,
+        opcoes: bons.map(function (b, i) {
+          return { valor: String(i), rotulo: b.quantos + ' lançamento(s)',
+                   detalhe: 'conta ' + b.uid.slice(0, 8) };
+        })
+      }, function (v) {
+        if (v == null) return;
+        abrirCofreLocal(bons[Number(v)]);
+      });
+    });
   }
 
   function entrarComoUsuarioDaNuvem(primeiroAcesso) {
@@ -5338,7 +5441,24 @@
       if (provedoresLigados.apple) sociais.appendChild(botaoSocial('Continuar com Apple', logoApple(), 'apple'));
       if (provedoresLigados.facebook) sociais.appendChild(botaoSocial('Continuar com Facebook', logoFacebook(), 'facebook'));
       fundo.appendChild(sociais);
-    } else if (falhaDosProvedores) {
+    }
+
+    // Tem dados guardados aqui? Então existe uma porta que não depende de
+    // servidor nenhum — e ela precisa estar visível, não escondida atrás
+    // de um login que pode não funcionar.
+    if (cofreLocalAberto) {
+      var local = botao('btn-contorno', null, entrarSemServidor);
+      local.appendChild(icone('entrar'));
+      local.appendChild(no('span', null, 'Abrir os dados deste aparelho'));
+      local.style.marginTop = '10px';
+      fundo.appendChild(local);
+      var notaLocal = no('p', 'ent-aviso');
+      notaLocal.appendChild(no('div', null,
+        'Achei dados seus guardados e cifrados neste aparelho. Dá para abrir e usar sem servidor — inclusive para tirar um backup em Mais. Quando o servidor voltar, entre na conta e tudo sobe.'));
+      fundo.appendChild(notaLocal);
+    }
+
+    if (falhaDosProvedores && !cofreLocalAberto) {
       var aviso = no('p', 'ent-aviso');
       aviso.appendChild(no('div', null, 'Não falei com o servidor, então o login com Google não aparece agora.'));
       aviso.appendChild(no('div', 'ent-aviso-motivo', falhaDosProvedores));
