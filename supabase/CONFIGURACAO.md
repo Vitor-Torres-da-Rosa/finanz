@@ -136,6 +136,26 @@ A ordem importa:
 7. **Rode o agendamento** uma vez pelo botão, em **Actions → Manter o
    servidor acordado → Run workflow**, para confirmar que ele alcança o
    projeto novo.
+8. **Só então mexa no antigo.** Com o novo rodando e os números conferidos,
+   o antigo pode ir embora.
+
+### O projeto antigo: renomear agora, apagar depois
+
+O Supabase não deixa dois projetos com o mesmo nome na mesma organization,
+então o antigo atrapalha na hora de criar o novo. Mas **não precisa apagar
+para liberar o nome** — e apagar é definitivo, não tem lixeira.
+
+Renomeie o antigo em **Project Settings → General → Project name** →
+`caixa-antigo` → **Save**. Leva dez segundos, libera o nome e deixa a porta
+aberta se o suporte conseguir destravar o projeto algum dia. (Ou, mais
+simples ainda: dê um nome diferente para o novo. Nome de projeto é só
+etiqueta — não aparece na URL, que vem do *ref*.)
+
+Para apagar de verdade, depois que o novo estiver provado:
+**Project Settings → General** → fim da página, zona vermelha →
+**Delete project** → digite o nome do projeto para confirmar.
+Antes de clicar, confira que o `finanz-backup-....json` do passo 1 está
+mesmo salvo no aparelho. O banco vai junto com o projeto e não volta.
 
 ## 3. Endereços do aplicativo
 
