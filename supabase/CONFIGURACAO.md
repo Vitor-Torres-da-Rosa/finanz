@@ -16,6 +16,42 @@ No fim você me manda duas chaves e eu escrevo a sincronização.
 
 ---
 
+## 1b. Trocar o nome da organization
+
+A **organization** é só a caixa onde os projetos ficam, junto com a cobrança.
+Mudar o nome dela **não mexe em nada** do que o app usa:
+
+| O que | Muda ao renomear a organization? |
+| --- | --- |
+| Project URL (`https://xxxx.supabase.co`) | Não |
+| Chave publishable / anon | Não |
+| Endereço de retorno do Google | Não |
+| `config.js` | Não |
+| Agendamento do GitHub Actions | Não |
+
+O endereço do projeto vem do **ref** (aquele código de 20 letras), que é
+sorteado quando o projeto nasce e nunca muda. O nome da organization e o nome
+do projeto são só etiquetas para a gente ler.
+
+Como fazer:
+
+1. <https://supabase.com/dashboard/org/_/general>
+   (ou: canto superior esquerdo → escolha a organization → **Settings** →
+   **General**)
+2. Campo **Name** → escreva `Finanz`.
+3. **Save**.
+
+Pode ser antes ou depois de criar o projeto — tanto faz.
+
+**O nome do projeto** se troca no mesmo lugar, mas um nível abaixo:
+**Project Settings** → **General** → **Project name** → **Save**. Também é só
+etiqueta.
+
+O que **não** se troca depois: a **region** e o **ref**. Se quiser mudar
+region, é projeto novo.
+
+---
+
 ## 2. Criar as tabelas e ligar a segurança
 
 1. No menu da esquerda, **SQL Editor** → **New query**.
