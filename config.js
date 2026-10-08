@@ -11,6 +11,6 @@
 // Passo a passo em supabase/CONFIGURACAO.md.
 
 window.FINANZ_CONFIG = {
-  supabaseUrl: 'https://wwwrfzondpqofrsbkvmk.supabase.co',
-  supabaseAnonKey: 'sb_publishable_UoJlRaPcUe9BX_uBtbn2oQ_U6Zk2Dnh'
+  supabaseUrl: 'https://jtxpradqfsbufdtartwn.supabase.co',
+  supabaseAnonKey: 'sb_publishable_9rgcr2YLT3t4y1nwguqHXg_ly4uJdzP'
 };
