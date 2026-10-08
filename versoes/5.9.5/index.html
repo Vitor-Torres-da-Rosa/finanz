@@ -1273,6 +1273,11 @@
   }
 
   .sociais-linha { display: flex; flex-direction: column; gap: 10px; }
+  .ent-aviso { margin: 20px 0 0; padding: 14px 16px; border-radius: 14px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--borda);
+    color: var(--suave); font-size: 13px; line-height: 1.45;
+    display: flex; flex-direction: column; gap: 7px; }
+  .ent-aviso-motivo { color: var(--ouro); font-size: 12.5px; word-break: break-word; }
   .social {
     position: relative;
     width: 100%;
@@ -1600,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.0';
+  var VERSAO = '5.9.5';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1609,6 +1614,50 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.5',
+      data: '2026-10-07',
+      itens: [
+        'Dá para abrir os seus dados sem servidor nenhum. Se existir cofre guardado neste aparelho, a tela de entrada passa a oferecer "Abrir os dados deste aparelho" — e de lá dá para usar o app e tirar o backup em Mais normalmente.',
+        'Isso conserta um estrago que o próprio app fez: até a 5.9.3, falha de rede no arranque apagava a sessão. Quem abriu o app com o servidor pausado ficou sem token, e sem token a entrada só oferecia login, que também não funciona com o servidor fora. Os dados estavam aqui o tempo todo, sem porta.',
+        'A porta só aparece quando há dados que realmente abrem com a chave deste aparelho. Cofre de conta com e-mail e senha é cifrado com a senha e continua pedindo a senha, como tem de ser.',
+        'Quando o servidor voltar, é só entrar na conta: o cofre é o mesmo e tudo sobe para a nuvem.'
+      ]
+    },
+    {
+      versao: '5.9.4',
+      data: '2026-10-07',
+      itens: [
+        'Servidor fora do ar não tira mais você de dentro do app. Abrindo com o servidor pausado, qualquer falha de rede caía num conserto que apagava a sessão e mandava para a tela de login — bem na hora em que o login também não funciona. Quem tinha conta na nuvem ficava sem o app e sem os próprios dados, que estavam o tempo todo guardados no aparelho.',
+        'Agora o app abre com os dados deste aparelho e avisa: "Sem falar com o servidor. Abri os seus dados deste aparelho." A sessão continua guardada e a sincronização volta sozinha quando o servidor voltar.',
+        'Só o servidor dizendo que o token não vale mais (401 ou 403) é motivo para pedir login de novo. Sem internet, servidor pausado ou fora do ar são problema do caminho, não da sua identidade.'
+      ]
+    },
+    {
+      versao: '5.9.3',
+      data: '2026-10-03',
+      itens: [
+        '"Failed to fetch" saiu da tela. Esse é o recado cru do navegador quando o pedido nem chega a ter resposta, e ele não ajuda ninguém. Agora o app diz o que está acontecendo: sem internet no aparelho é uma coisa, servidor que não responde é outra — e nesse caso ele mostra o endereço configurado, que é o que você compara com o painel.',
+        'Vale também para o aviso de sincronização, que mostrava a mesma frase crua.'
+      ]
+    },
+    {
+      versao: '5.9.2',
+      data: '2026-09-28',
+      itens: [
+        'O endereço de retorno do login com Google virou um só. Abrindo o app por ".../finanz/index.html" ele saía diferente de ".../finanz/", que é o que o atalho da tela inicial usa — mesma tela, dois endereços —, e o Supabase recusava o que não estivesse na lista dele.',
+        'Servidor sem responder não some mais com o botão do Google em silêncio. A tela de entrada passa a dizer que não falou com o servidor, mostra o motivo e lembra que o e-mail e senha dependem dele também. Sem servidor o app continua funcionando só no aparelho.'
+      ]
+    },
+    {
+      versao: '5.9.1',
+      data: '2026-09-20',
+      itens: [
+        'Em Transações, o "Saldo do período" agora soma o que está na tela. Com um filtro ou uma busca ligados, o mesmo cartão dizia 35 lançamentos e somava os milhares que estavam fora deles — os dois números não tinham nada a ver um com o outro.',
+        'Filtrando "Receitas", as saídas do resumo vão a zero; buscando "Mercado", ele soma só o que a busca achou.',
+        'E o rodapé diz o que está sendo somado: "De 01/09 a 30/09. Somando só o que está nesta lista: só receitas."'
+      ]
+    },
     {
       versao: '5.9.0',
       data: '2026-09-13',
@@ -3523,6 +3572,7 @@
     if (!msg) msg = 'O servidor respondeu ' + status + '.';
     var e = new Error(msg);
     e.codigo = String(codigo);
+    e.status = status;
     return e;
   }
 
@@ -3610,21 +3660,73 @@
     });
   }
 
+  // Para onde o Google devolve a pessoa depois do login. Esse endereço
+  // precisa estar, letra por letra, na lista de Redirect URLs do Supabase.
+  //
+  // Por isso ele é normalizado: abrindo o app por ".../finanz/index.html" o
+  // caminho saía diferente de ".../finanz/", que é o que o atalho da tela
+  // inicial usa. Mesma tela, dois endereços — e o Supabase recusava o que
+  // não estivesse na lista, com "requested path is invalid".
   function nuvemEnderecoRetorno() {
-    return location.origin + location.pathname;
+    return location.origin + location.pathname.replace(/index\.html?$/i, '');
   }
 
   // O servidor diz quais logins sociais estão ligados. Sem isso o app
   // mandaria a pessoa para uma página de erro em JSON.
   var provedoresLigados = null;
+  var falhaDosProvedores = '';
+  var semServidorAgora = false;
+  var cofreLocalAberto = null;
+
+  // Saber se existe cofre abrível aqui é uma conta rápida, mas assíncrona.
+  // Faço uma vez e redesenho a entrada, igual ao que já acontece com os
+  // provedores de login.
+  function verificarCofreLocal() {
+    if (cofreLocalAberto !== null) return;
+    cofreLocalAberto = false;
+    cofresQueAbrem().then(function (bons) {
+      cofreLocalAberto = bons.length > 0;
+      if (cofreLocalAberto && !$('entrada').classList.contains('escondida')) montarEntrada();
+    });
+  }
+
+  // "Failed to fetch" é o que o navegador diz quando o pedido nem chegou a
+  // ter resposta: sem internet, servidor fora do ar ou endereço que não
+  // existe mais. Para quem está olhando a tela, essa frase não ajuda em
+  // nada — e as três causas têm conserto diferente.
+  //
+  // O aparelho sabe se tem internet. Com internet e sem resposta, o
+  // problema é do outro lado, e aí vale mostrar o endereço configurado:
+  // é ele que a pessoa compara com o painel do Supabase.
+  function motivoDaFalhaDeRede(e) {
+    var msg = String((e && e.message) || '');
+    if (!/failed to fetch|networkerror|load failed|network request failed/i.test(msg)) {
+      return msg || 'o servidor não respondeu';
+    }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return 'Este aparelho está sem internet.';
+    }
+    var onde = '';
+    try { onde = new URL(NUVEM.url).host; } catch (erro) { onde = NUVEM.url || ''; }
+    return 'Este aparelho tem internet, mas não achei o servidor' +
+      (onde ? ' (' + onde + ')' : '') +
+      '. Ele pode estar fora do ar, pausado, ou o endereço pode ter mudado.';
+  }
 
   function carregarProvedores() {
+    verificarCofreLocal();
     if (!NUVEM.ligada || provedoresLigados) return;
     pedirNuvem('/auth/v1/settings', { token: false }).then(function (r) {
       var ext = (r && r.external) || {};
       provedoresLigados = { google: !!ext.google, apple: !!ext.apple, facebook: !!ext.facebook };
-    }).catch(function () {
+      falhaDosProvedores = '';
+    }).catch(function (e) {
       provedoresLigados = { google: false, apple: false, facebook: false };
+      // Sem guardar o motivo, o botão do Google simplesmente sumia da tela
+      // e não havia como saber se ele foi desligado no servidor ou se o
+      // servidor não respondeu — que é o que acontece com o projeto
+      // pausado. Desaparecer em silêncio é o pior dos dois.
+      falhaDosProvedores = motivoDaFalhaDeRede(e);
     }).then(function () {
       if (!$('entrada').classList.contains('escondida')) montarEntrada();
     });
@@ -4126,7 +4228,7 @@
   function marcarFalhaDeSincronia(e) {
     var seguidas = (falhaDaSincronia ? falhaDaSincronia.seguidas : 0) + 1;
     falhaDaSincronia = {
-      mensagem: (e && e.message) || 'motivo desconhecido',
+      mensagem: motivoDaFalhaDeRede(e) || 'motivo desconhecido',
       quando: Date.now(), seguidas: seguidas
     };
     return falhaDaSincronia;
@@ -4175,8 +4277,107 @@
   }
 
   // Abre o cofre local do usuário da nuvem e entra no app.
+  // Só o servidor dizendo que o token não vale mais é motivo para esquecer
+  // a sessão. Qualquer outra coisa — sem internet, servidor fora do ar,
+  // projeto pausado — é problema do caminho, não da identidade.
+  function ehTokenRecusado(e) {
+    return !!e && (e.status === 401 || e.status === 403);
+  }
+
+  // ---------- Entrar sem servidor, com o cofre deste aparelho ----------
+  //
+  // O cofre da conta da nuvem é cifrado com a chave deste aparelho, e as
+  // duas coisas ficam guardadas aqui. Quer dizer que dá para abrir os
+  // dados sem falar com servidor nenhum.
+  //
+  // Isso existe por causa de um estrago que o próprio app fez: até a
+  // 5.9.3, falha de rede no arranque apagava a sessão. Quem abriu o app
+  // com o servidor pausado ficou sem token, e sem token a tela de entrada
+  // só oferecia login — que também não funciona com o servidor fora. Os
+  // dados estavam aqui o tempo todo, sem porta.
+  function cofresDesteAparelho() {
+    var achados = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('caixa.cofre.') === 0) {
+          achados.push({ uid: k.slice('caixa.cofre.'.length), cofre: localStorage.getItem(k) });
+        }
+      }
+    } catch (e) { /* sem acesso ao armazenamento, segue sem oferecer */ }
+    return achados;
+  }
+
+  function temChaveDesteAparelho() {
+    try { return !!localStorage.getItem(CHAVE_APARELHO); } catch (e) { return false; }
+  }
+
+  // Só vale oferecer o que realmente abre. Cofre de conta com e-mail e
+  // senha é cifrado com a senha, não com a chave do aparelho, e esse não
+  // abre aqui — nem deve.
+  function cofresQueAbrem() {
+    if (!cripto || !temChaveDesteAparelho()) return Promise.resolve([]);
+    var lista = cofresDesteAparelho();
+    if (!lista.length) return Promise.resolve([]);
+    return chaveDoAparelho().then(function (chave) {
+      var fila = Promise.resolve([]);
+      lista.forEach(function (item) {
+        fila = fila.then(function (bons) {
+          return decifrar(chave, item.cofre).then(function (dados) {
+            var limpo = limparEstado(dados);
+            bons.push({ uid: item.uid, chave: chave, estado: limpo,
+                        quantos: limpo.lancamentos.length });
+            return bons;
+          }).catch(function () { return bons; });
+        });
+      });
+      return fila;
+    }).catch(function () { return []; });
+  }
+
+  function abrirCofreLocal(item) {
+    sessao = { contaId: item.uid, chave: item.chave };
+    estado = item.estado;
+    esconderEntrada();
+    telaAtiva = 'inicio';
+    iniciarNavegacao();
+    desenhar();
+    avisar('Abri os dados deste aparelho. Sem servidor, nada sai daqui.');
+  }
+
+  function entrarSemServidor() {
+    cofresQueAbrem().then(function (bons) {
+      if (!bons.length) { avisar('Não achei dados guardados neste aparelho.'); return; }
+      if (bons.length === 1) { abrirCofreLocal(bons[0]); return; }
+      abrirEscolha({
+        titulo: 'Quais dados abrir?',
+        semMarca: true,
+        opcoes: bons.map(function (b, i) {
+          return { valor: String(i), rotulo: b.quantos + ' lançamento(s)',
+                   detalhe: 'conta ' + b.uid.slice(0, 8) };
+        })
+      }, function (v) {
+        if (v == null) return;
+        abrirCofreLocal(bons[Number(v)]);
+      });
+    });
+  }
+
   function entrarComoUsuarioDaNuvem(primeiroAcesso) {
-    return nuvemBuscarUsuario().then(function () {
+    return nuvemBuscarUsuario().catch(function (e) {
+      // Sem conseguir falar com o servidor não dá para perguntar quem é a
+      // pessoa — mas isso já está guardado desde a última vez que deu
+      // certo. Abrir o cofre deste aparelho não depende do servidor.
+      //
+      // Antes, qualquer falha caía no catch de comecar(), que apagava a
+      // sessão e mandava para a tela de login — bem na hora em que o login
+      // também não funciona. Quem tinha conta na nuvem ficava sem o app e
+      // sem os próprios dados por causa de um servidor pausado.
+      if (ehTokenRecusado(e)) throw e;
+      if (!sessaoNuvem || !sessaoNuvem.usuario || !sessaoNuvem.usuario.id) throw e;
+      semServidorAgora = true;
+      return null;
+    }).then(function () {
       return chaveDoAparelho();
     }).then(function (chave) {
       var uid = sessaoNuvem.usuario.id;
@@ -4203,6 +4404,11 @@
       telaAtiva = 'inicio';
       iniciarNavegacao();
       desenhar();
+      if (semServidorAgora) {
+        semServidorAgora = false;
+        avisar('Sem falar com o servidor. Abri os seus dados deste aparelho.');
+        return null;
+      }
       return sincronizar(true);
     });
   }
@@ -5235,6 +5441,29 @@
       if (provedoresLigados.apple) sociais.appendChild(botaoSocial('Continuar com Apple', logoApple(), 'apple'));
       if (provedoresLigados.facebook) sociais.appendChild(botaoSocial('Continuar com Facebook', logoFacebook(), 'facebook'));
       fundo.appendChild(sociais);
+    }
+
+    // Tem dados guardados aqui? Então existe uma porta que não depende de
+    // servidor nenhum — e ela precisa estar visível, não escondida atrás
+    // de um login que pode não funcionar.
+    if (cofreLocalAberto) {
+      var local = botao('btn-contorno', null, entrarSemServidor);
+      local.appendChild(icone('entrar'));
+      local.appendChild(no('span', null, 'Abrir os dados deste aparelho'));
+      local.style.marginTop = '10px';
+      fundo.appendChild(local);
+      var notaLocal = no('p', 'ent-aviso');
+      notaLocal.appendChild(no('div', null,
+        'Achei dados seus guardados e cifrados neste aparelho. Dá para abrir e usar sem servidor — inclusive para tirar um backup em Mais. Quando o servidor voltar, entre na conta e tudo sobe.'));
+      fundo.appendChild(notaLocal);
+    }
+
+    if (falhaDosProvedores && !cofreLocalAberto) {
+      var aviso = no('p', 'ent-aviso');
+      aviso.appendChild(no('div', null, 'Não falei com o servidor, então o login com Google não aparece agora.'));
+      aviso.appendChild(no('div', 'ent-aviso-motivo', falhaDosProvedores));
+      aviso.appendChild(no('div', null, 'Entrar com e-mail e senha também depende dele. Sem internet ou com o servidor fora do ar, o app continua funcionando só neste aparelho.'));
+      fundo.appendChild(aviso);
     }
 
     var termos = no('p', 'termos');
@@ -18599,8 +18828,11 @@
       sessaoNuvem = lerSessaoNuvem();
       if (!sessaoNuvem) { estado = estadoPadrao(); mostrarEntrada('abertura'); return; }
       entrarComoUsuarioDaNuvem(veioDoGoogle && !localStorage.getItem('caixa.importado.v3'))
-        .catch(function () {
-          nuvemEsquecer();
+        .catch(function (e) {
+          // Token recusado é sessão morta mesmo: esquecer é o certo. O
+          // resto não — apagar a sessão por causa de rede tiraria da
+          // pessoa o acesso ao cofre deste aparelho.
+          if (ehTokenRecusado(e)) nuvemEsquecer();
           sessao = null;
           estado = estadoPadrao();
           mostrarEntrada('login');

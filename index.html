@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.5';
+  var VERSAO = '5.9.6';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.6',
+      data: '2026-10-08',
+      itens: [
+        'O app fala com um servidor novo. O antigo pausou por sete dias sem uso e depois não restaurou — foi o que deixou você sem login e sem backup na semana passada. O endereço e a chave mudaram aqui dentro; o resto é igual, mesmas tabelas e mesmas proteções.',
+        'Ao entrar, o aparelho que estiver com os dados sobe tudo para o servidor novo. Se alguma coisa não aparecer, Mais → Restaurar backup com o arquivo que você guardou.',
+        'A ronda diária que mantém o servidor acordado foi apontada para o projeto novo e está passando. Ela também avisa por e-mail se o servidor cair ou se a chave parar de valer.'
+      ]
+    },
     {
       versao: '5.9.5',
       data: '2026-10-07',
