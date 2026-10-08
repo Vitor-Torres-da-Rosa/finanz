@@ -75,9 +75,15 @@ jobs:
           CODIGO=$(bater -H "apikey: $CHAVE" -H "Authorization: Bearer $CHAVE" \
             "$URL/rest/v1/perfis?select=id&limit=1" || echo "000")
           echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/corpo.txt; echo
-          # 200 (lista vazia pelo RLS) e 401 (RLS barrou) valem igual: as
-          # duas significam que o servidor está de pé e respondeu.
-          case "$CODIGO" in 2*|401) ;; *) FALHOU=1 ;; esac
+          # Aqui a pergunta é só uma: o servidor respondeu?
+          #
+          # Qualquer 2xx ou 4xx responde que sim. Num projeto bem fechado,
+          # o papel anônimo não tem privilégio nenhum nestas tabelas — de
+          # propósito —, então a resposta certa é 401 ou 403. Tratar isso
+          # como falha faria o agendamento reclamar todo dia de um projeto
+          # saudável. Só não responder (000) ou quebrar por dentro (5xx) é
+          # problema.
+          case "$CODIGO" in 2*|4*) ;; *) FALHOU=1 ;; esac
 
           if [ "$FALHOU" = "1" ]; then
             echo
