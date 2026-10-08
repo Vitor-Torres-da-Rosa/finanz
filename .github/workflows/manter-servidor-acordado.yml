@@ -48,12 +48,15 @@ jobs:
 
           # Duas batidas, porque elas provam coisas diferentes:
           #
-          # 1) /auth/v1/health responde sem chave e diz que o serviço de
-          #    login está de pé.
+          # 1) /auth/v1/health diz que o serviço de login está de pé. Ele
+          #    exige a chave pública no cabeçalho apikey: sem ela a borda
+          #    corta antes com 401 e "No API key found in request". (Já
+          #    respondeu sem chave; em 08/10/2026 não respondia mais.)
           # 2) a consulta no PostgREST encosta no Postgres de verdade, que
           #    é o que conta como atividade do banco. Com a chave pública e
-          #    sem login, o RLS devolve lista vazia — e é isso mesmo: o que
-          #    importa é a consulta ter rodado, não trazer dado.
+          #    sem login, o papel anônimo não tem privilégio nenhum nestas
+          #    tabelas, então a resposta certa é 401 — e é isso mesmo: o
+          #    que importa é a consulta ter rodado, não trazer dado.
           FALHOU=0
 
           # O curl escreve o %{http_code} uma vez por tentativa, então com
@@ -67,8 +70,11 @@ jobs:
           }
 
           echo "--- /auth/v1/health"
-          CODIGO=$(bater "$URL/auth/v1/health" || echo "000")
+          CODIGO=$(bater -H "apikey: $CHAVE" "$URL/auth/v1/health" || echo "000")
           echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/corpo.txt; echo
+          # Aqui exigimos 2xx mesmo. Com a chave certa, um projeto de pé
+          # responde 200. Um 401 aqui significa chave inválida ou trocada,
+          # que é exatamente o tipo de coisa que vale um e-mail.
           case "$CODIGO" in 2*) ;; *) FALHOU=1 ;; esac
 
           echo "--- /rest/v1/perfis"
@@ -88,7 +94,8 @@ jobs:
           if [ "$FALHOU" = "1" ]; then
             echo
             echo "O servidor não respondeu como esperado."
-            echo "Quase sempre é o projeto pausado: abra o painel do Supabase e restaure."
+            echo "Se não respondeu nada (000): quase sempre é o projeto pausado."
+            echo "Se respondeu 401 no health: a chave do config.js não vale mais."
             echo "O passo a passo está em supabase/CONFIGURACAO.md."
             exit 1
           fi
