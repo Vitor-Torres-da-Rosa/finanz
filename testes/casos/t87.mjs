@@ -25,6 +25,19 @@ const conferir = (rotulo, ok, achado) => {
   console.log((ok ? 'ok   ' : 'FALHA') + ' · ' + rotulo + (achado === undefined ? '' : ' · ' + achado));
 };
 const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
+
+// Campo de dinheiro é mascarado: o fill() do Playwright ACRESCENTA os
+// dígitos em vez de trocar, e "fill('') antes" não resolve porque a
+// máscara repõe o zero e o segundo fill soma por cima. Com a máquina
+// folgada passava; com doze testes ao mesmo tempo virava R$ 100.000.135,00
+// no lugar de R$ 1.350,00, e eu vinha tratando isso como flake de
+// paralelismo. Não era: era este atalho.
+const porDinheiro = async (campo, digitos) => {
+  await campo.click();
+  for (let i = 0; i < 16; i++) await campo.press('Backspace');
+  await campo.type(digitos);
+  await page.waitForTimeout(300);
+};
 const folhaFechou = () => page.waitForFunction(
   () => !document.getElementById('folha').classList.contains('aberta'), null, { timeout: 20000 });
 
@@ -100,7 +113,7 @@ await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.w
 await page.click('#folha .campo:has-text("Em quantas vezes") .selecao'); await page.waitForTimeout(600);
 await page.click('#escolhaLista .escolha-item:has-text("4x")'); await page.waitForTimeout(800);
 const campoTotal = page.locator('#folha .campo:has-text("Total a cobrar") input');
-await campoTotal.fill(''); await campoTotal.fill('140000');
+await porDinheiro(campoTotal, '140000');
 await page.waitForTimeout(800);
 console.log('resumo com total na mão:', limpo(await page.textContent('#folha .cartao')).slice(0, 200));
 await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await page.waitForTimeout(900);
@@ -118,7 +131,7 @@ await page.click('#folha .btn-perigo:has-text("Apagar as 4 parcelas")'); await p
 await page.click('#dialogoAcoes button:has-text("Apagar tudo")'); await page.waitForTimeout(2000);
 await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.waitForTimeout(1200);
 const totalAvista = page.locator('#folha .campo:has-text("Total a cobrar") input');
-await totalAvista.fill(''); await totalAvista.fill('110000');
+await porDinheiro(totalAvista, '110000');
 await page.waitForTimeout(800);
 await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await page.waitForTimeout(900);
 await page.click('#dialogoAcoes button:has-text("Confirmar")'); await page.waitForTimeout(2000);
@@ -136,7 +149,7 @@ await page.click('#folha .btn-perigo:has-text("Apagar a")'); await page.waitForT
 await page.click('#dialogoAcoes button:has-text("Apagar tudo")'); await page.waitForTimeout(2000);
 await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.waitForTimeout(1200);
 const campoValor = page.locator('#folha .campo:has-text("Valor a combinar") input');
-await campoValor.fill(''); await campoValor.fill('135000');
+await porDinheiro(campoValor, '135000');
 await page.waitForTimeout(600);
 await page.click('#folha .campo:has-text("Em quantas vezes") .selecao'); await page.waitForTimeout(600);
 await page.click('#escolhaLista .escolha-item:has-text("4x")'); await page.waitForTimeout(800);
@@ -163,7 +176,7 @@ await page.click('#folha .btn-perigo:has-text("Apagar a")'); await page.waitForT
 await page.click('#dialogoAcoes button:has-text("Apagar tudo")'); await page.waitForTimeout(2000);
 await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.waitForTimeout(1200);
 const campoParcial = page.locator('#folha .campo:has-text("Valor a combinar") input');
-await campoParcial.fill(''); await campoParcial.fill('40000');
+await porDinheiro(campoParcial, '40000');
 await page.waitForTimeout(800);
 const resumoParcial = limpo(await page.textContent('#folha .cartao'));
 conferir('17. parcelar parte do registro não inventa acréscimo nem desconto',

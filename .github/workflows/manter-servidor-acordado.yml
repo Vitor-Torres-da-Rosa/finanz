@@ -17,9 +17,13 @@ name: Manter o servidor acordado
 
 on:
   schedule:
-    # Todo dia às 11:00 UTC (8:00 em Brasília). Sete dias é o limite; um
-    # dia dá folga de sobra para uma falha isolada não virar pausa.
-    - cron: '0 11 * * *'
+    # Duas vezes por dia: 11:00 e 23:00 UTC (8:00 e 20:00 em Brasília).
+    #
+    # Uma por dia já bastaria para o limite de sete, mas o GitHub atrasa
+    # agendamento quando está cheio — nas rondas de outubro houve atraso
+    # de até dez horas — e também pode simplesmente pular uma. Duas
+    # batidas não custam nada e tiram essa dependência de sorte.
+    - cron: '0 11,23 * * *'
   # Para rodar na hora, pelo botão, sem esperar o horário.
   workflow_dispatch:
 
@@ -52,11 +56,19 @@ jobs:
           #    exige a chave pública no cabeçalho apikey: sem ela a borda
           #    corta antes com 401 e "No API key found in request". (Já
           #    respondeu sem chave; em 08/10/2026 não respondia mais.)
-          # 2) a consulta no PostgREST encosta no Postgres de verdade, que
-          #    é o que conta como atividade do banco. Com a chave pública e
-          #    sem login, o papel anônimo não tem privilégio nenhum nestas
-          #    tabelas, então a resposta certa é 401 — e é isso mesmo: o
-          #    que importa é a consulta ter rodado, não trazer dado.
+          # 2) pulso_bater() é uma escrita de verdade no Postgres, e é ela
+          #    que conta como atividade do banco.
+          #
+          #    Antes aqui havia uma leitura em /rest/v1/perfis que o RLS
+          #    recusava com 401. Parecia esperto — provava que a trava
+          #    funciona — mas como prova de atividade era duvidosa: há
+          #    relatos de que pedido recusado não marca ponto, e descobrir
+          #    isso no dia em que o projeto pausa é tarde. Agora exigimos
+          #    200: a escrita aconteceu, não tem o que interpretar.
+          #
+          #    A função carimba a hora numa linha só, não lê dado de
+          #    ninguém e a tabela por trás dela é inalcançável pela API.
+          #    Está no schema.sql e na migracao-07.sql.
           FALHOU=0
 
           # O curl escreve o %{http_code} uma vez por tentativa, então com
@@ -77,25 +89,29 @@ jobs:
           # que é exatamente o tipo de coisa que vale um e-mail.
           case "$CODIGO" in 2*) ;; *) FALHOU=1 ;; esac
 
-          echo "--- /rest/v1/perfis"
-          CODIGO=$(bater -H "apikey: $CHAVE" -H "Authorization: Bearer $CHAVE" \
-            "$URL/rest/v1/perfis?select=id&limit=1" || echo "000")
+          echo "--- /rest/v1/rpc/pulso_bater"
+          CODIGO=$(bater -X POST -H "apikey: $CHAVE" -H "Authorization: Bearer $CHAVE" \
+            -H "Content-Type: application/json" -d '{}' \
+            "$URL/rest/v1/rpc/pulso_bater" || echo "000")
           echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/corpo.txt; echo
-          # Aqui a pergunta é só uma: o servidor respondeu?
+          # Exigimos 2xx: a escrita tem de ter acontecido.
           #
-          # Qualquer 2xx ou 4xx responde que sim. Num projeto bem fechado,
-          # o papel anônimo não tem privilégio nenhum nestas tabelas — de
-          # propósito —, então a resposta certa é 401 ou 403. Tratar isso
-          # como falha faria o agendamento reclamar todo dia de um projeto
-          # saudável. Só não responder (000) ou quebrar por dentro (5xx) é
-          # problema.
-          case "$CODIGO" in 2*|4*) ;; *) FALHOU=1 ;; esac
+          # 404 aqui quer dizer que a função não existe no projeto — rode
+          # a migracao-07.sql. 401 quer dizer chave inválida.
+          case "$CODIGO" in 2*) ;; *) FALHOU=1 ;; esac
 
           if [ "$FALHOU" = "1" ]; then
             echo
-            echo "O servidor não respondeu como esperado."
-            echo "Se não respondeu nada (000): quase sempre é o projeto pausado."
-            echo "Se respondeu 401 no health: a chave do config.js não vale mais."
+            echo "O servidor não respondeu como esperado. Pelo código acima:"
+            echo
+            echo "  000  o nome nem resolve. Projeto pausado, apagado ou"
+            echo "       desligado. Olhe em supabase.com/dashboard/projects"
+            echo "       QUAL dos tres: se as rondas de ontem estavam verdes,"
+            echo "       NAO foi inatividade - alguem ou algo desligou."
+            echo "  401  no health: a chave do config.js nao vale mais."
+            echo "  404  no pulso: falta rodar a supabase/migracao-07.sql."
+            echo "  5xx  o servidor esta de pe mas quebrado por dentro."
+            echo
             echo "O passo a passo está em supabase/CONFIGURACAO.md."
             exit 1
           fi

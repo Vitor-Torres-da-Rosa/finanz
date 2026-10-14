@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.6';
+  var VERSAO = '5.9.7';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.7',
+      data: '2026-10-14',
+      itens: [
+        'Abrir os dados deste aparelho não oferece mais cofre vazio. Cada conta que entra aqui guarda o próprio cofre, e trocar de projeto no servidor cria conta nova — então a tela vinha mostrando três opções, duas com nada dentro. Escolher uma delas dava a impressão de que os seus dados tinham sumido.',
+        'Agora só aparece cofre com coisa dentro, e se sobrar um só ele abre direto, sem perguntar. Nada é apagado: o cofre vazio continua guardado e volta a ser o seu assim que aquela conta sincronizar.',
+        'E a escolha passou a dizer o que tem dentro de cada um — "3520 lançamentos · 7 contas · 12 clientes" no lugar de um código de conta que não significa nada para ninguém.',
+        'A ronda que mantém o servidor acordado agora faz uma escrita de verdade no banco, em vez de uma leitura que a trava recusava. Leitura recusada é prova duvidosa de atividade, e o lugar errado de descobrir isso é no dia em que o projeto pausa. Ela também passou a rodar duas vezes por dia.'
+      ]
+    },
     {
       versao: '5.9.6',
       data: '2026-10-08',
@@ -3695,6 +3705,8 @@
     cofreLocalAberto = false;
     cofresQueAbrem().then(function (bons) {
       cofreLocalAberto = bons.length > 0;
+      // (a porta aparece mesmo se só houver cofre vazio: é melhor abrir
+      // o app vazio do que deixar a pessoa na tela de login sem saída.)
       if (cofreLocalAberto && !$('entrada').classList.contains('escondida')) montarEntrada();
     });
   }
@@ -4324,6 +4336,55 @@
   // Só vale oferecer o que realmente abre. Cofre de conta com e-mail e
   // senha é cifrado com a senha, não com a chave do aparelho, e esse não
   // abre aqui — nem deve.
+  // O que este cofre tem dentro, para a pessoa reconhecer qual é o dela.
+  //
+  // Contar só lançamento engana: cofre com cliente e nenhuma despesa é
+  // cofre cheio, e cofre recém-criado tem zero de tudo. Trocar de projeto
+  // no servidor cria conta nova, e conta nova abre um cofre vazio aqui ao
+  // lado do antigo — foi o que encheu esta tela de opções que não eram
+  // escolha nenhuma.
+  function medirCofre(uid, chave, limpo) {
+    var partes = [];
+    [['lançamento', 'lançamentos', limpo.lancamentos],
+     ['conta', 'contas', limpo.contas],
+     ['cliente', 'clientes', limpo.clientes],
+     ['investimento', 'investimentos', limpo.ativos],
+     ['meta', 'metas', limpo.metas]].forEach(function (c) {
+      var n = (c[2] || []).length;
+      if (n) partes.push(n + ' ' + (n === 1 ? c[0] : c[1]));
+    });
+
+    // O resumo mostra as cinco listas que a pessoa reconhece de cara, mas
+    // para decidir se o cofre é vazio tenho de olhar tudo: esconder um
+    // cofre que só tem orçamentos, ou só a tabela da maquininha, seria
+    // esconder trabalho de alguém.
+    //
+    // O nome do perfil fica de fora desta conta de propósito. Ele é
+    // preenchido no cadastro de qualquer conta, então ele não separa
+    // cofre cheio de cofre recém-nascido — serve de rótulo, não de prova.
+    var quantas = function (x) { return x && x.length ? x.length : 0; };
+    var chavesDe = function (o) { return o ? Object.keys(o).length : 0; };
+    var orc = limpo.orcamentos || {};
+    var sobra = quantas(limpo.servicos) + quantas(limpo.pagamentos)
+      + quantas(limpo.parcelas) + quantas(limpo.propostas)
+      + quantas(limpo.importacoes) + quantas(limpo.tiposRegistro)
+      + quantas((limpo.categoriasExtras || {}).saida)
+      + quantas((limpo.categoriasExtras || {}).entrada)
+      + chavesDe(limpo.regrasCategoria) + chavesDe(orc.categorias)
+      + (orc.geral ? 1 : 0)
+      + ((limpo.perfil && limpo.perfil.taxas) ? 1 : 0);
+
+    var nome = limpo.perfil && limpo.perfil.nome ? String(limpo.perfil.nome).trim() : '';
+    return {
+      uid: uid, chave: chave, estado: limpo,
+      quantos: limpo.lancamentos.length,
+      vazio: partes.length === 0 && sobra === 0,
+      nome: nome,
+      resumo: partes.length ? partes.join(' · ')
+            : (sobra ? 'ajustes guardados' : 'nada guardado ainda')
+    };
+  }
+
   function cofresQueAbrem() {
     if (!cripto || !temChaveDesteAparelho()) return Promise.resolve([]);
     var lista = cofresDesteAparelho();
@@ -4334,8 +4395,7 @@
         fila = fila.then(function (bons) {
           return decifrar(chave, item.cofre).then(function (dados) {
             var limpo = limparEstado(dados);
-            bons.push({ uid: item.uid, chave: chave, estado: limpo,
-                        quantos: limpo.lancamentos.length });
+            bons.push(medirCofre(item.uid, chave, limpo));
             return bons;
           }).catch(function () { return bons; });
         });
@@ -4357,17 +4417,25 @@
   function entrarSemServidor() {
     cofresQueAbrem().then(function (bons) {
       if (!bons.length) { avisar('Não achei dados guardados neste aparelho.'); return; }
-      if (bons.length === 1) { abrirCofreLocal(bons[0]); return; }
+
+      // Cofre vazio não é escolha, é ruído — e ruído perigoso, porque
+      // escolher o errado dá a impressão de que os dados sumiram. Só
+      // mostro os vazios se não sobrar nenhum cheio.
+      var cheios = bons.filter(function (b) { return !b.vazio; });
+      var mostrar = cheios.length ? cheios : bons;
+
+      if (mostrar.length === 1) { abrirCofreLocal(mostrar[0]); return; }
       abrirEscolha({
         titulo: 'Quais dados abrir?',
         semMarca: true,
-        opcoes: bons.map(function (b, i) {
-          return { valor: String(i), rotulo: b.quantos + ' lançamento(s)',
-                   detalhe: 'conta ' + b.uid.slice(0, 8) };
+        opcoes: mostrar.map(function (b, i) {
+          return { valor: String(i),
+                   rotulo: b.nome || 'Conta ' + b.uid.slice(0, 8),
+                   detalhe: b.resumo };
         })
       }, function (v) {
         if (v == null) return;
-        abrirCofreLocal(bons[Number(v)]);
+        abrirCofreLocal(mostrar[Number(v)]);
       });
     });
   }

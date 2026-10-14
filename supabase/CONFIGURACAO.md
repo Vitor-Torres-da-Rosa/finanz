@@ -64,6 +64,30 @@ Vai aparecer um punhado de mensagens `NOTICE: ... does not exist, skipping`. **�
 
 O `schema.sql` é a foto de agora: num projeto novo ele cria tudo — tabelas,
 colunas, índices, RLS e gatilhos — e **não precisa de mais nenhum arquivo**.
+
+Num projeto que **já existe**, rode também a `migracao-07.sql`, que acrescenta
+o pulso (veja a seguir). As migrações 01 a 06 só interessam a projetos
+anteriores a outubro de 2026.
+
+### O pulso, e por que ele existe
+
+O plano gratuito pausa o projeto depois de **uma semana sem atividade**. A
+ronda diária no GitHub Actions existe para evitar isso, mas a primeira versão
+dela fazia uma leitura que o RLS recusava com 401. Parecia esperto — provava
+que a trava funciona — só que como prova de atividade era duvidosa: há
+relatos de que pedido recusado não marca ponto, e o lugar errado para
+descobrir isso é no dia em que o projeto pausa.
+
+Por isso existe `pulso_bater()`: uma escrita de verdade, mínima, que carimba
+a hora numa linha só. Quem chama é a ronda, com a chave pública. A tabela por
+trás dela não tem privilégio para `anon` nem para `authenticated` e ainda tem
+RLS ligada, então ninguém a alcança pela API — quem escreve é a função, com o
+dono dela. Não há dado de pessoa nenhuma ali dentro; é um relógio.
+
+O preço honesto: qualquer um com a chave pública (que é pública) pode chamar
+`pulso_bater()` e empurrar esse relógio. Não lê nada, não grava nada além da
+hora, e o Supabase limita a quantidade de pedidos. Foi o troco que eu achei
+justo por uma prova de atividade que não deixa dúvida.
 Conferido em 07/10/2026 contra um banco zerado: 144 colunas nas 13 tabelas,
 idêntico a um banco que tivesse rodado o schema mais as seis migrações, com
 RLS ligada em todas. A suíte inteira (57 testes) passou contra ele.
