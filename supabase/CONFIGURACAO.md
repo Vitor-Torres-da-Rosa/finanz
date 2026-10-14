@@ -181,6 +181,53 @@ Para apagar de verdade, depois que o novo estiver provado:
 Antes de clicar, confira que o `finanz-backup-....json` do passo 1 está
 mesmo salvo no aparelho. O banco vai junto com o projeto e não volta.
 
+## 2c. Levantar sozinho (o sistema de sempre online)
+
+Sem isto, a ronda só avisa que o servidor caiu — levantar é você, no painel.
+Com isto, ela levanta sozinha e você nem fica sabendo, a não ser pelo e-mail.
+
+É opcional e some sem deixar rastro: sem o segredo, a ronda funciona como
+antes.
+
+1. <https://supabase.com/dashboard/account/tokens> → **Generate new token**
+2. Dê um nome (`ronda do Finanz`) e escolha a permissão **`project_admin_write`**.
+   Prefira o token **com permissão escolhida** (começa com `sbp_fc`) ao token
+   de conta inteira: ele faz o que precisamos e nada além.
+3. Copie o token. **Ele não aparece de novo.**
+4. No GitHub: <https://github.com/Vitor-Torres-da-Rosa/finanz/settings/secrets/actions>
+   → **New repository secret**
+   - **Name**: `SUPABASE_TOKEN`
+   - **Secret**: cole o token
+5. **Add secret**.
+
+O token **não passa por conversa nenhuma** e não entra no repositório: vai do
+Supabase direto para o cofre de segredos do GitHub. Nos registros da ronda ele
+sai mascarado.
+
+**O preço honesto:** quem tiver esse token pode levantar o projeto — e também
+pausar e mexer nele. Por isso a permissão escolhida em vez do token de conta
+inteira, e por isso ele fica no cofre do GitHub e não num arquivo. Se um dia
+desconfiar dele, apague no Supabase e gere outro: a ronda volta a só avisar
+enquanto isso, sem quebrar.
+
+### O que ela passa a fazer sozinha
+
+Quando o endereço não responde, ela pergunta à API de gestão **o que
+aconteceu** — e isso também resolve uma cegueira, porque de fora projeto
+pausado e projeto apagado são idênticos: o nome some do DNS nos dois casos.
+
+| A API responde | A ronda faz |
+| --- | --- |
+| pausado (`INACTIVE`) | manda levantar e avisa que a próxima ronda confirma |
+| não existe (404) | diz que foi **apagado**, não pausado — levantar não resolve |
+| token recusado | diz para gerar outro |
+| de pé, mas sem responder | diz que é pane do lado deles ou config errado |
+
+Mesmo levantando sozinha, o passo **falha de propósito** e manda e-mail. Cair
+é notícia, mesmo quando o conserto foi automático.
+
+---
+
 ## 3. Endereços do aplicativo
 
 **Authentication** → **URL Configuration**:

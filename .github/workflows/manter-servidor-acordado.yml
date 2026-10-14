@@ -38,6 +38,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Bater no servidor
+        env:
+          # Opcional. Sem ele a ronda so avisa; com ele, ela levanta o
+          # projeto pausado sozinha. Guardado em Settings > Secrets and
+          # variables > Actions, nunca no repositorio.
+          TOKEN: ${{ secrets.SUPABASE_TOKEN }}
         run: |
           set -u
 
@@ -100,14 +105,101 @@ jobs:
           # a migracao-07.sql. 401 quer dizer chave inválida.
           case "$CODIGO" in 2*) ;; *) FALHOU=1 ;; esac
 
+          # ----------------------------------------------------------
+          # Levantar sozinho, se o projeto tiver caido
+          #
+          # Ate aqui tudo e leitura: a ronda descobre a queda e manda
+          # e-mail, mas quem levanta e uma pessoa no painel. Com um
+          # segredo SUPABASE_TOKEN guardado no repositorio, ela levanta.
+          #
+          # Sem o segredo, nada disso roda e a ronda segue como antes.
+          # E de proposito: o token e opcional, nao obrigatorio.
+          #
+          # Esta parte tambem conserta uma cegueira. De fora, projeto
+          # pausado e projeto apagado sao identicos: o nome some do DNS
+          # nos dois casos. A API de gestao responde a diferenca.
+          # ----------------------------------------------------------
+          if [ "$FALHOU" = "1" ] && [ -n "${TOKEN:-}" ]; then
+            REF=$(printf '%s' "$URL" | sed -E 's#^https?://([^.]+)\..*#\1#')
+            API=${API_SUPABASE:-https://api.supabase.com}
+            echo
+            echo "--- perguntando à API de gestão sobre o projeto $REF"
+
+            : > /tmp/projeto.txt
+            CODIGO=$(curl -sS -o /tmp/projeto.txt -w '%{http_code}' --max-time 30 \
+              -H "Authorization: Bearer $TOKEN" "$API/v1/projects/$REF" | tail -c 3)
+            echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/projeto.txt; echo
+
+            case "$CODIGO" in
+              404)
+                echo
+                echo "O projeto NAO EXISTE MAIS. Isso nao e pausa, e sumico:"
+                echo "apagado, ou a chave do config.js aponta para um ref"
+                echo "que nunca existiu. Levantar nao resolve - tem de criar"
+                echo "outro e rodar o supabase/schema.sql. Veja a secao 2b"
+                echo "do supabase/CONFIGURACAO.md."
+                ;;
+              401|403)
+                echo
+                echo "O token nao foi aceito. Gere outro em"
+                echo "supabase.com/dashboard/account/tokens com a permissao"
+                echo "project_admin_write e troque o segredo SUPABASE_TOKEN."
+                ;;
+              2*)
+                # O estado vem no corpo. ACTIVE_HEALTHY e o de pe;
+                # INACTIVE e o pausado. Procuro pelo texto para nao
+                # depender de jq nem do formato exato do JSON.
+                if grep -qi 'INACTIVE\|PAUSED' /tmp/projeto.txt; then
+                  echo
+                  echo "Projeto PAUSADO. Mandando levantar."
+                  : > /tmp/restaura.txt
+                  CODIGO=$(curl -sS -o /tmp/restaura.txt -w '%{http_code}' --max-time 60 \
+                    -X POST -H "Authorization: Bearer $TOKEN" \
+                    -H "Content-Type: application/json" -d '{}' \
+                    "$API/v1/projects/$REF/restore" | tail -c 3)
+                  echo "HTTP ${CODIGO:-000}"; head -c 300 /tmp/restaura.txt; echo
+                  case "$CODIGO" in
+                    2*)
+                      echo
+                      echo "Pedido de restauracao aceito. Levar de uns"
+                      echo "minutos a algumas dezenas. A proxima ronda"
+                      echo "confirma; se ela passar, acabou sozinho."
+                      echo
+                      echo "Mesmo assim este passo FALHA de proposito: o"
+                      echo "servidor esta fora agora, e voce merece saber"
+                      echo "que caiu, nao so que foi levantado."
+                      ;;
+                    *)
+                      echo
+                      echo "A restauracao foi recusada. Tem de ser no painel:"
+                      echo "supabase.com/dashboard/projects"
+                      ;;
+                  esac
+                else
+                  echo
+                  echo "A API diz que o projeto existe e nao esta pausado,"
+                  echo "mas o endereco nao responde. Isso e pane do lado"
+                  echo "deles, ou o config.js aponta para o projeto errado."
+                fi
+                ;;
+              *)
+                echo
+                echo "Nao consegui falar com a API de gestao."
+                ;;
+            esac
+          elif [ "$FALHOU" = "1" ]; then
+            echo
+            echo "(Sem o segredo SUPABASE_TOKEN eu so sei avisar, nao levantar."
+            echo " Como ligar isso esta no supabase/CONFIGURACAO.md.)"
+          fi
+
           if [ "$FALHOU" = "1" ]; then
             echo
             echo "O servidor não respondeu como esperado. Pelo código acima:"
             echo
             echo "  000  o nome nem resolve. Projeto pausado, apagado ou"
-            echo "       desligado. Olhe em supabase.com/dashboard/projects"
-            echo "       QUAL dos tres: se as rondas de ontem estavam verdes,"
-            echo "       NAO foi inatividade - alguem ou algo desligou."
+            echo "       desligado. Com o SUPABASE_TOKEN ligado, o trecho"
+            echo "       acima ja diz QUAL dos tres."
             echo "  401  no health: a chave do config.js nao vale mais."
             echo "  404  no pulso: falta rodar a supabase/migracao-07.sql."
             echo "  5xx  o servidor esta de pe mas quebrado por dentro."
