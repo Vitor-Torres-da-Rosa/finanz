@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.8';
+  var VERSAO = '5.9.9';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.9',
+      data: '2026-10-19',
+      itens: [
+        'Cliente com as parcelas em dia parou de aparecer como atrasado. Quem manda agora é a parcela: se não há nenhuma vencida, não há atraso.',
+        'O que causava isso era uma data escondida. Versões antigas guardavam um "próximo pagamento" solto no cadastro, e o app ainda olhava para ela mesmo com as parcelas todas em dia. Como o app de hoje não tem campo nenhum para editar essa data, ela marcava o cliente de vermelho para sempre e não havia como corrigir.',
+        'Essa data virou reserva: só vale para cliente que não tem parcela nenhuma em aberto. E quando for ela a causa do aviso, a tela de cobrança diz isso com todas as letras e oferece tirar a data do cadastro.'
+      ]
+    },
     {
       versao: '5.9.8',
       data: '2026-10-19',
@@ -6695,12 +6704,34 @@
     return cliente && cliente.proximoPagamento ? cliente.proximoPagamento : '';
   }
 
-  function clienteAtrasado(id) {
-    var a = atrasoDoCliente(id);
-    if (a.vencidas.length) return true;
+  // Parcela vencida é o motivo normal. O campo solto "proximoPagamento"
+  // é o motivo de reserva, e só vale para cliente que não tem parcela
+  // nenhuma em aberto.
+  //
+  // Por que a reserva ficou de reserva: esse campo é herança de uma
+  // versão antiga. O app de hoje cria todo cliente com ele vazio e não
+  // tem campo nenhum na tela para editá-lo — ele só volta a existir por
+  // restauração de backup ou sincronização. Como estava, uma data antiga
+  // que a pessoa não vê e não consegue mudar marcava o cliente como
+  // atrasado para sempre, mesmo com todas as parcelas em dia. Era o caso
+  // da Daniela em 19/10/2026.
+  //
+  // Quem manda é a parcela, igual já fazia proximoVencimento(). As duas
+  // respondem a mesma pergunta e discordavam uma da outra.
+  function parcelasAbertasDoCliente(id) {
+    return parcelasDoCliente(id).filter(function (p) { return !parcelaPaga(p); });
+  }
+
+  function atrasoPelaDataSolta(id) {
+    if (parcelasAbertasDoCliente(id).length) return false;
     var cliente = achar(estado.clientes, id);
     return !!(cliente && cliente.proximoPagamento && cliente.proximoPagamento < hojeTexto() &&
       resumoCliente(id).restante > 0);
+  }
+
+  function clienteAtrasado(id) {
+    if (atrasoDoCliente(id).vencidas.length) return true;
+    return atrasoPelaDataSolta(id);
   }
 
   function resumoCliente(id) {
@@ -7789,6 +7820,21 @@
         emReais(atraso.total || r.restante)));
       if (atraso.desde) {
         cabeca.appendChild(no('div', 'linha-nota', 'A parcela mais antiga venceu em ' + dataBr(atraso.desde) + '.'));
+      } else if (cliente.proximoPagamento) {
+        // Sem parcela vencida, o aviso veio da data solta do cadastro.
+        // Dizer isso é o mínimo: é um campo que a pessoa não enxerga em
+        // lugar nenhum e não tem como editar.
+        cabeca.appendChild(no('div', 'linha-nota',
+          'Não há parcela vencida. O aviso vem da data de próximo pagamento ' +
+          'guardada no cadastro (' + dataBr(cliente.proximoPagamento) + '), que é de uma ' +
+          'versão antiga do app.'));
+        cabeca.appendChild(botao('btn btn-fantasma', 'Tirar essa data do cadastro', function () {
+          cliente.proximoPagamento = '';
+          salvar();
+          fecharFolha();
+          desenhar();
+          avisar('Data retirada. O cliente volta a seguir só as parcelas.');
+        }));
       }
       cabeca.appendChild(no('div', 'linha-nota',
         'No total, ainda faltam ' + emReais(r.restante) + ' deste cliente.'));
