@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.9';
+  var VERSAO = '5.10.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.10.0',
+      data: '2026-10-19',
+      itens: [
+        '"Ver lançamentos" nas despesas que se repetem parou de cair em "Nada encontrado". Ele levava sempre para o mês atual, e uma despesa que acontece de dois em dois meses pode não ter nada no mês de hoje. Agora leva para a faixa onde os lançamentos realmente estão.',
+        'A busca passou a ignorar acento e espaço repetido. Procurar "sao joao" acha "MERCADO SÃO JOÃO", e extrato de banco, que vem cheio de espaço duplo, deixou de escapar da busca. Era isso que fazia o próprio app não achar o que tinha acabado de listar.',
+        'Transferência entre contas saiu do total comprometido. A confirmada já ficava de fora; agora a que o app só identificou — e ainda espera você confirmar — também não conta. Transferir dinheiro de uma conta sua para outra nunca foi despesa.',
+        'Ao registrar o pagamento de um cliente, "Lançar como entrada no caixa" vem desmarcado. Quem importa o extrato do banco recebia esse dinheiro duas vezes: uma pelo Empreendedor, outra pelo extrato.'
+      ]
+    },
     {
       versao: '5.9.9',
       data: '2026-10-19',
@@ -10438,7 +10448,11 @@
     if (!parcela && existente && existente.parcelaId) parcela = achar(estado.parcelas, existente.parcelaId);
     var r = resumoCliente(clienteId);
     var servicos = servicosDoCliente(clienteId);
-    var lancarNoCaixa = !existente;
+    // Desmarcado por padrão. Quem importa o extrato do banco recebe esse
+    // mesmo dinheiro por lá, e marcar sozinho fazia o pagamento entrar
+    // duas vezes no caixa — uma pelo Empreendedor, outra pelo extrato.
+    // Quem não importa extrato marca na hora; é um toque.
+    var lancarNoCaixa = false;
     empilhar({ tipo: 'aba', voltar: function () { montarFichaCliente(clienteId); } });
 
     abrirFolha(existente ? 'Editar pagamento' : 'Registrar pagamento', function (folha) {
@@ -10649,14 +10663,16 @@
           marcar.querySelector('.caixinha').textContent = lancarNoCaixa ? '✓' : '';
           campoConta.parentNode.style.display = lancarNoCaixa ? '' : 'none';
         });
-        marcar.setAttribute('aria-pressed', 'true');
+        marcar.setAttribute('aria-pressed', lancarNoCaixa ? 'true' : 'false');
         marcar.style.marginBottom = '14px';
-        marcar.appendChild(no('span', 'caixinha', '✓'));
+        marcar.appendChild(no('span', 'caixinha', lancarNoCaixa ? '✓' : ''));
         marcar.appendChild(no('span', null, 'Lançar como entrada no caixa'));
         forma.appendChild(marcar);
 
         campoConta = entradaSelecao(opcoesDeConta(), estado.contas[0].id);
-        forma.appendChild(campo('Entrou em qual conta', campoConta));
+        var blocoConta = campo('Entrou em qual conta', campoConta);
+        if (!lancarNoCaixa) blocoConta.style.display = 'none';
+        forma.appendChild(blocoConta);
       }
 
       var acoes = no('div', 'acoes');
@@ -10997,13 +11013,13 @@
     if (!alvo) return;
     alvo.textContent = '';
 
-    var termo = buscaTransacoes.trim().toLowerCase();
+    var termo = paraBusca(buscaTransacoes);
     var faixa = faixaDoPeriodo();
     var itens = lancamentosDoPeriodo().filter(function (l) {
       if (filtroTransacoes !== 'todas' && l.tipo !== filtroTransacoes) return false;
       if (!termo) return true;
-      return (l.descricao + ' ' + l.categoria + ' ' + (l.subcategoria || ''))
-        .toLowerCase().indexOf(termo) >= 0;
+      return paraBusca(l.descricao + ' ' + l.categoria + ' ' + (l.subcategoria || ''))
+        .indexOf(termo) >= 0;
     });
 
     if (!itens.length) {
@@ -12204,9 +12220,24 @@
   // Uma despesa é recorrente quando o mesmo nome e o mesmo valor aparecem em
   // meses diferentes. Isso é fato observado, não chute.
   function despesasRecorrentes() {
+    // Transferência entre contas não é despesa: o dinheiro saiu de um
+    // bolso seu e entrou em outro. A confirmada já fica de fora pelo tipo,
+    // mas a que o app só identificou — e ainda espera a sua confirmação —
+    // continuava entrando no total comprometido. É o caso de
+    // "TRANSF ENVIADA PIX" aparecendo como despesa que se repete.
+    //
+    // Se o app está seguro o bastante para propor o par na tela inicial,
+    // está seguro o bastante para não contar aquilo como conta a pagar.
+    var emPar = {};
+    paresDeTransferencia().forEach(function (par) {
+      emPar[par.saida.id] = true;
+      emPar[par.entrada.id] = true;
+    });
+
     var grupos = {};
     estado.lancamentos.forEach(function (l) {
       if (l.tipo !== 'saida' || !l.valor) return;
+      if (emPar[l.id]) return;
       var chave = chaveDeRecorrencia(l);
       if (!chave || chave.charAt(0) === '|') return;
       (grupos[chave] = grupos[chave] || []).push(l);
@@ -12672,14 +12703,29 @@
   // completa.
   // =========================================================================
 
-  function irParaTransacoes(filtro, categoria) {
+  // Leva para a tela de transações já filtrada.
+  //
+  // A faixa de datas é opcional, e existe porque o padrão (o mês ativo)
+  // mentia: "Ver lançamentos" numa despesa que se repete "em 2 meses"
+  // caía num mês onde ela não acontece, e a tela dizia "Nada encontrado"
+  // para algo que o próprio app tinha acabado de listar. Quem sabe onde
+  // os lançamentos estão é quem chama; agora pode dizer.
+  function irParaTransacoes(filtro, categoria, de, ate) {
     periodo.tipo = 'escolhido';
-    periodo.de = textoDeData(mesAtivo.ano, mesAtivo.mes, 1);
-    periodo.ate = fimDoMes(mesAtivo.ano, mesAtivo.mes);
+    periodo.de = de || textoDeData(mesAtivo.ano, mesAtivo.mes, 1);
+    periodo.ate = ate || fimDoMes(mesAtivo.ano, mesAtivo.mes);
     filtroTransacoes = filtro || 'todas';
     buscaTransacoes = categoria || '';
     fecharFolha();
     setTimeout(function () { irPara('transacoes'); }, 160);
+  }
+
+  // A faixa que cobre todos os lançamentos de um recorrente, com uma
+  // folga de um dia nas pontas para não perder nada por fuso.
+  function faixaDoRecorrente(r) {
+    var datas = (r.lancamentos || []).map(function (l) { return l.data; }).sort();
+    if (!datas.length) return [null, null];
+    return [datas[0], datas[datas.length - 1]];
   }
 
   function anelDaNota(nota, tamanho) {
@@ -12987,9 +13033,12 @@
 
         lista.forEach(function (r) {
           var item = no('div', 'recorrente');
-          var linha = botao('linha', null, function () {
-            irParaTransacoes('saida', nomeDeOrigem(r.descricao) || r.categoria);
-          });
+          var faixaR = faixaDoRecorrente(r);
+          var verLancamentos = function () {
+            irParaTransacoes('saida', nomeDeOrigem(r.descricao) || r.categoria,
+              faixaR[0], faixaR[1]);
+          };
+          var linha = botao('linha', null, verLancamentos);
           juntar(linha,
             selo(corDeCategoria(r.categoria), r.categoria.charAt(0)),
             juntar(no('div', 'linha-texto'),
@@ -13005,9 +13054,7 @@
             fecharFolha();
             setTimeout(montar, 240);
           }));
-          acoes.appendChild(botao('btn-mini', 'Ver lançamentos', function () {
-            irParaTransacoes('saida', nomeDeOrigem(r.descricao) || r.categoria);
-          }));
+          acoes.appendChild(botao('btn-mini', 'Ver lançamentos', verLancamentos));
           item.appendChild(acoes);
           c.appendChild(item);
         });
@@ -17814,6 +17861,20 @@
     }
     return s.replace(/\s+/g, ' ').trim().toUpperCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 60);
+  }
+
+  // Texto pronto para comparar: minúsculo, sem acento, espaços colapsados.
+  //
+  // As duas pontas da busca precisam passar por aqui. nomeDeOrigem()
+  // devolve a chave já normalizada, e até 19/10/2026 o "Ver lançamentos"
+  // jogava essa chave crua contra a descrição original. Extrato de banco
+  // vem com espaço duplo — "GUSTAVO  SAAR" vira "GUSTAVO SAAR" na chave
+  // e o indexOf não achava nada. O mesmo valia para acento: procurar
+  // "sao joao" nunca achava "MERCADO SÃO JOÃO".
+  function paraBusca(s) {
+    return String(s || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ').trim();
   }
 
   function regraDeCategoria(descricao) {
