@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.5';
+  var VERSAO = '5.10.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,54 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.10.0',
+      data: '2026-10-19',
+      itens: [
+        '"Ver lançamentos" nas despesas que se repetem parou de cair em "Nada encontrado". Ele levava sempre para o mês atual, e uma despesa que acontece de dois em dois meses pode não ter nada no mês de hoje. Agora leva para a faixa onde os lançamentos realmente estão.',
+        'A busca passou a ignorar acento e espaço repetido. Procurar "sao joao" acha "MERCADO SÃO JOÃO", e extrato de banco, que vem cheio de espaço duplo, deixou de escapar da busca. Era isso que fazia o próprio app não achar o que tinha acabado de listar.',
+        'Transferência entre contas saiu do total comprometido. A confirmada já ficava de fora; agora a que o app só identificou — e ainda espera você confirmar — também não conta. Transferir dinheiro de uma conta sua para outra nunca foi despesa.',
+        'Ao registrar o pagamento de um cliente, "Lançar como entrada no caixa" vem desmarcado. Quem importa o extrato do banco recebia esse dinheiro duas vezes: uma pelo Empreendedor, outra pelo extrato.'
+      ]
+    },
+    {
+      versao: '5.9.9',
+      data: '2026-10-19',
+      itens: [
+        'Cliente com as parcelas em dia parou de aparecer como atrasado. Quem manda agora é a parcela: se não há nenhuma vencida, não há atraso.',
+        'O que causava isso era uma data escondida. Versões antigas guardavam um "próximo pagamento" solto no cadastro, e o app ainda olhava para ela mesmo com as parcelas todas em dia. Como o app de hoje não tem campo nenhum para editar essa data, ela marcava o cliente de vermelho para sempre e não havia como corrigir.',
+        'Essa data virou reserva: só vale para cliente que não tem parcela nenhuma em aberto. E quando for ela a causa do aviso, a tela de cobrança diz isso com todas as letras e oferece tirar a data do cadastro.'
+      ]
+    },
+    {
+      versao: '5.9.8',
+      data: '2026-10-19',
+      itens: [
+        'Entrar numa conta vazia não deixa mais você olhando para zeros sem explicação. Se existirem dados de outra conta neste aparelho, o app conta quantos são e oferece trazer para cá — e isso sobe para a nuvem junto.',
+        'Isso existe porque trocar de servidor cria uma conta nova, e conta nova abre zerada mesmo com os seus dados inteiros do lado, no mesmo aparelho. Não havia nada na tela dizendo isso. Quem visse os zeros concluiria que perdeu tudo.',
+        'Quem disser "agora não" encontra o mesmo caminho depois em Mais → Trazer dados de outra conta. Nada é apagado dos dois lados.',
+        'E "Abrir os dados deste aparelho" parou de ser um beco sem saída: antes a tela prometia que os dados iam para a nuvem, quando na verdade ali nada sai do aparelho. Agora ela diz a verdade e mostra o caminho para levar os dados para a sua conta.'
+      ]
+    },
+    {
+      versao: '5.9.7',
+      data: '2026-10-14',
+      itens: [
+        'Abrir os dados deste aparelho não oferece mais cofre vazio. Cada conta que entra aqui guarda o próprio cofre, e trocar de projeto no servidor cria conta nova — então a tela vinha mostrando três opções, duas com nada dentro. Escolher uma delas dava a impressão de que os seus dados tinham sumido.',
+        'Agora só aparece cofre com coisa dentro, e se sobrar um só ele abre direto, sem perguntar. Nada é apagado: o cofre vazio continua guardado e volta a ser o seu assim que aquela conta sincronizar.',
+        'E a escolha passou a dizer o que tem dentro de cada um — "3520 lançamentos · 7 contas · 12 clientes" no lugar de um código de conta que não significa nada para ninguém.',
+        'A ronda que mantém o servidor acordado agora faz uma escrita de verdade no banco, em vez de uma leitura que a trava recusava. Leitura recusada é prova duvidosa de atividade, e o lugar errado de descobrir isso é no dia em que o projeto pausa. Ela também passou a rodar duas vezes por dia.'
+      ]
+    },
+    {
+      versao: '5.9.6',
+      data: '2026-10-08',
+      itens: [
+        'O app fala com um servidor novo. O antigo pausou por sete dias sem uso e depois não restaurou — foi o que deixou você sem login e sem backup na semana passada. O endereço e a chave mudaram aqui dentro; o resto é igual, mesmas tabelas e mesmas proteções.',
+        'Ao entrar, o aparelho que estiver com os dados sobe tudo para o servidor novo. Se alguma coisa não aparecer, Mais → Restaurar backup com o arquivo que você guardou.',
+        'A ronda diária que mantém o servidor acordado foi apontada para o projeto novo e está passando. Ela também avisa por e-mail se o servidor cair ou se a chave parar de valer.'
+      ]
+    },
     {
       versao: '5.9.5',
       data: '2026-10-07',
@@ -3686,6 +3734,8 @@
     cofreLocalAberto = false;
     cofresQueAbrem().then(function (bons) {
       cofreLocalAberto = bons.length > 0;
+      // (a porta aparece mesmo se só houver cofre vazio: é melhor abrir
+      // o app vazio do que deixar a pessoa na tela de login sem saída.)
       if (cofreLocalAberto && !$('entrada').classList.contains('escondida')) montarEntrada();
     });
   }
@@ -4315,6 +4365,63 @@
   // Só vale oferecer o que realmente abre. Cofre de conta com e-mail e
   // senha é cifrado com a senha, não com a chave do aparelho, e esse não
   // abre aqui — nem deve.
+  // O que este cofre tem dentro, para a pessoa reconhecer qual é o dela.
+  //
+  // Contar só lançamento engana: cofre com cliente e nenhuma despesa é
+  // cofre cheio, e cofre recém-criado tem zero de tudo. Trocar de projeto
+  // no servidor cria conta nova, e conta nova abre um cofre vazio aqui ao
+  // lado do antigo — foi o que encheu esta tela de opções que não eram
+  // escolha nenhuma.
+  // As cinco listas que a pessoa reconhece de cara, para o rótulo.
+  function resumoDoEstado(e) {
+    var partes = [];
+    [['lançamento', 'lançamentos', e.lancamentos],
+     ['conta', 'contas', e.contas],
+     ['cliente', 'clientes', e.clientes],
+     ['investimento', 'investimentos', e.ativos],
+     ['meta', 'metas', e.metas]].forEach(function (c) {
+      var n = (c[2] || []).length;
+      if (n) partes.push(n + ' ' + (n === 1 ? c[0] : c[1]));
+    });
+    return partes;
+  }
+
+  // Para decidir se há algo guardado eu olho tudo, não só as cinco de
+  // cima: esconder um cofre que só tem orçamentos, ou só a tabela da
+  // maquininha, seria esconder trabalho de alguém.
+  //
+  // O nome do perfil fica de fora desta conta de propósito. Ele é
+  // preenchido no cadastro de qualquer conta, então não separa cofre
+  // cheio de cofre recém-nascido — serve de rótulo, não de prova.
+  function estaVazio(e) {
+    if (!e) return true;
+    if (resumoDoEstado(e).length) return false;
+    var quantas = function (x) { return x && x.length ? x.length : 0; };
+    var chavesDe = function (o) { return o ? Object.keys(o).length : 0; };
+    var orc = e.orcamentos || {};
+    return (quantas(e.servicos) + quantas(e.pagamentos) + quantas(e.parcelas)
+      + quantas(e.propostas) + quantas(e.importacoes) + quantas(e.tiposRegistro)
+      + quantas((e.categoriasExtras || {}).saida)
+      + quantas((e.categoriasExtras || {}).entrada)
+      + chavesDe(e.regrasCategoria) + chavesDe(orc.categorias)
+      + (orc.geral ? 1 : 0)
+      + ((e.perfil && e.perfil.taxas) ? 1 : 0)) === 0;
+  }
+
+  function medirCofre(uid, chave, limpo) {
+    var partes = resumoDoEstado(limpo);
+    var vazio = estaVazio(limpo);
+    var nome = limpo.perfil && limpo.perfil.nome ? String(limpo.perfil.nome).trim() : '';
+    return {
+      uid: uid, chave: chave, estado: limpo,
+      quantos: limpo.lancamentos.length,
+      vazio: vazio,
+      nome: nome,
+      resumo: partes.length ? partes.join(' · ')
+            : (vazio ? 'nada guardado ainda' : 'ajustes guardados')
+    };
+  }
+
   function cofresQueAbrem() {
     if (!cripto || !temChaveDesteAparelho()) return Promise.resolve([]);
     var lista = cofresDesteAparelho();
@@ -4325,8 +4432,7 @@
         fila = fila.then(function (bons) {
           return decifrar(chave, item.cofre).then(function (dados) {
             var limpo = limparEstado(dados);
-            bons.push({ uid: item.uid, chave: chave, estado: limpo,
-                        quantos: limpo.lancamentos.length });
+            bons.push(medirCofre(item.uid, chave, limpo));
             return bons;
           }).catch(function () { return bons; });
         });
@@ -4348,19 +4454,123 @@
   function entrarSemServidor() {
     cofresQueAbrem().then(function (bons) {
       if (!bons.length) { avisar('Não achei dados guardados neste aparelho.'); return; }
-      if (bons.length === 1) { abrirCofreLocal(bons[0]); return; }
+
+      // Cofre vazio não é escolha, é ruído — e ruído perigoso, porque
+      // escolher o errado dá a impressão de que os dados sumiram. Só
+      // mostro os vazios se não sobrar nenhum cheio.
+      var cheios = bons.filter(function (b) { return !b.vazio; });
+      var mostrar = cheios.length ? cheios : bons;
+
+      if (mostrar.length === 1) { abrirCofreLocal(mostrar[0]); return; }
       abrirEscolha({
         titulo: 'Quais dados abrir?',
         semMarca: true,
-        opcoes: bons.map(function (b, i) {
-          return { valor: String(i), rotulo: b.quantos + ' lançamento(s)',
-                   detalhe: 'conta ' + b.uid.slice(0, 8) };
+        opcoes: mostrar.map(function (b, i) {
+          return { valor: String(i),
+                   rotulo: b.nome || 'Conta ' + b.uid.slice(0, 8),
+                   detalhe: b.resumo };
         })
       }, function (v) {
         if (v == null) return;
-        abrirCofreLocal(bons[Number(v)]);
+        abrirCofreLocal(mostrar[Number(v)]);
       });
     });
+  }
+
+  // ---------- Trazer o cofre de outra conta deste aparelho ----------
+  //
+  // Cada conta guarda o próprio cofre, amarrado ao id dela no servidor.
+  // Trocar de projeto no servidor dá um id novo, e com ele o app abre
+  // zerado — com os dados antigos intactos no aparelho, do lado, sem
+  // porta. Em 19/10/2026 isso aconteceu de verdade: o Vitor entrou com o
+  // Google num projeto novo, viu tudo em zero, e os 3520 lançamentos
+  // estavam ali o tempo todo no cofre da conta anterior.
+  //
+  // O caminho existia — backup, sair, restaurar — mas ninguém adivinha
+  // isso olhando uma tela zerada. Agora o app oferece.
+
+  // Sessão aberta pela porta de trás: tem cofre aberto, não tem conta na
+  // nuvem. A sincronização desiste na primeira linha nesse estado — de
+  // propósito —, então a tela precisa dizer isso em vez de prometer nuvem.
+  function emSessaoLocal() {
+    return !!(NUVEM.ligada && sessao && !sessaoNuvem);
+  }
+
+  // Cofres deste aparelho que não são o da conta aberta e têm algo dentro.
+  function cofresDeOutrasContas() {
+    var meu = sessao ? sessao.contaId : null;
+    return cofresQueAbrem().then(function (bons) {
+      return bons.filter(function (b) { return b.uid !== meu && !b.vazio; });
+    }).catch(function () { return []; });
+  }
+
+  function trazerCofre(b) {
+    estado = b.estado;
+    estado.excluidos = [];
+    desenhar();
+    avisar('Trazendo os dados...');
+    return salvar().then(function () {
+      return sincronizar(true);
+    }).then(function () {
+      desenhar();
+      avisarCaixa('Pronto',
+        'Trouxe ' + b.resumo + ' para esta conta. Agora estão aqui e na nuvem.',
+        function () {});
+    }).catch(function () {
+      // Mesmo sem subir para a nuvem, os dados já estão nesta conta
+      // neste aparelho; a sincronização tenta de novo sozinha.
+      avisar('Trouxe os dados. A nuvem se acerta quando der.');
+    });
+  }
+
+  function escolherCofreParaTrazer(bons) {
+    if (!bons.length) { avisar('Não achei dados de outra conta neste aparelho.'); return; }
+    if (bons.length === 1) { confirmarTrazer(bons[0]); return; }
+    abrirEscolha({
+      titulo: 'Trazer os dados de qual conta?',
+      semMarca: true,
+      opcoes: bons.map(function (b, i) {
+        return { valor: String(i), rotulo: b.nome || 'Conta ' + b.uid.slice(0, 8),
+                 detalhe: b.resumo };
+      })
+    }, function (v) { if (v != null) confirmarTrazer(bons[Number(v)]); });
+  }
+
+  function confirmarTrazer(b) {
+    perguntar({
+      titulo: 'Trazer estes dados?',
+      texto: 'São ' + b.resumo + ', guardados neste aparelho por outra conta. ' +
+             'Isso substitui o que esta conta tem agora e sobe tudo para a nuvem.',
+      ok: 'Trazer', tom: 'perigo'
+    }, function () { trazerCofre(b); });
+  }
+
+  // Abre o menu de Mais. Serve para quem procurou sozinho e para quem
+  // disse "agora não" no convite automático.
+  function abrirTrazerDeOutraConta() {
+    cofresDeOutrasContas().then(escolherCofreParaTrazer);
+  }
+
+  // O convite automático: conta vazia, dados de outra conta ao lado.
+  // Só depois da primeira sincronização, senão eu ofereceria importar
+  // numa conta que só está esperando o download chegar.
+  function convidarATrazer() {
+    if (!NUVEM.ligada || !sessao) return Promise.resolve();
+    var marca = 'caixa.convitetrazer.' + sessao.contaId;
+    try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
+    if (!estaVazio(estado)) return Promise.resolve();
+    return cofresDeOutrasContas().then(function (bons) {
+      if (!bons.length) return;
+      try { localStorage.setItem(marca, '1'); } catch (e) { /* sem espaço */ }
+      var b = bons[0];
+      perguntar({
+        titulo: 'Esta conta está vazia',
+        texto: 'Mas achei dados de outra conta neste aparelho: ' + b.resumo +
+               '. Quer trazer para cá? Se preferir decidir depois, está em ' +
+               'Mais, como "Trazer dados de outra conta".',
+        ok: 'Trazer', cancelar: 'Agora não'
+      }, function () { escolherCofreParaTrazer(bons); });
+    }).catch(function () { /* convite é cortesia, não pode quebrar a entrada */ });
   }
 
   function entrarComoUsuarioDaNuvem(primeiroAcesso) {
@@ -4407,9 +4617,9 @@
       if (semServidorAgora) {
         semServidorAgora = false;
         avisar('Sem falar com o servidor. Abri os seus dados deste aparelho.');
-        return null;
+        return convidarATrazer();
       }
-      return sincronizar(true);
+      return sincronizar(true).then(convidarATrazer);
     });
   }
 
@@ -6504,12 +6714,34 @@
     return cliente && cliente.proximoPagamento ? cliente.proximoPagamento : '';
   }
 
-  function clienteAtrasado(id) {
-    var a = atrasoDoCliente(id);
-    if (a.vencidas.length) return true;
+  // Parcela vencida é o motivo normal. O campo solto "proximoPagamento"
+  // é o motivo de reserva, e só vale para cliente que não tem parcela
+  // nenhuma em aberto.
+  //
+  // Por que a reserva ficou de reserva: esse campo é herança de uma
+  // versão antiga. O app de hoje cria todo cliente com ele vazio e não
+  // tem campo nenhum na tela para editá-lo — ele só volta a existir por
+  // restauração de backup ou sincronização. Como estava, uma data antiga
+  // que a pessoa não vê e não consegue mudar marcava o cliente como
+  // atrasado para sempre, mesmo com todas as parcelas em dia. Era o caso
+  // da Daniela em 19/10/2026.
+  //
+  // Quem manda é a parcela, igual já fazia proximoVencimento(). As duas
+  // respondem a mesma pergunta e discordavam uma da outra.
+  function parcelasAbertasDoCliente(id) {
+    return parcelasDoCliente(id).filter(function (p) { return !parcelaPaga(p); });
+  }
+
+  function atrasoPelaDataSolta(id) {
+    if (parcelasAbertasDoCliente(id).length) return false;
     var cliente = achar(estado.clientes, id);
     return !!(cliente && cliente.proximoPagamento && cliente.proximoPagamento < hojeTexto() &&
       resumoCliente(id).restante > 0);
+  }
+
+  function clienteAtrasado(id) {
+    if (atrasoDoCliente(id).vencidas.length) return true;
+    return atrasoPelaDataSolta(id);
   }
 
   function resumoCliente(id) {
@@ -7598,6 +7830,21 @@
         emReais(atraso.total || r.restante)));
       if (atraso.desde) {
         cabeca.appendChild(no('div', 'linha-nota', 'A parcela mais antiga venceu em ' + dataBr(atraso.desde) + '.'));
+      } else if (cliente.proximoPagamento) {
+        // Sem parcela vencida, o aviso veio da data solta do cadastro.
+        // Dizer isso é o mínimo: é um campo que a pessoa não enxerga em
+        // lugar nenhum e não tem como editar.
+        cabeca.appendChild(no('div', 'linha-nota',
+          'Não há parcela vencida. O aviso vem da data de próximo pagamento ' +
+          'guardada no cadastro (' + dataBr(cliente.proximoPagamento) + '), que é de uma ' +
+          'versão antiga do app.'));
+        cabeca.appendChild(botao('btn btn-fantasma', 'Tirar essa data do cadastro', function () {
+          cliente.proximoPagamento = '';
+          salvar();
+          fecharFolha();
+          desenhar();
+          avisar('Data retirada. O cliente volta a seguir só as parcelas.');
+        }));
       }
       cabeca.appendChild(no('div', 'linha-nota',
         'No total, ainda faltam ' + emReais(r.restante) + ' deste cliente.'));
@@ -10201,7 +10448,14 @@
     if (!parcela && existente && existente.parcelaId) parcela = achar(estado.parcelas, existente.parcelaId);
     var r = resumoCliente(clienteId);
     var servicos = servicosDoCliente(clienteId);
-    var lancarNoCaixa = !existente;
+    // Pagamento novo nasce desmarcado: quem importa o extrato do banco
+    // recebe esse mesmo dinheiro por lá, e marcar sozinho fazia o
+    // pagamento entrar duas vezes no caixa. Quem não importa extrato
+    // marca na hora; é um toque.
+    //
+    // Editando, o estado é o que já existe: marcado se há lançamento
+    // ligado a este pagamento.
+    var lancarNoCaixa = !!(existente && existente.lancamentoId);
     empilhar({ tipo: 'aba', voltar: function () { montarFichaCliente(clienteId); } });
 
     abrirFolha(existente ? 'Editar pagamento' : 'Registrar pagamento', function (folha) {
@@ -10405,21 +10659,30 @@
       }
 
       var campoConta = null;
-      if (!existente && estado.contas.length) {
+      // Aparece também na edição. Antes só existia ao criar, então o
+      // lançamento que nasceu de um "somar ao saldo" não tinha como ser
+      // desfeito: ficava no extrato para sempre, somando no saldo, sem
+      // nenhuma tela que o desligasse.
+      if (estado.contas.length) {
         var marcar = botao('lembrar', null, function () {
           lancarNoCaixa = !lancarNoCaixa;
           marcar.setAttribute('aria-pressed', lancarNoCaixa ? 'true' : 'false');
           marcar.querySelector('.caixinha').textContent = lancarNoCaixa ? '✓' : '';
           campoConta.parentNode.style.display = lancarNoCaixa ? '' : 'none';
         });
-        marcar.setAttribute('aria-pressed', 'true');
+        marcar.setAttribute('aria-pressed', lancarNoCaixa ? 'true' : 'false');
         marcar.style.marginBottom = '14px';
-        marcar.appendChild(no('span', 'caixinha', '✓'));
+        marcar.appendChild(no('span', 'caixinha', lancarNoCaixa ? '✓' : ''));
         marcar.appendChild(no('span', null, 'Lançar como entrada no caixa'));
         forma.appendChild(marcar);
 
-        campoConta = entradaSelecao(opcoesDeConta(), estado.contas[0].id);
-        forma.appendChild(campo('Entrou em qual conta', campoConta));
+        var lancLigado = existente && existente.lancamentoId
+          ? achar(estado.lancamentos, existente.lancamentoId) : null;
+        campoConta = entradaSelecao(opcoesDeConta(),
+          (lancLigado && lancLigado.contaId) || estado.contas[0].id);
+        var blocoConta = campo('Entrou em qual conta', campoConta);
+        if (!lancarNoCaixa) blocoConta.style.display = 'none';
+        forma.appendChild(blocoConta);
       }
 
       var acoes = no('div', 'acoes');
@@ -10441,10 +10704,46 @@
           existente.valor = valor;
           existente.data = campoData.value;
           existente.servicoId = campoServico.value;
-          if (existente.lancamentoId) {
-            var lanc = achar(estado.lancamentos, existente.lancamentoId);
-            if (lanc) { lanc.valor = valor; lanc.data = campoData.value; }
+
+          // O lançamento no extrato existe só porque alguém marcou
+          // "lançar como entrada no caixa". Então desmarcar tem de
+          // desfazer: some do extrato e para de somar no saldo. O
+          // pagamento continua aqui no Empreendedor, que é onde ele
+          // sempre foi o registro de verdade.
+          var lanc = existente.lancamentoId
+            ? achar(estado.lancamentos, existente.lancamentoId) : null;
+
+          if (!lancarNoCaixa) {
+            if (lanc) {
+              estado.lancamentos = estado.lancamentos.filter(function (l) {
+                return l.id !== existente.lancamentoId;
+              });
+              marcarExcluido('lancamentos', existente.lancamentoId);
+            }
+            existente.lancamentoId = '';
+          } else if (lanc) {
+            lanc.valor = valor;
+            lanc.data = campoData.value;
+            if (campoConta) lanc.contaId = campoConta.value;
+          } else if (campoConta) {
+            // Estava desmarcado e a pessoa marcou agora: nasce o
+            // lançamento, igual ao caminho de pagamento novo.
+            var servicoE = campoServico.value ? achar(estado.servicos, campoServico.value) : null;
+            var novoLanc = novoId();
+            estado.lancamentos.push({
+              id: novoLanc,
+              tipo: 'entrada',
+              valor: valor,
+              descricao: (cliente ? cliente.nome : 'Cliente') + (servicoE ? ' — ' + servicoE.nome : ''),
+              categoria: categoriaDoRegistro(servicoE),
+              data: campoData.value,
+              contaId: campoConta.value,
+              contaDestinoId: '',
+              criadoEm: Date.now()
+            });
+            existente.lancamentoId = novoLanc;
           }
+
           acertarParcelas(clienteId, nova);
         } else {
           var alvo = parcelaAtual();
@@ -10760,13 +11059,13 @@
     if (!alvo) return;
     alvo.textContent = '';
 
-    var termo = buscaTransacoes.trim().toLowerCase();
+    var termo = paraBusca(buscaTransacoes);
     var faixa = faixaDoPeriodo();
     var itens = lancamentosDoPeriodo().filter(function (l) {
       if (filtroTransacoes !== 'todas' && l.tipo !== filtroTransacoes) return false;
       if (!termo) return true;
-      return (l.descricao + ' ' + l.categoria + ' ' + (l.subcategoria || ''))
-        .toLowerCase().indexOf(termo) >= 0;
+      return paraBusca(l.descricao + ' ' + l.categoria + ' ' + (l.subcategoria || ''))
+        .indexOf(termo) >= 0;
     });
 
     if (!itens.length) {
@@ -11967,9 +12266,24 @@
   // Uma despesa é recorrente quando o mesmo nome e o mesmo valor aparecem em
   // meses diferentes. Isso é fato observado, não chute.
   function despesasRecorrentes() {
+    // Transferência entre contas não é despesa: o dinheiro saiu de um
+    // bolso seu e entrou em outro. A confirmada já fica de fora pelo tipo,
+    // mas a que o app só identificou — e ainda espera a sua confirmação —
+    // continuava entrando no total comprometido. É o caso de
+    // "TRANSF ENVIADA PIX" aparecendo como despesa que se repete.
+    //
+    // Se o app está seguro o bastante para propor o par na tela inicial,
+    // está seguro o bastante para não contar aquilo como conta a pagar.
+    var emPar = {};
+    paresDeTransferencia().forEach(function (par) {
+      emPar[par.saida.id] = true;
+      emPar[par.entrada.id] = true;
+    });
+
     var grupos = {};
     estado.lancamentos.forEach(function (l) {
       if (l.tipo !== 'saida' || !l.valor) return;
+      if (emPar[l.id]) return;
       var chave = chaveDeRecorrencia(l);
       if (!chave || chave.charAt(0) === '|') return;
       (grupos[chave] = grupos[chave] || []).push(l);
@@ -12435,14 +12749,29 @@
   // completa.
   // =========================================================================
 
-  function irParaTransacoes(filtro, categoria) {
+  // Leva para a tela de transações já filtrada.
+  //
+  // A faixa de datas é opcional, e existe porque o padrão (o mês ativo)
+  // mentia: "Ver lançamentos" numa despesa que se repete "em 2 meses"
+  // caía num mês onde ela não acontece, e a tela dizia "Nada encontrado"
+  // para algo que o próprio app tinha acabado de listar. Quem sabe onde
+  // os lançamentos estão é quem chama; agora pode dizer.
+  function irParaTransacoes(filtro, categoria, de, ate) {
     periodo.tipo = 'escolhido';
-    periodo.de = textoDeData(mesAtivo.ano, mesAtivo.mes, 1);
-    periodo.ate = fimDoMes(mesAtivo.ano, mesAtivo.mes);
+    periodo.de = de || textoDeData(mesAtivo.ano, mesAtivo.mes, 1);
+    periodo.ate = ate || fimDoMes(mesAtivo.ano, mesAtivo.mes);
     filtroTransacoes = filtro || 'todas';
     buscaTransacoes = categoria || '';
     fecharFolha();
     setTimeout(function () { irPara('transacoes'); }, 160);
+  }
+
+  // A faixa que cobre todos os lançamentos de um recorrente, com uma
+  // folga de um dia nas pontas para não perder nada por fuso.
+  function faixaDoRecorrente(r) {
+    var datas = (r.lancamentos || []).map(function (l) { return l.data; }).sort();
+    if (!datas.length) return [null, null];
+    return [datas[0], datas[datas.length - 1]];
   }
 
   function anelDaNota(nota, tamanho) {
@@ -12750,9 +13079,12 @@
 
         lista.forEach(function (r) {
           var item = no('div', 'recorrente');
-          var linha = botao('linha', null, function () {
-            irParaTransacoes('saida', nomeDeOrigem(r.descricao) || r.categoria);
-          });
+          var faixaR = faixaDoRecorrente(r);
+          var verLancamentos = function () {
+            irParaTransacoes('saida', nomeDeOrigem(r.descricao) || r.categoria,
+              faixaR[0], faixaR[1]);
+          };
+          var linha = botao('linha', null, verLancamentos);
           juntar(linha,
             selo(corDeCategoria(r.categoria), r.categoria.charAt(0)),
             juntar(no('div', 'linha-texto'),
@@ -12768,9 +13100,7 @@
             fecharFolha();
             setTimeout(montar, 240);
           }));
-          acoes.appendChild(botao('btn-mini', 'Ver lançamentos', function () {
-            irParaTransacoes('saida', nomeDeOrigem(r.descricao) || r.categoria);
-          }));
+          acoes.appendChild(botao('btn-mini', 'Ver lançamentos', verLancamentos));
           item.appendChild(acoes);
           c.appendChild(item);
         });
@@ -12925,6 +13255,8 @@
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
       ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
+      ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
+        abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
@@ -12996,7 +13328,8 @@
       selo('#94A3B4', '⇥'),
       juntar(no('div', 'linha-texto'),
         no('div', 'linha-titulo', 'Sair da conta'),
-        no('div', 'linha-sub', contaAtualEmail() || 'Nenhuma conta aberta')));
+        no('div', 'linha-sub', contaAtualEmail()
+          || (emSessaoLocal() ? 'Dados deste aparelho, sem conta' : 'Nenhuma conta aberta'))));
     cDados.appendChild(sairLinha);
 
     var apagar = botao('linha', null, apagarTudo);
@@ -13014,7 +13347,12 @@
     rodape.style.padding = '10px 0 4px';
     rodape.appendChild(no('div', 'linha-nota', 'Finanz versão ' + VERSAO));
     rodape.appendChild(no('div', 'linha-nota', NUVEM.ligada
-      ? 'Seus dados ficam neste aparelho e na sua conta no servidor.'
+      ? (emSessaoLocal()
+          ? 'Você abriu os dados deste aparelho, sem entrar em conta nenhuma. ' +
+            'Nada sai daqui: sem conta não há para onde sincronizar. Para levar ' +
+            'estes dados para a nuvem, saia e entre na sua conta — o app vai ' +
+            'oferecer trazê-los.'
+          : 'Seus dados ficam neste aparelho e na sua conta no servidor.')
       : 'Seus dados ficam só neste aparelho, no navegador.'));
     tela.appendChild(rodape);
   }
@@ -17569,6 +17907,20 @@
     }
     return s.replace(/\s+/g, ' ').trim().toUpperCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 60);
+  }
+
+  // Texto pronto para comparar: minúsculo, sem acento, espaços colapsados.
+  //
+  // As duas pontas da busca precisam passar por aqui. nomeDeOrigem()
+  // devolve a chave já normalizada, e até 19/10/2026 o "Ver lançamentos"
+  // jogava essa chave crua contra a descrição original. Extrato de banco
+  // vem com espaço duplo — "GUSTAVO  SAAR" vira "GUSTAVO SAAR" na chave
+  // e o indexOf não achava nada. O mesmo valia para acento: procurar
+  // "sao joao" nunca achava "MERCADO SÃO JOÃO".
+  function paraBusca(s) {
+    return String(s || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ').trim();
   }
 
   function regraDeCategoria(descricao) {

@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.10.0';
+  var VERSAO = '5.10.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.10.1',
+      data: '2026-10-19',
+      itens: [
+        'Dá para desfazer o "lançar como entrada no caixa". Abrindo um pagamento já registrado, a caixinha agora aparece — e desmarcar tira aquela entrada do extrato e do saldo.',
+        'O pagamento continua registrado no Empreendedor. Ele nunca dependeu do extrato: a entrada no caixa só existia porque alguém marcou a caixinha, então desmarcar desfaz isso e mais nada.',
+        'Antes a caixinha só existia na hora de criar. O que entrava no extrato por engano ficava lá somando no saldo para sempre, sem nenhuma tela capaz de desligar.',
+        'Marcar depois também funciona: se o pagamento foi registrado sem a entrada e você mudar de ideia, ela é criada na conta que escolher.'
+      ]
+    },
     {
       versao: '5.10.0',
       data: '2026-10-19',
@@ -10448,11 +10458,14 @@
     if (!parcela && existente && existente.parcelaId) parcela = achar(estado.parcelas, existente.parcelaId);
     var r = resumoCliente(clienteId);
     var servicos = servicosDoCliente(clienteId);
-    // Desmarcado por padrão. Quem importa o extrato do banco recebe esse
-    // mesmo dinheiro por lá, e marcar sozinho fazia o pagamento entrar
-    // duas vezes no caixa — uma pelo Empreendedor, outra pelo extrato.
-    // Quem não importa extrato marca na hora; é um toque.
-    var lancarNoCaixa = false;
+    // Pagamento novo nasce desmarcado: quem importa o extrato do banco
+    // recebe esse mesmo dinheiro por lá, e marcar sozinho fazia o
+    // pagamento entrar duas vezes no caixa. Quem não importa extrato
+    // marca na hora; é um toque.
+    //
+    // Editando, o estado é o que já existe: marcado se há lançamento
+    // ligado a este pagamento.
+    var lancarNoCaixa = !!(existente && existente.lancamentoId);
     empilhar({ tipo: 'aba', voltar: function () { montarFichaCliente(clienteId); } });
 
     abrirFolha(existente ? 'Editar pagamento' : 'Registrar pagamento', function (folha) {
@@ -10656,7 +10669,11 @@
       }
 
       var campoConta = null;
-      if (!existente && estado.contas.length) {
+      // Aparece também na edição. Antes só existia ao criar, então o
+      // lançamento que nasceu de um "somar ao saldo" não tinha como ser
+      // desfeito: ficava no extrato para sempre, somando no saldo, sem
+      // nenhuma tela que o desligasse.
+      if (estado.contas.length) {
         var marcar = botao('lembrar', null, function () {
           lancarNoCaixa = !lancarNoCaixa;
           marcar.setAttribute('aria-pressed', lancarNoCaixa ? 'true' : 'false');
@@ -10669,7 +10686,10 @@
         marcar.appendChild(no('span', null, 'Lançar como entrada no caixa'));
         forma.appendChild(marcar);
 
-        campoConta = entradaSelecao(opcoesDeConta(), estado.contas[0].id);
+        var lancLigado = existente && existente.lancamentoId
+          ? achar(estado.lancamentos, existente.lancamentoId) : null;
+        campoConta = entradaSelecao(opcoesDeConta(),
+          (lancLigado && lancLigado.contaId) || estado.contas[0].id);
         var blocoConta = campo('Entrou em qual conta', campoConta);
         if (!lancarNoCaixa) blocoConta.style.display = 'none';
         forma.appendChild(blocoConta);
@@ -10694,10 +10714,46 @@
           existente.valor = valor;
           existente.data = campoData.value;
           existente.servicoId = campoServico.value;
-          if (existente.lancamentoId) {
-            var lanc = achar(estado.lancamentos, existente.lancamentoId);
-            if (lanc) { lanc.valor = valor; lanc.data = campoData.value; }
+
+          // O lançamento no extrato existe só porque alguém marcou
+          // "lançar como entrada no caixa". Então desmarcar tem de
+          // desfazer: some do extrato e para de somar no saldo. O
+          // pagamento continua aqui no Empreendedor, que é onde ele
+          // sempre foi o registro de verdade.
+          var lanc = existente.lancamentoId
+            ? achar(estado.lancamentos, existente.lancamentoId) : null;
+
+          if (!lancarNoCaixa) {
+            if (lanc) {
+              estado.lancamentos = estado.lancamentos.filter(function (l) {
+                return l.id !== existente.lancamentoId;
+              });
+              marcarExcluido('lancamentos', existente.lancamentoId);
+            }
+            existente.lancamentoId = '';
+          } else if (lanc) {
+            lanc.valor = valor;
+            lanc.data = campoData.value;
+            if (campoConta) lanc.contaId = campoConta.value;
+          } else if (campoConta) {
+            // Estava desmarcado e a pessoa marcou agora: nasce o
+            // lançamento, igual ao caminho de pagamento novo.
+            var servicoE = campoServico.value ? achar(estado.servicos, campoServico.value) : null;
+            var novoLanc = novoId();
+            estado.lancamentos.push({
+              id: novoLanc,
+              tipo: 'entrada',
+              valor: valor,
+              descricao: (cliente ? cliente.nome : 'Cliente') + (servicoE ? ' — ' + servicoE.nome : ''),
+              categoria: categoriaDoRegistro(servicoE),
+              data: campoData.value,
+              contaId: campoConta.value,
+              contaDestinoId: '',
+              criadoEm: Date.now()
+            });
+            existente.lancamentoId = novoLanc;
           }
+
           acertarParcelas(clienteId, nova);
         } else {
           var alvo = parcelaAtual();
