@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.9.7';
+  var VERSAO = '5.9.8';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.9.8',
+      data: '2026-10-19',
+      itens: [
+        'Entrar numa conta vazia não deixa mais você olhando para zeros sem explicação. Se existirem dados de outra conta neste aparelho, o app conta quantos são e oferece trazer para cá — e isso sobe para a nuvem junto.',
+        'Isso existe porque trocar de servidor cria uma conta nova, e conta nova abre zerada mesmo com os seus dados inteiros do lado, no mesmo aparelho. Não havia nada na tela dizendo isso. Quem visse os zeros concluiria que perdeu tudo.',
+        'Quem disser "agora não" encontra o mesmo caminho depois em Mais → Trazer dados de outra conta. Nada é apagado dos dois lados.',
+        'E "Abrir os dados deste aparelho" parou de ser um beco sem saída: antes a tela prometia que os dados iam para a nuvem, quando na verdade ali nada sai do aparelho. Agora ela diz a verdade e mostra o caminho para levar os dados para a sua conta.'
+      ]
+    },
     {
       versao: '5.9.7',
       data: '2026-10-14',
@@ -4343,45 +4353,53 @@
   // no servidor cria conta nova, e conta nova abre um cofre vazio aqui ao
   // lado do antigo — foi o que encheu esta tela de opções que não eram
   // escolha nenhuma.
-  function medirCofre(uid, chave, limpo) {
+  // As cinco listas que a pessoa reconhece de cara, para o rótulo.
+  function resumoDoEstado(e) {
     var partes = [];
-    [['lançamento', 'lançamentos', limpo.lancamentos],
-     ['conta', 'contas', limpo.contas],
-     ['cliente', 'clientes', limpo.clientes],
-     ['investimento', 'investimentos', limpo.ativos],
-     ['meta', 'metas', limpo.metas]].forEach(function (c) {
+    [['lançamento', 'lançamentos', e.lancamentos],
+     ['conta', 'contas', e.contas],
+     ['cliente', 'clientes', e.clientes],
+     ['investimento', 'investimentos', e.ativos],
+     ['meta', 'metas', e.metas]].forEach(function (c) {
       var n = (c[2] || []).length;
       if (n) partes.push(n + ' ' + (n === 1 ? c[0] : c[1]));
     });
+    return partes;
+  }
 
-    // O resumo mostra as cinco listas que a pessoa reconhece de cara, mas
-    // para decidir se o cofre é vazio tenho de olhar tudo: esconder um
-    // cofre que só tem orçamentos, ou só a tabela da maquininha, seria
-    // esconder trabalho de alguém.
-    //
-    // O nome do perfil fica de fora desta conta de propósito. Ele é
-    // preenchido no cadastro de qualquer conta, então ele não separa
-    // cofre cheio de cofre recém-nascido — serve de rótulo, não de prova.
+  // Para decidir se há algo guardado eu olho tudo, não só as cinco de
+  // cima: esconder um cofre que só tem orçamentos, ou só a tabela da
+  // maquininha, seria esconder trabalho de alguém.
+  //
+  // O nome do perfil fica de fora desta conta de propósito. Ele é
+  // preenchido no cadastro de qualquer conta, então não separa cofre
+  // cheio de cofre recém-nascido — serve de rótulo, não de prova.
+  function estaVazio(e) {
+    if (!e) return true;
+    if (resumoDoEstado(e).length) return false;
     var quantas = function (x) { return x && x.length ? x.length : 0; };
     var chavesDe = function (o) { return o ? Object.keys(o).length : 0; };
-    var orc = limpo.orcamentos || {};
-    var sobra = quantas(limpo.servicos) + quantas(limpo.pagamentos)
-      + quantas(limpo.parcelas) + quantas(limpo.propostas)
-      + quantas(limpo.importacoes) + quantas(limpo.tiposRegistro)
-      + quantas((limpo.categoriasExtras || {}).saida)
-      + quantas((limpo.categoriasExtras || {}).entrada)
-      + chavesDe(limpo.regrasCategoria) + chavesDe(orc.categorias)
+    var orc = e.orcamentos || {};
+    return (quantas(e.servicos) + quantas(e.pagamentos) + quantas(e.parcelas)
+      + quantas(e.propostas) + quantas(e.importacoes) + quantas(e.tiposRegistro)
+      + quantas((e.categoriasExtras || {}).saida)
+      + quantas((e.categoriasExtras || {}).entrada)
+      + chavesDe(e.regrasCategoria) + chavesDe(orc.categorias)
       + (orc.geral ? 1 : 0)
-      + ((limpo.perfil && limpo.perfil.taxas) ? 1 : 0);
+      + ((e.perfil && e.perfil.taxas) ? 1 : 0)) === 0;
+  }
 
+  function medirCofre(uid, chave, limpo) {
+    var partes = resumoDoEstado(limpo);
+    var vazio = estaVazio(limpo);
     var nome = limpo.perfil && limpo.perfil.nome ? String(limpo.perfil.nome).trim() : '';
     return {
       uid: uid, chave: chave, estado: limpo,
       quantos: limpo.lancamentos.length,
-      vazio: partes.length === 0 && sobra === 0,
+      vazio: vazio,
       nome: nome,
       resumo: partes.length ? partes.join(' · ')
-            : (sobra ? 'ajustes guardados' : 'nada guardado ainda')
+            : (vazio ? 'nada guardado ainda' : 'ajustes guardados')
     };
   }
 
@@ -4440,6 +4458,102 @@
     });
   }
 
+  // ---------- Trazer o cofre de outra conta deste aparelho ----------
+  //
+  // Cada conta guarda o próprio cofre, amarrado ao id dela no servidor.
+  // Trocar de projeto no servidor dá um id novo, e com ele o app abre
+  // zerado — com os dados antigos intactos no aparelho, do lado, sem
+  // porta. Em 19/10/2026 isso aconteceu de verdade: o Vitor entrou com o
+  // Google num projeto novo, viu tudo em zero, e os 3520 lançamentos
+  // estavam ali o tempo todo no cofre da conta anterior.
+  //
+  // O caminho existia — backup, sair, restaurar — mas ninguém adivinha
+  // isso olhando uma tela zerada. Agora o app oferece.
+
+  // Sessão aberta pela porta de trás: tem cofre aberto, não tem conta na
+  // nuvem. A sincronização desiste na primeira linha nesse estado — de
+  // propósito —, então a tela precisa dizer isso em vez de prometer nuvem.
+  function emSessaoLocal() {
+    return !!(NUVEM.ligada && sessao && !sessaoNuvem);
+  }
+
+  // Cofres deste aparelho que não são o da conta aberta e têm algo dentro.
+  function cofresDeOutrasContas() {
+    var meu = sessao ? sessao.contaId : null;
+    return cofresQueAbrem().then(function (bons) {
+      return bons.filter(function (b) { return b.uid !== meu && !b.vazio; });
+    }).catch(function () { return []; });
+  }
+
+  function trazerCofre(b) {
+    estado = b.estado;
+    estado.excluidos = [];
+    desenhar();
+    avisar('Trazendo os dados...');
+    return salvar().then(function () {
+      return sincronizar(true);
+    }).then(function () {
+      desenhar();
+      avisarCaixa('Pronto',
+        'Trouxe ' + b.resumo + ' para esta conta. Agora estão aqui e na nuvem.',
+        function () {});
+    }).catch(function () {
+      // Mesmo sem subir para a nuvem, os dados já estão nesta conta
+      // neste aparelho; a sincronização tenta de novo sozinha.
+      avisar('Trouxe os dados. A nuvem se acerta quando der.');
+    });
+  }
+
+  function escolherCofreParaTrazer(bons) {
+    if (!bons.length) { avisar('Não achei dados de outra conta neste aparelho.'); return; }
+    if (bons.length === 1) { confirmarTrazer(bons[0]); return; }
+    abrirEscolha({
+      titulo: 'Trazer os dados de qual conta?',
+      semMarca: true,
+      opcoes: bons.map(function (b, i) {
+        return { valor: String(i), rotulo: b.nome || 'Conta ' + b.uid.slice(0, 8),
+                 detalhe: b.resumo };
+      })
+    }, function (v) { if (v != null) confirmarTrazer(bons[Number(v)]); });
+  }
+
+  function confirmarTrazer(b) {
+    perguntar({
+      titulo: 'Trazer estes dados?',
+      texto: 'São ' + b.resumo + ', guardados neste aparelho por outra conta. ' +
+             'Isso substitui o que esta conta tem agora e sobe tudo para a nuvem.',
+      ok: 'Trazer', tom: 'perigo'
+    }, function () { trazerCofre(b); });
+  }
+
+  // Abre o menu de Mais. Serve para quem procurou sozinho e para quem
+  // disse "agora não" no convite automático.
+  function abrirTrazerDeOutraConta() {
+    cofresDeOutrasContas().then(escolherCofreParaTrazer);
+  }
+
+  // O convite automático: conta vazia, dados de outra conta ao lado.
+  // Só depois da primeira sincronização, senão eu ofereceria importar
+  // numa conta que só está esperando o download chegar.
+  function convidarATrazer() {
+    if (!NUVEM.ligada || !sessao) return Promise.resolve();
+    var marca = 'caixa.convitetrazer.' + sessao.contaId;
+    try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
+    if (!estaVazio(estado)) return Promise.resolve();
+    return cofresDeOutrasContas().then(function (bons) {
+      if (!bons.length) return;
+      try { localStorage.setItem(marca, '1'); } catch (e) { /* sem espaço */ }
+      var b = bons[0];
+      perguntar({
+        titulo: 'Esta conta está vazia',
+        texto: 'Mas achei dados de outra conta neste aparelho: ' + b.resumo +
+               '. Quer trazer para cá? Se preferir decidir depois, está em ' +
+               'Mais, como "Trazer dados de outra conta".',
+        ok: 'Trazer', cancelar: 'Agora não'
+      }, function () { escolherCofreParaTrazer(bons); });
+    }).catch(function () { /* convite é cortesia, não pode quebrar a entrada */ });
+  }
+
   function entrarComoUsuarioDaNuvem(primeiroAcesso) {
     return nuvemBuscarUsuario().catch(function (e) {
       // Sem conseguir falar com o servidor não dá para perguntar quem é a
@@ -4484,9 +4598,9 @@
       if (semServidorAgora) {
         semServidorAgora = false;
         avisar('Sem falar com o servidor. Abri os seus dados deste aparelho.');
-        return null;
+        return convidarATrazer();
       }
-      return sincronizar(true);
+      return sincronizar(true).then(convidarATrazer);
     });
   }
 
@@ -13002,6 +13116,8 @@
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
       ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
+      ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
+        abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
@@ -13073,7 +13189,8 @@
       selo('#94A3B4', '⇥'),
       juntar(no('div', 'linha-texto'),
         no('div', 'linha-titulo', 'Sair da conta'),
-        no('div', 'linha-sub', contaAtualEmail() || 'Nenhuma conta aberta')));
+        no('div', 'linha-sub', contaAtualEmail()
+          || (emSessaoLocal() ? 'Dados deste aparelho, sem conta' : 'Nenhuma conta aberta'))));
     cDados.appendChild(sairLinha);
 
     var apagar = botao('linha', null, apagarTudo);
@@ -13091,7 +13208,12 @@
     rodape.style.padding = '10px 0 4px';
     rodape.appendChild(no('div', 'linha-nota', 'Finanz versão ' + VERSAO));
     rodape.appendChild(no('div', 'linha-nota', NUVEM.ligada
-      ? 'Seus dados ficam neste aparelho e na sua conta no servidor.'
+      ? (emSessaoLocal()
+          ? 'Você abriu os dados deste aparelho, sem entrar em conta nenhuma. ' +
+            'Nada sai daqui: sem conta não há para onde sincronizar. Para levar ' +
+            'estes dados para a nuvem, saia e entre na sua conta — o app vai ' +
+            'oferecer trazê-los.'
+          : 'Seus dados ficam neste aparelho e na sua conta no servidor.')
       : 'Seus dados ficam só neste aparelho, no navegador.'));
     tela.appendChild(rodape);
   }

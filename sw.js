@@ -1,4 +1,4 @@
-const VERSAO = '5.9.7';
+const VERSAO = '5.9.8';
 const CACHE = 'finanz-v' + VERSAO;
 const CACHE_PARTILHA = 'finanz-partilha';
 

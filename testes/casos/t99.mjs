@@ -35,6 +35,19 @@ async function criarConta(nome, email) {
   await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(500);
   await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3200);
 }
+// A partir da 5.9.8, entrar numa conta vazia com dados de outra conta no
+// aparelho faz o app oferecer trazê-los (ver t100). Aqui esse convite só
+// atrapalha: o que este teste quer é o estado com três cofres.
+async function dispensarConvite() {
+  const aberto = await page.evaluate(() => {
+    const d = document.getElementById('dialogoFundo');
+    return !!(d && !d.hidden);
+  });
+  if (!aberto) return;
+  await page.click('#dialogoAcoes button:has-text("Agora não")').catch(() => {});
+  await page.waitForTimeout(900);
+}
+
 async function sair() {
   await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(900);
   await page.click('#telaMais .linha:has-text("Sair da conta")'); await page.waitForTimeout(900);
@@ -57,8 +70,10 @@ conferir('1. a conta cheia tem os dados', /543,21/.test(limpo(await page.textCon
 // --- contas 2 e 3: as do projeto novo, vazias ---
 await sair();
 await criarConta('Vitor', 't99b-' + selo + '@exemplo.com');
+await dispensarConvite();
 await sair();
 await criarConta('Vitor', 't99c-' + selo + '@exemplo.com');
+await dispensarConvite();
 await sair();
 
 const cofres = await quantosCofres();
