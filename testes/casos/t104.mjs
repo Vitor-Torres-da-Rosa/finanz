@@ -24,6 +24,26 @@ const porDinheiro = async (loc, d) => {
   await loc.type(d);
   await page.waitForTimeout(300);
 };
+// Depois de salvar sobra folha ou diálogo aberto, e qualquer um bloqueia
+// o clique nas telas de baixo.
+const limparTela = async () => {
+  for (let i = 0; i < 5; i++) {
+    const temDialogo = await page.evaluate(() => {
+      const d = document.getElementById('dialogoFundo');
+      return !!(d && !d.hidden);
+    });
+    if (temDialogo) {
+      await page.click('#dialogoAcoes button >> nth=0').catch(() => {});
+      await page.waitForTimeout(900); continue;
+    }
+    const aberta = await page.evaluate(() =>
+      document.getElementById('folha').classList.contains('aberta'));
+    if (!aberta) return;
+    await page.evaluate(() => { history.back(); });
+    await page.waitForTimeout(900);
+  }
+};
+
 const escolher = async (r) => {
   await page.click(`#escolhaLista .escolha-item:has-text("${r}")`);
   await page.waitForTimeout(700);
@@ -74,6 +94,44 @@ conferir('2. e diz a relação entre pagamento e vencimento',
   /Pago .*vencimento|Pago no dia do vencimento/.test(antesDeSalvar),
   (antesDeSalvar.match(/Pago[^.]*\./) || ['(não achei)'])[0]);
 await page.screenshot({ path: dir+'/o01-duas-datas.png', fullPage: true });
+
+// --- e agora a tela que o Vitor realmente abre: EDITAR o pagamento ---
+//
+// Clicar numa parcela JÁ PAGA não abre "Registrar pagamento", abre
+// "Editar pagamento". Na primeira tentativa eu testei só a de registrar
+// e o conserto não chegava nesta — o cartão da parcela nem era criado
+// quando havia pagamento existente.
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2800);
+await limparTela();
+
+// Reabre o cliente pelo caminho normal: o back fecha a folha inteira.
+await page.click('#navegacao button:has-text("Início")').catch(() => {});
+await page.waitForTimeout(1200);
+await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {});
+await page.waitForTimeout(1100);
+await page.click('#telaInicio .linha-alvo:has-text("Edison e Sander")'); await page.waitForTimeout(1500);
+await page.click('#folha button:has-text("Parcelas")'); await page.waitForTimeout(1200);
+// O cabeçalho fixo da folha tapa a linha; centralizo antes de clicar.
+await page.evaluate(() => {
+  const l = Array.from(document.querySelectorAll('#folha .linha'))
+    .find((x) => /Parcela 1 de 3/.test(x.textContent || ''));
+  if (l) l.scrollIntoView({ block: 'center' });
+});
+await page.waitForTimeout(600);
+await page.click('#folha .linha:has-text("Parcela 1 de 3")'); await page.waitForTimeout(1800);
+
+const naEdicao = limpo(await page.textContent('#folha'));
+console.log('EDITAR:', naEdicao.slice(0, 300));
+conferir('3. a tela de EDITAR é a que abre numa parcela paga',
+  /Editar pagamento/.test(naEdicao), naEdicao.slice(0, 80));
+conferir('4. e ela mostra o vencimento',
+  /Vence em/.test(naEdicao), naEdicao.slice(0, 150));
+conferir('5. e a data do pagamento',
+  /Pago em/.test(naEdicao), naEdicao.slice(0, 150));
+conferir('6. e a relação entre as duas',
+  /Pago .*vencimento/.test(naEdicao),
+  (naEdicao.match(/Pago[^.]*vencimento\./) || ['(não achei)'])[0]);
+await page.screenshot({ path: dir+'/o02-editar-duas-datas.png', fullPage: true });
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }

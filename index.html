@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.10.2';
+  var VERSAO = '5.10.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.10.3',
+      data: '2026-10-20',
+      itens: [
+        'As duas datas agora aparecem onde deviam: na tela que abre quando você toca numa parcela já paga. Na 5.10.2 elas só tinham chegado na tela de registrar um pagamento novo — que não é a que você abre ao conferir uma parcela.',
+        'Editando um pagamento, o cartão da parcela mostra "Vence em", "Pago em", o valor combinado e a conta pronta: pago no dia, antes ou depois do vencimento.'
+      ]
+    },
     {
       versao: '5.10.2',
       data: '2026-10-20',
@@ -10540,10 +10548,16 @@
         forma.appendChild(campo('Multa', campoMulta));
         campoTaxa = entradaValor(0, false);
         forma.appendChild(campo('Taxa', campoTaxa));
-
-        resumoParcela = cartao();
-        forma.appendChild(resumoParcela);
       }
+
+      // O cartão da parcela vale nos dois caminhos. Antes ele só nascia
+      // ao registrar um pagamento novo, e era justamente na edição — a
+      // tela que abre quando você toca numa parcela já paga — que as
+      // datas faziam falta. Na edição ele mostra só as datas: juros,
+      // multa e taxa são coisas do momento do recebimento, não existem
+      // aqui, e "Devido/Recebendo" sem elas seria conta pela metade.
+      resumoParcela = cartao();
+      forma.appendChild(resumoParcela);
 
       function parcelaAtual() {
         var id = campoParcela ? campoParcela.value : (parcela ? parcela.id : '');
@@ -10616,13 +10630,17 @@
         var sobra = Math.max(recebido - devido, 0);
 
         resumoParcela.appendChild(no('div', 'rotulo', 'Parcela ' + p.numero + ' de ' + p.total));
-        [
-          ['Vence em', dataBr(p.vencimento)],
-          ['Valor da parcela', emReais(faltaNaParcela(p))],
-          ['Acréscimos agora', emReais(extra)],
-          ['Devido', emReais(devido)],
-          ['Recebendo', emReais(recebido)]
-        ].forEach(function (par) {
+
+        var linhas = existente
+          ? [['Vence em', dataBr(p.vencimento)],
+             ['Pago em', dataBr(campoData.value)],
+             ['Valor da parcela', emReais(p.valor)]]
+          : [['Vence em', dataBr(p.vencimento)],
+             ['Valor da parcela', emReais(faltaNaParcela(p))],
+             ['Acréscimos agora', emReais(extra)],
+             ['Devido', emReais(devido)],
+             ['Recebendo', emReais(recebido)]];
+        linhas.forEach(function (par) {
           var l = no('div', 'parcela-linha');
           juntar(l, no('span', 'q', par[0]), no('span', 'v num', par[1]));
           resumoParcela.appendChild(l);
@@ -10642,6 +10660,8 @@
           resumoParcela.appendChild(no('div',
             'linha-nota' + (atraso > 0 ? ' ouro' : ' verde'), recado));
         }
+
+        if (existente) return;   // na edição o cartão para nas datas
 
         if (falta > 0) {
           var teto = tetoDoPlano(planoDaParcela(p)) || falta;
