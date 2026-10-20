@@ -89,8 +89,12 @@ conferir('5. 4 parcelas de R$ 325,00', parcelas.filter(t => /325,00/.test(t)).le
 
 await page.click('#folha .aba-cliente button:has-text("Registros")'); await page.waitForTimeout(900);
 const registros = limpo(await page.textContent('#folha'));
-conferir('6. o acréscimo virou registro de R$ 300,00',
-  /Acréscimo do parcelamento em 4x/.test(registros) && /300,00/.test(registros));
+// Desde a 5.11.2 o acréscimo não é mais uma linha própria: ele é somado
+// ao registro que o gerou e aparece ali dentro. O dinheiro é o mesmo; o
+// que mudou é não parecer uma venda que o cliente nunca fez.
+conferir('6. o acréscimo de R$ 300,00 entrou no registro que o gerou',
+  /com R\$ 300,00 de acréscimo/.test(registros) && !/Acréscimo do parcelamento em 4x/.test(registros),
+  (registros.match(/com R\$[^·]*de acréscimo/) || ['(não achei)'])[0]);
 await page.screenshot({ path: dir+'/y11-registros.png', fullPage: true });
 
 // --- apagar as parcelas leva o acréscimo junto ---
@@ -122,7 +126,8 @@ await page.click('#folha .aba-cliente button:has-text("Registros")'); await page
 const comTotal = limpo(await page.textContent('#folha'));
 console.log('registros:', comTotal.slice(comTotal.indexOf('Celular') - 200, comTotal.indexOf('Celular') + 60));
 conferir('11. escrever o total na mão também cria o acréscimo, de R$ 400,00',
-  /Acréscimo do parcelamento em 4x/.test(comTotal) && /400,00/.test(comTotal));
+  /com R\$ 400,00 de acréscimo/.test(comTotal),
+  (comTotal.match(/com R\$[^·]*de acréscimo/) || ['(não achei)'])[0]);
 await page.screenshot({ path: dir+'/y13-total-na-mao.png', fullPage: true });
 
 // --- à vista com acréscimo: o nome não pode falar em parcelamento ---
@@ -137,8 +142,13 @@ await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await p
 await page.click('#dialogoAcoes button:has-text("Confirmar")'); await page.waitForTimeout(2000);
 await page.click('#folha .aba-cliente button:has-text("Registros")'); await page.waitForTimeout(900);
 const avista = limpo(await page.textContent('#folha'));
-conferir('12. à vista, o acréscimo não se chama "do parcelamento"',
-  /Acréscimo sobre o valor combinado/.test(avista) && !/Acréscimo do parcelamento em 1x/.test(avista));
+// O nome do acréscimo deixou de aparecer na tela quando ele passou a ser
+// somado ao registro. O que dá para conferir daqui é o que a pessoa vê:
+// o acréscimo existe, está no registro certo, e não sobrou linha solta.
+conferir('12. à vista com acréscimo, ele também entra no registro',
+  /de acréscimo/.test(avista) && !/Acréscimo do parcelamento/.test(avista)
+  && !/Acréscimo sobre o valor combinado/.test(avista),
+  (avista.match(/com R\$[^·]*de acréscimo/) || ['(não achei)'])[0]);
 await page.screenshot({ path: dir+'/y14-avista.png', fullPage: true });
 
 // --- só aumentar o "Valor a combinar" acima do registro também é acréscimo ---
@@ -164,8 +174,9 @@ conferir('14. o total do cliente passou a bater com as parcelas (R$ 1.350,00)',
   /TotalR\$ 1\.350,00/.test(fichaMaior), (fichaMaior.match(/TotalR\$ [\d.,]+/) || ['?'])[0]);
 await page.click('#folha .aba-cliente button:has-text("Registros")'); await page.waitForTimeout(900);
 const regMaior = limpo(await page.textContent('#folha'));
-conferir('15. a diferença virou registro de R$ 350,00',
-  /Acréscimo do parcelamento em 4x/.test(regMaior) && /350,00/.test(regMaior));
+conferir('15. a diferença de R$ 350,00 entrou no registro',
+  /com R\$ 350,00 de acréscimo/.test(regMaior),
+  (regMaior.match(/com R\$[^·]*de acréscimo/) || ['(não achei)'])[0]);
 conferir('16. não sobrou "Acertar as parcelas" para desencontro',
   !/Acertar as parcelas/.test(limpo(await page.textContent('#folha'))));
 await page.screenshot({ path: dir+'/y15-valor-maior.png', fullPage: true });

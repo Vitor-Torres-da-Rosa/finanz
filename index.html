@@ -1631,7 +1631,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.11.1';
+  var VERSAO = '5.11.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1640,6 +1640,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.11.2',
+      data: '2026-10-20',
+      itens: [
+        'O acréscimo do parcelamento parou de parecer uma venda. Ele aparecia como mais um registro na ficha do cliente e como opção em "Referente a", como se o cliente pudesse estar pagando "o acréscimo" — mas ele não comprou isso: é o que aquele registro passou a custar por ter sido parcelado.',
+        'Agora ele é somado ao registro que o gerou: "Celular · Venda · 14/08 · com R$ 350,00 de acréscimo", e o valor da linha já é o total. E sumiu da escolha "Referente a".',
+        'Vale para os acréscimos antigos também. Eles não guardavam a qual registro pertenciam, e o app agora descobre pela parcela — que sabe.'
+      ]
+    },
     {
       versao: '5.11.1',
       data: '2026-10-20',
@@ -8289,14 +8298,28 @@
           lista.appendChild(estadoVazio('Nenhum registro',
             'Cadastre a venda ou o serviço e o valor combinado.'));
         } else {
+          // O acréscimo do parcelamento não é uma venda à parte: ele é o
+          // que aquele registro passou a custar por ter sido parcelado.
+          // Listado sozinho, parecia mais um produto vendido, e a conta
+          // do cliente ficava com uma linha que ele nunca comprou.
+          var acrescimos = acrescimosPorRegistro(id);
+          var jaMostrado = {};
+          Object.keys(acrescimos).forEach(function (k) { jaMostrado[acrescimos[k].id] = true; });
+
           servicos.forEach(function (s) {
+            if (jaMostrado[s.id]) return;
+            var extra = acrescimos[s.id] || null;
+            var total = s.valor + (extra ? extra.valor : 0);
+            var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
+            if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
+
             var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
             juntar(linha,
               selo(corDeCategoria(s.tipo || 'Serviço'), (s.tipo || 'S').charAt(0).toUpperCase()),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', s.nome),
-                no('div', 'linha-sub', (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : ''))),
-              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(s.valor)))
+                no('div', 'linha-sub', sub)),
+              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(total)))
             );
             lista.appendChild(linha);
           });
@@ -10082,6 +10105,34 @@
     return NOME_ACRESCIMO.test(String(sv.nome || ''));
   }
 
+  // De qual registro é este acréscimo.
+  //
+  // O campo acrescimoDe é novo. Para os que vieram de antes eu descubro
+  // pela parcela: o acréscimo nasce com a data da primeira parcela do
+  // plano, e a parcela sabe o registro. Não achando, devolvo vazio e o
+  // acréscimo segue aparecendo sozinho — esconder dinheiro a receber
+  // porque eu não soube de quem é seria bem pior.
+  function registroDoAcrescimo(sv) {
+    if (sv.acrescimoDe) return sv.acrescimoDe;
+    var achada = null;
+    estado.parcelas.forEach(function (x) {
+      if (achada) return;
+      if (x.clienteId === sv.clienteId && x.vencimento === sv.data && x.servicoId) achada = x;
+    });
+    return achada ? achada.servicoId : '';
+  }
+
+  // Mapa registro -> acréscimo dele, para a lista de registros.
+  function acrescimosPorRegistro(clienteId) {
+    var mapa = {};
+    servicosDoCliente(clienteId).forEach(function (sv) {
+      if (!ehAcrescimoDeParcelamento(sv)) return;
+      var pai = registroDoAcrescimo(sv);
+      if (pai) mapa[pai] = sv;
+    });
+    return mapa;
+  }
+
   function abrirFolhaParcelamento(clienteId, servicoId) {
     var cliente = achar(estado.clientes, clienteId);
     if (!cliente) return;
@@ -10414,6 +10465,10 @@
                 ? 'Acréscimo do parcelamento em ' + c.itens.length + 'x'
                 : 'Acréscimo sobre o valor combinado',
               tipo: TIPO_PADRAO, valor: extraACobrar,
+              // De qual registro este acréscimo é. Antes ele não guardava
+              // nada, e o app só o reconhecia pelo nome — o que bastava
+              // para escondê-lo, mas não para saber a quem ele pertence.
+              acrescimoDe: campoServico.value || '',
               data: c.itens[0].vencimento, obs: '', criadoEm: Date.now()
             });
           }
@@ -10566,8 +10621,16 @@
 
       var campoData = entradaData(existente ? existente.data : hojeTexto());
 
+      // Acréscimo do parcelamento não é coisa que o cliente comprou, então
+      // não entra na escolha. A exceção é o pagamento que já aponta para
+      // um: tirá-lo da lista faria o seletor cair na primeira opção e
+      // trocar o registro do pagamento sem ninguém pedir.
+      var jaApontado = existente ? existente.servicoId : '';
+      var servicosEscolhiveis = servicos.filter(function (s) {
+        return !ehAcrescimoDeParcelamento(s) || s.id === jaApontado;
+      });
       var opcoesServico = [{ valor: '', rotulo: 'Sem registro específico' }].concat(
-        servicos.map(function (s) {
+        servicosEscolhiveis.map(function (s) {
           return { valor: s.id, rotulo: s.nome, detalhe: (s.tipo || 'Serviço') + ' · ' + emReais(s.valor) };
         }));
 
