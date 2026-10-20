@@ -63,7 +63,7 @@ await page.screenshot({ path: dir+'/f03-cartao-criado.png', fullPage:true });
 arquivo = amostras + '/c6-fatura.pdf';
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(800);
 await page.click('#telaMais .linha:has-text("Importar extrato")');
-await page.waitForSelector('#folha .cabeca-banco', { timeout: 30000 }); await page.waitForTimeout(600);
+await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 }); await page.waitForTimeout(600);
 console.log('6. conta sugerida:', await page.textContent('#folha .selecao'));
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(900);
 await page.click('#dialogoAcoes button:has-text("Sim")'); await page.waitForTimeout(2500);

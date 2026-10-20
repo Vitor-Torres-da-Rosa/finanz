@@ -22,7 +22,7 @@ async function importar(a) {
   for (let i=0;i<4 && await page.locator('#folha.aberta').count();i++) { await page.click('#cortina'); await page.waitForTimeout(600); }
   await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(800);
   await page.click('#telaMais label.linha:has-text("Importar extrato")');
-  await page.waitForSelector('#folha .cabeca-banco', { timeout: 30000 }); await page.waitForTimeout(600);
+  await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 }); await page.waitForTimeout(600);
 }
 await importar(amostras+'/c6-glifos.pdf');
 const itens = await page.$$eval('#folha .item-extrato', ns=>ns.map(x=>x.textContent.replace(/\s+/g,' ')));

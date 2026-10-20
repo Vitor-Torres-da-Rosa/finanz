@@ -26,7 +26,7 @@ const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
 
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(800);
 await page.click('#telaMais label.linha:has-text("Importar extrato")');
-await page.waitForSelector('#folha .cabeca-banco', { timeout: 40000 }); await page.waitForTimeout(800);
+await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 }); await page.waitForTimeout(800);
 
 const etiquetas = () => page.$$eval('#folha .item-extrato .etiqueta-cat',
   ns => ns.map(x => x.textContent.trim()));

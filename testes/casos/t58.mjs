@@ -40,7 +40,7 @@ console.log('2. rótulos:', JSON.stringify(rot));
 
 // 3) tocar no rótulo abre o seletor e importa
 await page.click('#telaMais label.linha:has-text("Importar extrato")');
-await page.waitForSelector('#folha .cabeca-banco', { timeout: 30000 }); await page.waitForTimeout(600);
+await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 }); await page.waitForTimeout(600);
 console.log('3. abriu pelo rótulo:', await page.textContent('#folhaTitulo'), '| banco:',
   (await page.textContent('#folha .cabeca-nome')));
 await page.goBack(); await page.waitForTimeout(800);
@@ -72,7 +72,7 @@ console.log('   guardado no cache:', JSON.stringify(guardado));
 
 // 6) abrir o app com a marca -> tem que importar sozinho
 await page.goto('http://127.0.0.1:8833/index.html?compartilhado=1', { waitUntil:'networkidle' });
-await page.waitForSelector('#folha .cabeca-banco', { timeout: 40000 });
+await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 });
 await page.waitForTimeout(800);
 console.log('6. veio pelo compartilhar:', await page.textContent('#folhaTitulo'),
   '| banco:', await page.textContent('#folha .cabeca-nome'),

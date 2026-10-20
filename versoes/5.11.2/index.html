@@ -930,6 +930,32 @@
 
   .parcela-linha { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(198,158,78,.14); font-size: 13.5px; }
   .parcela-linha:last-child { border-bottom: 0; }
+  /* Linha do cartão que é editável: o controle ocupa a direita, no
+     lugar onde o valor ficaria, para a coluna continuar alinhada. */
+  .parcela-linha.edita { align-items: center; padding: 4px 0; }
+  .parcela-linha.edita .v { flex: 1 1 auto; min-width: 0; text-align: right; }
+  .parcela-linha.edita .v .selecao,
+  .parcela-linha.edita .v input {
+    width: 100%; text-align: right; border: 0; background: transparent;
+    padding: 6px 0; font-size: 13.5px; font-weight: 700; color: var(--texto);
+  }
+  .parcela-linha.edita .v .selecao { justify-content: flex-end; gap: 6px; }
+  /* A coluna da direita só fica reta se o que vem depois do texto ocupar
+     o mesmo espaço nas quatro linhas. O ▾ do seletor mede 11px; o ícone
+     de calendário do input de data é nativo e mede o que o navegador
+     quiser, então eu fixo os dois no mesmo tamanho. Sem isso a data fica
+     um dedo à esquerda das outras linhas e o cartão parece torto. */
+  .parcela-linha.edita .v input[type="date"] {
+    font-variant-numeric: tabular-nums;
+    padding-right: 0;
+  }
+  .parcela-linha.edita .v input[type="date"]::-webkit-calendar-picker-indicator {
+    width: 11px; height: 11px; padding: 0; margin-left: 6px;
+    opacity: .55; filter: invert(1);
+  }
+  /* A linha só de leitura não tem ícone nenhum, então recebe o mesmo
+     recuo à direita para o número terminar onde os outros terminam. */
+  .parcela-linha .v.sem-icone { padding-right: 17px; }
   .parcela-linha .q { color: var(--suave); }
   .parcela-linha .v { font-weight: 700; font-variant-numeric: tabular-nums; }
   .parcela-linha.paga .v { color: var(--verde); }
@@ -1605,7 +1631,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.10.1';
+  var VERSAO = '5.11.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1640,49 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.11.2',
+      data: '2026-10-20',
+      itens: [
+        'O acréscimo do parcelamento parou de parecer uma venda. Ele aparecia como mais um registro na ficha do cliente e como opção em "Referente a", como se o cliente pudesse estar pagando "o acréscimo" — mas ele não comprou isso: é o que aquele registro passou a custar por ter sido parcelado.',
+        'Agora ele é somado ao registro que o gerou: "Celular · Venda · 14/08 · com R$ 350,00 de acréscimo", e o valor da linha já é o total. E sumiu da escolha "Referente a".',
+        'Vale para os acréscimos antigos também. Eles não guardavam a qual registro pertenciam, e o app agora descobre pela parcela — que sabe.'
+      ]
+    },
+    {
+      versao: '5.11.1',
+      data: '2026-10-20',
+      itens: [
+        'O vencimento da parcela virou campo: dá para mudar a data combinada ali mesmo, e o recado de atraso acompanha enquanto você escolhe. Mudar isso mexe na parcela, não no pagamento — é a data combinada com o cliente que muda.',
+        'As datas do cartão ficaram alinhadas. O ícone de calendário do campo de data empurrava o número para a esquerda e a coluna da direita ficava torta.',
+        'E na lista de parcelas, a parcela paga mostra as duas datas: "Paga em 20/10 · vencia 25/12". Uma data só não responde se o cliente pagou em dia.'
+      ]
+    },
+    {
+      versao: '5.11.0',
+      data: '2026-10-20',
+      itens: [
+        'A tela de pagamento virou um cartão só. Parcela, vencimento, data e registro ficam juntos, na ordem que conta a história: qual parcela, quando vence, quando foi paga, a que se refere.',
+        'E o que estava escrito duas vezes saiu. A parcela aparecia no seletor e no título do cartão; a data, no campo e na linha "Pago em"; o valor, em cima e embaixo. Agora cada coisa aparece uma vez — e o valor da parcela só entra quando é diferente do que você recebeu.',
+        'Tudo no cartão é editável no próprio lugar onde está escrito. O único que não se mexe é "Vence em", que vem da parcela.'
+      ]
+    },
+    {
+      versao: '5.10.3',
+      data: '2026-10-20',
+      itens: [
+        'As duas datas agora aparecem onde deviam: na tela que abre quando você toca numa parcela já paga. Na 5.10.2 elas só tinham chegado na tela de registrar um pagamento novo — que não é a que você abre ao conferir uma parcela.',
+        'Editando um pagamento, o cartão da parcela mostra "Vence em", "Pago em", o valor combinado e a conta pronta: pago no dia, antes ou depois do vencimento.'
+      ]
+    },
+    {
+      versao: '5.10.2',
+      data: '2026-10-20',
+      itens: [
+        'Abrindo uma parcela, agora aparecem as duas datas: quando ela vence e quando o pagamento entrou. Antes dava para ver só a data do pagamento, e não a que importa para saber se foi em dia.',
+        'E o app faz a conta para você: "Pago no dia do vencimento", "Pago 3 dia(s) depois" ou "Pago 2 dia(s) antes". Mudando a data do pagamento, o recado acompanha na hora.'
+      ]
+    },
     {
       versao: '5.10.1',
       data: '2026-10-19',
@@ -8229,14 +8298,28 @@
           lista.appendChild(estadoVazio('Nenhum registro',
             'Cadastre a venda ou o serviço e o valor combinado.'));
         } else {
+          // O acréscimo do parcelamento não é uma venda à parte: ele é o
+          // que aquele registro passou a custar por ter sido parcelado.
+          // Listado sozinho, parecia mais um produto vendido, e a conta
+          // do cliente ficava com uma linha que ele nunca comprou.
+          var acrescimos = acrescimosPorRegistro(id);
+          var jaMostrado = {};
+          Object.keys(acrescimos).forEach(function (k) { jaMostrado[acrescimos[k].id] = true; });
+
           servicos.forEach(function (s) {
+            if (jaMostrado[s.id]) return;
+            var extra = acrescimos[s.id] || null;
+            var total = s.valor + (extra ? extra.valor : 0);
+            var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
+            if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
+
             var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
             juntar(linha,
               selo(corDeCategoria(s.tipo || 'Serviço'), (s.tipo || 'S').charAt(0).toUpperCase()),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', s.nome),
-                no('div', 'linha-sub', (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : ''))),
-              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(s.valor)))
+                no('div', 'linha-sub', sub)),
+              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(total)))
             );
             lista.appendChild(linha);
           });
@@ -8261,8 +8344,14 @@
             var comDinheiro = paga && recebido > 0;
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
 
+            // Na parcela paga as duas datas interessam: quando entrou e
+            // quando era para ter entrado. Só a primeira não responde se
+            // o cliente pagou em dia, que é a pergunta de quem olha.
             var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
               dataBr(paga && p.quitadaEm ? p.quitadaEm : p.vencimento);
+            if (paga && p.quitadaEm && p.vencimento && p.quitadaEm !== p.vencimento) {
+              sub += ' · vencia ' + dataBr(p.vencimento);
+            }
             if (parcial) sub = 'Faltam ' + emReais(faltaNaParcela(p)) + ' · ' + sub.toLowerCase();
             if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
             if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
@@ -10016,6 +10105,34 @@
     return NOME_ACRESCIMO.test(String(sv.nome || ''));
   }
 
+  // De qual registro é este acréscimo.
+  //
+  // O campo acrescimoDe é novo. Para os que vieram de antes eu descubro
+  // pela parcela: o acréscimo nasce com a data da primeira parcela do
+  // plano, e a parcela sabe o registro. Não achando, devolvo vazio e o
+  // acréscimo segue aparecendo sozinho — esconder dinheiro a receber
+  // porque eu não soube de quem é seria bem pior.
+  function registroDoAcrescimo(sv) {
+    if (sv.acrescimoDe) return sv.acrescimoDe;
+    var achada = null;
+    estado.parcelas.forEach(function (x) {
+      if (achada) return;
+      if (x.clienteId === sv.clienteId && x.vencimento === sv.data && x.servicoId) achada = x;
+    });
+    return achada ? achada.servicoId : '';
+  }
+
+  // Mapa registro -> acréscimo dele, para a lista de registros.
+  function acrescimosPorRegistro(clienteId) {
+    var mapa = {};
+    servicosDoCliente(clienteId).forEach(function (sv) {
+      if (!ehAcrescimoDeParcelamento(sv)) return;
+      var pai = registroDoAcrescimo(sv);
+      if (pai) mapa[pai] = sv;
+    });
+    return mapa;
+  }
+
   function abrirFolhaParcelamento(clienteId, servicoId) {
     var cliente = achar(estado.clientes, clienteId);
     if (!cliente) return;
@@ -10348,6 +10465,10 @@
                 ? 'Acréscimo do parcelamento em ' + c.itens.length + 'x'
                 : 'Acréscimo sobre o valor combinado',
               tipo: TIPO_PADRAO, valor: extraACobrar,
+              // De qual registro este acréscimo é. Antes ele não guardava
+              // nada, e o app só o reconhecia pelo nome — o que bastava
+              // para escondê-lo, mas não para saber a quem ele pertence.
+              acrescimoDe: campoServico.value || '',
               data: c.itens[0].vencimento, obs: '', criadoEm: Date.now()
             });
           }
@@ -10493,17 +10614,23 @@
       var campoParcela = null;
       if (abertas.length) {
         campoParcela = entradaSelecao(opcoesParcela, parcela ? parcela.id : '', 'Equivale a qual parcela');
-        forma.appendChild(campo('Equivale a qual parcela', campoParcela));
       }
 
       var caixaAtalhos = no('div');
       forma.appendChild(caixaAtalhos);
 
       var campoData = entradaData(existente ? existente.data : hojeTexto());
-      forma.appendChild(campo('Data do pagamento', campoData));
 
+      // Acréscimo do parcelamento não é coisa que o cliente comprou, então
+      // não entra na escolha. A exceção é o pagamento que já aponta para
+      // um: tirá-lo da lista faria o seletor cair na primeira opção e
+      // trocar o registro do pagamento sem ninguém pedir.
+      var jaApontado = existente ? existente.servicoId : '';
+      var servicosEscolhiveis = servicos.filter(function (s) {
+        return !ehAcrescimoDeParcelamento(s) || s.id === jaApontado;
+      });
       var opcoesServico = [{ valor: '', rotulo: 'Sem registro específico' }].concat(
-        servicos.map(function (s) {
+        servicosEscolhiveis.map(function (s) {
           return { valor: s.id, rotulo: s.nome, detalhe: (s.tipo || 'Serviço') + ' · ' + emReais(s.valor) };
         }));
 
@@ -10519,7 +10646,6 @@
       var campoServico = entradaSelecao(opcoesServico,
         existente ? existente.servicoId : (parcela ? (parcela.servicoId || sozinho) : sozinho),
         'Referente a');
-      forma.appendChild(campo('Referente a', campoServico));
 
       // ---- juros, multa e taxa lançados na hora ----
       var campoJuros = null, campoMulta = null, campoTaxa = null, resumoParcela = null;
@@ -10532,10 +10658,16 @@
         forma.appendChild(campo('Multa', campoMulta));
         campoTaxa = entradaValor(0, false);
         forma.appendChild(campo('Taxa', campoTaxa));
-
-        resumoParcela = cartao();
-        forma.appendChild(resumoParcela);
       }
+
+      // O cartão da parcela vale nos dois caminhos. Antes ele só nascia
+      // ao registrar um pagamento novo, e era justamente na edição — a
+      // tela que abre quando você toca numa parcela já paga — que as
+      // datas faziam falta. Na edição ele mostra só as datas: juros,
+      // multa e taxa são coisas do momento do recebimento, não existem
+      // aqui, e "Devido/Recebendo" sem elas seria conta pela metade.
+      resumoParcela = cartao();
+      forma.appendChild(resumoParcela);
 
       function parcelaAtual() {
         var id = campoParcela ? campoParcela.value : (parcela ? parcela.id : '');
@@ -10588,6 +10720,43 @@
         caixaAtalhos.appendChild(campo('Devido nesta parcela: ' + emReais(devido), chipsP));
       }
 
+      // As linhas editáveis do cartão. Eram três blocos soltos acima dele,
+      // repetindo o que o cartão já dizia: a parcela aparecia no seletor e
+      // no título, a data no campo e na linha "Pago em". Agora é um lugar
+      // só, e o que está escrito é o que se edita.
+      function linhaEditavel(rotulo, controle) {
+        var l = no('div', 'parcela-linha edita');
+        juntar(l, no('span', 'q', rotulo), juntar(no('span', 'v'), controle));
+        return l;
+      }
+
+      // O vencimento é da parcela, não do pagamento, então o campo
+      // pertence à parcela escolhida. Guardo o mesmo elemento entre os
+      // repintares e só troco quando a parcela muda — senão o que a
+      // pessoa acabou de digitar sumiria no próximo repintar, que
+      // acontece a cada tecla no valor.
+      var campoVencimento = null;
+      var vencimentoDe = '';
+
+      function campoDeVencimento(p) {
+        if (!campoVencimento || vencimentoDe !== p.id) {
+          campoVencimento = entradaData(p.vencimento);
+          vencimentoDe = p.id;
+          campoVencimento.addEventListener('change', atualizar);
+        }
+        return campoVencimento;
+      }
+
+      // A ordem conta uma frase: qual parcela, quando vence, quando foi
+      // paga, a que se refere. "Vence em" fica colado na data do
+      // pagamento porque é a comparação entre as duas que interessa.
+      function montarLinhasEditaveis(p) {
+        if (campoParcela) resumoParcela.appendChild(linhaEditavel('Equivale a', campoParcela));
+        if (p) resumoParcela.appendChild(linhaEditavel('Vence em', campoDeVencimento(p)));
+        resumoParcela.appendChild(linhaEditavel(existente ? 'Pago em' : 'Data do pagamento', campoData));
+        resumoParcela.appendChild(linhaEditavel('Referente a', campoServico));
+      }
+
       function pintarResumo() {
         if (!resumoParcela) return;
         resumoParcela.textContent = '';
@@ -10596,6 +10765,7 @@
         var extra = acrescimos();
 
         if (!p) {
+          montarLinhasEditaveis(null);
           resumoParcela.appendChild(no('div', 'linha-sub',
             extra > 0
               ? 'Sem parcela escolhida, os ' + emReais(extra) + ' de acréscimo entram como valor a receber deste cliente.'
@@ -10607,14 +10777,27 @@
         var falta = Math.max(devido - recebido, 0);
         var sobra = Math.max(recebido - devido, 0);
 
-        resumoParcela.appendChild(no('div', 'rotulo', 'Parcela ' + p.numero + ' de ' + p.total));
-        [
-          ['Vence em', dataBr(p.vencimento)],
-          ['Valor da parcela', emReais(faltaNaParcela(p))],
-          ['Acréscimos agora', emReais(extra)],
-          ['Devido', emReais(devido)],
-          ['Recebendo', emReais(recebido)]
-        ].forEach(function (par) {
+        // O título só aparece quando não há seletor de parcela. Com o
+        // seletor, ele diria a mesma coisa duas vezes na mesma caixa.
+        if (!campoParcela) {
+          resumoParcela.appendChild(no('div', 'rotulo', 'Parcela ' + p.numero + ' de ' + p.total));
+        }
+
+        montarLinhasEditaveis(p);
+
+        // O que repetia o que já está no cartão saiu: a parcela é a linha
+        // "Equivale a", a data é "Pago em", e o valor da parcela só
+        // aparece quando difere do que entrou — senão é o mesmo número
+        // escrito duas vezes.
+        var linhas = [];
+        if (existente) {
+          if (p.valor !== recebido) linhas.push(['Valor da parcela', emReais(p.valor)]);
+        } else {
+          if (faltaNaParcela(p) !== recebido) linhas.push(['Falta na parcela', emReais(faltaNaParcela(p))]);
+          if (extra > 0) linhas.push(['Acréscimos agora', emReais(extra)]);
+          if (devido !== recebido) linhas.push(['Devido', emReais(devido)]);
+        }
+        linhas.forEach(function (par) {
           var l = no('div', 'parcela-linha');
           juntar(l, no('span', 'q', par[0]), no('span', 'v num', par[1]));
           resumoParcela.appendChild(l);
@@ -10624,8 +10807,10 @@
         // elas. Abrindo uma parcela paga dava para ver quando o dinheiro
         // entrou, mas não quando ela deveria ter entrado — e é a diferença
         // entre as duas que diz se o cliente paga em dia.
-        if (ehData(campoData.value) && ehData(p.vencimento)) {
-          var atraso = diasEntre(p.vencimento, campoData.value);
+        var vencNaTela = campoVencimento && ehData(campoVencimento.value)
+          ? campoVencimento.value : p.vencimento;
+        if (ehData(campoData.value) && ehData(vencNaTela)) {
+          var atraso = diasEntre(vencNaTela, campoData.value);
           var recado = atraso === 0
             ? 'Pago no dia do vencimento.'
             : atraso > 0
@@ -10634,6 +10819,8 @@
           resumoParcela.appendChild(no('div',
             'linha-nota' + (atraso > 0 ? ' ouro' : ' verde'), recado));
         }
+
+        if (existente) return;   // na edição o cartão para nas datas
 
         if (falta > 0) {
           var teto = tetoDoPlano(planoDaParcela(p)) || falta;
@@ -10715,6 +10902,17 @@
         forma.appendChild(blocoConta);
       }
 
+      // O vencimento é da parcela: gravar aqui muda a parcela, não o
+      // pagamento. Só mexo quando a data realmente mudou — assim abrir e
+      // salvar sem tocar em nada não reescreve nada.
+      function gravarVencimento(p) {
+        if (!p || !campoVencimento || vencimentoDe !== p.id) return;
+        var novoVenc = campoVencimento.value;
+        if (!ehData(novoVenc) || novoVenc === p.vencimento) return;
+        p.vencimento = novoVenc;
+        p.atualizadoEm = Date.now();
+      }
+
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         var valor = digitosParaCentavos(campoValorEl.value);
@@ -10729,6 +10927,7 @@
 
           if (antiga && (!nova || nova.id !== antiga.id)) antiga.quitadaEm = '';
           existente.parcelaId = nova ? nova.id : '';
+          gravarVencimento(nova);
           if (nova) nova.quitadaEm = campoData.value;
 
           existente.valor = valor;
@@ -10777,6 +10976,7 @@
           acertarParcelas(clienteId, nova);
         } else {
           var alvo = parcelaAtual();
+          gravarVencimento(alvo);
           var extra = acrescimos();
           var lancamentoId = '';
 

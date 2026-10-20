@@ -470,6 +470,10 @@
     outline: none;
   }
   .valor-grande:focus { border-bottom-color: currentColor; }
+  /* Total que o app calcula: é número, não campo, então não leva a linha
+     de baixo que convida a tocar. O padding repõe os 2px da borda para a
+     altura não mudar entre as duas telas. */
+  .valor-grande.travado { border-bottom: 0; padding-bottom: 14px; line-height: 1.18; }
   .forma[data-tipo="saida"] .valor-grande { color: var(--vermelho); }
   .forma[data-tipo="entrada"] .valor-grande { color: var(--verde); }
   .forma[data-tipo="transferencia"] .valor-grande { color: var(--azul); }
@@ -940,11 +944,19 @@
     padding: 6px 0; font-size: 13.5px; font-weight: 700; color: var(--texto);
   }
   .parcela-linha.edita .v .selecao { justify-content: flex-end; gap: 6px; }
-  /* A coluna da direita só fica reta se o que vem depois do texto ocupar
-     o mesmo espaço nas quatro linhas. O ▾ do seletor mede 11px; o ícone
-     de calendário do input de data é nativo e mede o que o navegador
-     quiser, então eu fixo os dois no mesmo tamanho. Sem isso a data fica
-     um dedo à esquerda das outras linhas e o cartão parece torto. */
+  /* A coluna da direita só fica reta se o que vem DEPOIS do texto ocupar o
+     mesmo espaço em toda linha. São 17px, e cada tipo de linha chega neles
+     de um jeito:
+
+       seletor   ->  gap de 6px + ▾ de 11px
+       data      ->  margem de 6px + ícone nativo fixado em 11px
+       texto     ->  17px de padding à direita
+       leitura   ->  17px de padding à direita (.sem-icone)
+
+     O ▾ é o que enganou na 5.11.1: ele está escrito em 11px, mas o glifo
+     mede uns 6px de largura, então a linha do seletor terminava 5px à
+     direita das outras. Daí a largura fixa aqui. */
+  .parcela-linha.edita .v .selecao .seta { width: 11px; text-align: right; }
   .parcela-linha.edita .v input[type="date"] {
     font-variant-numeric: tabular-nums;
     padding-right: 0;
@@ -953,9 +965,10 @@
     width: 11px; height: 11px; padding: 0; margin-left: 6px;
     opacity: .55; filter: invert(1);
   }
-  /* A linha só de leitura não tem ícone nenhum, então recebe o mesmo
-     recuo à direita para o número terminar onde os outros terminam. */
+  .parcela-linha.edita .v input[type="text"] { padding-right: 17px; }
   .parcela-linha .v.sem-icone { padding-right: 17px; }
+  /* Campo vazio: a dica em negrito parecia resposta preenchida. */
+  .parcela-linha.edita .v input::placeholder { font-weight: 400; }
   .parcela-linha .q { color: var(--suave); }
   .parcela-linha .v { font-weight: 700; font-variant-numeric: tabular-nums; }
   .parcela-linha.paga .v { color: var(--verde); }
@@ -1631,7 +1644,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.11.2';
+  var VERSAO = '5.12.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1640,6 +1653,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.12.0',
+      data: '2026-10-20',
+      itens: [
+        'A ficha do registro mostra o total. A lista do cliente dizia "Celular · R$ 1.350,00" e, ao tocar, a folha abria com R$ 1.000,00 — dois números para a mesma venda, sem nada explicando a diferença. Agora o número grande é o mesmo R$ 1.350,00 da lista, e embaixo vem a conta: R$ 1.000,00 de valor combinado mais R$ 350,00 de acréscimo do parcelamento.',
+        'As folhas do Empreendedor viraram cartão, como a de pagamento: tipo, o que foi, data e observação ficam numa caixa só, onde o que está escrito é o que se edita. A folha da parcela em aberto foi junto, e os recados ("faz parte de 4 parcelas", "esta parcela venceu") passaram para dentro da caixa, perto da data que eles explicam.',
+        'A coluna da direita ficou reta de verdade. O ▾ do seletor ocupava 6px e o ícone do calendário, 17: cada linha terminava num lugar e o cartão parecia torto.',
+        'Gerenciar os tipos virou a última opção do próprio seletor, no lugar do lápis ao lado — que dentro da linha do cartão empurrava o texto e desalinhava tudo.'
+      ]
+    },
     {
       versao: '5.11.2',
       data: '2026-10-20',
@@ -5264,6 +5287,23 @@
 
   function cartao(classeExtra) {
     return no('div', 'cartao' + (classeExtra ? ' ' + classeExtra : ''));
+  }
+
+  // Linha de cartão onde o que está escrito é o que se edita: rótulo à
+  // esquerda, controle à direita, no lugar onde o valor ficaria. Nasceu na
+  // folha de pagamento e virou o formato das folhas do Empreendedor.
+  function linhaDeCartao(rotulo, controle) {
+    var l = no('div', 'parcela-linha edita');
+    juntar(l, no('span', 'q', rotulo), juntar(no('span', 'v'), controle));
+    return l;
+  }
+
+  // A mesma linha, só de leitura. O `sem-icone` repõe o espaço que o ▾ do
+  // seletor e o ícone do calendário ocupam, para a coluna ficar reta.
+  function linhaDeCartaoFixa(rotulo, texto) {
+    var l = no('div', 'parcela-linha');
+    juntar(l, no('span', 'q', rotulo), no('span', 'v num sem-icone', texto));
+    return l;
   }
 
   function topoDeCartao(titulo, textoAcao, aoClicar) {
@@ -9931,17 +9971,44 @@
     abrirFolha(existente ? 'Editar registro' : 'Nova venda ou serviço', function (folha) {
       var forma = no('div');
 
-      var campoValorEl = entradaValor(base.valor, true);
-      campoValorEl.style.color = 'var(--ouro)';
-      forma.appendChild(campo('Valor combinado', campoValorEl));
+      // O acréscimo do parcelamento é um registro separado, mas na lista do
+      // cliente ele aparece somado ao produto — e era por isso que a lista
+      // dizia R$ 1.350,00 e esta folha abria com R$ 1.000,00. Agora o topo
+      // mostra o mesmo total da lista e o cartão abre a conta embaixo, para
+      // ficar claro de onde vem o total.
+      var extra = existente ? (acrescimosPorRegistro(clienteId)[existente.id] || null) : null;
 
-      var campoTipo = entradaSelecao(opcoesDeTipo(tipoEscolhido), tipoEscolhido, 'Tipo do registro');
-      campoTipo.aoMudar = function (v) { tipoEscolhido = v; };
-      var linhaTipo = no('div', 'linha-dupla-campo');
-      var lapisTipo = botao('linha-acao', null, function () {
+      // Com acréscimo, o número grande é o total e o valor combinado desce
+      // para dentro do cartão, no tamanho das outras linhas. Sem acréscimo o
+      // total é o próprio valor combinado: escrever os dois seria o mesmo
+      // número duas vezes na mesma tela.
+      var campoValorEl = entradaValor(base.valor, !extra);
+      var totalGrande = null;
+      if (extra) {
+        totalGrande = no('div', 'valor-grande travado num');
+        totalGrande.style.color = 'var(--ouro)';
+        forma.appendChild(campo('Total com o acréscimo', totalGrande));
+      } else {
+        campoValorEl.style.color = 'var(--ouro)';
+        forma.appendChild(campo('Valor combinado', campoValorEl));
+      }
+
+      // Gerenciar os tipos virou opção do próprio seletor. Era um lápis de
+      // 36px ao lado, que dentro da linha do cartão empurrava o texto para
+      // a esquerda e desalinhava a coluna da direita.
+      var OP_TIPOS = '__tipos__';
+      function opcoesComGerenciar() {
+        return opcoesDeTipo(tipoEscolhido).concat([
+          { valor: OP_TIPOS, rotulo: 'Gerenciar tipos…', detalhe: 'criar, renomear ou apagar' }
+        ]);
+      }
+      var campoTipo = entradaSelecao(opcoesComGerenciar(), tipoEscolhido, 'Tipo do registro');
+      campoTipo.aoMudar = function (v) {
+        if (v !== OP_TIPOS) { tipoEscolhido = v; return; }
+        campoTipo.value = tipoEscolhido;
         var guardado = {
           valor: digitosParaCentavos(campoValorEl.value),
-          tipo: campoTipo.value,
+          tipo: tipoEscolhido,
           nome: campoNome.value,
           data: campoData.value,
           obs: campoObs.value
@@ -9950,20 +10017,37 @@
           guardado.tipo = novo || guardado.tipo;
           montarFolhaServico(clienteId, servicoId, guardado);
         });
-      });
-      lapisTipo.setAttribute('aria-label', 'Editar os tipos');
-      lapisTipo.appendChild(icone('lapis'));
-      juntar(linhaTipo, campoTipo, lapisTipo);
-      forma.appendChild(campo('Tipo', linhaTipo));
+      };
 
       var campoNome = entradaTexto(base.nome, 'Ex.: Troca de embreagem', 60);
-      forma.appendChild(campo('O que foi', campoNome));
-
       var campoData = entradaData(base.data || hojeTexto());
-      forma.appendChild(campo('Realizado na data', campoData));
-
       var campoObs = entradaTexto(base.obs, 'Observação (opcional)', 200);
-      forma.appendChild(campo('Observação', campoObs));
+
+      // Um cartão só, como em "Editar pagamento": o que está escrito é o que
+      // se edita, sem o rótulo aparecer fora e dentro da caixa.
+      var ficha = cartao();
+      forma.appendChild(ficha);
+
+      if (extra) {
+        ficha.appendChild(linhaDeCartao('Valor combinado', campoValorEl));
+        ficha.appendChild(linhaDeCartaoFixa('Acréscimo do parcelamento', emReais(extra.valor)));
+      }
+      ficha.appendChild(linhaDeCartao('Tipo', campoTipo));
+      ficha.appendChild(linhaDeCartao('O que foi', campoNome));
+      ficha.appendChild(linhaDeCartao('Realizado em', campoData));
+      ficha.appendChild(linhaDeCartao('Observação', campoObs));
+
+      if (extra) {
+        ficha.appendChild(no('div', 'linha-nota ouro',
+          'O acréscimo veio do parcelamento. Para mexer nele, refaça o combinado das parcelas.'));
+        // O total acompanha o que está sendo digitado: mexer no combinado
+        // sem o número de cima mudar faria a conta parecer errada.
+        var pintarTotal = function () {
+          totalGrande.textContent = emReais(digitosParaCentavos(campoValorEl.value) + extra.valor);
+        };
+        campoValorEl.addEventListener('input', pintarTotal);
+        pintarTotal();
+      }
 
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
@@ -9976,13 +10060,13 @@
         var novoServicoId = existente ? existente.id : novoId();
         if (existente) {
           existente.nome = nome;
-          existente.tipo = campoTipo.value;
+          existente.tipo = tipoEscolhido;
           existente.valor = valor;
           existente.data = campoData.value;
           existente.obs = campoObs.value.trim();
         } else {
           estado.servicos.push({
-            id: novoServicoId, clienteId: clienteId, nome: nome, tipo: campoTipo.value,
+            id: novoServicoId, clienteId: clienteId, nome: nome, tipo: tipoEscolhido,
             valor: valor, data: campoData.value, obs: campoObs.value.trim(), criadoEm: Date.now()
           });
         }
@@ -10499,31 +10583,39 @@
       forma.appendChild(campo('Valor da parcela', campoValorEl));
 
       var campoData = entradaData(parcela.vencimento);
-      forma.appendChild(campo('Vence em', campoData));
-
-      var campoJuros = entradaTextoNumero(parcela.jurosAtraso || '', '0');
-      forma.appendChild(campo('Juros por atraso, ao mês (opcional %)', campoJuros));
+      // "Juros por atraso, ao mês (opcional %)" não cabia numa linha do
+      // cartão: o rótulo quebrava em duas. O período vai no rótulo e a
+      // unidade na dica do campo.
+      var campoJuros = entradaTextoNumero(parcela.jurosAtraso || '', '0%');
 
       var opcoesServico = [{ valor: '', rotulo: 'Sem registro específico' }].concat(
         servicos.map(function (sv) {
           return { valor: sv.id, rotulo: sv.nome, detalhe: (sv.tipo || 'Serviço') + ' · ' + emReais(sv.valor) };
         }));
       var campoServico = entradaSelecao(opcoesServico, parcela.servicoId || '', 'Referente a');
-      forma.appendChild(campo('Referente a', campoServico));
+
+      // Mesmo cartão da folha de pagamento: os três campos e, logo abaixo,
+      // os recados que falam deles. Soltos na folha, o aviso de vencido
+      // ficava longe da data que o explica.
+      var ficha = cartao();
+      forma.appendChild(ficha);
+      ficha.appendChild(linhaDeCartao('Vence em', campoData));
+      ficha.appendChild(linhaDeCartao('Juros ao mês', campoJuros));
+      ficha.appendChild(linhaDeCartao('Referente a', campoServico));
 
       var jaPago = pagoNaParcela(parcela);
       var juros = jurosDaParcela(parcela);
+      if (jaPago > 0) {
+        ficha.appendChild(linhaDeCartaoFixa('Já entraram', emReais(jaPago)));
+        ficha.appendChild(linhaDeCartaoFixa('Falta', emReais(faltaNaParcela(parcela))));
+      }
       if (parcela.vencimento < hojeTexto()) {
-        forma.appendChild(no('div', 'linha-nota vermelho',
+        ficha.appendChild(no('div', 'linha-nota vermelho',
           'Esta parcela venceu em ' + dataBr(parcela.vencimento) + '.' +
           (juros > 0 ? ' Os juros já somam ' + emReais(juros) + '.' : '')));
       }
-      if (jaPago > 0) {
-        forma.appendChild(no('div', 'linha-nota verde',
-          'Já entraram ' + emReais(jaPago) + '. Faltam ' + emReais(faltaNaParcela(parcela)) + '.'));
-      }
       if (servico) {
-        forma.appendChild(no('div', 'linha-nota',
+        ficha.appendChild(no('div', 'linha-nota',
           'Faz parte de ' + parcela.total + ' parcelas de ' + servico.nome + '.'));
       }
 
@@ -10720,16 +10812,6 @@
         caixaAtalhos.appendChild(campo('Devido nesta parcela: ' + emReais(devido), chipsP));
       }
 
-      // As linhas editáveis do cartão. Eram três blocos soltos acima dele,
-      // repetindo o que o cartão já dizia: a parcela aparecia no seletor e
-      // no título, a data no campo e na linha "Pago em". Agora é um lugar
-      // só, e o que está escrito é o que se edita.
-      function linhaEditavel(rotulo, controle) {
-        var l = no('div', 'parcela-linha edita');
-        juntar(l, no('span', 'q', rotulo), juntar(no('span', 'v'), controle));
-        return l;
-      }
-
       // O vencimento é da parcela, não do pagamento, então o campo
       // pertence à parcela escolhida. Guardo o mesmo elemento entre os
       // repintares e só troco quando a parcela muda — senão o que a
@@ -10751,10 +10833,10 @@
       // paga, a que se refere. "Vence em" fica colado na data do
       // pagamento porque é a comparação entre as duas que interessa.
       function montarLinhasEditaveis(p) {
-        if (campoParcela) resumoParcela.appendChild(linhaEditavel('Equivale a', campoParcela));
-        if (p) resumoParcela.appendChild(linhaEditavel('Vence em', campoDeVencimento(p)));
-        resumoParcela.appendChild(linhaEditavel(existente ? 'Pago em' : 'Data do pagamento', campoData));
-        resumoParcela.appendChild(linhaEditavel('Referente a', campoServico));
+        if (campoParcela) resumoParcela.appendChild(linhaDeCartao('Equivale a', campoParcela));
+        if (p) resumoParcela.appendChild(linhaDeCartao('Vence em', campoDeVencimento(p)));
+        resumoParcela.appendChild(linhaDeCartao(existente ? 'Pago em' : 'Data do pagamento', campoData));
+        resumoParcela.appendChild(linhaDeCartao('Referente a', campoServico));
       }
 
       function pintarResumo() {
@@ -10798,9 +10880,7 @@
           if (devido !== recebido) linhas.push(['Devido', emReais(devido)]);
         }
         linhas.forEach(function (par) {
-          var l = no('div', 'parcela-linha');
-          juntar(l, no('span', 'q', par[0]), no('span', 'v num', par[1]));
-          resumoParcela.appendChild(l);
+          resumoParcela.appendChild(linhaDeCartaoFixa(par[0], par[1]));
         });
 
         // As duas datas lado a lado e, principalmente, a distância entre

@@ -1,11 +1,11 @@
 # Testes do Finanz
 
-São 47 testes que abrem o app num navegador de verdade, clicam nas telas
+São 65 testes que abrem o app num navegador de verdade, clicam nas telas
 como uma pessoa clicaria e conferem o que aparece. Não é teste de pedacinho
 de código isolado: é o app inteiro rodando, com servidor, banco de dados e
 login funcionando.
 
-Rodando os 47 em paralelo, leva pouco mais de um minuto.
+Rodando os 65 em paralelo, leva uns quatro minutos.
 
 ---
 
@@ -25,8 +25,13 @@ node testes/rodar.mjs 4                # todos, 4 ao mesmo tempo
 node testes/rodar.mjs 12 t72 t80 t81   # só esses três
 ```
 
-Mexeu no `index.html`? Rode `testes/preparar.sh` de novo (ele recopia o app
-para `appteste/`) ou copie na mão:
+Mexeu no `index.html`? Não precisa fazer nada: o `rodar.mjs` chama o
+`subir.sh`, que recopia o app para `appteste/` antes de cada rodada. (Antes
+só o `preparar.sh` copiava, e esquecer dele fazia a suíte inteira passar
+testando o arquivo de antes da mudança — verde por motivo nenhum.)
+
+Rodando um caso direto (`node testes/casos/t106.mjs`), a cópia **não** se
+refaz. Para isso:
 
 ```
 cp index.html sw.js manifest.webmanifest testes/appteste/
@@ -46,7 +51,7 @@ testes/
   servir.cjs      servidor de arquivos do app, na porta 8833
   stub-auth.sql   imita o schema `auth` do Supabase no Postgres local
   config-teste.js o config.js que aponta o app para o emulador
-  casos/          os 47 testes
+  casos/          os 65 testes
   amostras/       PDFs, planilhas e CSVs de exemplo
   leitor/         fonte modular do leitor de extrato (veja no fim)
   appteste/       cópia do app servida nos testes (não vai para o git)

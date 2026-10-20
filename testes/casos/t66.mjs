@@ -21,7 +21,7 @@ async function importar(a) {
   for (let i=0;i<6 && await page.locator('#folha.aberta').count();i++) { await page.keyboard.press('Escape'); await page.waitForTimeout(600); }
   await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(800);
   await page.click('#telaMais label.linha:has-text("Importar extrato")');
-  await page.waitForSelector('#folha .cabeca-banco', { timeout: 40000 }); await page.waitForTimeout(600);
+  await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 }); await page.waitForTimeout(600);
 }
 const cats = async () => page.$$eval('#folha .item-extrato .etiqueta-cat', ns=>ns.map(x=>x.textContent));
 

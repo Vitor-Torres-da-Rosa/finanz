@@ -4,6 +4,16 @@
 cd "$(dirname "$0")" || exit 1
 PGBIN=/usr/lib/postgresql/16/bin
 
+# O servidor dos testes serve uma CÓPIA do app, e só o preparar.sh a
+# copiava. Esquecendo de rodá-lo, a suíte inteira passava testando o
+# index.html de antes da mudança — verde por motivo nenhum. Agora a cópia
+# se refaz a cada rodada; o servir.cjs lê do disco a cada pedido, então
+# ela vale na hora, sem reiniciar nada.
+mkdir -p appteste
+cp ../index.html ../sw.js ../manifest.webmanifest ../icon.svg appteste/ 2>/dev/null
+cp ../icon-*.png ../*.webp appteste/ 2>/dev/null
+cp config-teste.js appteste/config.js
+
 if ! su postgres -c "$PGBIN/pg_isready -h /tmp -p 55433" >/dev/null 2>&1; then
   rm -f /tmp/pgcaixa/postmaster.pid
   su postgres -c "$PGBIN/pg_ctl -D /tmp/pgcaixa -l /tmp/pg.log \

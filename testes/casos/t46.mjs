@@ -5,6 +5,15 @@ const page = await ctx.newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
 page.on('console', m => { if (m.type()==='error') console.log('CONSOLE:', m.text()); });
 const folha = () => page.locator('#folha');
+// Gerenciar tipos era um lápis ao lado do seletor. Dentro da linha do
+// cartão ele desalinhava a coluna da direita, então virou a última opção
+// do próprio seletor.
+const abrirGerenciar = async () => {
+  await page.click('#folha .parcela-linha.edita:has(.q:text-is("Tipo")) .selecao');
+  await page.waitForTimeout(700);
+  await page.click('#escolhaLista .escolha-item:has-text("Gerenciar tipos")');
+  await page.waitForTimeout(900);
+};
 
 await page.goto(ENDERECO, { waitUntil: 'networkidle' });
 await page.waitForTimeout(400);
@@ -36,7 +45,7 @@ await page.screenshot({ path: dir + '/a01-tipos.png' });
 await page.click('#escolhaLista .escolha-item:has-text("Serviço")'); await page.waitForTimeout(800);
 
 // ---- 2. o menu de gerenciar tipos ----
-await page.click('#folha .linha-dupla-campo .linha-acao'); await page.waitForTimeout(800);
+await abrirGerenciar();
 console.log('2. título:', await page.textContent('#escolhaTitulo'));
 console.log('   itens:', await page.$$eval('#escolhaLista .escolha-item .txt', ns => ns.map(x=>x.textContent.replace(/\s+/g,' '))));
 console.log('   bolinhas:', await page.locator('#escolhaLista .marca').count());
@@ -54,7 +63,7 @@ await page.click('#escolhaLista .escolha-item:has-text("Investimento")'); await 
 console.log('   escolhido:', await page.textContent('#folha .selecao >> nth=0'));
 
 // gerenciar mostra o lápis só no criado
-await page.click('#folha .linha-dupla-campo .linha-acao'); await page.waitForTimeout(800);
+await abrirGerenciar();
 console.log('5. itens:', await page.$$eval('#escolhaLista .escolha-item .txt', ns => ns.map(x=>x.textContent.replace(/\s+/g,' '))));
 console.log('   bolinhas:', await page.locator('#escolhaLista .marca').count(), '| lápis:', await page.locator('#escolhaLista .escolha-icone').count());
 await page.screenshot({ path: dir + '/a03-gerenciar2.png' });
