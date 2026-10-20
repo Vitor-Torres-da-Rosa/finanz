@@ -930,6 +930,17 @@
 
   .parcela-linha { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(198,158,78,.14); font-size: 13.5px; }
   .parcela-linha:last-child { border-bottom: 0; }
+  /* Linha do cartão que é editável: o controle ocupa a direita, no
+     lugar onde o valor ficaria, para a coluna continuar alinhada. */
+  .parcela-linha.edita { align-items: center; padding: 4px 0; }
+  .parcela-linha.edita .v { flex: 1 1 auto; min-width: 0; text-align: right; }
+  .parcela-linha.edita .v .selecao,
+  .parcela-linha.edita .v input {
+    width: 100%; text-align: right; border: 0; background: transparent;
+    padding: 6px 0; font-size: 13.5px; font-weight: 700; color: var(--texto);
+  }
+  .parcela-linha.edita .v .selecao { justify-content: flex-end; gap: 6px; }
+  .parcela-linha.edita .v input[type="date"] { font-variant-numeric: tabular-nums; }
   .parcela-linha .q { color: var(--suave); }
   .parcela-linha .v { font-weight: 700; font-variant-numeric: tabular-nums; }
   .parcela-linha.paga .v { color: var(--verde); }
@@ -1605,7 +1616,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.10.3';
+  var VERSAO = '5.11.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1625,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.11.0',
+      data: '2026-10-20',
+      itens: [
+        'A tela de pagamento virou um cartão só. Parcela, vencimento, data e registro ficam juntos, na ordem que conta a história: qual parcela, quando vence, quando foi paga, a que se refere.',
+        'E o que estava escrito duas vezes saiu. A parcela aparecia no seletor e no título do cartão; a data, no campo e na linha "Pago em"; o valor, em cima e embaixo. Agora cada coisa aparece uma vez — e o valor da parcela só entra quando é diferente do que você recebeu.',
+        'Tudo no cartão é editável no próprio lugar onde está escrito. O único que não se mexe é "Vence em", que vem da parcela.'
+      ]
+    },
     {
       versao: '5.10.3',
       data: '2026-10-20',
@@ -10509,14 +10529,12 @@
       var campoParcela = null;
       if (abertas.length) {
         campoParcela = entradaSelecao(opcoesParcela, parcela ? parcela.id : '', 'Equivale a qual parcela');
-        forma.appendChild(campo('Equivale a qual parcela', campoParcela));
       }
 
       var caixaAtalhos = no('div');
       forma.appendChild(caixaAtalhos);
 
       var campoData = entradaData(existente ? existente.data : hojeTexto());
-      forma.appendChild(campo('Data do pagamento', campoData));
 
       var opcoesServico = [{ valor: '', rotulo: 'Sem registro específico' }].concat(
         servicos.map(function (s) {
@@ -10535,7 +10553,6 @@
       var campoServico = entradaSelecao(opcoesServico,
         existente ? existente.servicoId : (parcela ? (parcela.servicoId || sozinho) : sozinho),
         'Referente a');
-      forma.appendChild(campo('Referente a', campoServico));
 
       // ---- juros, multa e taxa lançados na hora ----
       var campoJuros = null, campoMulta = null, campoTaxa = null, resumoParcela = null;
@@ -10610,6 +10627,30 @@
         caixaAtalhos.appendChild(campo('Devido nesta parcela: ' + emReais(devido), chipsP));
       }
 
+      // As linhas editáveis do cartão. Eram três blocos soltos acima dele,
+      // repetindo o que o cartão já dizia: a parcela aparecia no seletor e
+      // no título, a data no campo e na linha "Pago em". Agora é um lugar
+      // só, e o que está escrito é o que se edita.
+      function linhaEditavel(rotulo, controle) {
+        var l = no('div', 'parcela-linha edita');
+        juntar(l, no('span', 'q', rotulo), juntar(no('span', 'v'), controle));
+        return l;
+      }
+
+      // A ordem conta uma frase: qual parcela, quando vence, quando foi
+      // paga, a que se refere. "Vence em" fica colado na data do
+      // pagamento porque é a comparação entre as duas que interessa.
+      function montarLinhasEditaveis(p) {
+        if (campoParcela) resumoParcela.appendChild(linhaEditavel('Equivale a', campoParcela));
+        if (p) {
+          var lv = no('div', 'parcela-linha');
+          juntar(lv, no('span', 'q', 'Vence em'), no('span', 'v num', dataBr(p.vencimento)));
+          resumoParcela.appendChild(lv);
+        }
+        resumoParcela.appendChild(linhaEditavel(existente ? 'Pago em' : 'Data do pagamento', campoData));
+        resumoParcela.appendChild(linhaEditavel('Referente a', campoServico));
+      }
+
       function pintarResumo() {
         if (!resumoParcela) return;
         resumoParcela.textContent = '';
@@ -10618,6 +10659,7 @@
         var extra = acrescimos();
 
         if (!p) {
+          montarLinhasEditaveis(null);
           resumoParcela.appendChild(no('div', 'linha-sub',
             extra > 0
               ? 'Sem parcela escolhida, os ' + emReais(extra) + ' de acréscimo entram como valor a receber deste cliente.'
@@ -10629,17 +10671,26 @@
         var falta = Math.max(devido - recebido, 0);
         var sobra = Math.max(recebido - devido, 0);
 
-        resumoParcela.appendChild(no('div', 'rotulo', 'Parcela ' + p.numero + ' de ' + p.total));
+        // O título só aparece quando não há seletor de parcela. Com o
+        // seletor, ele diria a mesma coisa duas vezes na mesma caixa.
+        if (!campoParcela) {
+          resumoParcela.appendChild(no('div', 'rotulo', 'Parcela ' + p.numero + ' de ' + p.total));
+        }
 
-        var linhas = existente
-          ? [['Vence em', dataBr(p.vencimento)],
-             ['Pago em', dataBr(campoData.value)],
-             ['Valor da parcela', emReais(p.valor)]]
-          : [['Vence em', dataBr(p.vencimento)],
-             ['Valor da parcela', emReais(faltaNaParcela(p))],
-             ['Acréscimos agora', emReais(extra)],
-             ['Devido', emReais(devido)],
-             ['Recebendo', emReais(recebido)]];
+        montarLinhasEditaveis(p);
+
+        // O que repetia o que já está no cartão saiu: a parcela é a linha
+        // "Equivale a", a data é "Pago em", e o valor da parcela só
+        // aparece quando difere do que entrou — senão é o mesmo número
+        // escrito duas vezes.
+        var linhas = [];
+        if (existente) {
+          if (p.valor !== recebido) linhas.push(['Valor da parcela', emReais(p.valor)]);
+        } else {
+          if (faltaNaParcela(p) !== recebido) linhas.push(['Falta na parcela', emReais(faltaNaParcela(p))]);
+          if (extra > 0) linhas.push(['Acréscimos agora', emReais(extra)]);
+          if (devido !== recebido) linhas.push(['Devido', emReais(devido)]);
+        }
         linhas.forEach(function (par) {
           var l = no('div', 'parcela-linha');
           juntar(l, no('span', 'q', par[0]), no('span', 'v num', par[1]));
