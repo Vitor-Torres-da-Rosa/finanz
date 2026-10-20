@@ -1605,7 +1605,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.10.1';
+  var VERSAO = '5.10.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1614,6 +1614,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.10.2',
+      data: '2026-10-20',
+      itens: [
+        'Abrindo uma parcela, agora aparecem as duas datas: quando ela vence e quando o pagamento entrou. Antes dava para ver só a data do pagamento, e não a que importa para saber se foi em dia.',
+        'E o app faz a conta para você: "Pago no dia do vencimento", "Pago 3 dia(s) depois" ou "Pago 2 dia(s) antes". Mudando a data do pagamento, o recado acompanha na hora.'
+      ]
+    },
     {
       versao: '5.10.1',
       data: '2026-10-19',
@@ -10609,6 +10617,7 @@
 
         resumoParcela.appendChild(no('div', 'rotulo', 'Parcela ' + p.numero + ' de ' + p.total));
         [
+          ['Vence em', dataBr(p.vencimento)],
           ['Valor da parcela', emReais(faltaNaParcela(p))],
           ['Acréscimos agora', emReais(extra)],
           ['Devido', emReais(devido)],
@@ -10618,6 +10627,21 @@
           juntar(l, no('span', 'q', par[0]), no('span', 'v num', par[1]));
           resumoParcela.appendChild(l);
         });
+
+        // As duas datas lado a lado e, principalmente, a distância entre
+        // elas. Abrindo uma parcela paga dava para ver quando o dinheiro
+        // entrou, mas não quando ela deveria ter entrado — e é a diferença
+        // entre as duas que diz se o cliente paga em dia.
+        if (ehData(campoData.value) && ehData(p.vencimento)) {
+          var atraso = diasEntre(p.vencimento, campoData.value);
+          var recado = atraso === 0
+            ? 'Pago no dia do vencimento.'
+            : atraso > 0
+              ? 'Pago ' + atraso + ' dia(s) depois do vencimento.'
+              : 'Pago ' + (-atraso) + ' dia(s) antes do vencimento.';
+          resumoParcela.appendChild(no('div',
+            'linha-nota' + (atraso > 0 ? ' ouro' : ' verde'), recado));
+        }
 
         if (falta > 0) {
           var teto = tetoDoPlano(planoDaParcela(p)) || falta;
@@ -10658,6 +10682,10 @@
           campoValorEl.value = emReais(devidoAgora(inicial));
         }
       }
+      // O resumo agora compara a data do pagamento com o vencimento, então
+      // mudar a data tem de repintar — senão a nota continua dizendo
+      // "pago no dia" depois de a pessoa mexer no calendário.
+      if (campoData) campoData.addEventListener('change', atualizar);
       atualizar();
 
       var proximaDepois = proximoVencimento(clienteId);
