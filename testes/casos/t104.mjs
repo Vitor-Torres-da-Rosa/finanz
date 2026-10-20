@@ -133,6 +133,49 @@ conferir('6. e a relação entre as duas',
   (naEdicao.match(/Pago[^.]*vencimento\./) || ['(não achei)'])[0]);
 await page.screenshot({ path: dir+'/o02-editar-duas-datas.png', fullPage: true });
 
+// --- o vencimento também se edita, e fica gravado ---
+const campos = await page.$$('#folha .parcela-linha.edita input[type=date]');
+console.log('campos de data no cartão:', campos.length);
+conferir('7. "Vence em" virou campo de data, não texto fixo',
+  campos.length === 2, campos.length + ' campo(s)');
+
+// o primeiro é o vencimento, o segundo é a data do pagamento
+await campos[0].fill('2026-12-25');
+await page.waitForTimeout(900);
+const comNovoVenc = limpo(await page.textContent('#folha'));
+conferir('8. o recado acompanha a data nova na hora',
+  /Pago \d+ dia\(s\) antes do vencimento/.test(comNovoVenc),
+  (comNovoVenc.match(/Pago[^.]*vencimento\./) || ['(não achei)'])[0]);
+
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2800);
+await limparTela();
+
+// reabre e confere que gravou
+await page.click('#navegacao button:has-text("Início")').catch(() => {});
+await page.waitForTimeout(1200);
+await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {});
+await page.waitForTimeout(1100);
+await page.click('#telaInicio .linha-alvo:has-text("Edison e Sander")'); await page.waitForTimeout(1500);
+await page.click('#folha button:has-text("Parcelas")'); await page.waitForTimeout(1200);
+const listaParcelas = limpo(await page.textContent('#folha'));
+console.log('parcelas (inteira):', listaParcelas);
+// A parcela paga mostra a data do pagamento; o vencimento vai junto,
+// depois do "vencia", justamente porque uma data só não responde se
+// pagou em dia.
+conferir('9. a lista mostra as duas datas na parcela paga',
+  /Paga em .* · vencia 25\/12\/2026/.test(listaParcelas),
+  (listaParcelas.match(/Paga em[^R]*/) || ['(não achei)'])[0]);
+
+// E a prova de que gravou mesmo: reabrir e ler o campo.
+await page.click('#folha .linha:has-text("Paga em")'); await page.waitForTimeout(1600);
+const vencGravado = await page.evaluate(() => {
+  const cs = document.querySelectorAll('#folha .parcela-linha.edita input[type=date]');
+  return cs.length ? cs[0].value : '(sem campo)';
+});
+conferir('10. e o campo reabre com o vencimento novo',
+  vencGravado === '2026-12-25', vencGravado);
+await page.screenshot({ path: dir+'/o03-vencimento-editado.png', fullPage: true });
+
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
 console.log('\ntudo certo: as duas datas aparecem na parcela');

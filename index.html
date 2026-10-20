@@ -940,7 +940,22 @@
     padding: 6px 0; font-size: 13.5px; font-weight: 700; color: var(--texto);
   }
   .parcela-linha.edita .v .selecao { justify-content: flex-end; gap: 6px; }
-  .parcela-linha.edita .v input[type="date"] { font-variant-numeric: tabular-nums; }
+  /* A coluna da direita só fica reta se o que vem depois do texto ocupar
+     o mesmo espaço nas quatro linhas. O ▾ do seletor mede 11px; o ícone
+     de calendário do input de data é nativo e mede o que o navegador
+     quiser, então eu fixo os dois no mesmo tamanho. Sem isso a data fica
+     um dedo à esquerda das outras linhas e o cartão parece torto. */
+  .parcela-linha.edita .v input[type="date"] {
+    font-variant-numeric: tabular-nums;
+    padding-right: 0;
+  }
+  .parcela-linha.edita .v input[type="date"]::-webkit-calendar-picker-indicator {
+    width: 11px; height: 11px; padding: 0; margin-left: 6px;
+    opacity: .55; filter: invert(1);
+  }
+  /* A linha só de leitura não tem ícone nenhum, então recebe o mesmo
+     recuo à direita para o número terminar onde os outros terminam. */
+  .parcela-linha .v.sem-icone { padding-right: 17px; }
   .parcela-linha .q { color: var(--suave); }
   .parcela-linha .v { font-weight: 700; font-variant-numeric: tabular-nums; }
   .parcela-linha.paga .v { color: var(--verde); }
@@ -1616,7 +1631,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.11.0';
+  var VERSAO = '5.11.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1625,6 +1640,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.11.1',
+      data: '2026-10-20',
+      itens: [
+        'O vencimento da parcela virou campo: dá para mudar a data combinada ali mesmo, e o recado de atraso acompanha enquanto você escolhe. Mudar isso mexe na parcela, não no pagamento — é a data combinada com o cliente que muda.',
+        'As datas do cartão ficaram alinhadas. O ícone de calendário do campo de data empurrava o número para a esquerda e a coluna da direita ficava torta.',
+        'E na lista de parcelas, a parcela paga mostra as duas datas: "Paga em 20/10 · vencia 25/12". Uma data só não responde se o cliente pagou em dia.'
+      ]
+    },
     {
       versao: '5.11.0',
       data: '2026-10-20',
@@ -8297,8 +8321,14 @@
             var comDinheiro = paga && recebido > 0;
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
 
+            // Na parcela paga as duas datas interessam: quando entrou e
+            // quando era para ter entrado. Só a primeira não responde se
+            // o cliente pagou em dia, que é a pergunta de quem olha.
             var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
               dataBr(paga && p.quitadaEm ? p.quitadaEm : p.vencimento);
+            if (paga && p.quitadaEm && p.vencimento && p.quitadaEm !== p.vencimento) {
+              sub += ' · vencia ' + dataBr(p.vencimento);
+            }
             if (parcial) sub = 'Faltam ' + emReais(faltaNaParcela(p)) + ' · ' + sub.toLowerCase();
             if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
             if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
@@ -10637,16 +10667,29 @@
         return l;
       }
 
+      // O vencimento é da parcela, não do pagamento, então o campo
+      // pertence à parcela escolhida. Guardo o mesmo elemento entre os
+      // repintares e só troco quando a parcela muda — senão o que a
+      // pessoa acabou de digitar sumiria no próximo repintar, que
+      // acontece a cada tecla no valor.
+      var campoVencimento = null;
+      var vencimentoDe = '';
+
+      function campoDeVencimento(p) {
+        if (!campoVencimento || vencimentoDe !== p.id) {
+          campoVencimento = entradaData(p.vencimento);
+          vencimentoDe = p.id;
+          campoVencimento.addEventListener('change', atualizar);
+        }
+        return campoVencimento;
+      }
+
       // A ordem conta uma frase: qual parcela, quando vence, quando foi
       // paga, a que se refere. "Vence em" fica colado na data do
       // pagamento porque é a comparação entre as duas que interessa.
       function montarLinhasEditaveis(p) {
         if (campoParcela) resumoParcela.appendChild(linhaEditavel('Equivale a', campoParcela));
-        if (p) {
-          var lv = no('div', 'parcela-linha');
-          juntar(lv, no('span', 'q', 'Vence em'), no('span', 'v num', dataBr(p.vencimento)));
-          resumoParcela.appendChild(lv);
-        }
+        if (p) resumoParcela.appendChild(linhaEditavel('Vence em', campoDeVencimento(p)));
         resumoParcela.appendChild(linhaEditavel(existente ? 'Pago em' : 'Data do pagamento', campoData));
         resumoParcela.appendChild(linhaEditavel('Referente a', campoServico));
       }
@@ -10701,8 +10744,10 @@
         // elas. Abrindo uma parcela paga dava para ver quando o dinheiro
         // entrou, mas não quando ela deveria ter entrado — e é a diferença
         // entre as duas que diz se o cliente paga em dia.
-        if (ehData(campoData.value) && ehData(p.vencimento)) {
-          var atraso = diasEntre(p.vencimento, campoData.value);
+        var vencNaTela = campoVencimento && ehData(campoVencimento.value)
+          ? campoVencimento.value : p.vencimento;
+        if (ehData(campoData.value) && ehData(vencNaTela)) {
+          var atraso = diasEntre(vencNaTela, campoData.value);
           var recado = atraso === 0
             ? 'Pago no dia do vencimento.'
             : atraso > 0
@@ -10794,6 +10839,17 @@
         forma.appendChild(blocoConta);
       }
 
+      // O vencimento é da parcela: gravar aqui muda a parcela, não o
+      // pagamento. Só mexo quando a data realmente mudou — assim abrir e
+      // salvar sem tocar em nada não reescreve nada.
+      function gravarVencimento(p) {
+        if (!p || !campoVencimento || vencimentoDe !== p.id) return;
+        var novoVenc = campoVencimento.value;
+        if (!ehData(novoVenc) || novoVenc === p.vencimento) return;
+        p.vencimento = novoVenc;
+        p.atualizadoEm = Date.now();
+      }
+
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         var valor = digitosParaCentavos(campoValorEl.value);
@@ -10808,6 +10864,7 @@
 
           if (antiga && (!nova || nova.id !== antiga.id)) antiga.quitadaEm = '';
           existente.parcelaId = nova ? nova.id : '';
+          gravarVencimento(nova);
           if (nova) nova.quitadaEm = campoData.value;
 
           existente.valor = valor;
@@ -10856,6 +10913,7 @@
           acertarParcelas(clienteId, nova);
         } else {
           var alvo = parcelaAtual();
+          gravarVencimento(alvo);
           var extra = acrescimos();
           var lancamentoId = '';
 
