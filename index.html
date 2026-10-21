@@ -1644,7 +1644,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.14.1';
+  var VERSAO = '5.15.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1653,6 +1653,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.15.0',
+      data: '2026-10-21',
+      itens: [
+        'Em "Voltar a uma data", cada cópia agora mostra a hora. Com a automática do dia, as de antes de apagar e as que você fizer à mão, passa a haver mais de uma no mesmo dia — e a data sozinha não separa uma da outra.',
+        'E tem o botão "Guardar uma cópia agora", logo ali. A automática sai uma vez por dia; quando você vai mexer em alguma coisa grande, dá para marcar o ponto antes sem depender do relógio.',
+        'As três ficaram com cara própria na lista: 🕑 a do dia, 💾 a que você fez, 🗑 a de antes de apagar.'
+      ]
+    },
     {
       versao: '5.14.1',
       data: '2026-10-21',
@@ -19877,8 +19886,36 @@
         'sempre que você vai apagar alguma coisa. Segura as últimas duas semanas. ' +
         'Escolha uma cópia para voltar tudo ao que era nela.'));
 
+      // Guardar na hora. A automática sai uma vez por dia; quem vai mexer
+      // em alguma coisa grande quer poder marcar o ponto antes, sem
+      // depender do relógio.
+      var bAgora = botao('btn btn-fantasma', 'Guardar uma cópia agora', function () {
+        bAgora.disabled = true;
+        var antes = bAgora.textContent;
+        bAgora.textContent = 'Guardando...';
+        guardarInstantaneo('cópia feita por você').then(function (deu) {
+          bAgora.disabled = false;
+          bAgora.textContent = antes;
+          if (!deu) {
+            avisarCaixa('Não consegui guardar',
+              estaVazio(estado)
+                ? 'O app está vazio: não há o que guardar ainda.'
+                : 'Não deu para falar com o servidor agora. Tente de novo com internet.',
+              function () {});
+            return;
+          }
+          avisar('Cópia guardada.');
+          pintarLista();
+        });
+      });
+      bAgora.style.margin = '4px 0 14px';
+      forma.appendChild(bAgora);
+
       var caixa = no('div');
       forma.appendChild(caixa);
+
+      function pintarLista() {
+      caixa.textContent = '';
       caixa.appendChild(no('div', 'linha-nota', 'Procurando as cópias...'));
 
       listarInstantaneos().then(function (lista) {
@@ -19894,18 +19931,27 @@
         var hoje = hojeTexto();
         lista.forEach(function (i) {
           var dia = i.dia === hoje ? 'hoje' : dataBr(i.dia);
-          // A automática do dia aparece pela data. A de antes de apagar
-          // aparece pelo que ia sair — é isso que a pessoa procura quando
-          // se arrepende, não a hora.
-          var deExclusao = i.motivo && i.motivo !== 'dia';
-          var quando = deExclusao ? dia + ' às ' + horaDe(i.criado_em) : dia;
-          var titulo = deExclusao ? maiusculaInicial(i.motivo) : dia;
+          // Com mais de uma cópia no mesmo dia, a data sozinha não separa
+          // uma da outra. A hora vai em todas.
+          var quando = dia + ' às ' + horaDe(i.criado_em);
+
+          // Três tipos, e cada um é procurado de um jeito: a automática
+          // pela data, a de antes de apagar pelo que ia sair, a feita à
+          // mão porque a pessoa lembra de ter feito.
+          var motivo = i.motivo || 'dia';
+          var automatica = motivo === 'dia';
+          var daPessoa = motivo === 'cópia feita por você';
+          var titulo = automatica ? dia : maiusculaInicial(motivo);
+          var selinho = automatica ? '🕑' : daPessoa ? '💾' : '🗑';
+          var cor = automatica ? '#60A5FA' : daPessoa ? '#34D399' : '#F87171';
+
           var linha = botao('linha', null, function () { confirmarVolta(i, quando, titulo); });
           juntar(linha,
-            selo(deExclusao ? '#F87171' : '#60A5FA', deExclusao ? '🗑' : '🕑'),
+            selo(cor, selinho),
             juntar(no('div', 'linha-texto'),
               no('div', 'linha-titulo', titulo),
-              no('div', 'linha-sub', (deExclusao ? quando + ' · ' : '') + (i.resumo || 'sem resumo'))),
+              no('div', 'linha-sub',
+                (automatica ? 'às ' + horaDe(i.criado_em) : quando) + ' · ' + (i.resumo || 'sem resumo'))),
             juntar(no('div', 'linha-fim'), no('div', 'linha-sub', 'voltar ›')));
           cartaoLista.appendChild(linha);
         });
@@ -19918,6 +19964,8 @@
         caixa.appendChild(no('div', 'linha-nota vermelho',
           'Não consegui ler as cópias: ' + (e && e.message ? e.message : 'erro no servidor') + '.'));
       });
+      }
+      pintarLista();
 
       function confirmarVolta(i, quando, titulo) {
         perguntar({

@@ -119,9 +119,27 @@ const naFolha = limpo(await page.textContent('#folha'));
 console.log('folha:', naFolha.slice(0, 260));
 conferir('6. a folha lista a cópia de hoje com o resumo',
   /hoje/.test(naFolha) && /1 lançamentos · 1 contas/.test(naFolha), naFolha.slice(0, 200));
+// A hora separa uma cópia da outra quando há mais de uma no mesmo dia —
+// e desde que dá para guardar à mão, isso é comum.
+conferir('6b. e mostra a hora, não só o dia',
+  /às \d{2}:\d{2}/.test(naFolha), (naFolha.match(/às \d{2}:\d{2}[^·]*·[^·]*/) || ['(não achei)'])[0]);
+
+// ---- guardar uma cópia na hora ----
+await page.click('#folha .btn-fantasma:has-text("Guardar uma cópia agora")');
+await page.waitForTimeout(6000);
+const comManual = limpo(await page.textContent('#folha'));
+conferir('6c. o botão guarda uma cópia na hora, com cara própria',
+  /Cópia feita por você/.test(comManual), comManual.slice(0, 260));
+conferir('6d. e a lista passa a mostrar duas',
+  /2 cópia\(s\) guardada\(s\)/.test(comManual),
+  (comManual.match(/\d+ cópia\(s\) guardada\(s\)/) || ['(não achei)'])[0]);
+await page.screenshot({ path: dir+'/v04-copia-feita-a-mao.png', fullPage: true });
 await page.screenshot({ path: dir+'/v02-escolher-a-data.png', fullPage: true });
 
-await page.click('#folha .linha:has-text("hoje")'); await page.waitForTimeout(1200);
+// Mira a cópia AUTOMÁTICA do dia, cujo título é "hoje" e nada mais. A
+// manual que o teste acabou de fazer também diz "hoje" no subtítulo, e
+// ela é posterior ao estrago — voltar por ela devolveria o estrago.
+await page.click('#folha .linha:has(.linha-titulo:text-is("hoje"))'); await page.waitForTimeout(1200);
 const aviso = limpo(await page.textContent('#dialogoTexto'));
 conferir('7. e avisa que o que veio depois se perde',
   /se perde/.test(aviso) && /nuvem/.test(aviso), aviso.slice(0, 140));
