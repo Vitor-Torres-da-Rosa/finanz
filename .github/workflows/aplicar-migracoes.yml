@@ -1,0 +1,169 @@
+# Aplica as migrações do banco no projeto do Supabase.
+#
+# Por que existe: em 21/10/2026 o Vitor passou meia hora colando SQL no
+# editor do Supabase pelo celular. O paste entrou por cima do que já
+# estava no editor, cortou o nome da tabela na primeira linha, e o erro
+# que apareceu ("syntax error at or near )") não dizia nada sobre a causa
+# real. Isso não é trabalho de pessoa.
+#
+# Aqui o GitHub roda o SQL. O token fica nos segredos do repositório e
+# nunca passa por conversa nem pela máquina de quem escreve as migrações.
+#
+# O que ele roda: todos os supabase/migracao-*.sql, em ordem de número.
+# Elas são escritas para poder rodar de novo sem estragar nada (create
+# table if not exists, drop policy if exists, add column if not exists),
+# então aplicar a mesma leva duas vezes é inofensivo. O schema.sql fica
+# de fora de propósito: ele serve para montar um projeto novo do zero,
+# não para mexer num que já tem dados.
+#
+# ---------------------------------------------------------------------
+# PARA LIGAR (uma vez só):
+#
+# 1. Em supabase.com/dashboard/account/tokens, "Generate new token".
+#    Nome: "GitHub Actions do Finanz".
+# 2. Copie o token (ele só aparece uma vez).
+# 3. No GitHub: Settings > Secrets and variables > Actions > New
+#    repository secret. Nome: SUPABASE_TOKEN. Valor: o token.
+#
+# O token vai direto do Supabase para o GitHub. Não cole ele em conversa
+# nenhuma: um token de conta alcança todos os seus projetos.
+#
+# Sem o segredo, este agendamento não roda sozinho e não quebra nada —
+# ele só avisa que falta o token.
+# ---------------------------------------------------------------------
+#
+# Só roda apertando o botão (ou por quem tiver acesso a disparar pela
+# API). Não roda sozinho em push: mexer no banco de produção é coisa para
+# se fazer de olho, não de surpresa no meio de um merge.
+
+name: Aplicar migrações no Supabase
+
+on:
+  workflow_dispatch:
+    inputs:
+      somente_listar:
+        description: 'Só listar o que seria aplicado, sem rodar nada'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descobrir o projeto pelo config.js
+        id: projeto
+        run: |
+          set -euo pipefail
+          URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' config.js | head -1)
+          if [ -z "$URL" ]; then
+            echo "Não achei o endereço do Supabase no config.js."
+            exit 1
+          fi
+          REF=$(echo "$URL" | sed -E 's#https://([a-z0-9]+)\.supabase\.co#\1#')
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Projeto: $REF ($URL)"
+
+      - name: Aplicar
+        env:
+          TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+          REF: ${{ steps.projeto.outputs.ref }}
+          SO_LISTAR: ${{ inputs.somente_listar }}
+        run: |
+          set -uo pipefail
+          API=${API_SUPABASE:-https://api.supabase.com}
+
+          ARQUIVOS=$(ls supabase/migracao-*.sql 2>/dev/null | sort -V || true)
+          if [ -z "$ARQUIVOS" ]; then
+            echo "Nenhuma migração em supabase/. Nada a fazer."
+            exit 0
+          fi
+
+          echo "Migrações encontradas, nesta ordem:"
+          for a in $ARQUIVOS; do echo "  - $a"; done
+          echo
+
+          if [ "$SO_LISTAR" = "true" ]; then
+            echo "Pedido para só listar. Saindo sem tocar no banco."
+            exit 0
+          fi
+
+          if [ -z "${TOKEN:-}" ]; then
+            echo "Falta o segredo SUPABASE_TOKEN."
+            echo
+            echo "Como ligar está no começo deste arquivo:"
+            echo "  .github/workflows/aplicar-migracoes.yml"
+            echo
+            echo "Sem ele eu não tenho como falar com a API do Supabase."
+            exit 1
+          fi
+
+          # Uma migração por pedido. Em lote, um erro no meio esconderia
+          # qual arquivo falhou — e é justamente isso que eu quero saber.
+          FALHOU=0
+          for ARQUIVO in $ARQUIVOS; do
+            echo "=============================================="
+            echo "$ARQUIVO"
+            echo "=============================================="
+
+            # jq -Rs monta o JSON escapando o SQL inteiro: aspas, quebras
+            # de linha e os $$ dos blocos do Postgres passam intactos.
+            CORPO=$(jq -Rs '{query: .}' < "$ARQUIVO")
+
+            RESPOSTA=$(mktemp)
+            CODIGO=$(curl -sS -o "$RESPOSTA" -w '%{http_code}' \
+              --max-time 120 \
+              -X POST "$API/v1/projects/$REF/database/query" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              --data @- <<< "$CORPO") || CODIGO=000
+
+            case "$CODIGO" in
+              2*)
+                echo "ok ($CODIGO)"
+                # A API devolve as linhas do último comando; normalmente
+                # vazio em DDL. Imprimo pouco, só para dar sinal de vida.
+                head -c 400 "$RESPOSTA"; echo
+                ;;
+              401|403)
+                echo "FALHOU ($CODIGO): o token foi recusado."
+                echo "Gere outro em supabase.com/dashboard/account/tokens"
+                echo "e troque o segredo SUPABASE_TOKEN."
+                cat "$RESPOSTA"; echo
+                FALHOU=1
+                break
+                ;;
+              404)
+                echo "FALHOU (404): a API não achou o projeto $REF."
+                echo "Confira o endereço no config.js."
+                FALHOU=1
+                break
+                ;;
+              000)
+                echo "FALHOU: não consegui falar com $API."
+                FALHOU=1
+                break
+                ;;
+              *)
+                echo "FALHOU ($CODIGO):"
+                cat "$RESPOSTA"; echo
+                FALHOU=1
+                break
+                ;;
+            esac
+            rm -f "$RESPOSTA"
+            echo
+          done
+
+          if [ "$FALHOU" = "1" ]; then
+            echo "Parei na primeira que falhou. As anteriores já foram aplicadas"
+            echo "— e como elas podem rodar de novo sem estragar nada, é só"
+            echo "corrigir e disparar outra vez."
+            exit 1
+          fi
+
+          echo "Todas aplicadas."

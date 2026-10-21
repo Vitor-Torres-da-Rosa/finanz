@@ -228,6 +228,46 @@ Mesmo levantando sozinha, o passo **falha de propósito** e manda e-mail. Cair
 
 ---
 
+## 2d. Aplicar migração sem colar SQL na mão
+
+Em 21/10/2026 a migração 08 foi colada no editor do Supabase pelo celular.
+O texto entrou por cima do que já estava no editor, cortou o nome da
+tabela na primeira linha, e o erro que apareceu — `syntax error at or
+near ")"` — não dizia nada sobre a causa. Levou três tentativas.
+
+O agendamento `.github/workflows/aplicar-migracoes.yml` faz isso pelo
+GitHub: ele roda todos os `supabase/migracao-*.sql` em ordem de número,
+um pedido por arquivo, e para na primeira que falhar dizendo qual foi.
+
+**Para ligar, uma vez só:**
+
+1. Em <https://supabase.com/dashboard/account/tokens>, "Generate new
+   token". Nome: "GitHub Actions do Finanz".
+2. Copie o token — ele só aparece uma vez.
+3. No GitHub: **Settings > Secrets and variables > Actions > New
+   repository secret**. Nome `SUPABASE_TOKEN`, valor o token.
+
+O token vai do Supabase direto para o GitHub. **Não cole ele em conversa
+nenhuma**: token de conta alcança todos os seus projetos, não só este. É
+o mesmo segredo que o "sempre online" usa (seção 2c) — um só serve para
+os dois.
+
+**Para rodar:** aba Actions do repositório > "Aplicar migrações no
+Supabase" > "Run workflow". Tem uma caixinha "só listar", que mostra o
+que seria aplicado sem tocar no banco.
+
+Ele não roda sozinho em push de propósito: mexer no banco de produção é
+coisa para se fazer de olho, não de surpresa no meio de um merge.
+
+As migrações são escritas para poder rodar de novo sem estragar nada
+(`create table if not exists`, `drop policy if exists`, `add column if
+not exists`), então disparar duas vezes é inofensivo.
+
+O `schema.sql` fica de fora: ele serve para montar um projeto novo do
+zero, não para mexer num que já tem dados.
+
+---
+
 ## 3. Endereços do aplicativo
 
 **Authentication** → **URL Configuration**:
