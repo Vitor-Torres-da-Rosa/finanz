@@ -1644,7 +1644,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.14.0';
+  var VERSAO = '5.14.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1653,6 +1653,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.14.1',
+      data: '2026-10-21',
+      itens: [
+        'O que você criava enquanto o app estava sincronizando podia sumir. A sincronização lê os seus dados, manda para a nuvem, baixa o que o servidor tem e põe no lugar. Entre o mandar e o voltar passam alguns segundos — e o que nascia nesse intervalo não tinha ido no envio, então voltava inexistente e sumia da tela e do aparelho.',
+        'Era isso que fazia a conta criada pela importação do extrato não aparecer no Início. Mas não era da importação: valia para qualquer lançamento, conta ou cliente criado na hora errada.',
+        'Agora, se alguma coisa mudou aqui enquanto a volta vinha, o app descarta o que veio e manda de novo — já com o que nasceu no meio.'
+      ]
+    },
     {
       versao: '5.14.0',
       data: '2026-10-21',
@@ -3551,6 +3560,7 @@
   var filaSalvar = Promise.resolve();
 
   function salvar() {
+    marcaDoEstado++;
     limparCacheDeFatura();
     soltarExtratos();
     if (!sessao) return;
@@ -4437,6 +4447,17 @@
   var tempoSincronia = null;
   var instantaneoTentado = false;
 
+  // Sobe a cada salvar(). A sincronização guarda o valor antes de mandar e
+  // confere antes de sobrescrever o estado com o que veio do servidor.
+  //
+  // Ela lê o estado no começo, manda, baixa e faz `estado = doServidor`.
+  // Entre o mandar e o voltar passam segundos, e o que a pessoa criar
+  // nesse intervalo não foi no envio — então volta inexistente e some da
+  // tela E do aparelho. Apareceu como "a conta criada pela importação não
+  // aparece no Início", mas não era da importação: era de qualquer coisa
+  // criada na hora errada.
+  var marcaDoEstado = 0;
+
   // Enquanto uma folha, uma pergunta ou um seletor está aberto, a pessoa
   // está no meio de uma edição. Trocar o estado inteiro nessa hora joga
   // fora o que ela acabou de digitar, então a volta do servidor espera.
@@ -4462,10 +4483,17 @@
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (sincronizando) return Promise.resolve(false);
     sincronizando = true;
+    var marcaAoEnviar = marcaDoEstado;
 
     return nuvemEnviar().then(function () {
       return editorAberto() ? null : nuvemBaixar();
     }).then(function (doServidor) {
+      // Mudou alguma coisa aqui enquanto a volta vinha? Então o que veio é
+      // mais velho do que o que está na mão. Descarto e mando de novo, já
+      // com o que nasceu no meio — o agendarSincronia() logo abaixo faz
+      // isso. Sobrescrever aqui apagaria o que a pessoa acabou de criar.
+      if (doServidor && marcaDoEstado !== marcaAoEnviar) doServidor = null;
+
       if (!doServidor) {
         sincronizando = false;
         falhaDaSincronia = null;

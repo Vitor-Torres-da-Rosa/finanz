@@ -1,11 +1,11 @@
 # Testes do Finanz
 
-São 70 testes que abrem o app num navegador de verdade, clicam nas telas
+São 71 testes que abrem o app num navegador de verdade, clicam nas telas
 como uma pessoa clicaria e conferem o que aparece. Não é teste de pedacinho
 de código isolado: é o app inteiro rodando, com servidor, banco de dados e
 login funcionando.
 
-Rodando os 70 em paralelo, leva uns cinco minutos.
+Rodando os 71 em paralelo, leva uns cinco minutos.
 
 ---
 
@@ -51,7 +51,7 @@ testes/
   servir.cjs      servidor de arquivos do app, na porta 8833
   stub-auth.sql   imita o schema `auth` do Supabase no Postgres local
   config-teste.js o config.js que aponta o app para o emulador
-  casos/          os 70 testes
+  casos/          os 71 testes
   amostras/       PDFs, planilhas e CSVs de exemplo
   leitor/         fonte modular do leitor de extrato (veja no fim)
   appteste/       cópia do app servida nos testes (não vai para o git)

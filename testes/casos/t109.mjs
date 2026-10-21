@@ -127,6 +127,47 @@ guardados = await arquivosNaNuvem();
 conferir('8. desfazendo a importação, o arquivo sai da nuvem também',
   Array.isArray(guardados) && guardados.length === 0, JSON.stringify(guardados));
 
+// ---- deixando a IMPORTAÇÃO criar a conta ----
+//
+// Era o sintoma reportado: o app cria a conta do banco, lança o extrato,
+// e a conta não aparecia no Início. A causa não era da importação — a
+// sincronização que já estava indo voltava sem ela e engolia a conta
+// recém-nascida.
+//
+// ATENÇÃO: esta verificação NÃO pega aquele defeito. Ela depende de uma
+// sincronização estar em voo no instante exato em que a conta nasce, e
+// neste fluxo isso não acontece — conferido: ela passa igual com o
+// conserto e sem ele. Fica aqui como fumaça do caminho inteiro (importar
+// criando a conta funciona), não como cobertura. Quem segura a volta de
+// propósito e prova o conserto é o t112.
+arquivo = amostras + '/nubank.pdf';
+// A folha de Conferir ainda está aberta e cobre o rodapé. Recarregar é
+// mais curto do que caçar o jeito de fechar, e o app abre no Início.
+await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(8000);
+await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
+await page.click('#telaMais label.linha:has-text("Importar extrato")');
+await page.waitForSelector('#folha .cabeca-banco', { timeout: 60000 }); await page.waitForTimeout(900);
+// Com a conta do Inter já existindo, a folha escolhe ela sozinha. Abro o
+// seletor e peço a conta nova, que é o caminho que eu quero testar.
+await page.click('#folha .selecao >> nth=0'); await page.waitForTimeout(1000);
+const opcoes = await page.$$eval('#escolhaLista .escolha-item',
+  ns => ns.map(n => n.textContent.replace(/\s+/g, ' ').trim()));
+console.log('contas oferecidas:', JSON.stringify(opcoes));
+await page.click('#escolhaLista .escolha-item:has-text("Criar conta")'); await page.waitForTimeout(2500);
+await page.waitForSelector('#folha .btn-ouro:has-text("Importar")', { timeout: 60000 });
+await page.waitForTimeout(600);
+await page.locator('#folha .btn-ouro:has-text("Importar")').first().click();
+await page.waitForSelector('#dialogoFundo.aberta', { timeout: 60000 });
+await page.locator('#dialogoAcoes button').nth(0).click();
+await page.waitForTimeout(6000);
+
+await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(9000);
+const comNubank = limpo(await page.textContent('#telaInicio'));
+conferir('9. a conta criada pela própria importação continua lá',
+  /Nubank|Nu Pagamentos|NU /i.test(comNubank),
+  comNubank.replace(/^[\s\S]*Contas/, 'Contas').slice(0, 150));
+await page.screenshot({ path: dir+'/x02-conta-da-importacao.png', fullPage: true });
+
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
 console.log('\ntudo certo: o extrato original fica guardado e dá para baixar');

@@ -470,6 +470,10 @@
     outline: none;
   }
   .valor-grande:focus { border-bottom-color: currentColor; }
+  /* Total que o app calcula: é número, não campo, então não leva a linha
+     de baixo que convida a tocar. O padding repõe os 2px da borda para a
+     altura não mudar entre as duas telas. */
+  .valor-grande.travado { border-bottom: 0; padding-bottom: 14px; line-height: 1.18; }
   .forma[data-tipo="saida"] .valor-grande { color: var(--vermelho); }
   .forma[data-tipo="entrada"] .valor-grande { color: var(--verde); }
   .forma[data-tipo="transferencia"] .valor-grande { color: var(--azul); }
@@ -940,11 +944,19 @@
     padding: 6px 0; font-size: 13.5px; font-weight: 700; color: var(--texto);
   }
   .parcela-linha.edita .v .selecao { justify-content: flex-end; gap: 6px; }
-  /* A coluna da direita só fica reta se o que vem depois do texto ocupar
-     o mesmo espaço nas quatro linhas. O ▾ do seletor mede 11px; o ícone
-     de calendário do input de data é nativo e mede o que o navegador
-     quiser, então eu fixo os dois no mesmo tamanho. Sem isso a data fica
-     um dedo à esquerda das outras linhas e o cartão parece torto. */
+  /* A coluna da direita só fica reta se o que vem DEPOIS do texto ocupar o
+     mesmo espaço em toda linha. São 17px, e cada tipo de linha chega neles
+     de um jeito:
+
+       seletor   ->  gap de 6px + ▾ de 11px
+       data      ->  margem de 6px + ícone nativo fixado em 11px
+       texto     ->  17px de padding à direita
+       leitura   ->  17px de padding à direita (.sem-icone)
+
+     O ▾ é o que enganou na 5.11.1: ele está escrito em 11px, mas o glifo
+     mede uns 6px de largura, então a linha do seletor terminava 5px à
+     direita das outras. Daí a largura fixa aqui. */
+  .parcela-linha.edita .v .selecao .seta { width: 11px; text-align: right; }
   .parcela-linha.edita .v input[type="date"] {
     font-variant-numeric: tabular-nums;
     padding-right: 0;
@@ -953,9 +965,10 @@
     width: 11px; height: 11px; padding: 0; margin-left: 6px;
     opacity: .55; filter: invert(1);
   }
-  /* A linha só de leitura não tem ícone nenhum, então recebe o mesmo
-     recuo à direita para o número terminar onde os outros terminam. */
+  .parcela-linha.edita .v input[type="text"] { padding-right: 17px; }
   .parcela-linha .v.sem-icone { padding-right: 17px; }
+  /* Campo vazio: a dica em negrito parecia resposta preenchida. */
+  .parcela-linha.edita .v input::placeholder { font-weight: 400; }
   .parcela-linha .q { color: var(--suave); }
   .parcela-linha .v { font-weight: 700; font-variant-numeric: tabular-nums; }
   .parcela-linha.paga .v { color: var(--verde); }
@@ -1631,7 +1644,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.11.0';
+  var VERSAO = '5.14.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1640,6 +1653,58 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.14.0',
+      data: '2026-10-21',
+      itens: [
+        'Toda exclusão guarda uma cópia antes. Apagando um lançamento, uma conta, um cliente, um parcelamento ou tudo de uma vez, o app sobe para a nuvem o estado de como estava um instante antes — e a cópia fica guardada com a frase do que ia sair: "antes de excluir o lançamento Aluguel, de R$ 320,00".',
+        'Elas aparecem em Mais → "Voltar a uma data", junto das cópias diárias, com o desenho de uma lixeira. Quem se arrepende acha pela frase, não pela hora.',
+        'Não conseguindo falar com o servidor, o app pergunta antes de apagar em vez de apagar calado: a cópia existe justamente para o caso em que você muda de ideia.',
+        'E voltar a uma cópia agora traz de volta o que tinha sido apagado. O que você exclui fica marcado no servidor em vez de sumir, e o envio não desmarcava — então nenhuma restauração ressuscitava nada. Isso valia para o restaurar backup também.',
+        '"Trazer dados de outra conta" parou de falhar em silêncio. Os identificadores são do banco inteiro, não de cada conta: trazendo um cofre cujos identificadores o servidor já conhecia, ele recusava o envio e nada subia — os dados ficavam só no aparelho, e quem reinstalasse o app perdia tudo. Agora o cofre entra renumerado, e se mesmo assim não subir, o app diz isso em vez de dizer "pronto".'
+      ]
+    },
+    {
+      versao: '5.13.0',
+      data: '2026-10-21',
+      itens: [
+        'Backup automático, todo dia, na nuvem. O app guarda sozinho uma cópia inteira dos seus dados uma vez por dia e segura as últimas duas semanas. Em Mais → "Voltar a uma data" você escolhe o dia e volta tudo ao que era nele — aqui e na nuvem.',
+        'Cada cópia diz o que tem dentro ("3520 lançamentos · 7 contas · 12 clientes"), para dar para reconhecer o dia certo sem abrir. Ela vai comprimida, então guardar catorze não pesa.',
+        'Os extratos do banco passam a ficar guardados como vieram. O PDF, o OFX, a planilha: o arquivo sobe junto com os lançamentos e fica na nuvem. Se a leitura sair errada meses depois, o original está em Conferir esta conta → Extratos importados → Baixar, em vez de ter de caçar o arquivo no celular.',
+        'Tirando uma importação, o arquivo dela sai junto.',
+        '"Trazer dados de outra conta" passou a substituir de verdade. A tela sempre prometeu isso, mas a nuvem só recebia o que era novo e devolvia o antigo junto: os dois conjuntos se somavam, e as contas apareciam com o dobro do valor. Agora a troca avisa a nuvem, e vale mesmo se ela for feita sem internet.',
+        'Na folha de Conferir, "Tirar as cópias repetidas": um extrato importado duas vezes deixa centenas de linhas iguais, e dava para apagar só uma a uma. O botão diz quantas sobram e para quanto o saldo vai.',
+        'Saindo da conta e entrando em outra, o botão do Início voltou a funcionar. Ele ficava morto até você passar por outra aba.'
+      ]
+    },
+    {
+      versao: '5.12.0',
+      data: '2026-10-20',
+      itens: [
+        'A ficha do registro mostra o total. A lista do cliente dizia "Celular · R$ 1.350,00" e, ao tocar, a folha abria com R$ 1.000,00 — dois números para a mesma venda, sem nada explicando a diferença. Agora o número grande é o mesmo R$ 1.350,00 da lista, e embaixo vem a conta: R$ 1.000,00 de valor combinado mais R$ 350,00 de acréscimo do parcelamento.',
+        'As folhas do Empreendedor viraram cartão, como a de pagamento: tipo, o que foi, data e observação ficam numa caixa só, onde o que está escrito é o que se edita. A folha da parcela em aberto foi junto, e os recados ("faz parte de 4 parcelas", "esta parcela venceu") passaram para dentro da caixa, perto da data que eles explicam.',
+        'A coluna da direita ficou reta de verdade. O ▾ do seletor ocupava 6px e o ícone do calendário, 17: cada linha terminava num lugar e o cartão parecia torto.',
+        'Gerenciar os tipos virou a última opção do próprio seletor, no lugar do lápis ao lado — que dentro da linha do cartão empurrava o texto e desalinhava tudo.'
+      ]
+    },
+    {
+      versao: '5.11.2',
+      data: '2026-10-20',
+      itens: [
+        'O acréscimo do parcelamento parou de parecer uma venda. Ele aparecia como mais um registro na ficha do cliente e como opção em "Referente a", como se o cliente pudesse estar pagando "o acréscimo" — mas ele não comprou isso: é o que aquele registro passou a custar por ter sido parcelado.',
+        'Agora ele é somado ao registro que o gerou: "Celular · Venda · 14/08 · com R$ 350,00 de acréscimo", e o valor da linha já é o total. E sumiu da escolha "Referente a".',
+        'Vale para os acréscimos antigos também. Eles não guardavam a qual registro pertenciam, e o app agora descobre pela parcela — que sabe.'
+      ]
+    },
+    {
+      versao: '5.11.1',
+      data: '2026-10-20',
+      itens: [
+        'O vencimento da parcela virou campo: dá para mudar a data combinada ali mesmo, e o recado de atraso acompanha enquanto você escolhe. Mudar isso mexe na parcela, não no pagamento — é a data combinada com o cliente que muda.',
+        'As datas do cartão ficaram alinhadas. O ícone de calendário do campo de data empurrava o número para a esquerda e a coluna da direita ficava torta.',
+        'E na lista de parcelas, a parcela paga mostra as duas datas: "Paga em 20/10 · vencia 25/12". Uma data só não responde se o cliente pagou em dia.'
+      ]
+    },
     {
       versao: '5.11.0',
       data: '2026-10-20',
@@ -2632,6 +2697,17 @@
     return String(p.dia).padStart(2, '0') + ' ' + MESES_CURTO[p.mes];
   }
 
+  function horaDe(carimbo) {
+    var d = new Date(carimbo || Date.now());
+    if (isNaN(d.getTime())) return '';
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function maiusculaInicial(t) {
+    var s = String(t || '');
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  }
+
   function dataBr(texto) {
     var p = partes(texto);
     return String(p.dia).padStart(2, '0') + '/' + String(p.mes + 1).padStart(2, '0') + '/' + p.ano;
@@ -2648,6 +2724,10 @@
   function estadoPadrao() {
     return {
       versao: 3,
+      // Este cofre substitui o que a conta tinha na nuvem (restaurar backup,
+      // trazer dados de outra conta). Enquanto estiver ligada, o próximo
+      // envio apaga lá o que não veio aqui. Veja marcarTrocaTotal.
+      trocaTotal: false,
       perfil: {
         nome: '', reservaMeses: 6, idadeAtual: 30, idadeAposentadoria: 60,
         aporteMensal: 0, rendimentoAnual: 8, objetivos: [],
@@ -3471,6 +3551,7 @@
   var filaSalvar = Promise.resolve();
 
   function salvar() {
+    marcaDoEstado++;
     limparCacheDeFatura();
     soltarExtratos();
     if (!sessao) return;
@@ -3613,8 +3694,14 @@
     if (NUVEM.ligada) nuvemEsquecer();
     sessao = null;
     estado = estadoPadrao();
-    telaAtiva = 'inicio';
     abaInicio = 'geral';
+    instantaneoTentado = false;
+    // Trocar só a variável deixava a classe `ativa` na tela que estava
+    // aberta — quase sempre "Mais", de onde se sai. Entrando de novo, o app
+    // mostrava o Mais achando que mostrava o Início, e o botão do Início
+    // não fazia nada: irPara() desiste quando o id pedido já é o telaAtiva.
+    // Só dava para destravar passando por outra aba.
+    mostrarTela('inicio');
     mostrarEntrada('abertura');
   }
 
@@ -3928,66 +4015,75 @@
     var historico = [];
     estado.ativos.forEach(function (a) {
       a.historico.forEach(function (p) {
-        historico.push({ id: a.id + '|' + p.data, user_id: uid, ativo_id: a.id, data: p.data, valor: p.valor });
+        historico.push({ id: a.id + '|' + p.data, user_id: uid, ativo_id: a.id,
+                         data: p.data, valor: p.valor, excluido_em: null });
       });
     });
 
+    // Linha que está no estado NÃO está apagada. Dizer isso em todo envio
+    // é o que faz uma restauração ressuscitar o que tinha sido excluído:
+    // a linha continua no servidor com excluido_em preenchido, o upsert só
+    // mexe nas colunas que manda, e sem esta o download — que filtra por
+    // excluido_em is null — nunca a traria de volta. A cópia de antes de
+    // apagar não servia para nada.
+    function vivo(linha) { linha.excluido_em = null; return linha; }
+
     return {
       contas: estado.contas.map(function (c) {
-        return { id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
+        return vivo({ id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
                  saldo_inicial: c.saldoInicial, cor: c.cor, banco: c.banco || '',
                  fechamento: c.fechamento || 0, vencimento: c.vencimento || 0,
-                 limite: c.limite || 0 };
+                 limite: c.limite || 0 });
       }),
       lancamentos: estado.lancamentos.map(function (l) {
-        return {
+        return vivo({
           id: l.id, user_id: uid, tipo: l.tipo, valor: l.valor, descricao: l.descricao,
           categoria: l.categoria, subcategoria: l.subcategoria || '',
           data: l.data, importacao_id: l.importacaoId || '',
           conta_id: ouNulo(l.contaId), conta_destino_id: ouNulo(l.contaDestinoId)
-        };
+        });
       }),
       ativos: estado.ativos.map(function (a) {
-        return { id: a.id, user_id: uid, nome: a.nome, classe: a.classe, aplicado: a.aplicado };
+        return vivo({ id: a.id, user_id: uid, nome: a.nome, classe: a.classe, aplicado: a.aplicado });
       }),
       ativo_historico: historico,
       clientes: estado.clientes.map(function (c) {
-        return {
+        return vivo({
           id: c.id, user_id: uid, nome: c.nome, telefone: c.telefone, obs: c.obs,
           endereco: c.endereco || '',
           whatsapp: c.whatsapp !== false,
           telefones: telefonesDoCliente(c),
           proximo_pagamento: ouNulo(c.proximoPagamento)
-        };
+        });
       }),
       servicos: estado.servicos.map(function (s) {
-        return {
+        return vivo({
           id: s.id, user_id: uid, cliente_id: s.clienteId, nome: s.nome,
           tipo: s.tipo || 'Serviço',
           valor: s.valor, data: s.data, obs: s.obs
-        };
+        });
       }),
       parcelas: estado.parcelas.map(function (p) {
-        return {
+        return vivo({
           id: p.id, user_id: uid, cliente_id: p.clienteId, servico_id: ouNulo(p.servicoId),
           pagamento_id: ouNulo(p.pagamentoId), numero: p.numero, total: p.total,
           valor: p.valor, vencimento: p.vencimento,
           minimo: p.minimo || 0, juros_atraso: p.jurosAtraso || 0,
           quitada_em: ouNulo(p.quitadaEm)
-        };
+        });
       }),
       pagamentos: estado.pagamentos.map(function (p) {
-        return {
+        return vivo({
           id: p.id, user_id: uid, cliente_id: p.clienteId, servico_id: ouNulo(p.servicoId),
           parcela_id: ouNulo(p.parcelaId),
           lancamento_id: ouNulo(p.lancamentoId), valor: p.valor, data: p.data
-        };
+        });
       }),
       metas: estado.metas.map(function (m) {
-        return {
+        return vivo({
           id: m.id, user_id: uid, nome: m.nome, alvo: m.alvo, guardado: m.guardado,
           conta_id: ouNulo(m.contaId), prazo: ouNulo(m.prazo)
-        };
+        });
       })
     };
   }
@@ -4100,6 +4196,15 @@
     var agora = new Date().toISOString();
     var tarefa = comTokenValido();
 
+    // Troca total: antes de mandar, descubro o que o servidor tem a mais e
+    // marco para apagar. Sem este passo o envio é só upsert — ele não tira
+    // do servidor o que não veio junto —, o download devolve o conjunto
+    // antigo e os dois se somam. Era assim que o saldo das contas dobrava
+    // depois de trazer os dados de outra conta.
+    if (estado.trocaTotal) {
+      tarefa = tarefa.then(function () { return apagarNaNuvemOqueNaoVeio(); });
+    }
+
     // Perfil e o teto geral do orçamento
     tarefa = tarefa.then(function () { return enviarLinhas('perfis', [perfilParaLinha(uid)], 'id'); });
 
@@ -4144,20 +4249,28 @@
       return enviarLinhas('subcategorias_extras', subs, 'user_id,tipo,categoria,nome');
     });
 
-    // Marca como excluído o que a pessoa apagou aqui.
-    (estado.excluidos || []).forEach(function (marca) {
-      if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return;
-      tarefa = tarefa.then(function () {
-        return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
-          metodo: 'PATCH',
-          corpo: { excluido_em: agora },
-          cabecalhos: { 'Prefer': 'return=minimal' }
+    // Marca como excluído o que a pessoa apagou aqui. A lista é lida dentro
+    // da corrente, não ao montá-la: a limpeza da troca total só enche
+    // `excluidos` quando roda, e um forEach aqui fora leria a lista vazia.
+    tarefa = tarefa.then(function () {
+      return (estado.excluidos || []).reduce(function (antes, marca) {
+        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
+            metodo: 'PATCH',
+            corpo: { excluido_em: agora },
+            cabecalhos: { 'Prefer': 'return=minimal' }
+          });
         });
-      });
+      }, Promise.resolve());
     });
 
     return tarefa.then(function () {
       estado.excluidos = [];
+      // Só agora: se o envio falhou no meio, a marca continua de pé e a
+      // próxima tentativa refaz a limpeza. Uma troca feita sem internet não
+      // vira união quando a internet voltar.
+      estado.trocaTotal = false;
       return true;
     });
   }
@@ -4323,6 +4436,18 @@
 
   var sincronizando = false;
   var tempoSincronia = null;
+  var instantaneoTentado = false;
+
+  // Sobe a cada salvar(). A sincronização guarda o valor antes de mandar e
+  // confere antes de sobrescrever o estado com o que veio do servidor.
+  //
+  // Ela lê o estado no começo, manda, baixa e faz `estado = doServidor`.
+  // Entre o mandar e o voltar passam segundos, e o que a pessoa criar
+  // nesse intervalo não foi no envio — então volta inexistente e some da
+  // tela E do aparelho. Apareceu como "a conta criada pela importação não
+  // aparece no Início", mas não era da importação: era de qualquer coisa
+  // criada na hora errada.
+  var marcaDoEstado = 0;
 
   // Enquanto uma folha, uma pergunta ou um seletor está aberto, a pessoa
   // está no meio de uma edição. Trocar o estado inteiro nessa hora joga
@@ -4349,10 +4474,17 @@
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (sincronizando) return Promise.resolve(false);
     sincronizando = true;
+    var marcaAoEnviar = marcaDoEstado;
 
     return nuvemEnviar().then(function () {
       return editorAberto() ? null : nuvemBaixar();
     }).then(function (doServidor) {
+      // Mudou alguma coisa aqui enquanto a volta vinha? Então o que veio é
+      // mais velho do que o que está na mão. Descarto e mando de novo, já
+      // com o que nasceu no meio — o agendarSincronia() logo abaixo faz
+      // isso. Sobrescrever aqui apagaria o que a pessoa acabou de criar.
+      if (doServidor && marcaDoEstado !== marcaAoEnviar) doServidor = null;
+
       if (!doServidor) {
         sincronizando = false;
         falhaDaSincronia = null;
@@ -4365,6 +4497,14 @@
         falhaDaSincronia = null;
         if (!silenciosa) avisar('Sincronizado com a nuvem.');
         desenhar();
+        // A cópia do dia sai daqui, depois de o estado já ser o da nuvem:
+        // guardar antes congelaria uma cópia pela metade. Uma vez por
+        // sessão, e sem segurar a sincronização — se falhar, a próxima
+        // abertura tenta de novo.
+        if (!instantaneoTentado) {
+          instantaneoTentado = true;
+          guardarInstantaneoDoDia();
+        }
         return true;
       });
     }).catch(function (e) {
@@ -4377,6 +4517,24 @@
       }
       return false;
     });
+  }
+
+  // Sincroniza agora, de verdade.
+  //
+  // sincronizar() desiste em silêncio quando já há uma em voo, e quem
+  // acabou de trocar o estado inteiro precisa que a DELE aconteça: a que
+  // estava correndo já tinha lido o estado velho e devolve ele por cima.
+  // Era isso que fazia a tela continuar mostrando os dados estragados
+  // logo depois de voltar para um dia — a nuvem ficava certa, a tela não.
+  function sincronizarAgora() {
+    clearTimeout(tempoSincronia);
+    function esperarAVez(tentativas) {
+      if (!sincronizando) return sincronizar(true);
+      if (tentativas <= 0) return sincronizar(true);
+      return new Promise(function (pronto) { setTimeout(pronto, 300); })
+        .then(function () { return esperarAVez(tentativas - 1); });
+    }
+    return esperarAVez(40);
   }
 
   // Guarda logo e manda para a nuvem pouco depois, juntando as alterações
@@ -4565,23 +4723,101 @@
     }).catch(function () { return []; });
   }
 
+  // Todo id do cofre vira um id novo.
+  //
+  // Os ids são chave primária do banco inteiro, não de cada conta. Trazer
+  // um cofre de outra conta leva linhas com ids que o servidor já conhece
+  // — e o upsert, ao bater numa linha de outro dono, é recusado pelo RLS
+  // com 400. O envio morre ali, em silêncio: os dados ficam só no
+  // aparelho, a nuvem segue com o conjunto velho, e quem limpar o
+  // armazenamento do celular perde tudo o que trouxe.
+  //
+  // Renumerando, as linhas entram como o que de fato são: dados desta
+  // conta. O mapa guarda o que cada id virou, e as referências entre as
+  // tabelas são reescritas com ele — senão o pagamento apontaria para uma
+  // parcela que não existe mais.
+  function renumerarCofre(e) {
+    var mapa = {};
+    function novo(id) {
+      if (!id) return id;
+      if (!mapa[id]) mapa[id] = novoId();
+      return mapa[id];
+    }
+
+    ['contas', 'lancamentos', 'ativos', 'clientes', 'servicos', 'pagamentos', 'parcelas', 'metas']
+      .forEach(function (lista) {
+        (e[lista] || []).forEach(function (x) { x.id = novo(x.id); });
+      });
+    (e.importacoes || []).forEach(function (i) { i.id = novo(i.id); });
+
+    // O histórico do ativo não tem id próprio: ele nasce do id do ativo.
+
+    (e.lancamentos || []).forEach(function (l) {
+      l.contaId = novo(l.contaId);
+      l.contaDestinoId = novo(l.contaDestinoId);
+      l.importacaoId = novo(l.importacaoId);
+    });
+    (e.servicos || []).forEach(function (sv) {
+      sv.clienteId = novo(sv.clienteId);
+      sv.acrescimoDe = novo(sv.acrescimoDe);
+    });
+    (e.parcelas || []).forEach(function (pa) {
+      pa.clienteId = novo(pa.clienteId);
+      pa.servicoId = novo(pa.servicoId);
+      pa.pagamentoId = novo(pa.pagamentoId);
+    });
+    (e.pagamentos || []).forEach(function (pg) {
+      pg.clienteId = novo(pg.clienteId);
+      pg.servicoId = novo(pg.servicoId);
+      pg.parcelaId = novo(pg.parcelaId);
+      pg.lancamentoId = novo(pg.lancamentoId);
+    });
+    (e.metas || []).forEach(function (m) { m.contaId = novo(m.contaId); });
+    (e.importacoes || []).forEach(function (i) { i.contaId = novo(i.contaId); });
+    if (e.perfil) {
+      e.perfil.contaAposentadoria = novo(e.perfil.contaAposentadoria);
+      e.perfil.reservaConta = novo(e.perfil.reservaConta);
+    }
+    return e;
+  }
+
   function trazerCofre(b) {
-    estado = b.estado;
-    estado.excluidos = [];
+    estado = renumerarCofre(b.estado);
+    // O restaurar backup sempre avisou a nuvem de que era substituição; o
+    // trazer nasceu sem esse passo na 5.9.8. O envio seguinte era só
+    // upsert, o download devolvia o que a conta já tinha, e os dois cofres
+    // viravam um só, somado: conta com o mesmo extrato duas vezes, saldo
+    // dobrado. É a mesma marca agora.
+    marcarTrocaTotal();
     desenhar();
     avisar('Trazendo os dados...');
     return salvar().then(function () {
-      return sincronizar(true);
-    }).then(function () {
+      return sincronizarAgora();
+    }).then(function (subiu) {
       desenhar();
-      avisarCaixa('Pronto',
-        'Trouxe ' + b.resumo + ' para esta conta. Agora estão aqui e na nuvem.',
-        function () {});
-    }).catch(function () {
-      // Mesmo sem subir para a nuvem, os dados já estão nesta conta
-      // neste aparelho; a sincronização tenta de novo sozinha.
-      avisar('Trouxe os dados. A nuvem se acerta quando der.');
-    });
+      if (subiu) {
+        avisarCaixa('Pronto',
+          'Trouxe ' + b.resumo + ' para esta conta. Agora estão aqui e na nuvem.',
+          function () {});
+        return;
+      }
+      // sincronizar() devolve false em vez de estourar quando o servidor
+      // recusa, então aqui não basta um catch: sem olhar o resultado, o
+      // app dizia "Pronto, estão aqui e na nuvem" com a nuvem intacta.
+      naoSubiu(null);
+    }).catch(naoSubiu);
+
+    // Os dados estão no aparelho, mas dizer que estão na nuvem quando não
+    // estão é mentira — e foi uma mentira dessas que fez alguém reinstalar
+    // o app achando que estava tudo guardado.
+    function naoSubiu(e) {
+      desenhar();
+      avisarCaixa('Trouxe, mas não subiu',
+        'Os dados estão neste aparelho e você já pode usar o app. Só que eles ainda ' +
+        'não foram para a nuvem' + (e && e.message ? ': ' + e.message : '.') +
+        '\n\nAbra o app com internet para ele terminar. Até lá, não limpe os dados ' +
+        'do app nem reinstale: o que está aqui é a única cópia.', function () {});
+    }
   }
 
   function escolherCofreParaTrazer(bons) {
@@ -5246,6 +5482,23 @@
 
   function cartao(classeExtra) {
     return no('div', 'cartao' + (classeExtra ? ' ' + classeExtra : ''));
+  }
+
+  // Linha de cartão onde o que está escrito é o que se edita: rótulo à
+  // esquerda, controle à direita, no lugar onde o valor ficaria. Nasceu na
+  // folha de pagamento e virou o formato das folhas do Empreendedor.
+  function linhaDeCartao(rotulo, controle) {
+    var l = no('div', 'parcela-linha edita');
+    juntar(l, no('span', 'q', rotulo), juntar(no('span', 'v'), controle));
+    return l;
+  }
+
+  // A mesma linha, só de leitura. O `sem-icone` repõe o espaço que o ▾ do
+  // seletor e o ícone do calendário ocupam, para a coluna ficar reta.
+  function linhaDeCartaoFixa(rotulo, texto) {
+    var l = no('div', 'parcela-linha');
+    juntar(l, no('span', 'q', rotulo), no('span', 'v num sem-icone', texto));
+    return l;
   }
 
   function topoDeCartao(titulo, textoAcao, aoClicar) {
@@ -8159,7 +8412,9 @@
           perguntar({
             titulo: 'Excluir ' + existente.nome + '?',
             texto: 'Vão embora também os ' + quantos + ' registro(s) desse cliente. Não dá para desfazer.',
-            ok: 'Excluir cliente', tom: 'perigo'
+            ok: 'Excluir cliente', tom: 'perigo',
+            copiaAntes: 'antes de excluir o cliente ' + existente.nome +
+                        ' e os ' + quantos + ' registro(s) dele'
           }, function () {
           estado.servicos.forEach(function (s) { if (s.clienteId === existente.id) marcarExcluido('servicos', s.id); });
           estado.pagamentos.forEach(function (p) { if (p.clienteId === existente.id) marcarExcluido('pagamentos', p.id); });
@@ -8280,14 +8535,28 @@
           lista.appendChild(estadoVazio('Nenhum registro',
             'Cadastre a venda ou o serviço e o valor combinado.'));
         } else {
+          // O acréscimo do parcelamento não é uma venda à parte: ele é o
+          // que aquele registro passou a custar por ter sido parcelado.
+          // Listado sozinho, parecia mais um produto vendido, e a conta
+          // do cliente ficava com uma linha que ele nunca comprou.
+          var acrescimos = acrescimosPorRegistro(id);
+          var jaMostrado = {};
+          Object.keys(acrescimos).forEach(function (k) { jaMostrado[acrescimos[k].id] = true; });
+
           servicos.forEach(function (s) {
+            if (jaMostrado[s.id]) return;
+            var extra = acrescimos[s.id] || null;
+            var total = s.valor + (extra ? extra.valor : 0);
+            var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
+            if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
+
             var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
             juntar(linha,
               selo(corDeCategoria(s.tipo || 'Serviço'), (s.tipo || 'S').charAt(0).toUpperCase()),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', s.nome),
-                no('div', 'linha-sub', (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : ''))),
-              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(s.valor)))
+                no('div', 'linha-sub', sub)),
+              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(total)))
             );
             lista.appendChild(linha);
           });
@@ -8446,7 +8715,10 @@
                     ', que só existia por causa dele'
                   : '') +
                 '. Os seus registros e os pagamentos continuam como estão — só o parcelamento é desfeito.',
-              ok: 'Apagar tudo', tom: 'perigo'
+              ok: 'Apagar tudo', tom: 'perigo',
+              copiaAntes: 'antes de desfazer o parcelamento de ' +
+                          ((achar(estado.clientes, id) || {}).nome || 'um cliente') +
+                          ', com ' + todasParcelas.length + ' parcela(s)'
             }, function () {
               var fora = {};
               todasParcelas.forEach(function (p) { fora[p.id] = true; marcarExcluido('parcelas', p.id); });
@@ -9861,7 +10133,8 @@
         perguntar({
           titulo: 'Excluir este orçamento?',
           texto: 'O registro que ele gerou, se existir, não é apagado.',
-          ok: 'Excluir', tom: 'perigo'
+          ok: 'Excluir', tom: 'perigo',
+          copiaAntes: 'antes de excluir o orçamento nº ' + ('000' + p.numero).slice(-4)
         }, function () {
           estado.propostas = (estado.propostas || []).filter(function (o) { return o.id !== p.id; });
           salvar();
@@ -9899,17 +10172,44 @@
     abrirFolha(existente ? 'Editar registro' : 'Nova venda ou serviço', function (folha) {
       var forma = no('div');
 
-      var campoValorEl = entradaValor(base.valor, true);
-      campoValorEl.style.color = 'var(--ouro)';
-      forma.appendChild(campo('Valor combinado', campoValorEl));
+      // O acréscimo do parcelamento é um registro separado, mas na lista do
+      // cliente ele aparece somado ao produto — e era por isso que a lista
+      // dizia R$ 1.350,00 e esta folha abria com R$ 1.000,00. Agora o topo
+      // mostra o mesmo total da lista e o cartão abre a conta embaixo, para
+      // ficar claro de onde vem o total.
+      var extra = existente ? (acrescimosPorRegistro(clienteId)[existente.id] || null) : null;
 
-      var campoTipo = entradaSelecao(opcoesDeTipo(tipoEscolhido), tipoEscolhido, 'Tipo do registro');
-      campoTipo.aoMudar = function (v) { tipoEscolhido = v; };
-      var linhaTipo = no('div', 'linha-dupla-campo');
-      var lapisTipo = botao('linha-acao', null, function () {
+      // Com acréscimo, o número grande é o total e o valor combinado desce
+      // para dentro do cartão, no tamanho das outras linhas. Sem acréscimo o
+      // total é o próprio valor combinado: escrever os dois seria o mesmo
+      // número duas vezes na mesma tela.
+      var campoValorEl = entradaValor(base.valor, !extra);
+      var totalGrande = null;
+      if (extra) {
+        totalGrande = no('div', 'valor-grande travado num');
+        totalGrande.style.color = 'var(--ouro)';
+        forma.appendChild(campo('Total com o acréscimo', totalGrande));
+      } else {
+        campoValorEl.style.color = 'var(--ouro)';
+        forma.appendChild(campo('Valor combinado', campoValorEl));
+      }
+
+      // Gerenciar os tipos virou opção do próprio seletor. Era um lápis de
+      // 36px ao lado, que dentro da linha do cartão empurrava o texto para
+      // a esquerda e desalinhava a coluna da direita.
+      var OP_TIPOS = '__tipos__';
+      function opcoesComGerenciar() {
+        return opcoesDeTipo(tipoEscolhido).concat([
+          { valor: OP_TIPOS, rotulo: 'Gerenciar tipos…', detalhe: 'criar, renomear ou apagar' }
+        ]);
+      }
+      var campoTipo = entradaSelecao(opcoesComGerenciar(), tipoEscolhido, 'Tipo do registro');
+      campoTipo.aoMudar = function (v) {
+        if (v !== OP_TIPOS) { tipoEscolhido = v; return; }
+        campoTipo.value = tipoEscolhido;
         var guardado = {
           valor: digitosParaCentavos(campoValorEl.value),
-          tipo: campoTipo.value,
+          tipo: tipoEscolhido,
           nome: campoNome.value,
           data: campoData.value,
           obs: campoObs.value
@@ -9918,20 +10218,37 @@
           guardado.tipo = novo || guardado.tipo;
           montarFolhaServico(clienteId, servicoId, guardado);
         });
-      });
-      lapisTipo.setAttribute('aria-label', 'Editar os tipos');
-      lapisTipo.appendChild(icone('lapis'));
-      juntar(linhaTipo, campoTipo, lapisTipo);
-      forma.appendChild(campo('Tipo', linhaTipo));
+      };
 
       var campoNome = entradaTexto(base.nome, 'Ex.: Troca de embreagem', 60);
-      forma.appendChild(campo('O que foi', campoNome));
-
       var campoData = entradaData(base.data || hojeTexto());
-      forma.appendChild(campo('Realizado na data', campoData));
-
       var campoObs = entradaTexto(base.obs, 'Observação (opcional)', 200);
-      forma.appendChild(campo('Observação', campoObs));
+
+      // Um cartão só, como em "Editar pagamento": o que está escrito é o que
+      // se edita, sem o rótulo aparecer fora e dentro da caixa.
+      var ficha = cartao();
+      forma.appendChild(ficha);
+
+      if (extra) {
+        ficha.appendChild(linhaDeCartao('Valor combinado', campoValorEl));
+        ficha.appendChild(linhaDeCartaoFixa('Acréscimo do parcelamento', emReais(extra.valor)));
+      }
+      ficha.appendChild(linhaDeCartao('Tipo', campoTipo));
+      ficha.appendChild(linhaDeCartao('O que foi', campoNome));
+      ficha.appendChild(linhaDeCartao('Realizado em', campoData));
+      ficha.appendChild(linhaDeCartao('Observação', campoObs));
+
+      if (extra) {
+        ficha.appendChild(no('div', 'linha-nota ouro',
+          'O acréscimo veio do parcelamento. Para mexer nele, refaça o combinado das parcelas.'));
+        // O total acompanha o que está sendo digitado: mexer no combinado
+        // sem o número de cima mudar faria a conta parecer errada.
+        var pintarTotal = function () {
+          totalGrande.textContent = emReais(digitosParaCentavos(campoValorEl.value) + extra.valor);
+        };
+        campoValorEl.addEventListener('input', pintarTotal);
+        pintarTotal();
+      }
 
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
@@ -9944,13 +10261,13 @@
         var novoServicoId = existente ? existente.id : novoId();
         if (existente) {
           existente.nome = nome;
-          existente.tipo = campoTipo.value;
+          existente.tipo = tipoEscolhido;
           existente.valor = valor;
           existente.data = campoData.value;
           existente.obs = campoObs.value.trim();
         } else {
           estado.servicos.push({
-            id: novoServicoId, clienteId: clienteId, nome: nome, tipo: campoTipo.value,
+            id: novoServicoId, clienteId: clienteId, nome: nome, tipo: tipoEscolhido,
             valor: valor, data: campoData.value, obs: campoObs.value.trim(), criadoEm: Date.now()
           });
         }
@@ -9971,7 +10288,8 @@
           perguntar({
             titulo: 'Excluir este registro?',
             texto: 'Os pagamentos já recebidos continuam registrados; as parcelas em aberto saem junto.',
-            ok: 'Excluir registro', tom: 'perigo'
+            ok: 'Excluir registro', tom: 'perigo',
+            copiaAntes: 'antes de excluir o registro ' + (existente.nome || 'sem nome')
           }, function () {
             marcarExcluido('servicos', existente.id);
             estado.servicos = estado.servicos.filter(function (s) { return s.id !== existente.id; });
@@ -10071,6 +10389,34 @@
 
   function ehAcrescimoDeParcelamento(sv) {
     return NOME_ACRESCIMO.test(String(sv.nome || ''));
+  }
+
+  // De qual registro é este acréscimo.
+  //
+  // O campo acrescimoDe é novo. Para os que vieram de antes eu descubro
+  // pela parcela: o acréscimo nasce com a data da primeira parcela do
+  // plano, e a parcela sabe o registro. Não achando, devolvo vazio e o
+  // acréscimo segue aparecendo sozinho — esconder dinheiro a receber
+  // porque eu não soube de quem é seria bem pior.
+  function registroDoAcrescimo(sv) {
+    if (sv.acrescimoDe) return sv.acrescimoDe;
+    var achada = null;
+    estado.parcelas.forEach(function (x) {
+      if (achada) return;
+      if (x.clienteId === sv.clienteId && x.vencimento === sv.data && x.servicoId) achada = x;
+    });
+    return achada ? achada.servicoId : '';
+  }
+
+  // Mapa registro -> acréscimo dele, para a lista de registros.
+  function acrescimosPorRegistro(clienteId) {
+    var mapa = {};
+    servicosDoCliente(clienteId).forEach(function (sv) {
+      if (!ehAcrescimoDeParcelamento(sv)) return;
+      var pai = registroDoAcrescimo(sv);
+      if (pai) mapa[pai] = sv;
+    });
+    return mapa;
   }
 
   function abrirFolhaParcelamento(clienteId, servicoId) {
@@ -10405,6 +10751,10 @@
                 ? 'Acréscimo do parcelamento em ' + c.itens.length + 'x'
                 : 'Acréscimo sobre o valor combinado',
               tipo: TIPO_PADRAO, valor: extraACobrar,
+              // De qual registro este acréscimo é. Antes ele não guardava
+              // nada, e o app só o reconhecia pelo nome — o que bastava
+              // para escondê-lo, mas não para saber a quem ele pertence.
+              acrescimoDe: campoServico.value || '',
               data: c.itens[0].vencimento, obs: '', criadoEm: Date.now()
             });
           }
@@ -10435,31 +10785,39 @@
       forma.appendChild(campo('Valor da parcela', campoValorEl));
 
       var campoData = entradaData(parcela.vencimento);
-      forma.appendChild(campo('Vence em', campoData));
-
-      var campoJuros = entradaTextoNumero(parcela.jurosAtraso || '', '0');
-      forma.appendChild(campo('Juros por atraso, ao mês (opcional %)', campoJuros));
+      // "Juros por atraso, ao mês (opcional %)" não cabia numa linha do
+      // cartão: o rótulo quebrava em duas. O período vai no rótulo e a
+      // unidade na dica do campo.
+      var campoJuros = entradaTextoNumero(parcela.jurosAtraso || '', '0%');
 
       var opcoesServico = [{ valor: '', rotulo: 'Sem registro específico' }].concat(
         servicos.map(function (sv) {
           return { valor: sv.id, rotulo: sv.nome, detalhe: (sv.tipo || 'Serviço') + ' · ' + emReais(sv.valor) };
         }));
       var campoServico = entradaSelecao(opcoesServico, parcela.servicoId || '', 'Referente a');
-      forma.appendChild(campo('Referente a', campoServico));
+
+      // Mesmo cartão da folha de pagamento: os três campos e, logo abaixo,
+      // os recados que falam deles. Soltos na folha, o aviso de vencido
+      // ficava longe da data que o explica.
+      var ficha = cartao();
+      forma.appendChild(ficha);
+      ficha.appendChild(linhaDeCartao('Vence em', campoData));
+      ficha.appendChild(linhaDeCartao('Juros ao mês', campoJuros));
+      ficha.appendChild(linhaDeCartao('Referente a', campoServico));
 
       var jaPago = pagoNaParcela(parcela);
       var juros = jurosDaParcela(parcela);
+      if (jaPago > 0) {
+        ficha.appendChild(linhaDeCartaoFixa('Já entraram', emReais(jaPago)));
+        ficha.appendChild(linhaDeCartaoFixa('Falta', emReais(faltaNaParcela(parcela))));
+      }
       if (parcela.vencimento < hojeTexto()) {
-        forma.appendChild(no('div', 'linha-nota vermelho',
+        ficha.appendChild(no('div', 'linha-nota vermelho',
           'Esta parcela venceu em ' + dataBr(parcela.vencimento) + '.' +
           (juros > 0 ? ' Os juros já somam ' + emReais(juros) + '.' : '')));
       }
-      if (jaPago > 0) {
-        forma.appendChild(no('div', 'linha-nota verde',
-          'Já entraram ' + emReais(jaPago) + '. Faltam ' + emReais(faltaNaParcela(parcela)) + '.'));
-      }
       if (servico) {
-        forma.appendChild(no('div', 'linha-nota',
+        ficha.appendChild(no('div', 'linha-nota',
           'Faz parte de ' + parcela.total + ' parcelas de ' + servico.nome + '.'));
       }
 
@@ -10495,7 +10853,9 @@
         perguntar({
           titulo: 'Excluir a parcela ' + parcela.numero + ' de ' + parcela.total + '?',
           texto: 'As outras parcelas continuam como estão.',
-          ok: 'Excluir parcela', tom: 'perigo'
+          ok: 'Excluir parcela', tom: 'perigo',
+          copiaAntes: 'antes de excluir a parcela ' + parcela.numero + ' de ' + parcela.total +
+                      ', de ' + emReais(parcela.valor)
         }, function () {
           marcarExcluido('parcelas', parcela.id);
           estado.parcelas = estado.parcelas.filter(function (p) { return p.id !== parcela.id; });
@@ -10557,8 +10917,16 @@
 
       var campoData = entradaData(existente ? existente.data : hojeTexto());
 
+      // Acréscimo do parcelamento não é coisa que o cliente comprou, então
+      // não entra na escolha. A exceção é o pagamento que já aponta para
+      // um: tirá-lo da lista faria o seletor cair na primeira opção e
+      // trocar o registro do pagamento sem ninguém pedir.
+      var jaApontado = existente ? existente.servicoId : '';
+      var servicosEscolhiveis = servicos.filter(function (s) {
+        return !ehAcrescimoDeParcelamento(s) || s.id === jaApontado;
+      });
       var opcoesServico = [{ valor: '', rotulo: 'Sem registro específico' }].concat(
-        servicos.map(function (s) {
+        servicosEscolhiveis.map(function (s) {
           return { valor: s.id, rotulo: s.nome, detalhe: (s.tipo || 'Serviço') + ' · ' + emReais(s.valor) };
         }));
 
@@ -10648,16 +11016,6 @@
         caixaAtalhos.appendChild(campo('Devido nesta parcela: ' + emReais(devido), chipsP));
       }
 
-      // As linhas editáveis do cartão. Eram três blocos soltos acima dele,
-      // repetindo o que o cartão já dizia: a parcela aparecia no seletor e
-      // no título, a data no campo e na linha "Pago em". Agora é um lugar
-      // só, e o que está escrito é o que se edita.
-      function linhaEditavel(rotulo, controle) {
-        var l = no('div', 'parcela-linha edita');
-        juntar(l, no('span', 'q', rotulo), juntar(no('span', 'v'), controle));
-        return l;
-      }
-
       // O vencimento é da parcela, não do pagamento, então o campo
       // pertence à parcela escolhida. Guardo o mesmo elemento entre os
       // repintares e só troco quando a parcela muda — senão o que a
@@ -10679,10 +11037,10 @@
       // paga, a que se refere. "Vence em" fica colado na data do
       // pagamento porque é a comparação entre as duas que interessa.
       function montarLinhasEditaveis(p) {
-        if (campoParcela) resumoParcela.appendChild(linhaEditavel('Equivale a', campoParcela));
-        if (p) resumoParcela.appendChild(linhaEditavel('Vence em', campoDeVencimento(p)));
-        resumoParcela.appendChild(linhaEditavel(existente ? 'Pago em' : 'Data do pagamento', campoData));
-        resumoParcela.appendChild(linhaEditavel('Referente a', campoServico));
+        if (campoParcela) resumoParcela.appendChild(linhaDeCartao('Equivale a', campoParcela));
+        if (p) resumoParcela.appendChild(linhaDeCartao('Vence em', campoDeVencimento(p)));
+        resumoParcela.appendChild(linhaDeCartao(existente ? 'Pago em' : 'Data do pagamento', campoData));
+        resumoParcela.appendChild(linhaDeCartao('Referente a', campoServico));
       }
 
       function pintarResumo() {
@@ -10726,9 +11084,7 @@
           if (devido !== recebido) linhas.push(['Devido', emReais(devido)]);
         }
         linhas.forEach(function (par) {
-          var l = no('div', 'parcela-linha');
-          juntar(l, no('span', 'q', par[0]), no('span', 'v num', par[1]));
-          resumoParcela.appendChild(l);
+          resumoParcela.appendChild(linhaDeCartaoFixa(par[0], par[1]));
         });
 
         // As duas datas lado a lado e, principalmente, a distância entre
@@ -10972,7 +11328,8 @@
             titulo: 'Excluir este pagamento?',
             texto: 'O lançamento de entrada criado junto com ele também sai, a parcela volta a ficar em aberto ' +
               'e o combinado é reajustado para bater com o que o cliente passa a dever.',
-            ok: 'Excluir pagamento', tom: 'perigo'
+            ok: 'Excluir pagamento', tom: 'perigo',
+            copiaAntes: 'antes de excluir um pagamento de ' + emReais(existente.valor)
           }, function () {
             if (existente.lancamentoId) {
               marcarExcluido('lancamentos', existente.lancamentoId);
@@ -11455,6 +11812,63 @@
     return grupos;
   }
 
+  // As cópias a mais de cada grupo repetido — o que sobra depois de guardar
+  // uma de cada. É isso que um extrato importado duas vezes deixa para trás.
+  //
+  // Qual fica de pé: a que algum pagamento do Empreendedor aponta, porque
+  // apagá-la deixaria o pagamento apontando para o vazio. Não havendo
+  // nenhuma apontada, fica a mais antiga, que foi a que entrou primeiro.
+  function copiasSobrandoDaConta(id) {
+    var apontada = {};
+    (estado.pagamentos || []).forEach(function (p) {
+      if (p.lancamentoId) apontada[p.lancamentoId] = true;
+    });
+    var sobrando = [];
+    repetidosDaConta(id).forEach(function (g) {
+      var ordenado = g.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
+      var ficam = ordenado.filter(function (l) { return apontada[l.id]; });
+      if (!ficam.length) ficam = [ordenado[0]];
+      var guardado = {};
+      ficam.forEach(function (l) { guardado[l.id] = true; });
+      ordenado.forEach(function (l) { if (!guardado[l.id]) sobrando.push(l); });
+    });
+    return sobrando;
+  }
+
+  function efeitoDasCopias(sobrando, id) {
+    var soma = 0;
+    sobrando.forEach(function (l) { soma += efeitoNaConta(l, id); });
+    return soma;
+  }
+
+  function tirarRepetidosDaConta(id, aoTerminar) {
+    var sobrando = copiasSobrandoDaConta(id);
+    if (!sobrando.length) { avisar('Não achei cópia sobrando nesta conta.'); return; }
+    var agora = saldoConta(id, null);
+    var depois = agora - efeitoDasCopias(sobrando, id);
+    perguntar({
+      titulo: 'Tirar as cópias repetidas?',
+      texto: 'Apago ' + sobrando.length + ' lançamento(s) e guardo um de cada grupo. ' +
+             'O saldo desta conta passa de ' + emReais(agora) + ' para ' + emReais(depois) + '.\n\n' +
+             'Se algum grupo for de verdade — duas compras iguais no mesmo dia —, a segunda some ' +
+             'junto. Faça um backup em Mais antes, se quiser poder voltar atrás.',
+      ok: 'Tirar as cópias', tom: 'perigo',
+      copiaAntes: 'antes de tirar ' + sobrando.length + ' cópia(s) repetida(s) de ' +
+                  ((achar(estado.contas, id) || {}).nome || 'uma conta')
+    }, function () {
+      var fora = {};
+      sobrando.forEach(function (l) { fora[l.id] = true; marcarExcluido('lancamentos', l.id); });
+      estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+      // Pagamento que apontava para uma cópia apagada fica sem lançamento —
+      // o pagamento continua registrado no Empreendedor, só não tem mais
+      // entrada no caixa. Deixar o id morto quebraria a folha dele.
+      (estado.pagamentos || []).forEach(function (pg) { if (fora[pg.lancamentoId]) pg.lancamentoId = ''; });
+      salvar();
+      avisar(sobrando.length + ' cópia(s) removida(s).');
+      if (aoTerminar) aoTerminar();
+    });
+  }
+
   function resumoDaConta(id) {
     var r = { entradas: 0, saidas: 0, entrou: 0, saiu: 0, quantos: 0,
               transferencias: 0, futuros: 0, primeira: '', ultima: '' };
@@ -11520,7 +11934,9 @@
       titulo: 'Tirar esta importação?',
       texto: 'Isso apaga os ' + imp.quantos + ' lançamento(s) que entraram nessa leva' +
              (imp.arquivo ? ' (' + imp.arquivo + ')' : '') + '. O que você lançou à mão não é tocado.',
-      ok: 'Tirar tudo', tom: 'perigo'
+      ok: 'Tirar tudo', tom: 'perigo',
+      copiaAntes: 'antes de tirar a importação de ' + (imp.arquivo || imp.banco || 'um extrato') +
+                  ', com ' + imp.quantos + ' lançamento(s)'
     }, function () {
       var tirados = 0;
       estado.lancamentos = estado.lancamentos.filter(function (l) {
@@ -11530,6 +11946,15 @@
         return false;
       });
       estado.importacoes = (estado.importacoes || []).filter(function (i) { return i.id !== impId; });
+      // O arquivo guardado era daquela leva. Tirando a leva, ele perde o
+      // dono: fica ocupando espaço sem nada para explicar.
+      if (NUVEM.ligada && sessaoNuvem) {
+        comTokenValido().then(function () {
+          return pedirNuvem('/rest/v1/arquivos_extrato?importacao_id=eq.' + encodeURIComponent(impId), {
+            metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        }).catch(function () { /* o arquivo some na próxima, ou fica */ });
+      }
       salvar();
       avisar(tirados + ' lançamento(s) removidos.');
       if (aoTerminar) aoTerminar();
@@ -11690,6 +12115,25 @@
           'repetida — ou pode ser real, como duas compras iguais no mesmo dia. Toque para abrir ' +
           'o grupo e ver uma por uma.'));
 
+        // Extrato importado duas vezes deixa centenas de grupos. Abrir um a
+        // um e apagar à mão não é caminho, então aqui vai o número que
+        // importa e um botão que tira todas as cópias de uma vez.
+        var sobrando = copiasSobrandoDaConta(id);
+        if (sobrando.length) {
+          var mexe = efeitoDasCopias(sobrando, id);
+          rep.appendChild(no('div', 'linha-nota ouro',
+            'São ' + sobrando.length + ' lançamento(s) a mais do que deveria haver. Tirando as ' +
+            'cópias, o saldo desta conta vai de ' + emReais(saldo) + ' para ' + emReais(saldo - mexe) + '.'));
+          var bTirar = botao('btn btn-fantasma', 'Tirar as cópias repetidas', function () {
+            tirarRepetidosDaConta(id, function () {
+              fecharFolha();
+              setTimeout(function () { abrirFolhaConferencia(id); }, 240);
+            });
+          });
+          bTirar.style.margin = '10px 0 4px';
+          rep.appendChild(bTirar);
+        }
+
         var caixaRep = no('div');
         rep.appendChild(caixaRep);
         var pagRep = 0;
@@ -11777,14 +12221,38 @@
       } else {
         imp.appendChild(no('div', 'linha-nota',
           'Se uma leitura saiu errada, dá para tirar a leva inteira sem mexer no resto.'));
+
+        // Os arquivos ficam guardados na nuvem desde a 5.13.0. A lista vem
+        // sem o conteúdo — só o que a tela precisa — e o arquivo só desce
+        // quando alguém toca em "Baixar".
+        var guardados = {};
+        listarArquivosDeExtrato(id).then(function (lista) {
+          lista.forEach(function (a) { if (a.importacao_id) guardados[a.importacao_id] = a; });
+          Object.keys(guardados).forEach(function (k) {
+            var alvo = imp.querySelector('[data-leva="' + k + '"]');
+            if (alvo) alvo.style.display = '';
+          });
+        });
+
         minhas.forEach(function (i) {
           var linha = no('div', 'linha');
           var sub = i.quantos + ' lançamento(s)' +
             (i.de ? ' · ' + dataBr(i.de) + ' a ' + dataBr(i.ate) : '');
+          var baixar = botao('btn-mini', 'Baixar', function () {
+            var a = guardados[i.id];
+            if (!a) { avisar('O arquivo desta leva não está guardado.'); return; }
+            avisar('Baixando...');
+            baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () {
+              avisar('Não consegui baixar o arquivo.');
+            });
+          });
+          baixar.setAttribute('data-leva', i.id);
+          baixar.style.display = 'none';
           juntar(linha,
             juntar(no('div', 'linha-texto'),
               no('div', 'linha-titulo', i.arquivo || i.banco || 'Extrato'),
               no('div', 'linha-sub', sub)),
+            baixar,
             botao('btn-mini', 'Tirar', function () {
               desfazerImportacao(i.id, function () {
                 fecharFolha();
@@ -11816,7 +12284,8 @@
             texto: 'Vão embora ' + r.quantos + ' lançamento(s) de "' + conta.nome + '", ' +
                    'incluindo transferências que envolvam ela. Isso não tem volta — se quiser ' +
                    'guardar antes, faça um backup em Mais.',
-            ok: 'Apagar tudo', tom: 'perigo'
+            ok: 'Apagar tudo', tom: 'perigo',
+            copiaAntes: 'antes de apagar os ' + r.quantos + ' lançamento(s) de ' + conta.nome
           }, function () {
             var idos = 0;
             estado.lancamentos = estado.lancamentos.filter(function (l) {
@@ -13413,6 +13882,7 @@
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
       ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
+      ['🕑', 'Voltar a uma data', 'Cópias automáticas dos últimos 14 dias', abrirFolhaInstantaneos],
       ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
@@ -13627,8 +14097,16 @@
         function () { responderDialogo(false); }));
     }
 
+    // `copiaAntes` é a frase do que está prestes a sair. Com ela, a
+    // confirmação não chama a ação direto: primeiro sobe uma cópia do
+    // estado de agora para a nuvem, e só então apaga. Fica aqui, e não em
+    // cada botão de excluir, para nenhum caminho de exclusão escapar.
+    var confirmado = opcoes.copiaAntes && aoConfirmar
+      ? function () { apagarComCopia(opcoes.copiaAntes, aoConfirmar); }
+      : aoConfirmar;
+
     dialogoAtual = {
-      aoConfirmar: aoConfirmar,
+      aoConfirmar: confirmado,
       aoCancelar: opcoes.aoCancelar,
       escolha: false
     };
@@ -14281,7 +14759,10 @@
           perguntar({
             titulo: 'Excluir este lançamento?',
             texto: 'Não dá para desfazer.',
-            ok: 'Excluir lançamento', tom: 'perigo'
+            ok: 'Excluir lançamento', tom: 'perigo',
+            copiaAntes: 'antes de excluir o lançamento ' +
+                        (existente.descricao || existente.categoria || 'sem descrição') +
+                        ', de ' + emReais(existente.valor)
           }, function () {
             marcarExcluido('lancamentos', existente.id);
             estado.lancamentos = estado.lancamentos.filter(function (l) { return l.id !== existente.id; });
@@ -14565,7 +15046,8 @@
             perguntar({
               titulo: 'Excluir ' + (eraCartao ? 'o cartão ' : 'a conta ') + existente.nome + '?',
               texto: 'Ele some das telas e dos relatórios.',
-              ok: 'Excluir ' + palavra, tom: 'perigo'
+              ok: 'Excluir ' + palavra, tom: 'perigo',
+              copiaAntes: 'antes de excluir ' + (eraCartao ? 'o cartão ' : 'a conta ') + existente.nome
             }, apagarDeVez);
             return;
           }
@@ -14574,7 +15056,9 @@
             titulo: 'Excluir ' + (eraCartao ? 'o cartão ' : 'a conta ') + existente.nome + '?',
             texto: 'Tem ' + presos.length + ' lançamento(s) aqui dentro. Eles serão apagados junto — ' +
                    'inclusive os que vieram da fatura importada. Isso não tem volta.',
-            ok: 'Excluir com os lançamentos', tom: 'perigo'
+            ok: 'Excluir com os lançamentos', tom: 'perigo',
+            copiaAntes: 'antes de excluir ' + existente.nome + ' com ' +
+                        presos.length + ' lançamento(s)'
           }, apagarDeVez);
         }));
       }
@@ -14643,7 +15127,8 @@
           perguntar({
             titulo: 'Excluir ' + existente.nome + '?',
             texto: 'O histórico de valores desse ativo vai junto. Não dá para desfazer.',
-            ok: 'Excluir ativo', tom: 'perigo'
+            ok: 'Excluir ativo', tom: 'perigo',
+            copiaAntes: 'antes de excluir o ativo ' + (existente.nome || 'sem nome')
           }, function () {
             marcarExcluido('ativos', existente.id);
             estado.ativos.forEach(function (a) {
@@ -14755,7 +15240,8 @@
           perguntar({
             titulo: 'Excluir a meta ' + existente.nome + '?',
             texto: 'O valor já guardado não é lançado de volta em nenhuma conta.',
-            ok: 'Excluir meta', tom: 'perigo'
+            ok: 'Excluir meta', tom: 'perigo',
+            copiaAntes: 'antes de excluir a meta ' + (existente.nome || 'sem nome')
           }, function () {
             marcarExcluido('metas', existente.id);
             estado.metas = estado.metas.filter(function (m) { return m.id !== existente.id; });
@@ -18088,6 +18574,12 @@
 
   var extratoLido = null;
 
+  // Teto para guardar o arquivo na nuvem. Extrato de banco raramente passa
+  // de um mega; acima disso é digitalização pesada, e encher o banco com
+  // isso atrapalha mais do que ajuda. O que passa continua sendo lido
+  // normalmente, só não fica guardado.
+  var LIMITE_ARQUIVO_EXTRATO = 4 * 1024 * 1024;
+
   function nomeDoArquivo(arquivo) { return String((arquivo && arquivo.name) || '').toLowerCase(); }
 
   function abrirImportarExtrato() {
@@ -18416,11 +18908,23 @@
     avisarCaixa('Não achei lançamentos', recado, function () {});
   }
 
-  function lerUmExtrato(arquivo, ancora, pronto) {
+  function lerUmExtrato(arquivo, ancora, entregar) {
     var nome = nomeDoArquivo(arquivo);
 
     bytesDoArquivo(arquivo, ancora).then(function (bytes) {
       var comeco = Extrato.textoDeBytes(bytes.subarray(0, 2048));
+
+      // O arquivo como o banco entregou segue junto com o que foi lido,
+      // para poder subir para a nuvem na hora de lançar. Se a leitura sair
+      // errada meses depois, o original está lá — em vez de alguém ter de
+      // caçar o PDF no celular.
+      function pronto(lido, problema) {
+        if (lido && bytes && bytes.length && bytes.length <= LIMITE_ARQUIVO_EXTRATO) {
+          lido.bytes = bytes;
+          lido.nomeArquivo = nome;
+        }
+        return entregar(lido, problema);
+      }
 
       if (comeco.indexOf('%PDF') >= 0 || /\.pdf$/.test(nome)) {
         abrirPdfDaFila(bytes, arquivo, filaExtrato ? filaExtrato.senhaDeTodos : '', false, pronto);
@@ -18576,6 +19080,8 @@
 
     extratoLido = {
       itens: itens, arquivo: arquivo,
+      bytes: lido.bytes || null,
+      nomeArquivo: lido.nomeArquivo || nomeDoArquivo(arquivo),
       fatura: !!lido.fatura,
       banco: lido.banco || null,
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
@@ -18951,6 +19457,10 @@
         });
       });
 
+      // O original vai junto, sem segurar a importação: os lançamentos já
+      // entraram, e o arquivo é comodidade.
+      guardarArquivoDeExtrato(importacaoId, contaId, dados.bytes, dados.nomeArquivo);
+
       // Guardo de onde veio cada leva. Se o extrato entrou errado, dá para
       // tirar tudo de uma vez em vez de apagar um por um.
       var quando = escolhidos.map(function (i) { return i.data; }).sort();
@@ -19067,6 +19577,372 @@
     return tarefa;
   }
 
+  // Um cofre inteiro entrando no lugar do que a conta tinha: restaurar um
+  // backup, ou trazer os dados de outra conta deste aparelho. As duas telas
+  // prometem "substitui", e para isso a nuvem precisa ficar sabendo — senão
+  // o envio só acrescenta e o que estava lá volta no download.
+  //
+  // A marca fica guardada dentro do cofre e só sai quando a limpeza subiu.
+  function marcarTrocaTotal() {
+    estado.excluidos = [];
+    estado.trocaTotal = true;
+  }
+
+  // ---------- Volta no tempo: um instantâneo por dia, na nuvem ----------
+  //
+  // O backup sempre existiu, mas era um arquivo que alguém precisava
+  // lembrar de gerar — e ninguém lembra antes de precisar. Aqui o app
+  // guarda sozinho o estado inteiro, uma vez por dia, e segura catorze
+  // dias. Quem precisar escolhe a data e volta.
+  //
+  // Mora na tabela `instantaneos`, fora da sincronização: baixar catorze
+  // estados inteiros a cada sincronia seria mover megabytes para nada.
+
+  var DIAS_DE_INSTANTANEO = 14;
+
+  // O estado inteiro vira JSON, é comprimido e sai em base64. Sem
+  // compressão, quem usa o app há um ano manda meio mega por dia. Onde
+  // o navegador não tiver CompressionStream, vai o texto puro: melhor
+  // guardar grande do que não guardar.
+  function comprimirTexto(texto) {
+    var bytes = new TextEncoder().encode(texto);
+    if (typeof CompressionStream !== 'function') {
+      return Promise.resolve({ dados: paraBase64(bytes), zip: false });
+    }
+    var fluxo = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    return new Response(fluxo).arrayBuffer().then(function (buf) {
+      return { dados: paraBase64(new Uint8Array(buf)), zip: true };
+    }).catch(function () {
+      return { dados: paraBase64(bytes), zip: false };
+    });
+  }
+
+  function descomprimirTexto(b64, zip) {
+    var bytes = deBase64(b64);
+    if (!zip) return Promise.resolve(new TextDecoder().decode(bytes));
+    var fluxo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return new Response(fluxo).arrayBuffer().then(function (buf) {
+      return new TextDecoder().decode(new Uint8Array(buf));
+    });
+  }
+
+  // O gzip começa com 1f 8b. Guardo isso no próprio resumo? Não: olho os
+  // bytes. Assim um instantâneo antigo, gravado sem compressão, continua
+  // abrindo sem precisar de coluna nova.
+  function pareceZip(b64) {
+    if (!b64 || b64.length < 4) return false;
+    try {
+      var cabeca = deBase64(b64.slice(0, 8));
+      return cabeca[0] === 0x1f && cabeca[1] === 0x8b;
+    } catch (e) { return false; }
+  }
+
+  function resumoDoInstantaneo(e) {
+    var partes = [];
+    if (e.lancamentos.length) partes.push(e.lancamentos.length + ' lançamentos');
+    if (e.contas.length) partes.push(e.contas.length + ' contas');
+    if (e.clientes.length) partes.push(e.clientes.length + ' clientes');
+    if (e.ativos.length) partes.push(e.ativos.length + ' ativos');
+    if (e.metas.length) partes.push(e.metas.length + ' metas');
+    return partes.length ? partes.join(' · ') : 'vazio';
+  }
+
+  // Escreve uma cópia do estado agora. `motivo` é 'dia' para a automática
+  // e, para a de antes de apagar, a frase do que estava prestes a sair.
+  function guardarInstantaneo(motivo) {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    if (estaVazio(estado)) return Promise.resolve(false);
+    // O que vai para a cópia é o estado como ele está, menos as marcas de
+    // trabalho: lista de excluídos e marca de troca total não são dados da
+    // pessoa, e restaurar uma delas faria estrago.
+    var copia = JSON.parse(JSON.stringify(estado));
+    delete copia.excluidos;
+    delete copia.trocaTotal;
+    var texto = JSON.stringify(copia);
+
+    return comTokenValido().then(function () {
+      return comprimirTexto(texto);
+    }).then(function (c) {
+      return pedirNuvem('/rest/v1/instantaneos', {
+        metodo: 'POST',
+        corpo: [{
+          id: novoId(), user_id: sessaoNuvem.usuario.id, dia: hojeTexto(),
+          motivo: String(motivo || 'dia').slice(0, 200),
+          resumo: resumoDoInstantaneo(copia),
+          dados: c.dados, tamanho: texto.length
+        }],
+        cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () { return limparInstantaneosVelhos(); })
+      .then(function () { return true; })
+      .catch(function () { return false; });
+  }
+
+  // A automática do dia. Roda depois da primeira sincronização, quando o
+  // estado já é o da nuvem — guardar antes congelaria uma cópia pela
+  // metade.
+  function guardarInstantaneoDoDia() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    if (estaVazio(estado)) return Promise.resolve(false);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=id&dia=eq.' + hojeTexto() + '&motivo=eq.dia', {});
+    }).then(function (r) {
+      if (r && r.length) return false;
+      return guardarInstantaneo('dia');
+    }).catch(function () { return false; });
+  }
+
+  // A cópia de antes de apagar.
+  //
+  // Duas exclusões seguidas pedem duas cópias, porque cada uma guarda o
+  // que havia antes daquela. Mas uma exclusão cancelada, ou repetida sem
+  // nada ter mudado, pediria a mesma cópia de novo — e subir o estado
+  // inteiro à toa é caro. A assinatura abaixo é o tamanho de cada lista:
+  // muda sempre que alguma coisa entra ou sai.
+  var ultimaCopiaDeExclusao = '';
+
+  function assinaturaDoEstado() {
+    return ['lancamentos', 'contas', 'clientes', 'servicos', 'pagamentos',
+            'parcelas', 'ativos', 'metas'].map(function (k) {
+      return (estado[k] || []).length;
+    }).join('|');
+  }
+
+  function guardarAntesDeApagar(descricao) {
+    // Sem nuvem, ou com o app vazio, não há cópia a fazer — e não há o que
+    // avisar. Perguntar "apagar assim mesmo?" aí seria implicância: não
+    // existe nada que a cópia fosse salvar.
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(true);
+    if (estaVazio(estado)) return Promise.resolve(true);
+    var assinatura = assinaturaDoEstado();
+    if (assinatura === ultimaCopiaDeExclusao) return Promise.resolve(true);
+    return guardarInstantaneo(descricao).then(function (deu) {
+      if (deu) ultimaCopiaDeExclusao = assinatura;
+      return deu;
+    });
+  }
+
+  // Toda exclusão passa por aqui: a cópia de antes sobe primeiro, com a
+  // frase do que estava prestes a sair. Não conseguindo guardar, o app
+  // pergunta em vez de apagar calado — a cópia existe justamente para o
+  // caso em que a pessoa se arrepende.
+  function apagarComCopia(descricao, acao) {
+    avisar('Guardando uma cópia antes...');
+    return guardarAntesDeApagar(descricao).then(function (deu) {
+      if (deu) { acao(); return; }
+      perguntar({
+        titulo: 'Não consegui guardar a cópia',
+        texto: 'Antes de apagar, eu guardo uma cópia de como está agora — e desta vez ' +
+               'não consegui falar com o servidor.\n\nApagar assim mesmo? Sem a cópia, ' +
+               'isso não tem volta.',
+        ok: 'Apagar assim mesmo', tom: 'perigo'
+      }, acao);
+    });
+  }
+
+  // Catorze dias de cópias. E, dentro deles, um teto para as de exclusão:
+  // quem apaga trinta coisas numa tarde geraria trinta estados inteiros, e
+  // o que interessa são os últimos.
+  var MAXIMO_COPIAS_DE_EXCLUSAO = 40;
+
+  function limparInstantaneosVelhos() {
+    var corte = new Date();
+    corte.setDate(corte.getDate() - DIAS_DE_INSTANTANEO);
+    return pedirNuvem('/rest/v1/instantaneos?dia=lt.' + deData(corte), {
+      metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+    }).then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=id,criado_em,motivo&motivo=neq.dia', {});
+    }).then(function (r) {
+      var sobrando = (r || []).slice().sort(function (a, b) {
+        return a.criado_em < b.criado_em ? 1 : -1;
+      }).slice(MAXIMO_COPIAS_DE_EXCLUSAO);
+      return sobrando.reduce(function (antes, i) {
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/instantaneos?id=eq.' + encodeURIComponent(i.id), {
+            metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        });
+      }, Promise.resolve());
+    }).catch(function () { return null; });
+  }
+
+  // ---------- Os arquivos de extrato, como vieram do banco ----------
+
+  function tipoDoArquivo(nome) {
+    var n = String(nome || '').toLowerCase();
+    if (/\.pdf$/.test(n)) return 'application/pdf';
+    if (/\.xlsx?$/.test(n)) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (/\.csv$/.test(n)) return 'text/csv';
+    if (/\.ofx$/.test(n)) return 'application/x-ofx';
+    return 'application/octet-stream';
+  }
+
+  // Sobe o original junto com a leva de lançamentos. Falhar aqui não pode
+  // derrubar a importação: os lançamentos já entraram, e o arquivo é uma
+  // comodidade. Por isso o catch silencioso.
+  function guardarArquivoDeExtrato(importacaoId, contaId, bytes, nome) {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    if (!bytes || !bytes.length || bytes.length > LIMITE_ARQUIVO_EXTRATO) return Promise.resolve(false);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato', {
+        metodo: 'POST',
+        corpo: [{
+          id: novoId(), user_id: sessaoNuvem.usuario.id,
+          importacao_id: importacaoId, conta_id: contaId || '',
+          nome: String(nome || 'extrato').slice(0, 120),
+          tipo: tipoDoArquivo(nome), tamanho: bytes.length,
+          conteudo: paraBase64(bytes)
+        }],
+        cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () { return true; }).catch(function () { return false; });
+  }
+
+  // A lista vem sem o conteúdo: são os megabytes que não precisam descer
+  // para montar a tela.
+  function listarArquivosDeExtrato(contaId) {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve([]);
+    var filtro = contaId ? '&conta_id=eq.' + encodeURIComponent(contaId) : '';
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,nome,tipo,tamanho,criado_em' + filtro, {});
+    }).then(function (r) { return r || []; }).catch(function () { return []; });
+  }
+
+  function baixarArquivoDeExtrato(id, nome, tipo) {
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=conteudo,nome,tipo&id=eq.' + encodeURIComponent(id), {});
+    }).then(function (r) {
+      var linha = r && r[0];
+      if (!linha) throw new Error('não achei esse arquivo');
+      baixarArquivo(linha.nome || nome || 'extrato', deBase64(linha.conteudo), linha.tipo || tipo || 'application/octet-stream');
+    });
+  }
+
+  function listarInstantaneos() {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve([]);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=id,dia,motivo,resumo,tamanho,criado_em&order=criado_em.desc', {});
+    }).then(function (r) {
+      // O servidor já devolve ordenado, mas a tela não depende disso: do
+      // mais novo para o mais velho é como a pessoa procura.
+      return (r || []).slice().sort(function (a, b) {
+        return (a.criado_em || a.dia) < (b.criado_em || b.dia) ? 1 : -1;
+      });
+    });
+  }
+
+  // Volta o app para o estado de um dia. É o mesmo caminho do restaurar
+  // backup: marca a troca total e deixa a sincronização limpar a nuvem.
+  function voltarParaInstantaneo(id, aoTerminar) {
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=dia,dados&id=eq.' + encodeURIComponent(id), {});
+    }).then(function (r) {
+      var linha = r && r[0];
+      if (!linha) throw new Error('não achei esse dia');
+      return descomprimirTexto(linha.dados, pareceZip(linha.dados)).then(function (texto) {
+        var limpo = limparEstado(JSON.parse(texto));
+        estado = limpo;
+        marcarTrocaTotal();
+        return salvar();
+      }).then(function () {
+        desenhar();
+        return sincronizarAgora();
+      }).then(function () {
+        desenhar();
+        if (aoTerminar) aoTerminar(linha.dia);
+      });
+    });
+  }
+
+  // A folha de escolher o dia. Mostra o que cada cópia tem dentro, para a
+  // pessoa reconhecer qual é a boa sem precisar abrir e ver.
+  function abrirFolhaInstantaneos() {
+    // Sem empilhar nada: a própria abrirFolha empilha { tipo: 'folha' },
+    // que é o item que fecha a folha e redesenha a tela ao voltar. Um
+    // item 'aba' com voltar vazio por cima engolia o voltar — a folha
+    // não fechava e a tela ficava mostrando os dados de antes.
+    abrirFolha('Voltar a uma data', function (folha) {
+      var forma = no('div');
+      forma.appendChild(no('p', 'linha-sub',
+        'Todo dia o app guarda na nuvem uma cópia inteira dos seus dados, e guarda outra ' +
+        'sempre que você vai apagar alguma coisa. Segura as últimas duas semanas. ' +
+        'Escolha uma cópia para voltar tudo ao que era nela.'));
+
+      var caixa = no('div');
+      forma.appendChild(caixa);
+      caixa.appendChild(no('div', 'linha-nota', 'Procurando as cópias...'));
+
+      listarInstantaneos().then(function (lista) {
+        caixa.textContent = '';
+        if (!lista.length) {
+          caixa.appendChild(estadoVazio('Nenhuma cópia ainda',
+            'A primeira sai sozinha na próxima vez que o app sincronizar. ' +
+            'Se isso não acontecer, a tabela pode não existir no servidor — está em ' +
+            'supabase/migracao-08.sql.'));
+          return;
+        }
+        var cartaoLista = cartao('liso');
+        var hoje = hojeTexto();
+        lista.forEach(function (i) {
+          var dia = i.dia === hoje ? 'hoje' : dataBr(i.dia);
+          // A automática do dia aparece pela data. A de antes de apagar
+          // aparece pelo que ia sair — é isso que a pessoa procura quando
+          // se arrepende, não a hora.
+          var deExclusao = i.motivo && i.motivo !== 'dia';
+          var quando = deExclusao ? dia + ' às ' + horaDe(i.criado_em) : dia;
+          var titulo = deExclusao ? maiusculaInicial(i.motivo) : dia;
+          var linha = botao('linha', null, function () { confirmarVolta(i, quando, titulo); });
+          juntar(linha,
+            selo(deExclusao ? '#F87171' : '#60A5FA', deExclusao ? '🗑' : '🕑'),
+            juntar(no('div', 'linha-texto'),
+              no('div', 'linha-titulo', titulo),
+              no('div', 'linha-sub', (deExclusao ? quando + ' · ' : '') + (i.resumo || 'sem resumo'))),
+            juntar(no('div', 'linha-fim'), no('div', 'linha-sub', 'voltar ›')));
+          cartaoLista.appendChild(linha);
+        });
+        caixa.appendChild(cartaoLista);
+        caixa.appendChild(no('div', 'linha-nota',
+          lista.length + ' cópia(s) guardada(s). A mais antiga sai sozinha ao completar ' +
+          DIAS_DE_INSTANTANEO + ' dias.'));
+      }).catch(function (e) {
+        caixa.textContent = '';
+        caixa.appendChild(no('div', 'linha-nota vermelho',
+          'Não consegui ler as cópias: ' + (e && e.message ? e.message : 'erro no servidor') + '.'));
+      });
+
+      function confirmarVolta(i, quando, titulo) {
+        perguntar({
+          titulo: 'Voltar a esta cópia?',
+          texto: titulo + ' — ' + quando + ' (' + (i.resumo || 'sem resumo') + ').\n\n' +
+                 'Tudo o que está no app agora é substituído por ela, aqui e na nuvem. ' +
+                 'O que veio depois se perde — mas a cópia de hoje continua guardada, ' +
+                 'então dá para voltar de novo.',
+          ok: 'Voltar a esta cópia', tom: 'perigo'
+        }, function () {
+          avisar('Voltando...');
+          voltarParaInstantaneo(i.id, function (dia) {
+            // fecharFolha() e não voltarNavegacao(): o voltar passa pelo
+            // history, que chega depois: abrindo o aviso em seguida, o
+            // history.back() fechava o aviso e deixava a folha aberta por
+            // cima dos dados que a pessoa acabou de recuperar.
+            fecharFolha();
+            setTimeout(function () {
+              avisarCaixa('Pronto',
+                'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
+                'A nuvem já está com essa versão.', function () {});
+            }, 280);
+          }).catch(function (e) {
+            avisarCaixa('Não deu para voltar',
+              (e && e.message ? e.message : 'erro no servidor') +
+              '. Nada foi mudado — seus dados continuam como estavam.', function () {});
+          });
+        });
+      }
+
+      folha.appendChild(forma);
+    });
+  }
+
   function restaurarBackup(arquivo, soltar, ancora) {
     // Mesmo caminho teimoso do importar: várias tentativas de leitura e um
     // recado de verdade quando o aparelho não deixa abrir.
@@ -19110,22 +19986,24 @@
         texto: 'São ' + limpo.lancamentos.length + ' lançamento(s), ' + limpo.contas.length +
                ' conta(s), ' + limpo.ativos.length + ' ativo(s) e ' + limpo.metas.length +
                ' meta(s). Isso substitui tudo o que está no aplicativo agora.',
-        ok: 'Restaurar', tom: 'perigo'
+        ok: 'Restaurar', tom: 'perigo',
+        copiaAntes: 'antes de restaurar um backup com ' + limpo.lancamentos.length + ' lançamento(s)'
       }, function () {
         var antigo = estado;
         estado = limpo;
-        estado.excluidos = [];
+        marcarTrocaTotal();
         fecharFolha();
         desenhar();
         avisar('Restaurando...');
-        apagarNaNuvemOqueNaoVeio().catch(function () {
-          // Sem internet o restauro vale aqui; a nuvem se acerta na próxima.
-        }).then(function () {
+        // A limpeza da nuvem mudou de lugar: ela acontece dentro do envio,
+        // na marca de troca total. Antes era feita aqui e, sem internet, o
+        // restauro seguia sem ela — e a sincronia seguinte juntava os dois.
+        Promise.resolve().then(function () {
           return salvar();
         }).then(function () {
           desenhar();
           avisar('Backup restaurado.');
-          if (NUVEM.ligada && sessaoNuvem) sincronizar(true);
+          if (NUVEM.ligada && sessaoNuvem) sincronizarAgora().then(desenhar);
         }).catch(function (e) {
           estado = antigo;
           desenhar();
@@ -19155,7 +20033,8 @@
       perguntar({
         titulo: 'Tem certeza mesmo?',
         texto: 'Depois disso não tem volta. Faça um backup antes, se quiser guardar.',
-        ok: 'Apagar tudo', cancelar: 'Melhor não', tom: 'perigo'
+        ok: 'Apagar tudo', cancelar: 'Melhor não', tom: 'perigo',
+        copiaAntes: 'antes de apagar tudo: ' + quanto + ' registro(s)'
       }, function () {
         estado = estadoPadrao();
         salvar();
