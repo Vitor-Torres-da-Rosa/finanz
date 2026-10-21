@@ -44,6 +44,9 @@ console.log('4. botão de rota na lista?', await page.locator('#telaInicio .linh
 await page.screenshot({ path: dir+'/n01-lista-rota.png' });
 
 // para onde o botão de rota manda
+// Esperar o botão existir: o sono de 1800ms depois de salvar não cobre a
+// suíte inteira em paralelo, e o querySelector voltava nulo.
+await page.waitForSelector('#telaInicio .linha-acao[aria-label^="Rota"]', { timeout: 60000 });
 const destino = await page.evaluate(() => {
   let ida = null;
   const d = Object.getOwnPropertyDescriptor(window.location, 'href');

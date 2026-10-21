@@ -63,6 +63,10 @@ conferir('2. o resumo diz que o acréscimo entra a partir de 2x',
 await page.screenshot({ path: dir+'/w01-orcamento.png', fullPage: true });
 
 await page.click('#folha .btn-ouro:has-text("Salvar orçamento")'); await page.waitForTimeout(1800);
+// Esperar pelo elemento em vez de confiar no sono: com a suíte inteira em
+// paralelo, salvar e redesenhar passava dos 1800ms e a leitura morria no
+// tempo padrão de 30s sem ter nada a ver com o que o teste confere.
+await page.waitForSelector('#folha .cartao:has-text("Como pagar")', { timeout: 60000 });
 const comoPagar = limpo(await page.textContent('#folha .cartao:has-text("Como pagar")'));
 console.log('como pagar:', comoPagar.slice(comoPagar.indexOf('Parcelado direto')));
 conferir('3. à vista = R$ 800,00, o total do orçamento', /À vistasem acréscimoR\$ 800,00/.test(comoPagar));

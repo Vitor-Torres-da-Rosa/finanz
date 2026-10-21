@@ -2689,6 +2689,10 @@
   function estadoPadrao() {
     return {
       versao: 3,
+      // Este cofre substitui o que a conta tinha na nuvem (restaurar backup,
+      // trazer dados de outra conta). Enquanto estiver ligada, o próximo
+      // envio apaga lá o que não veio aqui. Veja marcarTrocaTotal.
+      trocaTotal: false,
       perfil: {
         nome: '', reservaMeses: 6, idadeAtual: 30, idadeAposentadoria: 60,
         aporteMensal: 0, rendimentoAnual: 8, objetivos: [],
@@ -3654,8 +3658,13 @@
     if (NUVEM.ligada) nuvemEsquecer();
     sessao = null;
     estado = estadoPadrao();
-    telaAtiva = 'inicio';
     abaInicio = 'geral';
+    // Trocar só a variável deixava a classe `ativa` na tela que estava
+    // aberta — quase sempre "Mais", de onde se sai. Entrando de novo, o app
+    // mostrava o Mais achando que mostrava o Início, e o botão do Início
+    // não fazia nada: irPara() desiste quando o id pedido já é o telaAtiva.
+    // Só dava para destravar passando por outra aba.
+    mostrarTela('inicio');
     mostrarEntrada('abertura');
   }
 
@@ -4141,6 +4150,15 @@
     var agora = new Date().toISOString();
     var tarefa = comTokenValido();
 
+    // Troca total: antes de mandar, descubro o que o servidor tem a mais e
+    // marco para apagar. Sem este passo o envio é só upsert — ele não tira
+    // do servidor o que não veio junto —, o download devolve o conjunto
+    // antigo e os dois se somam. Era assim que o saldo das contas dobrava
+    // depois de trazer os dados de outra conta.
+    if (estado.trocaTotal) {
+      tarefa = tarefa.then(function () { return apagarNaNuvemOqueNaoVeio(); });
+    }
+
     // Perfil e o teto geral do orçamento
     tarefa = tarefa.then(function () { return enviarLinhas('perfis', [perfilParaLinha(uid)], 'id'); });
 
@@ -4185,20 +4203,28 @@
       return enviarLinhas('subcategorias_extras', subs, 'user_id,tipo,categoria,nome');
     });
 
-    // Marca como excluído o que a pessoa apagou aqui.
-    (estado.excluidos || []).forEach(function (marca) {
-      if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return;
-      tarefa = tarefa.then(function () {
-        return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
-          metodo: 'PATCH',
-          corpo: { excluido_em: agora },
-          cabecalhos: { 'Prefer': 'return=minimal' }
+    // Marca como excluído o que a pessoa apagou aqui. A lista é lida dentro
+    // da corrente, não ao montá-la: a limpeza da troca total só enche
+    // `excluidos` quando roda, e um forEach aqui fora leria a lista vazia.
+    tarefa = tarefa.then(function () {
+      return (estado.excluidos || []).reduce(function (antes, marca) {
+        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
+            metodo: 'PATCH',
+            corpo: { excluido_em: agora },
+            cabecalhos: { 'Prefer': 'return=minimal' }
+          });
         });
-      });
+      }, Promise.resolve());
     });
 
     return tarefa.then(function () {
       estado.excluidos = [];
+      // Só agora: se o envio falhou no meio, a marca continua de pé e a
+      // próxima tentativa refaz a limpeza. Uma troca feita sem internet não
+      // vira união quando a internet voltar.
+      estado.trocaTotal = false;
       return true;
     });
   }
@@ -4608,7 +4634,12 @@
 
   function trazerCofre(b) {
     estado = b.estado;
-    estado.excluidos = [];
+    // O restaurar backup sempre avisou a nuvem de que era substituição; o
+    // trazer nasceu sem esse passo na 5.9.8. O envio seguinte era só
+    // upsert, o download devolvia o que a conta já tinha, e os dois cofres
+    // viravam um só, somado: conta com o mesmo extrato duas vezes, saldo
+    // dobrado. É a mesma marca agora.
+    marcarTrocaTotal();
     desenhar();
     avisar('Trazendo os dados...');
     return salvar().then(function () {
@@ -11607,6 +11638,61 @@
     return grupos;
   }
 
+  // As cópias a mais de cada grupo repetido — o que sobra depois de guardar
+  // uma de cada. É isso que um extrato importado duas vezes deixa para trás.
+  //
+  // Qual fica de pé: a que algum pagamento do Empreendedor aponta, porque
+  // apagá-la deixaria o pagamento apontando para o vazio. Não havendo
+  // nenhuma apontada, fica a mais antiga, que foi a que entrou primeiro.
+  function copiasSobrandoDaConta(id) {
+    var apontada = {};
+    (estado.pagamentos || []).forEach(function (p) {
+      if (p.lancamentoId) apontada[p.lancamentoId] = true;
+    });
+    var sobrando = [];
+    repetidosDaConta(id).forEach(function (g) {
+      var ordenado = g.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
+      var ficam = ordenado.filter(function (l) { return apontada[l.id]; });
+      if (!ficam.length) ficam = [ordenado[0]];
+      var guardado = {};
+      ficam.forEach(function (l) { guardado[l.id] = true; });
+      ordenado.forEach(function (l) { if (!guardado[l.id]) sobrando.push(l); });
+    });
+    return sobrando;
+  }
+
+  function efeitoDasCopias(sobrando, id) {
+    var soma = 0;
+    sobrando.forEach(function (l) { soma += efeitoNaConta(l, id); });
+    return soma;
+  }
+
+  function tirarRepetidosDaConta(id, aoTerminar) {
+    var sobrando = copiasSobrandoDaConta(id);
+    if (!sobrando.length) { avisar('Não achei cópia sobrando nesta conta.'); return; }
+    var agora = saldoConta(id, null);
+    var depois = agora - efeitoDasCopias(sobrando, id);
+    perguntar({
+      titulo: 'Tirar as cópias repetidas?',
+      texto: 'Apago ' + sobrando.length + ' lançamento(s) e guardo um de cada grupo. ' +
+             'O saldo desta conta passa de ' + emReais(agora) + ' para ' + emReais(depois) + '.\n\n' +
+             'Se algum grupo for de verdade — duas compras iguais no mesmo dia —, a segunda some ' +
+             'junto. Faça um backup em Mais antes, se quiser poder voltar atrás.',
+      ok: 'Tirar as cópias', tom: 'perigo'
+    }, function () {
+      var fora = {};
+      sobrando.forEach(function (l) { fora[l.id] = true; marcarExcluido('lancamentos', l.id); });
+      estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+      // Pagamento que apontava para uma cópia apagada fica sem lançamento —
+      // o pagamento continua registrado no Empreendedor, só não tem mais
+      // entrada no caixa. Deixar o id morto quebraria a folha dele.
+      (estado.pagamentos || []).forEach(function (pg) { if (fora[pg.lancamentoId]) pg.lancamentoId = ''; });
+      salvar();
+      avisar(sobrando.length + ' cópia(s) removida(s).');
+      if (aoTerminar) aoTerminar();
+    });
+  }
+
   function resumoDaConta(id) {
     var r = { entradas: 0, saidas: 0, entrou: 0, saiu: 0, quantos: 0,
               transferencias: 0, futuros: 0, primeira: '', ultima: '' };
@@ -11841,6 +11927,25 @@
           grupos.length + ' grupo(s) com data, valor e descrição iguais. Pode ser importação ' +
           'repetida — ou pode ser real, como duas compras iguais no mesmo dia. Toque para abrir ' +
           'o grupo e ver uma por uma.'));
+
+        // Extrato importado duas vezes deixa centenas de grupos. Abrir um a
+        // um e apagar à mão não é caminho, então aqui vai o número que
+        // importa e um botão que tira todas as cópias de uma vez.
+        var sobrando = copiasSobrandoDaConta(id);
+        if (sobrando.length) {
+          var mexe = efeitoDasCopias(sobrando, id);
+          rep.appendChild(no('div', 'linha-nota ouro',
+            'São ' + sobrando.length + ' lançamento(s) a mais do que deveria haver. Tirando as ' +
+            'cópias, o saldo desta conta vai de ' + emReais(saldo) + ' para ' + emReais(saldo - mexe) + '.'));
+          var bTirar = botao('btn btn-fantasma', 'Tirar as cópias repetidas', function () {
+            tirarRepetidosDaConta(id, function () {
+              fecharFolha();
+              setTimeout(function () { abrirFolhaConferencia(id); }, 240);
+            });
+          });
+          bTirar.style.margin = '10px 0 4px';
+          rep.appendChild(bTirar);
+        }
 
         var caixaRep = no('div');
         rep.appendChild(caixaRep);
@@ -19219,6 +19324,17 @@
     return tarefa;
   }
 
+  // Um cofre inteiro entrando no lugar do que a conta tinha: restaurar um
+  // backup, ou trazer os dados de outra conta deste aparelho. As duas telas
+  // prometem "substitui", e para isso a nuvem precisa ficar sabendo — senão
+  // o envio só acrescenta e o que estava lá volta no download.
+  //
+  // A marca fica guardada dentro do cofre e só sai quando a limpeza subiu.
+  function marcarTrocaTotal() {
+    estado.excluidos = [];
+    estado.trocaTotal = true;
+  }
+
   function restaurarBackup(arquivo, soltar, ancora) {
     // Mesmo caminho teimoso do importar: várias tentativas de leitura e um
     // recado de verdade quando o aparelho não deixa abrir.
@@ -19266,13 +19382,14 @@
       }, function () {
         var antigo = estado;
         estado = limpo;
-        estado.excluidos = [];
+        marcarTrocaTotal();
         fecharFolha();
         desenhar();
         avisar('Restaurando...');
-        apagarNaNuvemOqueNaoVeio().catch(function () {
-          // Sem internet o restauro vale aqui; a nuvem se acerta na próxima.
-        }).then(function () {
+        // A limpeza da nuvem mudou de lugar: ela acontece dentro do envio,
+        // na marca de troca total. Antes era feita aqui e, sem internet, o
+        // restauro seguia sem ela — e a sincronia seguinte juntava os dois.
+        Promise.resolve().then(function () {
           return salvar();
         }).then(function () {
           desenhar();

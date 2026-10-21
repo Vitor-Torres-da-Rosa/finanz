@@ -1,13 +1,19 @@
 // Roda os testes do Finanz em paralelo.
 //
-//   node testes/rodar.mjs                  -> todos, 12 de cada vez
+//   node testes/rodar.mjs                  -> todos, 8 de cada vez
 //   node testes/rodar.mjs 4                -> todos, 4 de cada vez
 //   node testes/rodar.mjs 12 t72 t80 t81   -> só esses
 //
 // Cada teste abre o seu próprio navegador e cria a sua própria conta, então
-// eles não se atrapalham. 12 ao mesmo tempo foi medido aqui: 40 testes em
-// pouco mais de um minuto, contra treze minutos um atrás do outro. Apertar
-// mais rende pouco, porque o total já bate no teste mais demorado.
+// eles não se atrapalham. 12 ao mesmo tempo foi o padrão por muito tempo:
+// rendia uns 255s na suíte inteira. Só que com 66 testes a máquina satura,
+// e os testes que esperam por tempo fixo depois de salvar começaram a cair
+// um por rodada — t57, t86, t88, t80, cada vez um diferente, todos verdes
+// sozinhos. Suíte que acusa um inocente por rodada não serve para nada.
+//
+// 8 ao mesmo tempo: 305s e 66/66. Cinquenta segundos a mais por um
+// resultado em que dá para acreditar. O corte de 300s por teste continua
+// pegando travada de verdade.
 import { spawn, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,7 +23,7 @@ const raiz = path.dirname(fileURLToPath(import.meta.url));
 const casos = path.join(raiz, 'casos');
 
 const args = process.argv.slice(2);
-const quantos = /^\d+$/.test(args[0]) ? +args.shift() : 12;
+const quantos = /^\d+$/.test(args[0]) ? +args.shift() : 8;
 const TODOS = fs.readdirSync(casos).filter((f) => /^t\d+b?\.mjs$/.test(f))
   .sort((a, b) => {
     const na = +a.match(/^t(\d+)/)[1], nb = +b.match(/^t(\d+)/)[1];
