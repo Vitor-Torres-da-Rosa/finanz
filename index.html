@@ -1644,7 +1644,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.12.0';
+  var VERSAO = '5.13.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1653,6 +1653,19 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.13.0',
+      data: '2026-10-21',
+      itens: [
+        'Backup automático, todo dia, na nuvem. O app guarda sozinho uma cópia inteira dos seus dados uma vez por dia e segura as últimas duas semanas. Em Mais → "Voltar a uma data" você escolhe o dia e volta tudo ao que era nele — aqui e na nuvem.',
+        'Cada cópia diz o que tem dentro ("3520 lançamentos · 7 contas · 12 clientes"), para dar para reconhecer o dia certo sem abrir. Ela vai comprimida, então guardar catorze não pesa.',
+        'Os extratos do banco passam a ficar guardados como vieram. O PDF, o OFX, a planilha: o arquivo sobe junto com os lançamentos e fica na nuvem. Se a leitura sair errada meses depois, o original está em Conferir esta conta → Extratos importados → Baixar, em vez de ter de caçar o arquivo no celular.',
+        'Tirando uma importação, o arquivo dela sai junto.',
+        '"Trazer dados de outra conta" passou a substituir de verdade. A tela sempre prometeu isso, mas a nuvem só recebia o que era novo e devolvia o antigo junto: os dois conjuntos se somavam, e as contas apareciam com o dobro do valor. Agora a troca avisa a nuvem, e vale mesmo se ela for feita sem internet.',
+        'Na folha de Conferir, "Tirar as cópias repetidas": um extrato importado duas vezes deixa centenas de linhas iguais, e dava para apagar só uma a uma. O botão diz quantas sobram e para quanto o saldo vai.',
+        'Saindo da conta e entrando em outra, o botão do Início voltou a funcionar. Ele ficava morto até você passar por outra aba.'
+      ]
+    },
     {
       versao: '5.12.0',
       data: '2026-10-20',
@@ -3659,6 +3672,7 @@
     sessao = null;
     estado = estadoPadrao();
     abaInicio = 'geral';
+    instantaneoTentado = false;
     // Trocar só a variável deixava a classe `ativa` na tela que estava
     // aberta — quase sempre "Mais", de onde se sai. Entrando de novo, o app
     // mostrava o Mais achando que mostrava o Início, e o botão do Início
@@ -4390,6 +4404,7 @@
 
   var sincronizando = false;
   var tempoSincronia = null;
+  var instantaneoTentado = false;
 
   // Enquanto uma folha, uma pergunta ou um seletor está aberto, a pessoa
   // está no meio de uma edição. Trocar o estado inteiro nessa hora joga
@@ -4432,6 +4447,14 @@
         falhaDaSincronia = null;
         if (!silenciosa) avisar('Sincronizado com a nuvem.');
         desenhar();
+        // A cópia do dia sai daqui, depois de o estado já ser o da nuvem:
+        // guardar antes congelaria uma cópia pela metade. Uma vez por
+        // sessão, e sem segurar a sincronização — se falhar, a próxima
+        // abertura tenta de novo.
+        if (!instantaneoTentado) {
+          instantaneoTentado = true;
+          guardarInstantaneoDoDia();
+        }
         return true;
       });
     }).catch(function (e) {
@@ -4444,6 +4467,24 @@
       }
       return false;
     });
+  }
+
+  // Sincroniza agora, de verdade.
+  //
+  // sincronizar() desiste em silêncio quando já há uma em voo, e quem
+  // acabou de trocar o estado inteiro precisa que a DELE aconteça: a que
+  // estava correndo já tinha lido o estado velho e devolve ele por cima.
+  // Era isso que fazia a tela continuar mostrando os dados estragados
+  // logo depois de voltar para um dia — a nuvem ficava certa, a tela não.
+  function sincronizarAgora() {
+    clearTimeout(tempoSincronia);
+    function esperarAVez(tentativas) {
+      if (!sincronizando) return sincronizar(true);
+      if (tentativas <= 0) return sincronizar(true);
+      return new Promise(function (pronto) { setTimeout(pronto, 300); })
+        .then(function () { return esperarAVez(tentativas - 1); });
+    }
+    return esperarAVez(40);
   }
 
   // Guarda logo e manda para a nuvem pouco depois, juntando as alterações
@@ -4643,7 +4684,7 @@
     desenhar();
     avisar('Trazendo os dados...');
     return salvar().then(function () {
-      return sincronizar(true);
+      return sincronizarAgora();
     }).then(function () {
       desenhar();
       avisarCaixa('Pronto',
@@ -11768,6 +11809,15 @@
         return false;
       });
       estado.importacoes = (estado.importacoes || []).filter(function (i) { return i.id !== impId; });
+      // O arquivo guardado era daquela leva. Tirando a leva, ele perde o
+      // dono: fica ocupando espaço sem nada para explicar.
+      if (NUVEM.ligada && sessaoNuvem) {
+        comTokenValido().then(function () {
+          return pedirNuvem('/rest/v1/arquivos_extrato?importacao_id=eq.' + encodeURIComponent(impId), {
+            metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        }).catch(function () { /* o arquivo some na próxima, ou fica */ });
+      }
       salvar();
       avisar(tirados + ' lançamento(s) removidos.');
       if (aoTerminar) aoTerminar();
@@ -12034,14 +12084,38 @@
       } else {
         imp.appendChild(no('div', 'linha-nota',
           'Se uma leitura saiu errada, dá para tirar a leva inteira sem mexer no resto.'));
+
+        // Os arquivos ficam guardados na nuvem desde a 5.13.0. A lista vem
+        // sem o conteúdo — só o que a tela precisa — e o arquivo só desce
+        // quando alguém toca em "Baixar".
+        var guardados = {};
+        listarArquivosDeExtrato(id).then(function (lista) {
+          lista.forEach(function (a) { if (a.importacao_id) guardados[a.importacao_id] = a; });
+          Object.keys(guardados).forEach(function (k) {
+            var alvo = imp.querySelector('[data-leva="' + k + '"]');
+            if (alvo) alvo.style.display = '';
+          });
+        });
+
         minhas.forEach(function (i) {
           var linha = no('div', 'linha');
           var sub = i.quantos + ' lançamento(s)' +
             (i.de ? ' · ' + dataBr(i.de) + ' a ' + dataBr(i.ate) : '');
+          var baixar = botao('btn-mini', 'Baixar', function () {
+            var a = guardados[i.id];
+            if (!a) { avisar('O arquivo desta leva não está guardado.'); return; }
+            avisar('Baixando...');
+            baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () {
+              avisar('Não consegui baixar o arquivo.');
+            });
+          });
+          baixar.setAttribute('data-leva', i.id);
+          baixar.style.display = 'none';
           juntar(linha,
             juntar(no('div', 'linha-texto'),
               no('div', 'linha-titulo', i.arquivo || i.banco || 'Extrato'),
               no('div', 'linha-sub', sub)),
+            baixar,
             botao('btn-mini', 'Tirar', function () {
               desfazerImportacao(i.id, function () {
                 fecharFolha();
@@ -13670,6 +13744,7 @@
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
       ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
+      ['🕑', 'Voltar a uma data', 'Cópias automáticas dos últimos 14 dias', abrirFolhaInstantaneos],
       ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
@@ -18345,6 +18420,12 @@
 
   var extratoLido = null;
 
+  // Teto para guardar o arquivo na nuvem. Extrato de banco raramente passa
+  // de um mega; acima disso é digitalização pesada, e encher o banco com
+  // isso atrapalha mais do que ajuda. O que passa continua sendo lido
+  // normalmente, só não fica guardado.
+  var LIMITE_ARQUIVO_EXTRATO = 4 * 1024 * 1024;
+
   function nomeDoArquivo(arquivo) { return String((arquivo && arquivo.name) || '').toLowerCase(); }
 
   function abrirImportarExtrato() {
@@ -18673,11 +18754,23 @@
     avisarCaixa('Não achei lançamentos', recado, function () {});
   }
 
-  function lerUmExtrato(arquivo, ancora, pronto) {
+  function lerUmExtrato(arquivo, ancora, entregar) {
     var nome = nomeDoArquivo(arquivo);
 
     bytesDoArquivo(arquivo, ancora).then(function (bytes) {
       var comeco = Extrato.textoDeBytes(bytes.subarray(0, 2048));
+
+      // O arquivo como o banco entregou segue junto com o que foi lido,
+      // para poder subir para a nuvem na hora de lançar. Se a leitura sair
+      // errada meses depois, o original está lá — em vez de alguém ter de
+      // caçar o PDF no celular.
+      function pronto(lido, problema) {
+        if (lido && bytes && bytes.length && bytes.length <= LIMITE_ARQUIVO_EXTRATO) {
+          lido.bytes = bytes;
+          lido.nomeArquivo = nome;
+        }
+        return entregar(lido, problema);
+      }
 
       if (comeco.indexOf('%PDF') >= 0 || /\.pdf$/.test(nome)) {
         abrirPdfDaFila(bytes, arquivo, filaExtrato ? filaExtrato.senhaDeTodos : '', false, pronto);
@@ -18833,6 +18926,8 @@
 
     extratoLido = {
       itens: itens, arquivo: arquivo,
+      bytes: lido.bytes || null,
+      nomeArquivo: lido.nomeArquivo || nomeDoArquivo(arquivo),
       fatura: !!lido.fatura,
       banco: lido.banco || null,
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
@@ -19208,6 +19303,10 @@
         });
       });
 
+      // O original vai junto, sem segurar a importação: os lançamentos já
+      // entraram, e o arquivo é comodidade.
+      guardarArquivoDeExtrato(importacaoId, contaId, dados.bytes, dados.nomeArquivo);
+
       // Guardo de onde veio cada leva. Se o extrato entrou errado, dá para
       // tirar tudo de uma vez em vez de apagar um por um.
       var quando = escolhidos.map(function (i) { return i.data; }).sort();
@@ -19335,6 +19434,280 @@
     estado.trocaTotal = true;
   }
 
+  // ---------- Volta no tempo: um instantâneo por dia, na nuvem ----------
+  //
+  // O backup sempre existiu, mas era um arquivo que alguém precisava
+  // lembrar de gerar — e ninguém lembra antes de precisar. Aqui o app
+  // guarda sozinho o estado inteiro, uma vez por dia, e segura catorze
+  // dias. Quem precisar escolhe a data e volta.
+  //
+  // Mora na tabela `instantaneos`, fora da sincronização: baixar catorze
+  // estados inteiros a cada sincronia seria mover megabytes para nada.
+
+  var DIAS_DE_INSTANTANEO = 14;
+
+  // O estado inteiro vira JSON, é comprimido e sai em base64. Sem
+  // compressão, quem usa o app há um ano manda meio mega por dia. Onde
+  // o navegador não tiver CompressionStream, vai o texto puro: melhor
+  // guardar grande do que não guardar.
+  function comprimirTexto(texto) {
+    var bytes = new TextEncoder().encode(texto);
+    if (typeof CompressionStream !== 'function') {
+      return Promise.resolve({ dados: paraBase64(bytes), zip: false });
+    }
+    var fluxo = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    return new Response(fluxo).arrayBuffer().then(function (buf) {
+      return { dados: paraBase64(new Uint8Array(buf)), zip: true };
+    }).catch(function () {
+      return { dados: paraBase64(bytes), zip: false };
+    });
+  }
+
+  function descomprimirTexto(b64, zip) {
+    var bytes = deBase64(b64);
+    if (!zip) return Promise.resolve(new TextDecoder().decode(bytes));
+    var fluxo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return new Response(fluxo).arrayBuffer().then(function (buf) {
+      return new TextDecoder().decode(new Uint8Array(buf));
+    });
+  }
+
+  // O gzip começa com 1f 8b. Guardo isso no próprio resumo? Não: olho os
+  // bytes. Assim um instantâneo antigo, gravado sem compressão, continua
+  // abrindo sem precisar de coluna nova.
+  function pareceZip(b64) {
+    if (!b64 || b64.length < 4) return false;
+    try {
+      var cabeca = deBase64(b64.slice(0, 8));
+      return cabeca[0] === 0x1f && cabeca[1] === 0x8b;
+    } catch (e) { return false; }
+  }
+
+  function resumoDoInstantaneo(e) {
+    var partes = [];
+    if (e.lancamentos.length) partes.push(e.lancamentos.length + ' lançamentos');
+    if (e.contas.length) partes.push(e.contas.length + ' contas');
+    if (e.clientes.length) partes.push(e.clientes.length + ' clientes');
+    if (e.ativos.length) partes.push(e.ativos.length + ' ativos');
+    if (e.metas.length) partes.push(e.metas.length + ' metas');
+    return partes.length ? partes.join(' · ') : 'vazio';
+  }
+
+  // Grava o de hoje, se ainda não houver. Roda depois da primeira
+  // sincronização do dia, quando o estado já é o da nuvem — guardar
+  // antes disso congelaria uma cópia pela metade.
+  function guardarInstantaneoDoDia() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    if (estaVazio(estado)) return Promise.resolve(false);
+    var uid = sessaoNuvem.usuario.id;
+    var hoje = hojeTexto();
+
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=id&dia=eq.' + hoje + '&limit=1', {});
+    }).then(function (r) {
+      if (r && r.length) return false;
+      // O que vai para o instantâneo é o estado como ele está, menos as
+      // marcas de trabalho: lista de excluídos e marca de troca total não
+      // são dados da pessoa, e restaurar uma delas faria estrago.
+      var copia = JSON.parse(JSON.stringify(estado));
+      delete copia.excluidos;
+      delete copia.trocaTotal;
+      var texto = JSON.stringify(copia);
+      return comprimirTexto(texto).then(function (c) {
+        return pedirNuvem('/rest/v1/instantaneos?on_conflict=user_id,dia', {
+          metodo: 'POST',
+          corpo: [{
+            id: novoId(), user_id: uid, dia: hoje,
+            resumo: resumoDoInstantaneo(copia),
+            dados: c.dados, tamanho: texto.length
+          }],
+          cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+        });
+      }).then(function () { return limparInstantaneosVelhos(); })
+        .then(function () { return true; });
+    }).catch(function () {
+      // Rede ruim, tabela ainda não criada no projeto: o app segue. A
+      // próxima abertura tenta de novo.
+      return false;
+    });
+  }
+
+  function limparInstantaneosVelhos() {
+    var corte = new Date();
+    corte.setDate(corte.getDate() - DIAS_DE_INSTANTANEO);
+    return pedirNuvem('/rest/v1/instantaneos?dia=lt.' + deData(corte), {
+      metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+    }).catch(function () { return null; });
+  }
+
+  // ---------- Os arquivos de extrato, como vieram do banco ----------
+
+  function tipoDoArquivo(nome) {
+    var n = String(nome || '').toLowerCase();
+    if (/\.pdf$/.test(n)) return 'application/pdf';
+    if (/\.xlsx?$/.test(n)) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (/\.csv$/.test(n)) return 'text/csv';
+    if (/\.ofx$/.test(n)) return 'application/x-ofx';
+    return 'application/octet-stream';
+  }
+
+  // Sobe o original junto com a leva de lançamentos. Falhar aqui não pode
+  // derrubar a importação: os lançamentos já entraram, e o arquivo é uma
+  // comodidade. Por isso o catch silencioso.
+  function guardarArquivoDeExtrato(importacaoId, contaId, bytes, nome) {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    if (!bytes || !bytes.length || bytes.length > LIMITE_ARQUIVO_EXTRATO) return Promise.resolve(false);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato', {
+        metodo: 'POST',
+        corpo: [{
+          id: novoId(), user_id: sessaoNuvem.usuario.id,
+          importacao_id: importacaoId, conta_id: contaId || '',
+          nome: String(nome || 'extrato').slice(0, 120),
+          tipo: tipoDoArquivo(nome), tamanho: bytes.length,
+          conteudo: paraBase64(bytes)
+        }],
+        cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () { return true; }).catch(function () { return false; });
+  }
+
+  // A lista vem sem o conteúdo: são os megabytes que não precisam descer
+  // para montar a tela.
+  function listarArquivosDeExtrato(contaId) {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve([]);
+    var filtro = contaId ? '&conta_id=eq.' + encodeURIComponent(contaId) : '';
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,nome,tipo,tamanho,criado_em' + filtro, {});
+    }).then(function (r) { return r || []; }).catch(function () { return []; });
+  }
+
+  function baixarArquivoDeExtrato(id, nome, tipo) {
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=conteudo,nome,tipo&id=eq.' + encodeURIComponent(id), {});
+    }).then(function (r) {
+      var linha = r && r[0];
+      if (!linha) throw new Error('não achei esse arquivo');
+      baixarArquivo(linha.nome || nome || 'extrato', deBase64(linha.conteudo), linha.tipo || tipo || 'application/octet-stream');
+    });
+  }
+
+  function listarInstantaneos() {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve([]);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=id,dia,resumo,tamanho,criado_em&order=dia.desc', {});
+    }).then(function (r) {
+      // O servidor já devolve ordenado, mas a tela não depende disso: do
+      // mais novo para o mais velho é como a pessoa procura.
+      return (r || []).slice().sort(function (a, b) { return a.dia < b.dia ? 1 : -1; });
+    });
+  }
+
+  // Volta o app para o estado de um dia. É o mesmo caminho do restaurar
+  // backup: marca a troca total e deixa a sincronização limpar a nuvem.
+  function voltarParaInstantaneo(id, aoTerminar) {
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=dia,dados&id=eq.' + encodeURIComponent(id), {});
+    }).then(function (r) {
+      var linha = r && r[0];
+      if (!linha) throw new Error('não achei esse dia');
+      return descomprimirTexto(linha.dados, pareceZip(linha.dados)).then(function (texto) {
+        var limpo = limparEstado(JSON.parse(texto));
+        estado = limpo;
+        marcarTrocaTotal();
+        return salvar();
+      }).then(function () {
+        desenhar();
+        return sincronizarAgora();
+      }).then(function () {
+        desenhar();
+        if (aoTerminar) aoTerminar(linha.dia);
+      });
+    });
+  }
+
+  // A folha de escolher o dia. Mostra o que cada cópia tem dentro, para a
+  // pessoa reconhecer qual é a boa sem precisar abrir e ver.
+  function abrirFolhaInstantaneos() {
+    // Sem empilhar nada: a própria abrirFolha empilha { tipo: 'folha' },
+    // que é o item que fecha a folha e redesenha a tela ao voltar. Um
+    // item 'aba' com voltar vazio por cima engolia o voltar — a folha
+    // não fechava e a tela ficava mostrando os dados de antes.
+    abrirFolha('Voltar a uma data', function (folha) {
+      var forma = no('div');
+      forma.appendChild(no('p', 'linha-sub',
+        'Todo dia o app guarda na nuvem uma cópia inteira dos seus dados, e segura as ' +
+        'últimas duas semanas. Escolha um dia para voltar tudo ao que era nele.'));
+
+      var caixa = no('div');
+      forma.appendChild(caixa);
+      caixa.appendChild(no('div', 'linha-nota', 'Procurando as cópias...'));
+
+      listarInstantaneos().then(function (lista) {
+        caixa.textContent = '';
+        if (!lista.length) {
+          caixa.appendChild(estadoVazio('Nenhuma cópia ainda',
+            'A primeira sai sozinha na próxima vez que o app sincronizar. ' +
+            'Se isso não acontecer, a tabela pode não existir no servidor — está em ' +
+            'supabase/migracao-08.sql.'));
+          return;
+        }
+        var cartaoLista = cartao('liso');
+        var hoje = hojeTexto();
+        lista.forEach(function (i) {
+          var quando = i.dia === hoje ? 'hoje' : dataBr(i.dia);
+          var linha = botao('linha', null, function () { confirmarVolta(i, quando); });
+          juntar(linha,
+            selo('#60A5FA', '🕑'),
+            juntar(no('div', 'linha-texto'),
+              no('div', 'linha-titulo', quando),
+              no('div', 'linha-sub', i.resumo || 'sem resumo')),
+            juntar(no('div', 'linha-fim'), no('div', 'linha-sub', 'voltar ›')));
+          cartaoLista.appendChild(linha);
+        });
+        caixa.appendChild(cartaoLista);
+        caixa.appendChild(no('div', 'linha-nota',
+          lista.length + ' cópia(s) guardada(s). A mais antiga sai sozinha ao completar ' +
+          DIAS_DE_INSTANTANEO + ' dias.'));
+      }).catch(function (e) {
+        caixa.textContent = '';
+        caixa.appendChild(no('div', 'linha-nota vermelho',
+          'Não consegui ler as cópias: ' + (e && e.message ? e.message : 'erro no servidor') + '.'));
+      });
+
+      function confirmarVolta(i, quando) {
+        perguntar({
+          titulo: 'Voltar para ' + quando + '?',
+          texto: 'Tudo o que está no app agora é substituído pela cópia de ' + quando +
+                 ' (' + (i.resumo || 'sem resumo') + '), aqui e na nuvem.\n\n' +
+                 'O que você fez depois desse dia se perde. A cópia de hoje continua ' +
+                 'guardada, então dá para voltar de novo.',
+          ok: 'Voltar para ' + quando, tom: 'perigo'
+        }, function () {
+          avisar('Voltando...');
+          voltarParaInstantaneo(i.id, function (dia) {
+            // fecharFolha() e não voltarNavegacao(): o voltar passa pelo
+            // history, que chega depois: abrindo o aviso em seguida, o
+            // history.back() fechava o aviso e deixava a folha aberta por
+            // cima dos dados que a pessoa acabou de recuperar.
+            fecharFolha();
+            setTimeout(function () {
+              avisarCaixa('Pronto',
+                'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
+                'A nuvem já está com essa versão.', function () {});
+            }, 280);
+          }).catch(function (e) {
+            avisarCaixa('Não deu para voltar',
+              (e && e.message ? e.message : 'erro no servidor') +
+              '. Nada foi mudado — seus dados continuam como estavam.', function () {});
+          });
+        });
+      }
+
+      folha.appendChild(forma);
+    });
+  }
+
   function restaurarBackup(arquivo, soltar, ancora) {
     // Mesmo caminho teimoso do importar: várias tentativas de leitura e um
     // recado de verdade quando o aparelho não deixa abrir.
@@ -19394,7 +19767,7 @@
         }).then(function () {
           desenhar();
           avisar('Backup restaurado.');
-          if (NUVEM.ligada && sessaoNuvem) sincronizar(true);
+          if (NUVEM.ligada && sessaoNuvem) sincronizarAgora().then(desenhar);
         }).catch(function (e) {
           estado = antigo;
           desenhar();

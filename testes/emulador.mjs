@@ -56,7 +56,8 @@ function condicoes(params) {
     const m = /^(\w+)\.(.*)$/.exec(valor);
     if (!m) continue;
     const [, op, alvo] = m;
-    if (op === 'eq') { valores.push(alvo); onde.push(`"${chave}" = $${valores.length}`); }
+    const COMPARA = { eq: '=', neq: '<>', lt: '<', lte: '<=', gt: '>', gte: '>=' };
+    if (COMPARA[op]) { valores.push(alvo); onde.push(`"${chave}" ${COMPARA[op]} $${valores.length}`); }
     else if (op === 'is') { onde.push(`"${chave}" IS ${alvo.toUpperCase() === 'NULL' ? 'NULL' : 'NOT NULL'}`); }
   }
   return { onde: onde.length ? 'WHERE ' + onde.join(' AND ') : '', valores };
@@ -200,6 +201,7 @@ const servidor = http.createServer(async (req, res) => {
       }
 
       if (req.method === 'PATCH') {
+        if (!onde) return json(res, 400, { message: 'PATCH sem filtro' });
         const colunas = Object.keys(corpo);
         const set = colunas.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
         const desloc = colunas.length;
@@ -211,6 +213,11 @@ const servidor = http.createServer(async (req, res) => {
       }
 
       if (req.method === 'DELETE') {
+        // Mesma trava do PostgREST de verdade: apagar sem filtro é recusado.
+        // Ela existe aqui porque o emulador já ignorou um filtro que não
+        // sabia traduzir (`lt.`) e transformou "apague o que passou de 14
+        // dias" em "apague tudo" — sem reclamar de nada.
+        if (!onde) return json(res, 400, { message: 'DELETE sem filtro' });
         await comoUsuario(uid, (c) =>
           c.query(`delete from public."${tabela}" ${onde}`, valores));
         cors(res); res.writeHead(204); res.end(); return;
