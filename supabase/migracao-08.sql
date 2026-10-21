@@ -36,12 +36,24 @@ create table if not exists public.instantaneos (
   id        text        primary key,
   user_id   uuid        not null default auth.uid() references auth.users (id) on delete cascade,
   dia       date        not null,
+  -- 'dia' é a cópia automática. Qualquer outro valor é a cópia tirada
+  -- antes de uma exclusão, e o texto conta o que estava prestes a sair:
+  -- "antes de apagar 412 lançamentos do Banco Inter".
+  motivo    text        not null default 'dia',
   resumo    text        not null default '',
   dados     text        not null,
   tamanho   integer     not null default 0 check (tamanho >= 0),
-  criado_em timestamptz not null default now(),
-  unique (user_id, dia)
+  criado_em timestamptz not null default now()
 );
+
+-- Quem rodou a primeira versão desta migração tem a chave única por dia.
+-- Ela servia para "uma cópia por dia"; agora as cópias de antes de apagar
+-- moram na mesma tabela e podem ser várias no mesmo dia. Quem garante uma
+-- automática por dia é o app, que confere antes de gravar.
+alter table public.instantaneos
+  add column if not exists motivo text not null default 'dia';
+alter table public.instantaneos
+  drop constraint if exists instantaneos_user_id_dia_key;
 
 create index if not exists idx_instantaneos_user on public.instantaneos (user_id, dia desc);
 
