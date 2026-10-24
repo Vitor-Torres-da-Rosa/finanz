@@ -228,6 +228,16 @@ Mesmo levantando sozinha, o passo **falha de propósito** e manda e-mail. Cair
 
 ---
 
+O token é conferido todo dia. A ronda só falava com a API de gestão
+quando o servidor já tinha caído — então um token errado, expirado ou com
+permissão de menos ficaria escondido até o dia da queda, que é o pior
+momento para descobrir. Agora, com o servidor de pé, ela faz uma leitura
+barata (`GET /v1/projects/{ref}`) e falha de propósito se o token não
+servir. O recado deixa claro que o app está bem e o que quebrou é a rede
+de segurança.
+
+---
+
 ## 2d. Aplicar migração sem colar SQL na mão
 
 Em 21/10/2026 a migração 08 foi colada no editor do Supabase pelo celular.

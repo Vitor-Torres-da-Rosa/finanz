@@ -210,3 +210,54 @@ jobs:
 
           echo
           echo "Servidor acordado."
+
+          # ---- o token ainda vale? ----
+          #
+          # O trecho que levanta o projeto so fala com a API de gestao
+          # quando o servidor ja caiu. Quer dizer que um token errado,
+          # expirado ou com permissao de menos ficaria escondido ate o dia
+          # da queda — que e exatamente o pior momento para descobrir.
+          #
+          # Entao, com o servidor de pe, uma leitura barata: se o token
+          # nao servir, isso vira noticia num dia calmo.
+          #
+          # Falhar aqui e de proposito. O servidor esta bem; o que esta
+          # quebrado e a rede de seguranca, e isso tambem e uma queda.
+          if [ -n "${TOKEN:-}" ]; then
+            API=${API_SUPABASE:-https://api.supabase.com}
+            REF=$(echo "$URL" | sed -E 's#https://([a-z0-9]+)\.supabase\.co#\1#')
+            echo
+            echo "--- conferindo o SUPABASE_TOKEN em $REF"
+            CODIGO=$(curl -sS -o /tmp/conf.txt -w '%{http_code}' --max-time 30 \
+              -H "Authorization: Bearer $TOKEN" "$API/v1/projects/$REF" | tail -c 3)
+
+            case "$CODIGO" in
+              2*)
+                echo "token ok ($CODIGO). Estado do projeto:" \
+                     "$(grep -oE '"status":"[A-Z_]+"' /tmp/conf.txt | head -1)"
+                ;;
+              401|403)
+                echo "TOKEN RECUSADO ($CODIGO)."
+                echo
+                echo "O servidor esta de pe — isso aqui nao e queda do app."
+                echo "O que nao funciona e o levantar-sozinho: se o projeto"
+                echo "pausar, ninguem vai levanta-lo."
+                echo
+                echo "Gere outro em supabase.com/dashboard/account/tokens com"
+                echo "Project Settings read-write e Database read-write, e"
+                echo "troque o segredo SUPABASE_TOKEN no repositorio."
+                exit 1
+                ;;
+              404)
+                echo "A API NAO ACHOU O PROJETO $REF ($CODIGO)."
+                echo "Ou o token nao alcanca este projeto, ou o config.js"
+                echo "aponta para um endereco que nao existe mais."
+                exit 1
+                ;;
+              *)
+                echo "Resposta inesperada da API ($CODIGO). Nao da para dizer"
+                echo "se o token vale. Se repetir amanha, olhe o painel."
+                cat /tmp/conf.txt 2>/dev/null; echo
+                ;;
+            esac
+          fi
