@@ -1651,7 +1651,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.16.0';
+  var VERSAO = '5.16.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1660,6 +1660,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.16.1',
+      data: '2026-10-24',
+      itens: [
+        'A sincronização que falhava ficava falhada. Não havia nada que tentasse de novo: bastava um tropeço de rede, o celular dormindo ou o servidor acordando de uma pausa, e o app parava ali com o aviso vermelho em Mais até você mexer em alguma coisa. O que você tinha lançado no meio-tempo ficava só no aparelho, e ninguém avisava de novo.',
+        'Agora ele tenta sozinho, esperando cada vez mais entre uma tentativa e outra — 15 segundos, 30, um minuto, dois, cinco. A espera cresce de propósito: insistir de quatro em quatro segundos com o servidor fora do ar é gastar bateria e internet à toa.',
+        'E tenta na hora em duas situações que não dependem de relógio nenhum: quando você volta para o app e quando a internet volta. Quem digitou dentro do elevador quer que aquilo suba ao sair.',
+        'O aviso em Mais passou a contar o que aconteceu. Antes dizia "Não está sincronizando" e a explicação vinha cortada numa linha só — nem dava para saber se era o servidor fora do ar ou permissão negada em alguma coisa. Agora diz o que o servidor respondeu e em qual pedido, inteiro, para você poder me mandar num print.',
+        'E uma trava nova: duas partes do app podiam renovar a sua senha de acesso ao servidor ao mesmo tempo. Esse código de renovação é de uso único — a segunda renovação queimava a primeira e deixava o app com uma chave morta na mão, e dali em diante nada mais subia até entrar de novo. Agora é uma renovação de cada vez e todo mundo espera a mesma.'
+      ]
+    },
     {
       versao: '5.16.0',
       data: '2026-10-24',
@@ -3833,6 +3844,11 @@
     }
     Object.keys(opcoes.cabecalhos || {}).forEach(function (k) { cabecalhos[k] = opcoes.cabecalhos[k]; });
 
+    // O erro leva junto o método e o caminho. Sem isso a falha de
+    // sincronização chegava em Mais como "O servidor respondeu 400." e
+    // ninguém — nem eu — tinha como saber qual pedido era.
+    var etiqueta = (opcoes.metodo || 'GET') + ' ' + caminho.split('?')[0];
+
     return fetch(NUVEM.url + caminho, {
       method: opcoes.metodo || 'GET',
       headers: cabecalhos,
@@ -3841,25 +3857,54 @@
       return resposta.text().then(function (texto) {
         var corpo = null;
         if (texto) { try { corpo = JSON.parse(texto); } catch (e) { corpo = texto; } }
-        if (!resposta.ok) throw erroDoServidor(corpo, resposta.status);
+        if (!resposta.ok) {
+          var erro = erroDoServidor(corpo, resposta.status);
+          erro.pedido = etiqueta;
+          throw erro;
+        }
         return corpo;
       });
+    }, function (e) {
+      // Falha de rede: o fetch recusa sem resposta nenhuma.
+      if (e && !e.pedido) e.pedido = etiqueta;
+      throw e;
     });
   }
 
   // Renova o token quando falta menos de um minuto, para o pedido
   // seguinte não morrer no meio da sincronização.
+  //
+  // Uma renovação de cada vez, e todo mundo espera a mesma. O
+  // refresh_token do Supabase roda: cada renovação devolve um novo e
+  // queima o anterior. Dois pedidos partindo com o mesmo token em punho
+  // fazem o segundo voltar "Invalid Refresh Token" — e pior, a sessão
+  // guardada fica com um token já queimado, então dali em diante TODA
+  // sincronização falha, até entrar de novo.
+  //
+  // Antes havia um dono só de pedidos à nuvem, a sincronização, e ela é
+  // sequencial. Com a cópia a cada alteração passou a haver dois relógios
+  // independentes, e nada impedia os dois de renovarem ao mesmo tempo.
+  var renovacaoEmVoo = null;
+
   function comTokenValido() {
     if (!sessaoNuvem) return Promise.reject(new Error('Sem sessão na nuvem.'));
     if (sessaoNuvem.expira_em - Date.now() > 60000) return Promise.resolve(sessaoNuvem);
     if (!sessaoNuvem.refresh_token) return Promise.resolve(sessaoNuvem);
-    return pedirNuvem('/auth/v1/token?grant_type=refresh_token', {
+    if (renovacaoEmVoo) return renovacaoEmVoo;
+
+    var pedido = pedirNuvem('/auth/v1/token?grant_type=refresh_token', {
       metodo: 'POST',
       token: false,
       corpo: { refresh_token: sessaoNuvem.refresh_token }
     }).then(function (r) {
+      renovacaoEmVoo = null;
       return guardarSessaoDoServidor(r) || sessaoNuvem;
+    }, function (e) {
+      renovacaoEmVoo = null;
+      throw e;
     });
+    renovacaoEmVoo = pedido;
+    return pedido;
   }
 
   // O endereço de volta vai explícito em cada pedido que gera e-mail.
@@ -4514,9 +4559,25 @@
     var seguidas = (falhaDaSincronia ? falhaDaSincronia.seguidas : 0) + 1;
     falhaDaSincronia = {
       mensagem: motivoDaFalhaDeRede(e) || 'motivo desconhecido',
+      // O suficiente para alguém saber o que fazer: o que o servidor
+      // respondeu e em qual pedido. "Não está sincronizando" sozinho não
+      // separa servidor fora do ar de permissão negada numa tabela.
+      status: (e && e.status) || 0,
+      pedido: (e && e.pedido) || '',
       quando: Date.now(), seguidas: seguidas
     };
     return falhaDaSincronia;
+  }
+
+  // A frase inteira da falha, para a linha de Mais e para a pessoa poder
+  // me mandar num print sem precisar adivinhar o resto.
+  function recadoDaFalhaDeSincronia() {
+    var f = falhaDaSincronia;
+    if (!f) return '';
+    var partes = [f.seguidas + ' tentativa(s) sem sucesso'];
+    if (f.status) partes.push('o servidor respondeu ' + f.status);
+    if (f.pedido) partes.push('em ' + f.pedido);
+    return partes.join(' · ') + '.\n' + f.mensagem;
   }
 
   function sincronizar(silenciosa) {
@@ -4537,6 +4598,7 @@
       if (!doServidor) {
         sincronizando = false;
         falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
         agendarSincronia();
         return false;
       }
@@ -4544,6 +4606,7 @@
       return salvar(true).then(function () {
         sincronizando = false;
         falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
         if (!silenciosa) avisar('Sincronizado com a nuvem.');
         desenhar();
         // A cópia do dia sai daqui, depois de o estado já ser o da nuvem:
@@ -4559,6 +4622,7 @@
     }).catch(function (e) {
       sincronizando = false;
       var f = marcarFalhaDeSincronia(e);
+      agendarNovaTentativa(f.seguidas);
       if (!silenciosa) { avisar('Não sincronizou: ' + f.mensagem); return false; }
       // Três tentativas seguidas já não é tropeço de rede: é problema.
       if (f.seguidas === 3) {
@@ -4566,6 +4630,42 @@
       }
       return false;
     });
+  }
+
+  // Sincronização que falhou não podia ficar falhada para sempre — e era
+  // isso que acontecia: nada aqui reagendava depois de um erro. Um tropeço
+  // de rede, o celular que dormiu, o servidor acordando de uma pausa, e o
+  // app ficava com o aviso vermelho em Mais até a pessoa mexer em alguma
+  // coisa. Os dados do dia não subiam e ninguém avisava de novo.
+  //
+  // A espera cresce de propósito. Insistir de quatro em quatro segundos
+  // com o servidor fora do ar é o laço que gastava bateria e internet à
+  // toa; cinco minutos é o bastante para pegar o servidor de volta sem
+  // fazer barulho.
+  var ESPERAS_DE_NOVA_TENTATIVA = [15000, 30000, 60000, 120000, 300000];
+
+  function agendarNovaTentativa(seguidas) {
+    if (!NUVEM.ligada || !sessaoNuvem) return;
+    var i = Math.min(seguidas, ESPERAS_DE_NOVA_TENTATIVA.length) - 1;
+    clearTimeout(tempoSincronia);
+    tempoSincronia = setTimeout(function () { sincronizar(true); }, ESPERAS_DE_NOVA_TENTATIVA[i]);
+  }
+
+  // Voltar para o app e recuperar a internet são as duas horas em que vale
+  // tentar sem esperar relógio nenhum: quem digitou dentro do elevador quer
+  // que aquilo suba ao sair, e o celular que passou a tarde no bolso volta
+  // com a cópia do servidor atrasada.
+  //
+  // Com falha pendente tenta sempre. Sem ela, só se a última sincronização
+  // já tiver idade — trocar de app e voltar não pode virar um pedido a cada
+  // toque.
+  var ultimaSincronia = 0;
+
+  function sincronizarAoVoltar() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessao) return;
+    if (document.visibilityState !== 'visible') return;
+    if (!falhaDaSincronia && Date.now() - ultimaSincronia < 60000) return;
+    sincronizar(true);
   }
 
   // Sincroniza agora, de verdade.
@@ -14002,11 +14102,19 @@
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', comFalha ? 'Não está sincronizando' : 'Sincronizar agora'),
           no('div', 'linha-sub', comFalha
-            ? falhaDaSincronia.seguidas + ' tentativa(s) sem sucesso · ' + falhaDaSincronia.mensagem
+            ? recadoDaFalhaDeSincronia()
             : (sessaoNuvem && sessaoNuvem.usuario.email
                 ? 'Conectado como ' + sessaoNuvem.usuario.email
                 : 'Enviar e trazer os dados do servidor'))));
-      if (comFalha) sinc.querySelector('.linha-sub').style.color = 'var(--vermelho)';
+      if (comFalha) {
+        var recado = sinc.querySelector('.linha-sub');
+        recado.style.color = 'var(--vermelho)';
+        // .linha-sub corta em uma linha, que é o certo ao lado de um valor
+        // numa lista. Aqui não: é o único lugar onde o app conta o que
+        // deu errado, e cortado ele não conta nada.
+        recado.style.whiteSpace = 'pre-line';
+        recado.style.overflow = 'visible';
+      }
       cDados.appendChild(sinc);
     }
 
@@ -20337,6 +20445,12 @@
   }
 
   // ---------- Ligações ----------
+
+  // As duas horas de tentar de novo sem esperar relógio. Ficam aqui, junto
+  // das outras ligações, e não dentro do service worker: não têm nada a
+  // ver com versão nova, e o app precisa delas mesmo sem service worker.
+  document.addEventListener('visibilitychange', sincronizarAoVoltar);
+  window.addEventListener('online', sincronizarAoVoltar);
 
   $('fab').addEventListener('click', function () {
     if (noEmpreendedor()) abrirFolhaCliente(null);

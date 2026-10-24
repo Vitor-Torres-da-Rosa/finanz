@@ -13,6 +13,11 @@
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
+// O relógio da cópia por alteração é de 45 segundos no app. Aqui ele vai a
+// 4 pelo cookie que o servir.cjs entende, só para esta aba: o caminho
+// testado é o mesmo, muda o relógio. Antes este teste sozinho levava 52
+// segundos parado esperando.
+await ctx.addCookies([{ name:'esperainstantaneo', value:'4000', domain:'127.0.0.1', path:'/' }]);
 const page = await ctx.newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
 
@@ -93,8 +98,7 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 conferir('1. o estado é −R$ 320,00', (await totalEmContas()) === '-R$ 320,00');
 
 // ---- a cópia por alteração sai sozinha depois do sossego ----
-console.log('esperando a espera de 45s do app...');
-await page.waitForTimeout(52000);
+await page.waitForTimeout(9000);
 const motivos = await copias();
 console.log('motivos na nuvem:', JSON.stringify(motivos));
 conferir('2. mexer no app guardou uma cópia de alteração',

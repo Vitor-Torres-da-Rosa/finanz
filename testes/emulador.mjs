@@ -36,7 +36,15 @@ function sessaoDe(uid, email, nome) {
   tokens.set(a, uid);
   refresh.set(r, uid);
   return {
-    access_token: a, refresh_token: r, expires_in: 3600, token_type: 'bearer',
+    // Conta cujo e-mail começa com "curto-" ganha token de vida curta. É
+    // como um teste chega à faixa em que o app renova antes de cada
+    // pedido sem ter de mexer na sessão por fora — mexer no localStorage
+    // não serve, porque a sessão que o app consulta está na memória dele.
+    access_token: a, refresh_token: r, token_type: 'bearer',
+    // 60 segundos cravados: o app renova quando falta MENOS de 60, então
+    // todo pedido desta conta renova antes. Sem isso o teste dependia de
+    // onde o relógio caísse e passava verde sem provar nada.
+    expires_in: /^curto-/.test(String(email || '')) ? 60 : 3600,
     user: { id: uid, email, user_metadata: { full_name: nome } }
   };
 }
@@ -128,7 +136,14 @@ const servidor = http.createServer(async (req, res) => {
       }
       if (tipo === 'refresh_token') {
         const uid = refresh.get(corpo.refresh_token);
-        if (!uid) return json(res, 400, { error_description: 'Invalid Refresh Token' });
+        if (!uid) return json(res, 400, { error_description: 'Invalid Refresh Token: Already Used' });
+        // O token de renovação roda e o antigo queima, como no Supabase de
+        // verdade. Lá ainda há uma folga de 10 segundos em que reusar o
+        // mesmo devolve a mesma sessão, e é ela que costuma esconder o
+        // defeito; aqui não há folga de propósito, porque o app não pode
+        // depender de uma configuração do servidor para não se desconectar
+        // sozinho quando dois pedidos renovam ao mesmo tempo.
+        refresh.delete(corpo.refresh_token);
         const email = [...usuarios.entries()].find(([, v]) => v.id === uid)?.[0] || '';
         const u = usuarios.get(email);
         return json(res, 200, sessaoDe(uid, email, u ? u.nome : ''));

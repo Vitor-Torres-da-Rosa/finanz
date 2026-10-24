@@ -24,17 +24,38 @@ if ! su postgres -c "$PGBIN/pg_isready -h /tmp -p 55433" >/dev/null 2>&1; then
   done
 fi
 
-# O emulador guarda a conexão com o banco: se o banco caiu, ele precisa renascer.
-if ! curl -s -o /dev/null --max-time 2 http://127.0.0.1:54321/rest/v1/perfis; then
-  pkill -f emulador.mjs >/dev/null 2>&1
+# O emulador guarda a conexão com o banco: se o banco caiu, ele precisa
+# renascer. E se o PRÓPRIO emulador mudou, também: ele é um processo que
+# já está de pé, então editar o arquivo não muda nada até reiniciar. Essa
+# é a mesma armadilha da cópia velha do app — o teste roda contra o código
+# de antes e fica verde por motivo nenhum.
+EMU_AGORA=$(stat -c %Y emulador.mjs 2>/dev/null || echo 0)
+EMU_ANTES=$(cat /tmp/emu.mtime 2>/dev/null || echo 0)
+if ! curl -s -o /dev/null --max-time 2 http://127.0.0.1:54321/rest/v1/perfis \
+   || [ "$EMU_AGORA" != "$EMU_ANTES" ]; then
+  # Comparação exata dos argumentos, não "pgrep -f": o -f casa com a linha
+  # de comando de QUEM está rodando isto, que também contém o texto da
+  # busca. O script matava o próprio shell que o chamou.
+  for pid in $(ps -eo pid=,args= | awk '$2=="node" && $3=="emulador.mjs" {print $1}'); do
+    kill "$pid" 2>/dev/null
+  done
   sleep 1
   setsid node emulador.mjs >/tmp/emu.log 2>&1 < /dev/null &
+  echo "$EMU_AGORA" > /tmp/emu.mtime
 fi
 
-if ! curl -s -o /dev/null --max-time 2 http://127.0.0.1:8833/index.html; then
-  pkill -f "servir.cjs" >/dev/null 2>&1
+# Mesma história do emulador: o servidor dos testes também é um processo
+# de pé, e editar servir.cjs não muda nada até ele renascer.
+SRV_AGORA=$(stat -c %Y servir.cjs 2>/dev/null || echo 0)
+SRV_ANTES=$(cat /tmp/servir.mtime 2>/dev/null || echo 0)
+if ! curl -s -o /dev/null --max-time 2 http://127.0.0.1:8833/index.html \
+   || [ "$SRV_AGORA" != "$SRV_ANTES" ]; then
+  for pid in $(ps -eo pid=,args= | awk '$2=="node" && $3=="servir.cjs" {print $1}'); do
+    kill "$pid" 2>/dev/null
+  done
   sleep 1
   setsid node servir.cjs appteste 8833 >/tmp/servir.log 2>&1 < /dev/null &
+  echo "$SRV_AGORA" > /tmp/servir.mtime
 fi
 
 for _ in $(seq 1 20); do
