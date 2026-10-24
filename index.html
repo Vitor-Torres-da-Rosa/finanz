@@ -1655,7 +1655,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.17.0';
+  var VERSAO = '5.17.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1664,6 +1664,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.17.1',
+      data: '2026-10-24',
+      itens: [
+        'Conserto da sincronização travada em 409. Um pagamento registrado com "Lançar como entrada no caixa" guarda o endereço do lançamento que ele criou. Apagando esse lançamento antes de ele chegar ao servidor — com a internet ruim, por exemplo —, o pagamento ficava apontando para um endereço que o servidor nunca viu, e o servidor recusava. O pior é que ele não recusa só aquele registro: recusa o envio inteiro. Nada mais subia, por tentativa nenhuma.',
+        'Agora nenhuma referência morta sai daqui. Antes de mandar, o app confere cada ligação entre os seus registros: a que aponta para algo que não existe mais vira vazia, que é exatamente o que o servidor faria sozinho. Vale para todas as ligações do app, não só essa — nenhuma delas pode travar a sua sincronização de novo.',
+        'E apagar um lançamento passou a soltar o pagamento que tinha criado ele. Antes ficava o apontamento morto, e a ficha do cliente dizia "lançado no caixa" para um lançamento que já não existia.'
+      ]
+    },
     {
       versao: '5.17.0',
       data: '2026-10-24',
@@ -4146,7 +4155,7 @@
     // apagar não servia para nada.
     function vivo(linha) { linha.excluido_em = null; return linha; }
 
-    return {
+    return amarrarReferencias({
       contas: estado.contas.map(function (c) {
         return vivo({ id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
                  saldo_inicial: c.saldoInicial, cor: c.cor, banco: c.banco || '',
@@ -4203,7 +4212,66 @@
           conta_id: ouNulo(m.contaId), prazo: ouNulo(m.prazo)
         });
       })
-    };
+    });
+  }
+
+  // As amarras do banco: campo, tabela de destino, e se é obrigatória.
+  var LACOS = {
+    lancamentos:     [['conta_id', 'contas', false], ['conta_destino_id', 'contas', false]],
+    ativo_historico: [['ativo_id', 'ativos', true]],
+    servicos:        [['cliente_id', 'clientes', true]],
+    pagamentos:      [['cliente_id', 'clientes', true], ['servico_id', 'servicos', false],
+                      ['lancamento_id', 'lancamentos', false]],
+    parcelas:        [['cliente_id', 'clientes', true], ['servico_id', 'servicos', false],
+                      ['pagamento_id', 'pagamentos', false]],
+    metas:           [['conta_id', 'contas', false]]
+  };
+
+  // Nenhuma referência solta sai daqui.
+  //
+  // O servidor tem chaves estrangeiras: um pagamento aponta para um
+  // lançamento, um serviço aponta para um cliente. Mandar uma referência
+  // para uma linha que não existe devolve 409 — e 409 não derruba aquele
+  // registro, derruba a sincronização INTEIRA. Nada mais sobe, por
+  // tentativa nenhuma, até alguém achar a referência morta.
+  //
+  // Aconteceu com o Vitor em 24/10/2026: ele apagou um lançamento que
+  // tinha nascido de um pagamento, o pagamento ficou apontando para o
+  // nada, e foram onze tentativas sem nada subir. O recado era "insert or
+  // update on table pagamentos violates foreign key constraint
+  // pagamentos_lancamento_id_fkey".
+  //
+  // Aqui a referência solta vira nula — que é exatamente o que o banco faz
+  // sozinho quando o alvo é apagado (on delete set null). Sendo a
+  // referência obrigatória, a linha fica de fora do envio: ela não entra
+  // de jeito nenhum, e insistir levaria o resto junto.
+  //
+  // A ordem de TABELAS_SINCRONIA é a das dependências, então quando chego
+  // numa tabela as de que ela depende já foram filtradas: `existe` conta
+  // só quem sobreviveu.
+  var linhasSoltas = 0;
+
+  function amarrarReferencias(linhas) {
+    var existe = {};
+    linhasSoltas = 0;
+    TABELAS_SINCRONIA.forEach(function (t) { existe[t] = {}; });
+
+    TABELAS_SINCRONIA.forEach(function (t) {
+      var lacos = LACOS[t] || [];
+      linhas[t] = (linhas[t] || []).filter(function (l) {
+        for (var i = 0; i < lacos.length; i++) {
+          var campo = lacos[i][0], alvo = lacos[i][1], obrigatoria = lacos[i][2];
+          var id = l[campo];
+          if (id == null || id === '') continue;
+          if (existe[alvo][String(id)]) continue;
+          if (obrigatoria) { linhasSoltas++; return false; }
+          l[campo] = null;
+        }
+        return true;
+      });
+      linhas[t].forEach(function (l) { existe[t][String(l.id)] = true; });
+    });
+    return linhas;
   }
 
   function perfilParaLinha(uid) {
@@ -15003,6 +15071,14 @@
           }, function () {
             marcarExcluido('lancamentos', existente.id);
             estado.lancamentos = estado.lancamentos.filter(function (l) { return l.id !== existente.id; });
+            // O pagamento que tinha gerado este lançamento guardava o id
+            // dele. Sem soltar aqui, sobrava um apontamento para o nada —
+            // a ficha do cliente dizia "lançado no caixa" para um
+            // lançamento que não existe mais, e o envio levava a
+            // referência morta para o servidor, que recusava tudo.
+            (estado.pagamentos || []).forEach(function (pg) {
+              if (pg.lancamentoId === existente.id) pg.lancamentoId = '';
+            });
             salvar();
             fecharFolha();
             desenhar();

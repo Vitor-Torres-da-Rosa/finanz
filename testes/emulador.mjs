@@ -241,7 +241,13 @@ const servidor = http.createServer(async (req, res) => {
 
     return json(res, 404, { message: 'não encontrado' });
   } catch (e) {
-    return json(res, 400, { message: e.message });
+    // O PostgREST traduz o código do Postgres em status: chave estrangeira
+    // violada (23503) e id repetido (23505) viram 409, não 400. Sem isto o
+    // teste via 400 onde o celular do Vitor via 409 — mesmo erro, número
+    // diferente, e qualquer verificação em cima do número mentiria.
+    const codigo = e && e.code;
+    const status = (codigo === '23503' || codigo === '23505') ? 409 : 400;
+    return json(res, status, { message: e.message, code: codigo || '' });
   }
 });
 
