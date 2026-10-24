@@ -95,6 +95,16 @@ conferir('2. a cópia da mexida ainda não subiu', antes.length === 0, JSON.stri
 // faria todos os testes rodando ao mesmo tempo verem atualização.
 await ctx.addCookies([{ name:'swversao', value:'99.0.0-teste', domain:'127.0.0.1', path:'/' }]);
 
+// Uma caixa de cache que não é do Finanz. A atualização não pode encostar
+// nela: até a 5.16.1 o service worker apagava TUDO o que não fosse a caixa
+// da versão nova, e o cache da partilha — que segura o extrato recém
+// compartilhado — já precisava de uma exceção escrita à mão. Agora a regra
+// é ao contrário: só sai o que ele sabe que é descartável.
+await page.evaluate(async () => {
+  const c = await caches.open('coisa-da-pessoa');
+  await c.put('/guardado', new Response('não me apague'));
+});
+
 await page.evaluate(async () => {
   const r = await navigator.serviceWorker.getRegistration();
   if (r) await r.update().catch(() => {});
@@ -106,16 +116,41 @@ conferir('3. o aviso de versão nova apareceu', temAviso === 1,
 await page.screenshot({ path: dir+'/z01-aviso-de-versao.png' });
 
 if (temAviso) {
-  // Aperto e leio o rótulo no mesmo passo. O que troca o texto roda
-  // dentro do clique, então o valor já é o novo quando o click() volta —
-  // esperar para ler é corrida perdida: com o servidor na mesma máquina a
-  // página já recarregou, e aí não há botão nenhum para ler.
-  const rotulo = limpo(await page.evaluate(() => {
-    const b = document.querySelector('#avisoVersao button');
-    b.click();
-    return b.textContent;
+  // Aperto "Atualizar". Como acabei de mexer e a cópia ainda não saiu, o
+  // app tem que PERGUNTAR antes de trocar de versão, em vez de guardar em
+  // silêncio e seguir mesmo tendo falhado.
+  await page.click('#avisoVersao button'); await page.waitForTimeout(1200);
+  const pergunta = limpo(await page.textContent('#dialogoTitulo').catch(() => ''));
+  const botoes = limpo(await page.textContent('#dialogoAcoes').catch(() => ''));
+  conferir('4. o app pergunta se quer salvar na nuvem antes',
+    /Salvar na nuvem antes/.test(pergunta) && /Salvar e atualizar/.test(botoes),
+    pergunta + ' · ' + botoes);
+  await page.screenshot({ path: dir+'/z09-pergunta-antes-de-atualizar.png' });
+
+  // Sem a pergunta não há o que clicar. Melhor seguir e deixar as
+  // verificações seguintes falharem com o que acharam do que morrer de
+  // timeout e esconder o resto do relatório.
+  const temPergunta = await page.locator('#dialogoAcoes button:has-text("Salvar e atualizar")').count();
+  if (temPergunta) await page.click('#dialogoAcoes button:has-text("Salvar e atualizar")');
+  // A caixa de espera: sem botão, com a rodinha, enquanto o pedido sobe.
+  const espera = await page.evaluate(() => ({
+    titulo: (document.getElementById('dialogoTitulo') || {}).textContent || '',
+    rodinha: !!document.querySelector('#dialogoAcoes .dialogo-espera'),
+    botoes: document.querySelectorAll('#dialogoAcoes button').length
   }));
-  conferir('4. o botão avisa que está guardando primeiro', /Guardando/.test(rotulo), rotulo);
+  conferir('5. mostra uma aba de carregamento, sem botão para apertar',
+    /Salvando na nuvem/.test(espera.titulo) && espera.rodinha && espera.botoes === 0,
+    JSON.stringify(espera));
+  await page.screenshot({ path: dir+'/z10-salvando.png' });
+
+  await page.waitForSelector('#dialogoTitulo:text-is("Pronto, está salvo")', { timeout: 30000 })
+    .catch(() => {});
+  const fim = limpo(await page.textContent('#dialogoTitulo').catch(() => ''));
+  conferir('6. e avisa quando terminou', /Pronto, está salvo/.test(fim), fim);
+  await page.screenshot({ path: dir+'/z11-salvo.png' });
+
+  if (await page.locator('#dialogoAcoes button:has-text("Atualizar agora")').count())
+    await page.click('#dialogoAcoes button:has-text("Atualizar agora")');
   // O recarregamento vem do controllerchange, que chega quando o sw novo
   // assume. Espero a página voltar inteira.
   await page.waitForTimeout(12000);
@@ -126,9 +161,9 @@ await page.waitForTimeout(2500);
 
 const depois = await copias();
 console.log('cópias na nuvem:', JSON.stringify(depois));
-conferir('5. a atualização guardou uma cópia antes de trocar de versão',
+conferir('7. a atualização guardou uma cópia antes de trocar de versão',
   depois.some((m) => /^antes de atualizar o app/.test(m)), JSON.stringify(depois));
-conferir('6. e ela tem o que estava na tela, não um estado vazio',
+conferir('8. e ela tem o que estava na tela, não um estado vazio',
   depois.some((m) => /^antes de atualizar o app .*1 lançamentos/.test(m)), JSON.stringify(depois));
 
 // E o que o Vitor teme: os dados continuam aí depois de atualizar.
@@ -139,17 +174,29 @@ conferir('6. e ela tem o que estava na tela, não um estado vazio',
 // rodada: no dia em que alguém mexer no sw.js e começar a limpar o
 // localStorage, é ela que acende.
 const agora = await totalEmContas();
-conferir('7. depois de atualizar, os dados continuam', agora === '-R$ 320,00', agora);
+conferir('9. depois de atualizar, os dados continuam', agora === '-R$ 320,00', agora);
 await page.screenshot({ path: dir+'/z02-depois-de-atualizar.png', fullPage: true });
 
 // A cópia aparece na folha com cara de atualização, não de exclusão.
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
 await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
 const naFolha = limpo(await page.textContent('#folha'));
-conferir('8. a folha mostra a cópia como "Antes de atualizar o app"',
+conferir('10. a folha mostra a cópia como "Antes de atualizar o app"',
   /Antes de atualizar o app/.test(naFolha),
   (naFolha.match(/Antes de atualizar o app[^›]*/) || ['(não achei)'])[0].slice(0, 90));
 await page.screenshot({ path: dir+'/z03-na-folha.png', fullPage: true });
+
+const caixas = await page.evaluate(async () => {
+  const nomes = await caches.keys();
+  const c = await caches.open('coisa-da-pessoa');
+  const r = await c.match('/guardado');
+  return { nomes: nomes, sobreviveu: r ? await r.text() : '(sumiu)' };
+});
+console.log('caches depois da atualização:', JSON.stringify(caixas));
+conferir('11. a atualização não encostou na caixa que não é dela',
+  caixas.sobreviveu === 'não me apague', caixas.sobreviveu);
+conferir('12. e a caixa de arquivos da versão velha saiu',
+  !caixas.nomes.some((n) => n === 'finanz-v5.16.1'), JSON.stringify(caixas.nomes));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }

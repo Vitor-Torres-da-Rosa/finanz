@@ -111,7 +111,11 @@ await page.click('#folha button:has-text("Guardar uma cópia agora")'); await pa
 
 const depois = await contar();
 console.log('depois da limpeza:', JSON.stringify(depois));
-conferir('2. as de alteração ficaram no teto de 60', depois['alteração'] === 60,
+// Desde a 5.17.0 a regra é mais dura: de cada dia fica UMA cópia de
+// alteração, a última. As 70 da enxurrada são todas de hoje, então sobra
+// uma. Quem cobre essa regra por inteiro, com vários dias, é o t120; aqui
+// ela entra só para o número bater.
+conferir('2. a enxurrada do dia virou uma cópia só', depois['alteração'] === 1,
   String(depois['alteração']));
 const exclusoes = Object.keys(depois).filter((m) => /^antes de apagar/.test(m)).length;
 conferir('3. as três de antes de apagar continuam lá', exclusoes === 3, String(exclusoes));
@@ -120,7 +124,9 @@ conferir('4. e a cópia feita à mão entrou', depois['cópia feita por você'] 
 
 // As de antes de apagar são as mais velhas de todas. Com um teto único de
 // 40 para tudo que não é a cópia do dia, elas seriam as primeiras a sair —
-// é exatamente este o defeito que o teste existe para pegar.
+// é exatamente este o defeito que o teste existe para pegar: a cópia que
+// alguém vai procurar de verdade, varrida por cópias automáticas de uma
+// tarde movimentada.
 await page.screenshot({ path: dir+'/z04-tetos-por-tipo.png', fullPage: true });
 
 await browser.close();
