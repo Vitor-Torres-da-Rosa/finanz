@@ -131,8 +131,8 @@ const comManual = limpo(await page.textContent('#folha'));
 conferir('6c. o botão guarda uma cópia na hora, com cara própria',
   /Cópia feita por você/.test(comManual), comManual.slice(0, 260));
 conferir('6d. e a lista passa a mostrar duas',
-  /2 cópia\(s\) guardada\(s\)/.test(comManual),
-  (comManual.match(/\d+ cópia\(s\) guardada\(s\)/) || ['(não achei)'])[0]);
+  /2 cópias guardadas/.test(comManual),
+  (comManual.match(/(Uma cópia guardada|\d+ cópias guardadas)/) || ['(não achei)'])[0]);
 await page.screenshot({ path: dir+'/v04-copia-feita-a-mao.png', fullPage: true });
 await page.screenshot({ path: dir+'/v02-escolher-a-data.png', fullPage: true });
 
