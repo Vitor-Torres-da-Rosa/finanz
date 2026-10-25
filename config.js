@@ -11,6 +11,13 @@
 // Passo a passo em supabase/CONFIGURACAO.md.
 
 window.FINANZ_CONFIG = {
+  // A conta da manutenção. Só ela enxerga "Versões guardadas" em Mais, e
+  // só para ela a página de versões se abre.
+  //
+  // Isto é tranca de porta, não cofre: as versões ficam num site público e
+  // quem souber o endereço de uma delas abre direto, sem passar por aqui.
+  // Serve para o app não oferecer manutenção a quem não é da manutenção.
+  dono: 'vitortorresdarosa@gmail.com',
   supabaseUrl: 'https://udebkowqklrzhadndabs.supabase.co',
   supabaseAnonKey: 'sb_publishable_8igq8JudFCLhvkfMKJAJFQ_wTEftWWs'
 };

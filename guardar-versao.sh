@@ -43,8 +43,14 @@ fi
   echo 'margin-top:10px;color:#F4F0E7;text-decoration:none}'
   echo 'a.v small{color:#7C7362;font-size:12px}'
   echo '.agora{border-color:#E9B44C}'
+  echo 'a.voltar{color:#E9B44C;text-decoration:none;font-size:14px;display:inline-block;margin-bottom:14px}'
+  echo '#tudo{display:none}'
   echo '</style></head><body>'
+  echo '<a class="voltar" href="../">‹ Voltar ao app</a>'
   echo '<h1>F I N A N Z</h1>'
+  echo '<div id="barrado"><p>Esta página é da manutenção do app. Entre com a conta'
+  echo 'do administrador para vê-la.</p></div>'
+  echo '<div id="tudo">'
   echo '<p>Versões guardadas. A de cima é a que está no ar. Se uma atualização'
   echo 'estragar alguma coisa, abra a de baixo — seus dados continuam os mesmos,'
   echo 'porque ficam guardados no aparelho e não dentro da versão.</p>'
@@ -56,6 +62,26 @@ fi
   echo '<p style="margin-top:26px">Abrindo uma versão antiga, o atalho da tela inicial'
   echo 'continua apontando para a de cima. Para voltar de vez, é só usar o endereço'
   echo 'normal do app.</p>'
+  echo '</div>'
+  # A lista só aparece para a conta dona do app. Isto é tranca de porta, não
+  # cofre: os arquivos ficam num site público e quem souber o endereço de uma
+  # versão abre direto. Serve para o app não oferecer manutenção a quem não é
+  # da manutenção; não serve para esconder nada de quem procura.
+  echo '<script src="../config.js"></script>'
+  echo '<script>'
+  echo '(function () {'
+  echo '  var dono = ((window.FINANZ_CONFIG || {}).dono || "").trim().toLowerCase();'
+  echo '  var quem = "";'
+  echo '  try {'
+  echo '    var s = JSON.parse(localStorage.getItem("caixa.nuvem.v3") || "null");'
+  echo '    quem = (s && s.usuario && s.usuario.email || "").trim().toLowerCase();'
+  echo '  } catch (e) { quem = ""; }'
+  echo '  if (!dono || quem === dono) {'
+  echo '    document.getElementById("tudo").style.display = "block";'
+  echo '    document.getElementById("barrado").style.display = "none";'
+  echo '  }'
+  echo '}());'
+  echo '</script>'
   echo '</body></html>'
 } > versoes/index.html
 echo "versoes/index.html atualizado"

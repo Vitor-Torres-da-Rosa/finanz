@@ -175,6 +175,18 @@ const servidor = http.createServer(async (req, res) => {
     if (url.pathname === '/auth/v1/logout') { cors(res); res.writeHead(204); res.end(); return; }
     if (url.pathname === '/auth/v1/recover') return json(res, 200, {});
 
+    // ---------- Funções ----------
+    // O PostgREST expõe função do banco em /rest/v1/rpc/<nome>, e ela roda
+    // com o RLS do usuário do token — igual ao resto.
+    if (url.pathname.startsWith('/rest/v1/rpc/')) {
+      const nome = url.pathname.slice('/rest/v1/rpc/'.length);
+      if (!/^[a-z_]+$/.test(nome)) return json(res, 400, { message: 'função inválida' });
+      const uid = uidDoPedido(req);
+      if (!uid) return json(res, 401, { message: 'sem token' });
+      const r = await comoUsuario(uid, (c) => c.query(`select public."${nome}"() as v`));
+      return json(res, 200, r.rows[0] ? r.rows[0].v : null);
+    }
+
     // ---------- Dados ----------
     if (url.pathname.startsWith('/rest/v1/')) {
       const tabela = url.pathname.slice('/rest/v1/'.length);

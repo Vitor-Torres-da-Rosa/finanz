@@ -515,3 +515,42 @@ $$;
 
 revoke all on function public.pulso_bater() from public;
 grant execute on function public.pulso_bater() to anon, authenticated;
+
+-- ------------------------------------------------------------
+-- O carimbo da conta: qual é a alteração mais recente?
+--
+-- Responde em trinta bytes o que o download inteiro responderia em
+-- centenas de kilobytes. O app guarda o carimbo da última sincronização;
+-- vindo igual, ele pula a descida.
+--
+-- E serve para o contrário, que importa mais: um aparelho parado com uma
+-- cópia velha descobre, antes de mandar, que o servidor andou — e adota o
+-- que está lá em vez de empurrar o passado por cima do presente.
+--
+-- security invoker (o padrão) de propósito: assim a função enxerga só o
+-- que o RLS deixa, e o max() não vaza o movimento de outra conta.
+-- ------------------------------------------------------------
+
+create or replace function public.carimbo_da_conta()
+returns timestamptz
+language sql
+stable
+set search_path = public
+as $$
+  select max(em) from (
+    select max(atualizado_em) as em from public.perfis
+    union all select max(atualizado_em) from public.contas
+    union all select max(atualizado_em) from public.lancamentos
+    union all select max(atualizado_em) from public.ativos
+    union all select max(atualizado_em) from public.ativo_historico
+    union all select max(atualizado_em) from public.clientes
+    union all select max(atualizado_em) from public.servicos
+    union all select max(atualizado_em) from public.pagamentos
+    union all select max(atualizado_em) from public.parcelas
+    union all select max(atualizado_em) from public.metas
+    union all select max(atualizado_em) from public.orcamentos
+  ) t;
+$$;
+
+revoke all on function public.carimbo_da_conta() from public;
+grant execute on function public.carimbo_da_conta() to authenticated;
