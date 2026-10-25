@@ -1659,7 +1659,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.19.0';
+  var VERSAO = '5.19.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1668,6 +1668,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.19.1',
+      data: '2026-10-25',
+      itens: [
+        'No Histórico do saldo, cada causa ganhou o seu desenho — 🕑 a volta no tempo, 🏦 a importação, ☁ o que veio da nuvem, 🗑 o apagar tudo, ✎ a sua mexida —, e a frase não é mais cortada no meio. "Você voltou para a cópi…" não explicava nada.'
+      ]
+    },
     {
       versao: '5.19.0',
       data: '2026-10-25',
@@ -20612,19 +20619,38 @@
         return;
       }
 
+      // Cada causa com a sua cara: a pessoa procura pelo tipo do
+      // acontecimento, não pela ordem. E o título pode quebrar linha aqui,
+      // porque a frase inteira ("você voltou para a cópia de 24/10/2026")
+      // é o que explica a mudança — cortada em "você voltou para a cópi…"
+      // ela não explica nada.
+      function caraDo(motivo, daPessoa) {
+        if (/^você voltou para a cópia/.test(motivo)) return ['🕑', '#60A5FA'];
+        if (/^você importou/.test(motivo)) return ['🏦', '#E9B44C'];
+        if (/^você apagou tudo/.test(motivo)) return ['🗑', '#F87171'];
+        if (/^você trouxe/.test(motivo)) return ['⇄', '#A78BFA'];
+        if (/^você restaurou/.test(motivo)) return ['↺', '#34D399'];
+        if (/nuvem/.test(motivo)) return ['☁', '#60A5FA'];
+        return daPessoa ? ['✎', '#8A7A55'] : ['☁', '#60A5FA'];
+      }
+
       var cartaoLista = cartao('liso');
       lista.forEach(function (h) {
         var dif = h.saldo - (h.antes == null ? h.saldo : h.antes);
         var quando = new Date(h.quando);
         var hoje = quando.toISOString().slice(0, 10) === hojeTexto();
+        var cara = caraDo(h.motivo, h.daPessoa);
         var linha = no('div', 'linha');
+        var titulo = no('div', 'linha-titulo', maiusculaInicial(h.motivo));
+        titulo.style.whiteSpace = 'normal';
+        titulo.style.overflow = 'visible';
         juntar(linha,
-          selo(h.daPessoa ? '#8A7A55' : '#60A5FA', h.daPessoa ? '✎' : '☁'),
+          selo(cara[1], cara[0]),
           juntar(no('div', 'linha-texto'),
-            no('div', 'linha-titulo', maiusculaInicial(h.motivo)),
+            titulo,
             no('div', 'linha-sub',
               (hoje ? 'hoje às ' : dataBr(quando.toISOString().slice(0, 10)) + ' às ') +
-              horaDe(h.quando) + ' · ' + h.lancamentos + ' lançamentos · ' +
+              horaDe(h.quando) + ' · ' + h.lancamentos + ' lanç. · ' +
               h.contas + ' contas')),
           juntar(no('div', 'linha-fim'),
             no('div', 'linha-valor num ' + (dif > 0 ? 'verde' : dif < 0 ? 'vermelho' : ''),

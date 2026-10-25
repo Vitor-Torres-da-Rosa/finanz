@@ -542,10 +542,14 @@
   .cartao.saude { padding: 18px 16px; }
   .saude-linha { display: flex; align-items: center; gap: 16px; }
   .saude-anel { position: relative; width: 84px; height: 84px; flex: none; }
-  .saude-num { position: absolute; inset: 0; display: flex; align-items: baseline;
-               justify-content: center; gap: 1px; }
-  .saude-valor { font-size: 26px; font-weight: 700; color: var(--texto); line-height: 1; }
-  .saude-de { font-size: 11px; color: var(--fraco); }
+  /* O número no meio do anel. Em linha com o "/100" ao lado, o conjunto
+     é que ficava centrado — e aí o número grande caía para a esquerda e o
+     "/100" encostava na borda. Empilhado, o número fica no centro com
+     dois ou três dígitos, que é o que o olho procura. */
+  .saude-num { position: absolute; inset: 0; display: flex; flex-direction: column;
+               align-items: center; justify-content: center; }
+  .saude-valor { font-size: 25px; font-weight: 700; color: var(--texto); line-height: 1; }
+  .saude-de { font-size: 10px; color: var(--fraco); line-height: 1; margin-top: 3px; }
   .saude-texto { min-width: 0; }
   .saude-faixa { font-size: 19px; font-weight: 600; margin: 2px 0 4px; }
   .saude-esperando { font-size: 18px; font-weight: 600; color: var(--suave); margin: 8px 0 6px; }
@@ -1655,7 +1659,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.17.0';
+  var VERSAO = '5.19.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1664,6 +1668,56 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.19.1',
+      data: '2026-10-25',
+      itens: [
+        'No Histórico do saldo, cada causa ganhou o seu desenho — 🕑 a volta no tempo, 🏦 a importação, ☁ o que veio da nuvem, 🗑 o apagar tudo, ✎ a sua mexida —, e a frase não é mais cortada no meio. "Você voltou para a cópi…" não explicava nada.'
+      ]
+    },
+    {
+      versao: '5.19.0',
+      data: '2026-10-25',
+      itens: [
+        'Mais → "Histórico do saldo": de onde veio cada mudança nos seus números. Toda vez que o total muda, o app anota o que causou — você mexeu, veio da nuvem, você voltou a uma cópia, importou um extrato, apagou tudo. Mostra a hora, quanto mexeu e quanto ficou. As suas mexidas seguidas entram juntas numa linha só; o que não foi você entra sempre, porque é justamente o que ninguém vê acontecer.',
+        'É para responder a pergunta certa quando um lançamento some: "fui eu, foi a nuvem, ou foi uma volta no tempo?". Essas três coisas pedem reações diferentes, e sem registro não havia como separá-las.',
+        'O histórico não é apagado quando você volta a uma cópia. Ele conta o que ACONTECEU com a conta, e voltar no tempo não desfaz o que aconteceu — pelo contrário, a volta entra nele como mais uma linha.',
+        'Voltar a uma cópia agora mostra uma janela de "Voltando a esta cópia" e avisa assim que termina. Antes era um toque que sumia em dois segundos, e o resto do caminho — mandar para a nuvem — acontecia com o app parecendo parado.'
+      ]
+    },
+    {
+      versao: '5.18.0',
+      data: '2026-10-25',
+      itens: [
+        'Conserto da sincronização travada em "transferencia_valida". A culpa foi minha, da 5.17.1: para impedir que uma referência morta travasse o envio, eu passei a anular a referência que aponta para o nada. Só que transferência tem uma regra a mais — o banco exige as duas contas, e diferentes entre si. Anulando uma perna eu criava uma linha que o servidor recusa, e a recusa derruba o envio inteiro. Agora a transferência órfã fica de fora do envio em vez de virar uma linha inválida.',
+        'E o app conta quando algum registro fica de fora, em vez de dizer "sincronizado" escondendo que nem tudo subiu.',
+        'O app parou de baixar tudo de novo quando nada mudou. Antes, toda sincronização trazia o conjunto inteiro de dados, mesmo quando o servidor estava igual — e quase sempre está, porque na maioria das vezes quem mexeu foi este mesmo aparelho. Agora ele pergunta "mudou alguma coisa?" em trinta bytes e, se não mudou, pula a descida. Medido numa conta com 1000 lançamentos: a segunda abertura seguida caiu de 387 KB para zero.',
+        'Isso também protege os seus dados: um aparelho que ficou parado com uma cópia velha agora descobre, ANTES de mandar, que o servidor andou — e traz a versão nova em vez de empurrar a antiga por cima.',
+        'E o aviso vermelho de "não está sincronizando" some da tela assim que o problema passa. Ele ficava lá até você trocar de tela, e o app parecia quebrado sem estar.',
+        'Os arquivos de extrato guardados na nuvem passam a sair sozinhos depois de 6 meses. Eles ficavam para sempre, uns 14 MB por ano, e nada nos seus números depende deles: os lançamentos nascem na importação e vivem no app. Sem o arquivo, o que some é só o botão "Baixar" naquela leva.',
+        'A nota de saúde financeira voltou a ficar centrada no anel. O "/100" ao lado empurrava o número para a esquerda.',
+        '"Versões guardadas" agora abre na mesma aba, então o botão voltar do celular volta para o app em vez de fechá-lo. E a página passou a ser só da conta de manutenção.'
+      ]
+    },
+    {
+      versao: '5.17.2',
+      data: '2026-10-25',
+      itens: [
+        'Conserto da duplicação: contas e clientes apareciam em dobro. Quando você volta a uma cópia, ou traz dados de outra conta, isso SUBSTITUI o que está na nuvem — o app sobe o que está aqui e apaga de lá o que não veio junto. Só que ele fazia na ordem errada: subia primeiro e apagava depois. Se o envio quebrasse no meio, o novo já estava lá e o velho não tinha saído, e a próxima descida trazia as duas levas somadas. Agora ele apaga antes de subir. Falhando agora, o pior caso é um envio atrasado, que a próxima sincronização refaz sozinha.',
+        'E a marca de "isto substitui" passou a sobreviver ao recarregamento. Ela se perdia quando o app reabria — inclusive ao atualizar de versão. Quem voltou a uma cópia, viu a sincronização falhar e só então atualizou, perdia a marca: a sincronização seguinte virava acréscimo em cima do que ela devia ter apagado. Era esse o caminho da duplicação.',
+        'Voltar a uma cópia parou de prometer o que não cumpriu. Ele dizia "a nuvem já está com essa versão" mesmo quando o envio tinha falhado. Agora diz a verdade, e avisa para não entrar na conta em outro aparelho enquanto isso — o outro ainda tem a versão antiga e mandaria ela de volta.',
+        'E o convite para trazer dados de outra conta não aparece mais com a sincronização falhando. Com ela falhando o app não sabe o que a sua conta tem, e oferecer uma junção ali é propor somar com dados que existem e só não chegaram.'
+      ]
+    },
+    {
+      versao: '5.17.1',
+      data: '2026-10-24',
+      itens: [
+        'Conserto da sincronização travada em 409. Um pagamento registrado com "Lançar como entrada no caixa" guarda o endereço do lançamento que ele criou. Apagando esse lançamento antes de ele chegar ao servidor — com a internet ruim, por exemplo —, o pagamento ficava apontando para um endereço que o servidor nunca viu, e o servidor recusava. O pior é que ele não recusa só aquele registro: recusa o envio inteiro. Nada mais subia, por tentativa nenhuma.',
+        'Agora nenhuma referência morta sai daqui. Antes de mandar, o app confere cada ligação entre os seus registros: a que aponta para algo que não existe mais vira vazia, que é exatamente o que o servidor faria sozinho. Vale para todas as ligações do app, não só essa — nenhuma delas pode travar a sua sincronização de novo.',
+        'E apagar um lançamento passou a soltar o pagamento que tinha criado ele. Antes ficava o apontamento morto, e a ficha do cliente dizia "lançado no caixa" para um lançamento que já não existia.'
+      ]
+    },
     {
       versao: '5.17.0',
       data: '2026-10-24',
@@ -3317,6 +3371,34 @@
       }).slice(0, 5000);
     }
 
+    // A marca de "isto aqui SUBSTITUI o que está na nuvem" tem de
+    // sobreviver ao recarregamento, e não sobrevivia: esta função copia
+    // campo por campo e `trocaTotal` não estava na lista. Quem restaurou
+    // uma cópia, a sincronização falhou, e aí atualizou o app ou só
+    // reabriu, perdia a marca — e a sincronização seguinte virava um
+    // acréscimo em cima do que ela devia ter apagado.
+    //
+    // Foi assim que as contas do Vitor apareceram em dobro em 25/10/2026:
+    // Banco Inter duas vezes, C6 duas vezes, Itaú duas vezes, cada par com
+    // um pedaço dos lançamentos.
+    if (bruto.trocaTotal) limpo.trocaTotal = true;
+    // Pela mesma razão: sem isto, recarregar o app apagava a lembrança de
+    // que havia coisa esperando para subir.
+    if (bruto.pendente) limpo.pendente = true;
+    if (typeof bruto.carimbo === 'string') limpo.carimbo = bruto.carimbo;
+
+    if (Array.isArray(bruto.historico)) {
+      limpo.historico = bruto.historico.filter(function (h) {
+        return h && typeof h === 'object' && inteiro(h.quando) > 0 && typeof h.motivo === 'string';
+      }).map(function (h) {
+        return { quando: inteiro(h.quando), motivo: String(h.motivo).slice(0, 80),
+                 saldo: inteiro(h.saldo), antes: inteiro(h.antes),
+                 lancamentos: inteiro(h.lancamentos), contas: inteiro(h.contas),
+                 clientes: inteiro(h.clientes), daPessoa: !!h.daPessoa,
+                 juntavel: !!h.juntavel };
+      }).slice(0, MAXIMO_DO_HISTORICO);
+    }
+
     if (Array.isArray(bruto.pagamentos)) {
       limpo.pagamentos = bruto.pagamentos.filter(function (p) {
         return p && typeof p === 'object' && typeof p.id === 'string' &&
@@ -3634,6 +3716,19 @@
       // marcaDoEstado sozinha não responde: a própria sincronização a
       // incrementa ao gravar o que baixou, e aí tudo pareceria pendente.
       marcaDaUltimaMexida = marcaDoEstado;
+      // E esta vai DENTRO do cofre: as marcas de memória zeram quando o
+      // app recarrega, e sem ela o app não saberia que ficou com coisa por
+      // mandar. Mexeu sem internet, fechou e abriu de novo — continua lá.
+      estado.pendente = true;
+      // Só a mexida genérica se junta com a anterior. Voltar a uma cópia,
+      // importar um extrato ou apagar tudo são acontecimentos, e não uma
+      // rajada de teclas: juntando, a volta no tempo sumia dentro da
+      // edição que veio antes dela e o histórico perdia a única linha que
+      // explicava a mudança.
+      var motivo = proximoMotivo || 'você mexeu no app';
+      var juntavel = !proximoMotivo;
+      proximoMotivo = '';
+      anotarNoHistorico(motivo, true, juntavel);
       agendarInstantaneo();
     }
     limparCacheDeFatura();
@@ -3802,7 +3897,8 @@
   var NUVEM = {
     ligada: !!(CFG.supabaseUrl && CFG.supabaseAnonKey),
     url: String(CFG.supabaseUrl || '').replace(/\/+$/, ''),
-    chave: String(CFG.supabaseAnonKey || '')
+    chave: String(CFG.supabaseAnonKey || ''),
+    dono: String(CFG.dono || '')
   };
   var CHAVE_NUVEM = 'caixa.nuvem.v3';
   var CHAVE_APARELHO = 'caixa.aparelho.v3';
@@ -4250,12 +4346,28 @@
     TABELAS_SINCRONIA.forEach(function (t) {
       var lacos = LACOS[t] || [];
       linhas[t] = (linhas[t] || []).filter(function (l) {
+        // Transferência é o caso em que anular NÃO serve: o banco exige
+        // que ela tenha as duas contas, e diferentes entre si. Anulando
+        // uma perna eu produzia uma linha que o servidor recusa — e a
+        // recusa derruba o envio inteiro, que é justamente o que esta
+        // função existe para evitar.
+        //
+        // Apareceu assim no celular do Vitor em 25/10/2026: "new row for
+        // relation lancamentos violates check constraint
+        // transferencia_valida". Era uma transferência sobrevivente de uma
+        // conta que já tinha sido apagada.
+        var ehTransferencia = t === 'lancamentos' && l.tipo === 'transferencia';
+
         for (var i = 0; i < lacos.length; i++) {
           var campo = lacos[i][0], alvo = lacos[i][1], obrigatoria = lacos[i][2];
           var id = l[campo];
-          if (id == null || id === '') continue;
+          if (id == null || id === '') {
+            // Transferência sem destino já nasce inválida para o banco.
+            if (ehTransferencia && campo === 'conta_destino_id') { linhasSoltas++; return false; }
+            continue;
+          }
           if (existe[alvo][String(id)]) continue;
-          if (obrigatoria) { linhasSoltas++; return false; }
+          if (obrigatoria || ehTransferencia) { linhasSoltas++; return false; }
           l[campo] = null;
         }
         return true;
@@ -4382,6 +4494,40 @@
       tarefa = tarefa.then(function () { return apagarNaNuvemOqueNaoVeio(); });
     }
 
+    // Apagar vem ANTES de mandar, e não depois.
+    //
+    // Era depois, e assim uma substituição virava uma união toda vez que o
+    // envio quebrasse no meio: as linhas novas já tinham subido, as velhas
+    // ainda não tinham sido marcadas como excluídas, e o download seguinte
+    // trazia as duas levas somadas.
+    //
+    // Na ordem certa o pior caso é o contrário, e ele se conserta sozinho:
+    // apaga, falha ao mandar, e a próxima sincronização manda de novo o
+    // que está aqui — nada se perde, porque o que está aqui continua aqui.
+    // União é o estrago que ninguém desfaz sozinho; envio atrasado é só
+    // esperar o próximo.
+    //
+    // A lista é lida dentro da corrente, não ao montá-la: a limpeza da
+    // troca total só enche `excluidos` quando roda, e um forEach aqui fora
+    // leria a lista vazia.
+    tarefa = tarefa.then(function () {
+      return (estado.excluidos || []).reduce(function (antes, marca) {
+        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
+            metodo: 'PATCH',
+            corpo: { excluido_em: agora },
+            cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      // Só depois de a limpeza ter subido inteira. Falhando no meio, as
+      // marcas continuam de pé e a próxima tentativa refaz o serviço.
+      estado.excluidos = [];
+      estado.trocaTotal = false;
+    });
+
     // Perfil e o teto geral do orçamento
     tarefa = tarefa.then(function () { return enviarLinhas('perfis', [perfilParaLinha(uid)], 'id'); });
 
@@ -4426,30 +4572,7 @@
       return enviarLinhas('subcategorias_extras', subs, 'user_id,tipo,categoria,nome');
     });
 
-    // Marca como excluído o que a pessoa apagou aqui. A lista é lida dentro
-    // da corrente, não ao montá-la: a limpeza da troca total só enche
-    // `excluidos` quando roda, e um forEach aqui fora leria a lista vazia.
-    tarefa = tarefa.then(function () {
-      return (estado.excluidos || []).reduce(function (antes, marca) {
-        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
-        return antes.then(function () {
-          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
-            metodo: 'PATCH',
-            corpo: { excluido_em: agora },
-            cabecalhos: { 'Prefer': 'return=minimal' }
-          });
-        });
-      }, Promise.resolve());
-    });
-
-    return tarefa.then(function () {
-      estado.excluidos = [];
-      // Só agora: se o envio falhou no meio, a marca continua de pé e a
-      // próxima tentativa refaz a limpeza. Uma troca feita sem internet não
-      // vira união quando a internet voltar.
-      estado.trocaTotal = false;
-      return true;
-    });
+    return tarefa.then(function () { return true; });
   }
 
   function nuvemBaixar() {
@@ -4624,6 +4747,12 @@
   // tela E do aparelho. Apareceu como "a conta criada pela importação não
   // aparece no Início", mas não era da importação: era de qualquer coisa
   // criada na hora errada.
+  // O rótulo da próxima gravação, para o histórico saber o que foi. Quem
+  // faz algo grande (importar, apagar tudo, voltar a uma cópia) diz o que
+  // é; o resto entra como "você mexeu no app".
+  var proximoMotivo = '';
+  function comMotivo(m) { proximoMotivo = m; }
+
   var marcaDoEstado = 0;
   var marcaDaUltimaMexida = -1;   // a última vez que a PESSOA mexeu
   var marcaSincronizada = -1;     // o que já foi para o servidor
@@ -4656,6 +4785,16 @@
 
   // A frase inteira da falha, para a linha de Mais e para a pessoa poder
   // me mandar num print sem precisar adivinhar o resto.
+  // O que ficou de fora do envio por apontar para algo que não existe
+  // mais. Calar sobre isso seria o app dizer "sincronizado" escondendo
+  // que alguns registros não subiram.
+  function recadoDeLinhasSoltas() {
+    if (!linhasSoltas) return '';
+    return linhasSoltas + ' registro(s) não sobem para a nuvem: eles apontam para uma ' +
+      'conta ou cliente que não existe mais. Eles continuam neste aparelho. ' +
+      'Abra cada um e escolha a conta certa para eles voltarem a subir.';
+  }
+
   function recadoDaFalhaDeSincronia() {
     var f = falhaDaSincronia;
     if (!f) return '';
@@ -4665,15 +4804,184 @@
     return partes.join(' · ') + '.\n' + f.mensagem;
   }
 
+  // O carimbo da conta: a alteração mais recente do servidor, em trinta
+  // bytes. Banco sem a migração 09 responde erro — e aí o app volta a
+  // fazer como antes, baixando sempre.
+  //
+  // Ele mora DENTRO do cofre (estado.carimbo), e não numa variável de
+  // memória. Guardado só na memória ele zerava a cada recarregamento — e
+  // abrir o app é justamente quando mais vale pular o download. Medido:
+  // com ele na memória, a segunda abertura seguida baixava os mesmos
+  // 401 KB da primeira.
+  function guardarCarimbo(c) {
+    estado.carimbo = c || '';
+    estado.pendente = false;
+    return salvar(true) || Promise.resolve();
+  }
+
+  function carimboDaConta() {
+    if (faltaNoBanco['funcao:carimbo']) return Promise.resolve(null);
+    return pedirNuvem('/rest/v1/rpc/carimbo_da_conta', { metodo: 'POST', corpo: {} })
+      .catch(function (e) {
+        // Só falta de função é motivo para desistir dela. Erro de rede é
+        // erro de rede, e tem de derrubar a sincronização como qualquer
+        // outro — senão uma queda viraria "nada mudou lá".
+        var msg = String((e && e.message) || '').toLowerCase();
+        if (String((e && e.codigo) || '') === 'PGRST202' ||
+            /could not find the function|function .* does not exist/.test(msg)) {
+          faltaNoBanco['funcao:carimbo'] = true;
+          return null;
+        }
+        throw e;
+      });
+  }
+
+  // Tem coisa aqui esperando para subir?
+  //
+  // `estado.pendente` fica DENTRO do cofre de propósito: as marcas de
+  // memória zeram quando o app recarrega, e aí o app não saberia que
+  // ficou com alterações por mandar. Mexeu sem internet, fechou e abriu
+  // de novo — a marca continua lá.
+  function temCoisaParaMandar() {
+    if (estado.pendente) return true;
+    if (estado.trocaTotal) return true;
+    if (estado.excluidos && estado.excluidos.length) return true;
+    return marcaDaUltimaMexida > marcaSincronizada;
+  }
+
+  // A cópia do dia sai de qualquer sincronização que tenha dado certo, e
+  // depois de o estado já ser o da nuvem: guardar antes congelaria uma
+  // cópia pela metade. Uma vez por sessão, e sem segurar a sincronização —
+  // se falhar, a próxima abertura tenta de novo.
+  //
+  // Ficava só no caminho que baixa tudo. Com o atalho de "nada mudou", a
+  // maioria das aberturas deixa de baixar — e a cópia do dia deixaria de
+  // sair junto, sem ninguém notar até precisar dela.
+  // ---------- Histórico: de onde veio cada mudança no saldo ----------
+  //
+  // Pedido do Vitor em 25/10/2026: "um histórico de atualização toda vez
+  // que muda do saldo, entender de onde veio essa atualização".
+  //
+  // Nasceu de um lançamento que ele criou, viu sumir, recriou e viu sumir
+  // de novo. Sem registro, não dá para distinguir "a nuvem trouxe outra
+  // versão" de "eu mesmo apaguei sem querer" de "voltei a uma cópia" — e
+  // essas três coisas pedem reações diferentes.
+  //
+  // Mora no cofre, limitado às 200 últimas. O que interessa é a mudança,
+  // então uma entrada só entra quando os números mudam de verdade.
+  var MAXIMO_DO_HISTORICO = 200;
+
+  // Mexidas da pessoa vêm em rajada (uma por tecla em alguns campos). Elas
+  // se juntam numa entrada só; as que não são da pessoa entram sempre,
+  // porque são justamente as que ninguém vê acontecer.
+  var JUNTAR_MEXIDAS_POR = 60000;
+
+  function anotarNoHistorico(motivo, daPessoa, juntavel) {
+    if (!estado || !estado.contas) return;
+    var agora = {
+      quando: Date.now(),
+      motivo: String(motivo || '').slice(0, 80),
+      saldo: totalEmContas(),
+      lancamentos: estado.lancamentos.length,
+      contas: estado.contas.length,
+      clientes: estado.clientes.length
+    };
+    if (!Array.isArray(estado.historico)) estado.historico = [];
+    var ultima = estado.historico[0];
+
+    // Nada mudou nos números: não é notícia.
+    if (ultima && ultima.saldo === agora.saldo &&
+        ultima.lancamentos === agora.lancamentos &&
+        ultima.contas === agora.contas && ultima.clientes === agora.clientes) return;
+
+    // Rajada de mexidas: a entrada de cima absorve, em vez de virar vinte
+    // linhas iguais.
+    if (juntavel && ultima && ultima.daPessoa && ultima.juntavel &&
+        agora.quando - ultima.quando < JUNTAR_MEXIDAS_POR) {
+      ultima.quando = agora.quando;
+      ultima.saldo = agora.saldo;
+      ultima.lancamentos = agora.lancamentos;
+      ultima.contas = agora.contas;
+      ultima.clientes = agora.clientes;
+      return;
+    }
+
+    agora.daPessoa = !!daPessoa;
+    agora.juntavel = !!juntavel;
+    agora.antes = ultima ? ultima.saldo : agora.saldo;
+    estado.historico.unshift(agora);
+    if (estado.historico.length > MAXIMO_DO_HISTORICO) {
+      estado.historico = estado.historico.slice(0, MAXIMO_DO_HISTORICO);
+    }
+  }
+
+  function copiaDoDiaUmaVez() {
+    if (instantaneoTentado) return;
+    instantaneoTentado = true;
+    guardarInstantaneoDoDia();
+  }
+
   function sincronizar(silenciosa) {
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (sincronizando) return Promise.resolve(false);
     sincronizando = true;
     var marcaAoEnviar = marcaDoEstado;
+    var mudouLa = true;
+    var mandei = false;
+    var souVelho = false;
+    var tinhaFalha = !!falhaDaSincronia;
 
-    return nuvemEnviar().then(function () {
-      return editorAberto() ? null : nuvemBaixar();
+    return comTokenValido().then(function () {
+      return carimboDaConta();
+    }).then(function (carimbo) {
+      // Sem carimbo (banco antigo) o app não sabe, então assume que mudou
+      // e faz como sempre fez.
+      mudouLa = !carimbo || carimbo !== estado.carimbo;
+      var tenho = temCoisaParaMandar();
+
+      // Nada mudou lá e nada mudou aqui: não há o que sincronizar. É o
+      // caso comum — o que economiza os 389 KB de cada vez.
+      if (!mudouLa && !tenho) return 'nada';
+
+      // Mudou lá e eu não tenho nada para mandar: a cópia boa é a de lá.
+      // Adoto sem empurrar a minha por cima — é o que impede um aparelho
+      // parado de desfazer o que outro acabou de fazer.
+      if (mudouLa && !tenho) { souVelho = true; return null; }
+
+      mandei = true;
+      return nuvemEnviar();
+    }).then(function (passo) {
+      if (passo === 'nada') return 'nada';
+      if (editorAberto()) return null;
+      // Mandei e lá não tinha novidade: o que está no servidor agora é o
+      // que eu acabei de mandar. Baixar seria baixar a minha própria cópia.
+      if (mandei && !mudouLa) return 'sodaqui';
+      return nuvemBaixar();
     }).then(function (doServidor) {
+      if (doServidor === 'nada' || doServidor === 'sodaqui') {
+        sincronizando = false;
+        falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
+        if (marcaAoEnviar > marcaSincronizada) marcaSincronizada = marcaAoEnviar;
+        // Estes dois caminhos não trocam o estado, então não desenhavam —
+        // e o aviso vermelho de "não está sincronizando" ficava na tela
+        // depois de o problema já ter passado. O app parecia quebrado sem
+        // estar, que é o pior jeito de não estar quebrado.
+        if (tinhaFalha) desenhar();
+        if (doServidor === 'sodaqui') {
+          // O meu próprio envio mexeu no carimbo. Releio para a próxima
+          // rodada não achar que foi outro aparelho.
+          return carimboDaConta().then(guardarCarimbo).then(function () {
+            if (!silenciosa) avisar('Sincronizado com a nuvem.');
+            copiaDoDiaUmaVez();
+            return true;
+          });
+        }
+        if (!silenciosa) avisar('Tudo já estava sincronizado.');
+        copiaDoDiaUmaVez();
+        return false;
+      }
+
       // Mudou alguma coisa aqui enquanto a volta vinha? Então o que veio é
       // mais velho do que o que está na mão. Descarto e mando de novo, já
       // com o que nasceu no meio — o agendarSincronia() logo abaixo faz
@@ -4691,21 +4999,26 @@
         return false;
       }
       estado = doServidor;
+      // A mudança que ninguém vê acontecer: o estado inteiro foi trocado
+      // pelo que estava no servidor. É a primeira coisa que eu quero saber
+      // quando um lançamento some sozinho.
+      anotarNoHistorico(souVelho
+        ? 'a nuvem tinha uma versão mais nova e ela entrou no lugar'
+        : 'veio da nuvem', false);
       return salvar(true).then(function () {
         sincronizando = false;
         falhaDaSincronia = null;
         ultimaSincronia = Date.now();
         if (marcaAoEnviar > marcaSincronizada) marcaSincronizada = marcaAoEnviar;
-        if (!silenciosa) avisar('Sincronizado com a nuvem.');
+        // Adotei o que estava lá: o que eu tinha por mandar, ou foi junto
+        // no envio, ou era velho e acabou de ser substituído.
+        return carimboDaConta().then(guardarCarimbo);
+      }).then(function () {
+        if (!silenciosa) avisar(souVelho
+          ? 'Trouxe a versão mais nova da nuvem.'
+          : 'Sincronizado com a nuvem.');
         desenhar();
-        // A cópia do dia sai daqui, depois de o estado já ser o da nuvem:
-        // guardar antes congelaria uma cópia pela metade. Uma vez por
-        // sessão, e sem segurar a sincronização — se falhar, a próxima
-        // abertura tenta de novo.
-        if (!instantaneoTentado) {
-          instantaneoTentado = true;
-          guardarInstantaneoDoDia();
-        }
+        copiaDoDiaUmaVez();
         return true;
       });
     }).catch(function (e) {
@@ -4787,6 +5100,19 @@
   // Só o servidor dizendo que o token não vale mais é motivo para esquecer
   // a sessão. Qualquer outra coisa — sem internet, servidor fora do ar,
   // projeto pausado — é problema do caminho, não da identidade.
+  // A conta da manutenção, definida em config.js. Sem `dono` configurado,
+  // todo mundo é dono — é o caso de quem roda o app por conta própria.
+  //
+  // Isto é tranca de porta, não cofre: as versões ficam num site público e
+  // quem souber o endereço de uma delas abre direto. Serve para o app não
+  // oferecer manutenção a quem não é da manutenção.
+  function souODono() {
+    var dono = String((NUVEM.dono || '')).trim().toLowerCase();
+    if (!dono) return true;
+    var quem = sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.email;
+    return String(quem || '').trim().toLowerCase() === dono;
+  }
+
   function ehTokenRecusado(e) {
     return !!e && (e.status === 401 || e.status === 403);
   }
@@ -5020,7 +5346,10 @@
   }
 
   function trazerCofre(b) {
+    var historicoAntes = estado && estado.historico;
     estado = renumerarCofre(b.estado);
+    estado.historico = historicoAntes;
+    comMotivo('você trouxe os dados de outra conta deste aparelho');
     // O restaurar backup sempre avisou a nuvem de que era substituição; o
     // trazer nasceu sem esse passo na 5.9.8. O envio seguinte era só
     // upsert, o download devolvia o que a conta já tinha, e os dois cofres
@@ -5091,6 +5420,10 @@
   // numa conta que só está esperando o download chegar.
   function convidarATrazer() {
     if (!NUVEM.ligada || !sessao) return Promise.resolve();
+    // Sincronização falhada quer dizer que eu não sei o que esta conta
+    // tem. Oferecer o cofre de outra conta agora é propor uma união em
+    // cima de dados que existem, só não chegaram.
+    if (falhaDaSincronia) return Promise.resolve();
     var marca = 'caixa.convitetrazer.' + sessao.contaId;
     try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
     if (!estaVazio(estado)) return Promise.resolve();
@@ -5131,10 +5464,13 @@
                  'como "Voltar a uma data".',
           ok: 'Voltar para ' + quando, cancelar: 'Agora não'
         }, function () {
-          avisar('Voltando...');
-          voltarParaInstantaneo(ultima.id, function (dia) {
+          abrirEspera('Trazendo os seus dados',
+            'Baixando a cópia e aplicando. Não feche o app.');
+          voltarParaInstantaneo(ultima.id, function (dia, naNuvem) {
             avisarCaixa('Pronto',
-              'Seus dados voltaram ao que eram em ' + dataBr(dia) + '.', function () {});
+              'Seus dados voltaram ao que eram em ' + dataBr(dia) + '.' +
+              (naNuvem ? '' : ' A nuvem ainda não recebeu: o envio falhou, e o app ' +
+                              'continua tentando sozinho.'), function () {});
           }).catch(function (e) {
             avisarCaixa('Não deu para voltar',
               (e && e.message ? e.message : 'erro no servidor') +
@@ -14158,6 +14494,8 @@
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
       ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
       ['🕑', 'Voltar a uma data', 'Cópias automáticas dos últimos 14 dias', abrirFolhaInstantaneos],
+      ['📜', 'Histórico do saldo', 'De onde veio cada mudança nos seus números',
+        abrirFolhaHistorico],
       ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
@@ -14192,12 +14530,14 @@
           no('div', 'linha-titulo', comFalha ? 'Não está sincronizando' : 'Sincronizar agora'),
           no('div', 'linha-sub', comFalha
             ? recadoDaFalhaDeSincronia()
-            : (sessaoNuvem && sessaoNuvem.usuario.email
+            : (recadoDeLinhasSoltas() ||
+               (sessaoNuvem && sessaoNuvem.usuario.email
                 ? 'Conectado como ' + sessaoNuvem.usuario.email
-                : 'Enviar e trazer os dados do servidor'))));
-      if (comFalha) {
+                : 'Enviar e trazer os dados do servidor')))));
+      if (comFalha || recadoDeLinhasSoltas()) {
         var recado = sinc.querySelector('.linha-sub');
-        recado.style.color = 'var(--vermelho)';
+        if (comFalha) recado.style.color = 'var(--vermelho)';
+        else recado.style.color = 'var(--ouro)';
         // .linha-sub corta em uma linha, que é o certo ao lado de um valor
         // numa lista. Aqui não: é o único lugar onde o app conta o que
         // deu errado, e cortado ele não conta nada.
@@ -14207,15 +14547,17 @@
       cDados.appendChild(sinc);
     }
 
-    var versoes = botao('linha', null, function () {
-      window.open('versoes/', '_blank', 'noopener');
-    });
+    // Mesma aba, e não _blank: numa aba nova o botão voltar do celular não
+    // volta para o app, fecha ele. Na mesma aba o voltar faz o que a pessoa
+    // espera — e a página tem um "‹ Voltar ao app" no topo.
+    var versoes = botao('linha', null, function () { location.href = 'versoes/'; });
     juntar(versoes,
       selo('#94A3B4', '↩'),
       juntar(no('div', 'linha-texto'),
         no('div', 'linha-titulo', 'Versões guardadas'),
         no('div', 'linha-sub', 'Se uma atualização der problema, abra a anterior')));
-    cDados.appendChild(versoes);
+    // Manutenção não é assunto de quem só usa o app.
+    if (souODono()) cDados.appendChild(versoes);
 
     var novidades = botao('linha', null, abrirNovidades);
     juntar(novidades,
@@ -19778,6 +20120,8 @@
         de: quando[0], ate: quando[quando.length - 1]
       });
       if (estado.importacoes.length > 60) estado.importacoes = estado.importacoes.slice(-60);
+      comMotivo('você importou ' + escolhidos.length + ' lançamento(s) de ' +
+        ((dados.arquivo && dados.arquivo.name) || (dados.banco && dados.banco.nome) || 'um extrato'));
       // O extrato quase sempre é de outro mês. Sem levar a tela para a data
       // do que entrou, a pessoa importa e não vê nada na frente dela.
       var datas = escolhidos.map(function (i) { return i.data; }).sort();
@@ -19962,6 +20306,14 @@
     var copia = JSON.parse(JSON.stringify(estado));
     delete copia.excluidos;
     delete copia.trocaTotal;
+    // Nem o carimbo: restaurada, a cópia não pode fazer o app achar que já
+    // está em dia com um servidor que ela não conhece.
+    delete copia.carimbo;
+    delete copia.pendente;
+    // Nem o histórico: ele conta o que ACONTECEU com esta conta, e voltar
+    // a uma cópia não desfaz o que aconteceu. Restaurar trocando o
+    // histórico apagaria justamente o registro da restauração.
+    delete copia.historico;
     var texto = JSON.stringify(copia);
 
     return comTokenValido().then(function () {
@@ -19977,7 +20329,7 @@
         }],
         cabecalhos: { 'Prefer': 'return=minimal' }
       });
-    }).then(function () { return limparInstantaneosVelhos(); })
+    }).then(function () { return limparOVelhoNaNuvem(); })
       .then(function () { return true; })
       .catch(function () { return false; });
   }
@@ -20099,7 +20451,20 @@
     }, ESPERA_DE_INSTANTANEO);
   }
 
-  function limparInstantaneosVelhos() {
+  // Os arquivos de extrato ficavam para sempre. São o PDF ou o OFX como o
+  // banco entregou, em base64 (um terço maior que o original), com teto de
+  // 4 MB cada — uns 14 MB por ano por pessoa, crescendo sem parar. Medido
+  // em 25/10/2026: é o que encheria os 500 MB do servidor muito antes das
+  // cópias.
+  //
+  // Seis meses é a janela em que alguém volta a olhar: quem desconfia de
+  // uma leitura errada desconfia logo depois de importar, não um ano
+  // depois. Nada nos números depende deles — os lançamentos nascem na
+  // importação e vivem no estado. Sem o arquivo, o que some é só o botão
+  // "Baixar" naquela leva.
+  var MESES_DE_EXTRATO = 6;
+
+  function limparOVelhoNaNuvem() {
     var corte = new Date();
     corte.setDate(corte.getDate() - DIAS_DE_INSTANTANEO);
     return pedirNuvem('/rest/v1/instantaneos?dia=lt.' + deData(corte), {
@@ -20129,6 +20494,13 @@
           });
         });
       }, Promise.resolve());
+    }).then(function () {
+      var corteArquivo = new Date();
+      corteArquivo.setMonth(corteArquivo.getMonth() - MESES_DE_EXTRATO);
+      return pedirNuvem('/rest/v1/arquivos_extrato?criado_em=lt.' +
+        encodeURIComponent(corteArquivo.toISOString()), {
+        metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+      });
     }).catch(function () { return null; });
   }
 
@@ -20207,16 +20579,89 @@
       if (!linha) throw new Error('não achei esse dia');
       return descomprimirTexto(linha.dados, pareceZip(linha.dados)).then(function (texto) {
         var limpo = limparEstado(JSON.parse(texto));
+        // O histórico é desta conta, não da cópia: ele conta o que
+        // aconteceu, e voltar no tempo não desfaz o que aconteceu.
+        limpo.historico = estado.historico;
         estado = limpo;
         marcarTrocaTotal();
+        comMotivo('você voltou para a cópia de ' + dataBr(linha.dia));
         return salvar();
       }).then(function () {
         desenhar();
         return sincronizarAgora();
       }).then(function () {
         desenhar();
-        if (aoTerminar) aoTerminar(linha.dia);
+        // sincronizar() engole o próprio erro e devolve false, então quem
+        // diz se a nuvem recebeu é a marca de falha. Sem isto o app
+        // prometia "a nuvem já está com essa versão" mesmo tendo falhado
+        // no envio — e a pessoa ia dormir achando que estava resolvido.
+        if (aoTerminar) aoTerminar(linha.dia, !falhaDaSincronia);
       });
+    });
+  }
+
+  // De onde veio cada mudança nos números.
+  //
+  // A pergunta que isto responde: "o saldo mudou — fui eu, foi a nuvem, ou
+  // foi uma volta no tempo?". Sem ela, um lançamento que some não tem como
+  // ser explicado, e as três causas pedem reações diferentes.
+  function abrirFolhaHistorico() {
+    abrirFolha('Histórico do saldo', function (folha) {
+      folha.appendChild(no('p', 'linha-sub',
+        'Toda vez que os seus números mudam, o app anota o que causou. As mexidas ' +
+        'seguidas entram juntas; o que não foi você entra sempre, porque é justamente ' +
+        'o que ninguém vê acontecer.'));
+
+      var lista = Array.isArray(estado.historico) ? estado.historico : [];
+      if (!lista.length) {
+        folha.appendChild(estadoVazio('Nada anotado ainda',
+          'A partir de agora, cada mudança nos seus números aparece aqui.'));
+        return;
+      }
+
+      // Cada causa com a sua cara: a pessoa procura pelo tipo do
+      // acontecimento, não pela ordem. E o título pode quebrar linha aqui,
+      // porque a frase inteira ("você voltou para a cópia de 24/10/2026")
+      // é o que explica a mudança — cortada em "você voltou para a cópi…"
+      // ela não explica nada.
+      function caraDo(motivo, daPessoa) {
+        if (/^você voltou para a cópia/.test(motivo)) return ['🕑', '#60A5FA'];
+        if (/^você importou/.test(motivo)) return ['🏦', '#E9B44C'];
+        if (/^você apagou tudo/.test(motivo)) return ['🗑', '#F87171'];
+        if (/^você trouxe/.test(motivo)) return ['⇄', '#A78BFA'];
+        if (/^você restaurou/.test(motivo)) return ['↺', '#34D399'];
+        if (/nuvem/.test(motivo)) return ['☁', '#60A5FA'];
+        return daPessoa ? ['✎', '#8A7A55'] : ['☁', '#60A5FA'];
+      }
+
+      var cartaoLista = cartao('liso');
+      lista.forEach(function (h) {
+        var dif = h.saldo - (h.antes == null ? h.saldo : h.antes);
+        var quando = new Date(h.quando);
+        var hoje = quando.toISOString().slice(0, 10) === hojeTexto();
+        var cara = caraDo(h.motivo, h.daPessoa);
+        var linha = no('div', 'linha');
+        var titulo = no('div', 'linha-titulo', maiusculaInicial(h.motivo));
+        titulo.style.whiteSpace = 'normal';
+        titulo.style.overflow = 'visible';
+        juntar(linha,
+          selo(cara[1], cara[0]),
+          juntar(no('div', 'linha-texto'),
+            titulo,
+            no('div', 'linha-sub',
+              (hoje ? 'hoje às ' : dataBr(quando.toISOString().slice(0, 10)) + ' às ') +
+              horaDe(h.quando) + ' · ' + h.lancamentos + ' lanç. · ' +
+              h.contas + ' contas')),
+          juntar(no('div', 'linha-fim'),
+            no('div', 'linha-valor num ' + (dif > 0 ? 'verde' : dif < 0 ? 'vermelho' : ''),
+               (dif > 0 ? '+' : '') + emReais(dif)),
+            no('div', 'linha-sub num', emReais(h.saldo))));
+        cartaoLista.appendChild(linha);
+      });
+      folha.appendChild(cartaoLista);
+      folha.appendChild(no('div', 'linha-nota',
+        'O valor da direita é o total em contas depois da mudança; o de cima, quanto ' +
+        'ela mexeu. Ficam as ' + MAXIMO_DO_HISTORICO + ' últimas, neste aparelho.'));
     });
   }
 
@@ -20335,22 +20780,39 @@
                  'então dá para voltar de novo.',
           ok: 'Voltar a esta cópia', tom: 'perigo'
         }, function () {
-          avisar('Voltando...');
-          voltarParaInstantaneo(i.id, function (dia) {
+          // Caixa de espera em vez de um toque que some em dois segundos.
+          // A volta tem três partes — baixar a cópia, aplicar aqui, mandar
+          // para a nuvem — e a última depende da internet. Sem nada na
+          // tela, a pessoa fica olhando para um app que parece parado.
+          abrirEspera('Voltando a esta cópia',
+            'Trazendo a cópia, aplicando aqui e mandando para a nuvem. Não feche o app.');
+          voltarParaInstantaneo(i.id, function (dia, naNuvem) {
             // fecharFolha() e não voltarNavegacao(): o voltar passa pelo
             // history, que chega depois: abrindo o aviso em seguida, o
             // history.back() fechava o aviso e deixava a folha aberta por
             // cima dos dados que a pessoa acabou de recuperar.
             fecharFolha();
             setTimeout(function () {
-              avisarCaixa('Pronto',
-                'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
-                'A nuvem já está com essa versão.', function () {});
+              perguntar({
+                titulo: naNuvem ? 'Pronto, voltou' : 'Voltou aqui, falta a nuvem',
+                texto: 'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
+                  (naNuvem
+                    ? 'A nuvem já está com essa versão.'
+                    : 'A nuvem ainda NÃO recebeu: o envio falhou. O app continua ' +
+                      'tentando sozinho, e termina assim que a conexão voltar. Até lá, ' +
+                      'não entre nesta conta em outro aparelho — ele ainda tem a versão ' +
+                      'antiga e ia mandar ela de volta.'),
+                ok: 'Entendi', soAviso: true, semHistorico: true,
+                icone: naNuvem ? 'escudoOk' : 'alerta'
+              }, function () {});
             }, 280);
           }).catch(function (e) {
-            avisarCaixa('Não deu para voltar',
-              (e && e.message ? e.message : 'erro no servidor') +
-              '. Nada foi mudado — seus dados continuam como estavam.', function () {});
+            perguntar({
+              titulo: 'Não deu para voltar',
+              texto: (e && e.message ? e.message : 'erro no servidor') +
+                '. Nada foi mudado — seus dados continuam como estavam.',
+              ok: 'Entendi', soAviso: true, semHistorico: true, tom: 'perigo'
+            }, function () {});
           });
         });
       }
@@ -20406,8 +20868,10 @@
         copiaAntes: 'antes de restaurar um backup com ' + limpo.lancamentos.length + ' lançamento(s)'
       }, function () {
         var antigo = estado;
+        limpo.historico = estado.historico;
         estado = limpo;
         marcarTrocaTotal();
+        comMotivo('você restaurou um backup de arquivo');
         fecharFolha();
         desenhar();
         avisar('Restaurando...');
@@ -20474,7 +20938,10 @@
         ok: 'Apagar tudo', cancelar: 'Melhor não', tom: 'perigo',
         copiaAntes: 'antes de apagar tudo: ' + quanto + ' registro(s)'
       }, function () {
+        var historicoAntes = estado.historico;
         estado = estadoPadrao();
+        estado.historico = historicoAntes;
+        comMotivo('você apagou tudo');
         if (naNuvem) {
           marcarTrocaTotal();
           // Esta conta ficou vazia porque a pessoa mandou. Na próxima
