@@ -256,6 +256,13 @@
   .linha-texto { flex: 1 1 auto; min-width: 0; }
   .linha-titulo { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .linha-sub { font-size: 12.5px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Numa linha de lista o subtítulo é uma linha só e corta com reticências:
+     é o nome de um lançamento ao lado do valor, e quebrar desalinharia a
+     lista inteira. Mas o app também usa esta classe para os parágrafos que
+     explicam uma folha — e ali o corte comia a frase no meio: "O app guarda
+     na nuvem uma cópia inteira dos seus dados se…". São 21 explicações pelo
+     app todo, nenhuma delas legível até o fim. Parágrafo quebra linha. */
+  p.linha-sub { white-space: normal; overflow: visible; }
   .linha-fim { flex: 0 0 auto; text-align: right; }
   .linha-valor { font-size: 15px; font-weight: 700; }
   .linha-nota { font-size: 12px; color: var(--fraco); }
@@ -556,6 +563,10 @@
   /* Um achado: ícone, título curto, número, uma explicação e um caminho. */
   .cartao.achado { padding: 16px; animation: subir .45s cubic-bezier(.2,.8,.2,1) both; }
   @keyframes subir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+  @keyframes rodar { to { transform: rotate(360deg); } }
+  .dialogo-espera { width: 26px; height: 26px; margin: 4px auto 2px; border-radius: 50%;
+    border: 2.5px solid rgba(201,169,106,.22); border-top-color: var(--ouro);
+    animation: rodar .8s linear infinite; }
   @media (prefers-reduced-motion: reduce) {
     .cartao.achado { animation: none; }
     .parte-cheio, .meta-cheio, .anel-nota circle { transition: none; }
@@ -1644,7 +1655,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.14.1';
+  var VERSAO = '5.17.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1653,6 +1664,62 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.17.1',
+      data: '2026-10-24',
+      itens: [
+        'Conserto da sincronização travada em 409. Um pagamento registrado com "Lançar como entrada no caixa" guarda o endereço do lançamento que ele criou. Apagando esse lançamento antes de ele chegar ao servidor — com a internet ruim, por exemplo —, o pagamento ficava apontando para um endereço que o servidor nunca viu, e o servidor recusava. O pior é que ele não recusa só aquele registro: recusa o envio inteiro. Nada mais subia, por tentativa nenhuma.',
+        'Agora nenhuma referência morta sai daqui. Antes de mandar, o app confere cada ligação entre os seus registros: a que aponta para algo que não existe mais vira vazia, que é exatamente o que o servidor faria sozinho. Vale para todas as ligações do app, não só essa — nenhuma delas pode travar a sua sincronização de novo.',
+        'E apagar um lançamento passou a soltar o pagamento que tinha criado ele. Antes ficava o apontamento morto, e a ficha do cliente dizia "lançado no caixa" para um lançamento que já não existia.'
+      ]
+    },
+    {
+      versao: '5.17.0',
+      data: '2026-10-24',
+      itens: [
+        'De cada dia fica uma cópia de alteração só: a última. Como a cópia agora sai a cada mexida, um dia movimentado gerava cem cópias quase iguais — e entre a das 14h03 e a das 14h04 quase nada muda. Quem volta no tempo volta para um dia, não para um minuto. As de antes de apagar e as que você faz à mão continuam todas, porque essas você procura pela frase e pelo motivo, não pela data.',
+        'O histórico segue guardando 14 dias. Com uma por dia, cabe a quinzena inteira sem a lista virar um rolo de quarenta linhas.',
+        '"Apagar tudo" passou a apagar tudo. Na sua conta ele não apagava nada: esvaziava o aparelho e a sincronização baixava tudo de volta em quatro segundos. O app dizia "Tudo apagado" e os dados estavam na tela de novo. Agora some daqui e da sua conta, em todos os aparelhos, e o app avisa quando terminou dos dois lados.',
+        'E as suas cópias não são tocadas por ele. Se você apagar tudo e se arrepender, elas continuam em "Voltar a uma data" — mas nada volta sozinho: é você quem escolhe a cópia e manda voltar.',
+        'Apertando "Atualizar", o app agora confere se tem coisa que ainda não subiu. Se tiver, ele pergunta se você quer salvar na nuvem antes, mostra uma janela de carregamento enquanto sobe, e diz quando terminou. Antes ele tentava guardar em silêncio, esperava seis segundos e trocava de versão mesmo tendo falhado.',
+        'Se a conexão estiver ruim na hora, ele diz o que deu errado e deixa você escolher: esperar e atualizar depois, ou atualizar assim mesmo — explicando que os dados continuam no aparelho de qualquer jeito. Falhar calado numa hora dessas é o pior jeito de falhar.',
+        'E a atualização ficou mais cuidadosa com o que apaga: só saem as caixas de arquivos das versões velhas do Finanz. Antes ela limpava tudo o que não fosse da versão nova — o cache do extrato que você compartilhou já precisava de uma exceção escrita à mão para sobreviver.'
+      ]
+    },
+    {
+      versao: '5.16.1',
+      data: '2026-10-24',
+      itens: [
+        'A sincronização que falhava ficava falhada. Não havia nada que tentasse de novo: bastava um tropeço de rede, o celular dormindo ou o servidor acordando de uma pausa, e o app parava ali com o aviso vermelho em Mais até você mexer em alguma coisa. O que você tinha lançado no meio-tempo ficava só no aparelho, e ninguém avisava de novo.',
+        'Agora ele tenta sozinho, esperando cada vez mais entre uma tentativa e outra — 15 segundos, 30, um minuto, dois, cinco. A espera cresce de propósito: insistir de quatro em quatro segundos com o servidor fora do ar é gastar bateria e internet à toa.',
+        'E tenta na hora em duas situações que não dependem de relógio nenhum: quando você volta para o app e quando a internet volta. Quem digitou dentro do elevador quer que aquilo suba ao sair.',
+        'O aviso em Mais passou a contar o que aconteceu. Antes dizia "Não está sincronizando" e a explicação vinha cortada numa linha só — nem dava para saber se era o servidor fora do ar ou permissão negada em alguma coisa. Agora diz o que o servidor respondeu e em qual pedido, inteiro, para você poder me mandar num print.',
+        'E uma trava nova: duas partes do app podiam renovar a sua senha de acesso ao servidor ao mesmo tempo. Esse código de renovação é de uso único — a segunda renovação queimava a primeira e deixava o app com uma chave morta na mão, e dali em diante nada mais subia até entrar de novo. Agora é uma renovação de cada vez e todo mundo espera a mesma.'
+      ]
+    },
+    {
+      versao: '5.16.0',
+      data: '2026-10-24',
+      itens: [
+        'A cópia na nuvem deixou de ser uma por dia: agora sai a cada mexida sua. Mudou um valor, corrigiu uma data, trocou a conta de um lançamento — passados 45 segundos sem você mexer em mais nada, aquele instante está guardado. A do dia respondia "me leva para ontem"; esta responde "desfaz o que eu acabei de fazer", que é o que a gente quer na hora do erro. E erro não é só exclusão.',
+        'O relógio dos 45 segundos não reinicia a cada mexida, de propósito: reiniciando, quem fica mexendo sem parar uma tarde inteira nunca teria cópia nenhuma — e é justamente quem mais precisa. Assim o pior caso é perder os últimos 45 segundos, mexendo muito ou pouco.',
+        'Apertando "Atualizar" no aviso de versão nova, o app guarda uma cópia antes de trocar de versão. Atualizar nunca apagou dado — o service worker limpa o cache de arquivos, nunca os seus dados —, mas quem acabou de mexer tinha uma cópia ainda esperando os 45 segundos, e essa sim se perdia no recarregamento. Agora o ponto de volta é o instante anterior à atualização. Se a nuvem estiver lenta, a atualização segue em seis segundos de qualquer jeito.',
+        'Entrando numa conta vazia — reinstalou o app, trocou de celular, limpou os dados do site —, se a nuvem tiver cópia sua, o app oferece voltar para a mais nova ali na entrada, dizendo de que hora ela é. Antes esse convite só existia para dados guardados neste mesmo aparelho: quem chegava de um celular novo via uma conta em branco e tinha que descobrir sozinho que havia por onde voltar.',
+        'Na lista de "Voltar a uma data", cada tipo tem a sua cara: ✎ a de alteração, 🕑 a do dia, 💾 a que você fez à mão, ⬆ a de antes de atualizar, 🗑 a de antes de apagar. A lista mostra as 40 mais novas — com uma cópia por mexida ela cresce rápido, e rolar quarenta linhas num celular já é demais.',
+        'E duas contas separadas de quantas cabem: 60 cópias de alteração e 40 de antes de apagar. Com um teto só para as duas, uma tarde de muitas mexidas empurrava para fora a cópia de ontem de "antes de apagar tudo" — a única que alguém ia procurar de verdade.',
+        'E as explicações do app pararam de ser cortadas no meio da frase. "Defina um teto de gastos para o mês e acompanhe o q…" era o que dava para ler em Planejar; o resto estava escrito e escondido. Eram 21 textos pelo app inteiro, nenhum legível até o fim, porque usavam o mesmo estilo do subtítulo de uma linha de lista — que corta de propósito, para a lista não desalinhar.',
+        'Achei um desperdício grande no caminho: com o app aberto e PARADO, sem ninguém tocar em nada, ele fazia 119 pedidos ao servidor em 30 segundos. A sincronização terminava, gravava o resultado, e gravar agendava outra sincronização — todos os seus dados subindo e descendo a cada quatro segundos, para sempre, gastando bateria e internet. Agora são 0 pedidos com o app parado.'
+      ]
+    },
+    {
+      versao: '5.15.0',
+      data: '2026-10-21',
+      itens: [
+        'Em "Voltar a uma data", cada cópia agora mostra a hora. Com a automática do dia, as de antes de apagar e as que você fizer à mão, passa a haver mais de uma no mesmo dia — e a data sozinha não separa uma da outra.',
+        'E tem o botão "Guardar uma cópia agora", logo ali. A automática sai uma vez por dia; quando você vai mexer em alguma coisa grande, dá para marcar o ponto antes sem depender do relógio.',
+        'As três ficaram com cara própria na lista: 🕑 a do dia, 💾 a que você fez, 🗑 a de antes de apagar.'
+      ]
+    },
     {
       versao: '5.14.1',
       data: '2026-10-21',
@@ -3259,6 +3326,18 @@
       }).slice(0, 5000);
     }
 
+    // A marca de "isto aqui SUBSTITUI o que está na nuvem" tem de
+    // sobreviver ao recarregamento, e não sobrevivia: esta função copia
+    // campo por campo e `trocaTotal` não estava na lista. Quem restaurou
+    // uma cópia, a sincronização falhou, e aí atualizou o app ou só
+    // reabriu, perdia a marca — e a sincronização seguinte virava um
+    // acréscimo em cima do que ela devia ter apagado.
+    //
+    // Foi assim que as contas do Vitor apareceram em dobro em 25/10/2026:
+    // Banco Inter duas vezes, C6 duas vezes, Itaú duas vezes, cada par com
+    // um pedaço dos lançamentos.
+    if (bruto.trocaTotal) limpo.trocaTotal = true;
+
     if (Array.isArray(bruto.pagamentos)) {
       limpo.pagamentos = bruto.pagamentos.filter(function (p) {
         return p && typeof p === 'object' && typeof p.id === 'string' &&
@@ -3559,8 +3638,25 @@
   var sessao = null;          // { contaId, chave }
   var filaSalvar = Promise.resolve();
 
-  function salvar() {
+  // `deOutraFonte` marca a gravação que não veio de uma mexida da pessoa:
+  // é o estado que a sincronização acabou de baixar. Guardar no cofre sim;
+  // agendar outra sincronização e outra cópia, não.
+  //
+  // Sem isso havia um laço: a sincronização terminava, chamava salvar(),
+  // salvar() agendava outra sincronização em 4s, e assim para sempre. Com
+  // o app aberto e parado eram 119 pedidos em 30 segundos — o conjunto
+  // inteiro de dados subindo e descendo a cada quatro segundos, de graça,
+  // gastando bateria e internet de quem está usando o celular.
+  function salvar(deOutraFonte) {
     marcaDoEstado++;
+    if (!deOutraFonte) {
+      // A marca da última mexida DA PESSOA. Serve para responder "o que
+      // está na tela já está na nuvem?" antes de trocar de versão.
+      // marcaDoEstado sozinha não responde: a própria sincronização a
+      // incrementa ao gravar o que baixou, e aí tudo pareceria pendente.
+      marcaDaUltimaMexida = marcaDoEstado;
+      agendarInstantaneo();
+    }
     limparCacheDeFatura();
     soltarExtratos();
     if (!sessao) return;
@@ -3573,7 +3669,7 @@
           try { localStorage.setItem('caixa.cofre.' + sessao.contaId, cofre); } catch (e) { /* sem espaço */ }
         });
       }).then(function () {
-        agendarSincronia();
+        if (!deOutraFonte) agendarSincronia();
       }).catch(function () {
         avisar('Não foi possível salvar os dados.');
       });
@@ -3793,6 +3889,11 @@
     }
     Object.keys(opcoes.cabecalhos || {}).forEach(function (k) { cabecalhos[k] = opcoes.cabecalhos[k]; });
 
+    // O erro leva junto o método e o caminho. Sem isso a falha de
+    // sincronização chegava em Mais como "O servidor respondeu 400." e
+    // ninguém — nem eu — tinha como saber qual pedido era.
+    var etiqueta = (opcoes.metodo || 'GET') + ' ' + caminho.split('?')[0];
+
     return fetch(NUVEM.url + caminho, {
       method: opcoes.metodo || 'GET',
       headers: cabecalhos,
@@ -3801,25 +3902,54 @@
       return resposta.text().then(function (texto) {
         var corpo = null;
         if (texto) { try { corpo = JSON.parse(texto); } catch (e) { corpo = texto; } }
-        if (!resposta.ok) throw erroDoServidor(corpo, resposta.status);
+        if (!resposta.ok) {
+          var erro = erroDoServidor(corpo, resposta.status);
+          erro.pedido = etiqueta;
+          throw erro;
+        }
         return corpo;
       });
+    }, function (e) {
+      // Falha de rede: o fetch recusa sem resposta nenhuma.
+      if (e && !e.pedido) e.pedido = etiqueta;
+      throw e;
     });
   }
 
   // Renova o token quando falta menos de um minuto, para o pedido
   // seguinte não morrer no meio da sincronização.
+  //
+  // Uma renovação de cada vez, e todo mundo espera a mesma. O
+  // refresh_token do Supabase roda: cada renovação devolve um novo e
+  // queima o anterior. Dois pedidos partindo com o mesmo token em punho
+  // fazem o segundo voltar "Invalid Refresh Token" — e pior, a sessão
+  // guardada fica com um token já queimado, então dali em diante TODA
+  // sincronização falha, até entrar de novo.
+  //
+  // Antes havia um dono só de pedidos à nuvem, a sincronização, e ela é
+  // sequencial. Com a cópia a cada alteração passou a haver dois relógios
+  // independentes, e nada impedia os dois de renovarem ao mesmo tempo.
+  var renovacaoEmVoo = null;
+
   function comTokenValido() {
     if (!sessaoNuvem) return Promise.reject(new Error('Sem sessão na nuvem.'));
     if (sessaoNuvem.expira_em - Date.now() > 60000) return Promise.resolve(sessaoNuvem);
     if (!sessaoNuvem.refresh_token) return Promise.resolve(sessaoNuvem);
-    return pedirNuvem('/auth/v1/token?grant_type=refresh_token', {
+    if (renovacaoEmVoo) return renovacaoEmVoo;
+
+    var pedido = pedirNuvem('/auth/v1/token?grant_type=refresh_token', {
       metodo: 'POST',
       token: false,
       corpo: { refresh_token: sessaoNuvem.refresh_token }
     }).then(function (r) {
+      renovacaoEmVoo = null;
       return guardarSessaoDoServidor(r) || sessaoNuvem;
+    }, function (e) {
+      renovacaoEmVoo = null;
+      throw e;
     });
+    renovacaoEmVoo = pedido;
+    return pedido;
   }
 
   // O endereço de volta vai explícito em cada pedido que gera e-mail.
@@ -4037,7 +4167,7 @@
     // apagar não servia para nada.
     function vivo(linha) { linha.excluido_em = null; return linha; }
 
-    return {
+    return amarrarReferencias({
       contas: estado.contas.map(function (c) {
         return vivo({ id: c.id, user_id: uid, nome: c.nome, tipo: c.tipo,
                  saldo_inicial: c.saldoInicial, cor: c.cor, banco: c.banco || '',
@@ -4094,7 +4224,66 @@
           conta_id: ouNulo(m.contaId), prazo: ouNulo(m.prazo)
         });
       })
-    };
+    });
+  }
+
+  // As amarras do banco: campo, tabela de destino, e se é obrigatória.
+  var LACOS = {
+    lancamentos:     [['conta_id', 'contas', false], ['conta_destino_id', 'contas', false]],
+    ativo_historico: [['ativo_id', 'ativos', true]],
+    servicos:        [['cliente_id', 'clientes', true]],
+    pagamentos:      [['cliente_id', 'clientes', true], ['servico_id', 'servicos', false],
+                      ['lancamento_id', 'lancamentos', false]],
+    parcelas:        [['cliente_id', 'clientes', true], ['servico_id', 'servicos', false],
+                      ['pagamento_id', 'pagamentos', false]],
+    metas:           [['conta_id', 'contas', false]]
+  };
+
+  // Nenhuma referência solta sai daqui.
+  //
+  // O servidor tem chaves estrangeiras: um pagamento aponta para um
+  // lançamento, um serviço aponta para um cliente. Mandar uma referência
+  // para uma linha que não existe devolve 409 — e 409 não derruba aquele
+  // registro, derruba a sincronização INTEIRA. Nada mais sobe, por
+  // tentativa nenhuma, até alguém achar a referência morta.
+  //
+  // Aconteceu com o Vitor em 24/10/2026: ele apagou um lançamento que
+  // tinha nascido de um pagamento, o pagamento ficou apontando para o
+  // nada, e foram onze tentativas sem nada subir. O recado era "insert or
+  // update on table pagamentos violates foreign key constraint
+  // pagamentos_lancamento_id_fkey".
+  //
+  // Aqui a referência solta vira nula — que é exatamente o que o banco faz
+  // sozinho quando o alvo é apagado (on delete set null). Sendo a
+  // referência obrigatória, a linha fica de fora do envio: ela não entra
+  // de jeito nenhum, e insistir levaria o resto junto.
+  //
+  // A ordem de TABELAS_SINCRONIA é a das dependências, então quando chego
+  // numa tabela as de que ela depende já foram filtradas: `existe` conta
+  // só quem sobreviveu.
+  var linhasSoltas = 0;
+
+  function amarrarReferencias(linhas) {
+    var existe = {};
+    linhasSoltas = 0;
+    TABELAS_SINCRONIA.forEach(function (t) { existe[t] = {}; });
+
+    TABELAS_SINCRONIA.forEach(function (t) {
+      var lacos = LACOS[t] || [];
+      linhas[t] = (linhas[t] || []).filter(function (l) {
+        for (var i = 0; i < lacos.length; i++) {
+          var campo = lacos[i][0], alvo = lacos[i][1], obrigatoria = lacos[i][2];
+          var id = l[campo];
+          if (id == null || id === '') continue;
+          if (existe[alvo][String(id)]) continue;
+          if (obrigatoria) { linhasSoltas++; return false; }
+          l[campo] = null;
+        }
+        return true;
+      });
+      linhas[t].forEach(function (l) { existe[t][String(l.id)] = true; });
+    });
+    return linhas;
   }
 
   function perfilParaLinha(uid) {
@@ -4214,6 +4403,40 @@
       tarefa = tarefa.then(function () { return apagarNaNuvemOqueNaoVeio(); });
     }
 
+    // Apagar vem ANTES de mandar, e não depois.
+    //
+    // Era depois, e assim uma substituição virava uma união toda vez que o
+    // envio quebrasse no meio: as linhas novas já tinham subido, as velhas
+    // ainda não tinham sido marcadas como excluídas, e o download seguinte
+    // trazia as duas levas somadas.
+    //
+    // Na ordem certa o pior caso é o contrário, e ele se conserta sozinho:
+    // apaga, falha ao mandar, e a próxima sincronização manda de novo o
+    // que está aqui — nada se perde, porque o que está aqui continua aqui.
+    // União é o estrago que ninguém desfaz sozinho; envio atrasado é só
+    // esperar o próximo.
+    //
+    // A lista é lida dentro da corrente, não ao montá-la: a limpeza da
+    // troca total só enche `excluidos` quando roda, e um forEach aqui fora
+    // leria a lista vazia.
+    tarefa = tarefa.then(function () {
+      return (estado.excluidos || []).reduce(function (antes, marca) {
+        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
+            metodo: 'PATCH',
+            corpo: { excluido_em: agora },
+            cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      // Só depois de a limpeza ter subido inteira. Falhando no meio, as
+      // marcas continuam de pé e a próxima tentativa refaz o serviço.
+      estado.excluidos = [];
+      estado.trocaTotal = false;
+    });
+
     // Perfil e o teto geral do orçamento
     tarefa = tarefa.then(function () { return enviarLinhas('perfis', [perfilParaLinha(uid)], 'id'); });
 
@@ -4258,30 +4481,7 @@
       return enviarLinhas('subcategorias_extras', subs, 'user_id,tipo,categoria,nome');
     });
 
-    // Marca como excluído o que a pessoa apagou aqui. A lista é lida dentro
-    // da corrente, não ao montá-la: a limpeza da troca total só enche
-    // `excluidos` quando roda, e um forEach aqui fora leria a lista vazia.
-    tarefa = tarefa.then(function () {
-      return (estado.excluidos || []).reduce(function (antes, marca) {
-        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
-        return antes.then(function () {
-          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
-            metodo: 'PATCH',
-            corpo: { excluido_em: agora },
-            cabecalhos: { 'Prefer': 'return=minimal' }
-          });
-        });
-      }, Promise.resolve());
-    });
-
-    return tarefa.then(function () {
-      estado.excluidos = [];
-      // Só agora: se o envio falhou no meio, a marca continua de pé e a
-      // próxima tentativa refaz a limpeza. Uma troca feita sem internet não
-      // vira união quando a internet voltar.
-      estado.trocaTotal = false;
-      return true;
-    });
+    return tarefa.then(function () { return true; });
   }
 
   function nuvemBaixar() {
@@ -4457,6 +4657,8 @@
   // aparece no Início", mas não era da importação: era de qualquer coisa
   // criada na hora errada.
   var marcaDoEstado = 0;
+  var marcaDaUltimaMexida = -1;   // a última vez que a PESSOA mexeu
+  var marcaSincronizada = -1;     // o que já foi para o servidor
 
   // Enquanto uma folha, uma pergunta ou um seletor está aberto, a pessoa
   // está no meio de uma edição. Trocar o estado inteiro nessa hora joga
@@ -4474,9 +4676,25 @@
     var seguidas = (falhaDaSincronia ? falhaDaSincronia.seguidas : 0) + 1;
     falhaDaSincronia = {
       mensagem: motivoDaFalhaDeRede(e) || 'motivo desconhecido',
+      // O suficiente para alguém saber o que fazer: o que o servidor
+      // respondeu e em qual pedido. "Não está sincronizando" sozinho não
+      // separa servidor fora do ar de permissão negada numa tabela.
+      status: (e && e.status) || 0,
+      pedido: (e && e.pedido) || '',
       quando: Date.now(), seguidas: seguidas
     };
     return falhaDaSincronia;
+  }
+
+  // A frase inteira da falha, para a linha de Mais e para a pessoa poder
+  // me mandar num print sem precisar adivinhar o resto.
+  function recadoDaFalhaDeSincronia() {
+    var f = falhaDaSincronia;
+    if (!f) return '';
+    var partes = [f.seguidas + ' tentativa(s) sem sucesso'];
+    if (f.status) partes.push('o servidor respondeu ' + f.status);
+    if (f.pedido) partes.push('em ' + f.pedido);
+    return partes.join(' · ') + '.\n' + f.mensagem;
   }
 
   function sincronizar(silenciosa) {
@@ -4497,13 +4715,19 @@
       if (!doServidor) {
         sincronizando = false;
         falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
+        // O envio foi; só a volta é que não valia. O que estava na mão ao
+        // mandar já está no servidor.
+        if (marcaAoEnviar > marcaSincronizada) marcaSincronizada = marcaAoEnviar;
         agendarSincronia();
         return false;
       }
       estado = doServidor;
-      return salvar().then(function () {
+      return salvar(true).then(function () {
         sincronizando = false;
         falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
+        if (marcaAoEnviar > marcaSincronizada) marcaSincronizada = marcaAoEnviar;
         if (!silenciosa) avisar('Sincronizado com a nuvem.');
         desenhar();
         // A cópia do dia sai daqui, depois de o estado já ser o da nuvem:
@@ -4519,6 +4743,7 @@
     }).catch(function (e) {
       sincronizando = false;
       var f = marcarFalhaDeSincronia(e);
+      agendarNovaTentativa(f.seguidas);
       if (!silenciosa) { avisar('Não sincronizou: ' + f.mensagem); return false; }
       // Três tentativas seguidas já não é tropeço de rede: é problema.
       if (f.seguidas === 3) {
@@ -4526,6 +4751,42 @@
       }
       return false;
     });
+  }
+
+  // Sincronização que falhou não podia ficar falhada para sempre — e era
+  // isso que acontecia: nada aqui reagendava depois de um erro. Um tropeço
+  // de rede, o celular que dormiu, o servidor acordando de uma pausa, e o
+  // app ficava com o aviso vermelho em Mais até a pessoa mexer em alguma
+  // coisa. Os dados do dia não subiam e ninguém avisava de novo.
+  //
+  // A espera cresce de propósito. Insistir de quatro em quatro segundos
+  // com o servidor fora do ar é o laço que gastava bateria e internet à
+  // toa; cinco minutos é o bastante para pegar o servidor de volta sem
+  // fazer barulho.
+  var ESPERAS_DE_NOVA_TENTATIVA = [15000, 30000, 60000, 120000, 300000];
+
+  function agendarNovaTentativa(seguidas) {
+    if (!NUVEM.ligada || !sessaoNuvem) return;
+    var i = Math.min(seguidas, ESPERAS_DE_NOVA_TENTATIVA.length) - 1;
+    clearTimeout(tempoSincronia);
+    tempoSincronia = setTimeout(function () { sincronizar(true); }, ESPERAS_DE_NOVA_TENTATIVA[i]);
+  }
+
+  // Voltar para o app e recuperar a internet são as duas horas em que vale
+  // tentar sem esperar relógio nenhum: quem digitou dentro do elevador quer
+  // que aquilo suba ao sair, e o celular que passou a tarde no bolso volta
+  // com a cópia do servidor atrasada.
+  //
+  // Com falha pendente tenta sempre. Sem ela, só se a última sincronização
+  // já tiver idade — trocar de app e voltar não pode virar um pedido a cada
+  // toque.
+  var ultimaSincronia = 0;
+
+  function sincronizarAoVoltar() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessao) return;
+    if (document.visibilityState !== 'visible') return;
+    if (!falhaDaSincronia && Date.now() - ultimaSincronia < 60000) return;
+    sincronizar(true);
   }
 
   // Sincroniza agora, de verdade.
@@ -4862,20 +5123,63 @@
   // numa conta que só está esperando o download chegar.
   function convidarATrazer() {
     if (!NUVEM.ligada || !sessao) return Promise.resolve();
+    // Sincronização falhada quer dizer que eu não sei o que esta conta
+    // tem. Oferecer o cofre de outra conta agora é propor uma união em
+    // cima de dados que existem, só não chegaram.
+    if (falhaDaSincronia) return Promise.resolve();
     var marca = 'caixa.convitetrazer.' + sessao.contaId;
     try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
     if (!estaVazio(estado)) return Promise.resolve();
     return cofresDeOutrasContas().then(function (bons) {
-      if (!bons.length) return;
-      try { localStorage.setItem(marca, '1'); } catch (e) { /* sem espaço */ }
-      var b = bons[0];
-      perguntar({
-        titulo: 'Esta conta está vazia',
-        texto: 'Mas achei dados de outra conta neste aparelho: ' + b.resumo +
-               '. Quer trazer para cá? Se preferir decidir depois, está em ' +
-               'Mais, como "Trazer dados de outra conta".',
-        ok: 'Trazer', cancelar: 'Agora não'
-      }, function () { escolherCofreParaTrazer(bons); });
+      if (bons.length) {
+        try { localStorage.setItem(marca, '1'); } catch (e) { /* sem espaço */ }
+        var b = bons[0];
+        perguntar({
+          titulo: 'Esta conta está vazia',
+          texto: 'Mas achei dados de outra conta neste aparelho: ' + b.resumo +
+                 '. Quer trazer para cá? Se preferir decidir depois, está em ' +
+                 'Mais, como "Trazer dados de outra conta".',
+          ok: 'Trazer', cancelar: 'Agora não'
+        }, function () { escolherCofreParaTrazer(bons); });
+        return;
+      }
+
+      // Sem cofre no aparelho, mas pode haver cópia na nuvem. É a rede
+      // que pega os casos que não dependem deste celular: reinstalou o
+      // app, trocou de aparelho, limpou os dados do site — ou apagou
+      // alguma coisa grande por engano e a nuvem já foi junto.
+      //
+      // Enquanto o cofre deste aparelho é só deste aparelho, a cópia é da
+      // conta: ela aparece em qualquer lugar onde a pessoa entrar.
+      return listarInstantaneos().then(function (copias) {
+        if (!copias.length) return;
+        try { localStorage.setItem(marca, '1'); } catch (e) { /* sem espaço */ }
+        var ultima = copias[0];
+        var quando = ultima.dia === hojeTexto()
+          ? 'hoje às ' + horaDe(ultima.criado_em)
+          : dataBr(ultima.dia) + ' às ' + horaDe(ultima.criado_em);
+        perguntar({
+          titulo: 'Esta conta está vazia',
+          texto: 'Mas a nuvem tem ' + (copias.length === 1 ? 'uma cópia dos seus dados'
+                   : copias.length + ' cópias dos seus dados') + '. A mais nova é de ' +
+                 quando + ': ' + (ultima.resumo || 'sem resumo') + '.\n\n' +
+                 'Quer voltar para ela? Se preferir escolher outra data, está em Mais, ' +
+                 'como "Voltar a uma data".',
+          ok: 'Voltar para ' + quando, cancelar: 'Agora não'
+        }, function () {
+          avisar('Voltando...');
+          voltarParaInstantaneo(ultima.id, function (dia, naNuvem) {
+            avisarCaixa('Pronto',
+              'Seus dados voltaram ao que eram em ' + dataBr(dia) + '.' +
+              (naNuvem ? '' : ' A nuvem ainda não recebeu: o envio falhou, e o app ' +
+                              'continua tentando sozinho.'), function () {});
+          }).catch(function (e) {
+            avisarCaixa('Não deu para voltar',
+              (e && e.message ? e.message : 'erro no servidor') +
+              '. Nada foi mudado. Tente por Mais → "Voltar a uma data".', function () {});
+          });
+        });
+      });
     }).catch(function () { /* convite é cortesia, não pode quebrar a entrada */ });
   }
 
@@ -13925,11 +14229,19 @@
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', comFalha ? 'Não está sincronizando' : 'Sincronizar agora'),
           no('div', 'linha-sub', comFalha
-            ? falhaDaSincronia.seguidas + ' tentativa(s) sem sucesso · ' + falhaDaSincronia.mensagem
+            ? recadoDaFalhaDeSincronia()
             : (sessaoNuvem && sessaoNuvem.usuario.email
                 ? 'Conectado como ' + sessaoNuvem.usuario.email
                 : 'Enviar e trazer os dados do servidor'))));
-      if (comFalha) sinc.querySelector('.linha-sub').style.color = 'var(--vermelho)';
+      if (comFalha) {
+        var recado = sinc.querySelector('.linha-sub');
+        recado.style.color = 'var(--vermelho)';
+        // .linha-sub corta em uma linha, que é o certo ao lado de um valor
+        // numa lista. Aqui não: é o único lugar onde o app conta o que
+        // deu errado, e cortado ele não conta nada.
+        recado.style.whiteSpace = 'pre-line';
+        recado.style.overflow = 'visible';
+      }
       cDados.appendChild(sinc);
     }
 
@@ -13974,7 +14286,9 @@
       selo('#F87171', '🗑'),
       juntar(no('div', 'linha-texto'),
         no('div', 'linha-titulo vermelho', 'Apagar tudo'),
-        no('div', 'linha-sub', 'Remove todos os dados deste aparelho'))
+        no('div', 'linha-sub', NUVEM.ligada && sessaoNuvem
+          ? 'Apaga deste aparelho e da sua conta. As cópias ficam'
+          : 'Remove todos os dados deste aparelho'))
     );
     cDados.appendChild(apagar);
     tela.appendChild(cDados);
@@ -14131,6 +14445,17 @@
 
   function avisarCaixa(titulo, texto, aoFechar) {
     perguntar({ titulo: titulo, texto: texto, ok: 'Entendi', soAviso: true }, aoFechar);
+  }
+
+  // Uma caixa sem botão nenhum: enquanto o pedido está no ar não há o que
+  // escolher. Fica fora do histórico de propósito — o botão voltar do
+  // celular não pode fechar a espera e deixar a pessoa achando que
+  // terminou.
+  function abrirEspera(titulo, texto) {
+    perguntar({ titulo: titulo, texto: texto, soAviso: true, semHistorico: true }, function () {});
+    var acoes = $('dialogoAcoes');
+    acoes.textContent = '';
+    acoes.appendChild(no('div', 'dialogo-espera'));
   }
 
   function fecharDialogoEfeito() {
@@ -14775,6 +15100,14 @@
           }, function () {
             marcarExcluido('lancamentos', existente.id);
             estado.lancamentos = estado.lancamentos.filter(function (l) { return l.id !== existente.id; });
+            // O pagamento que tinha gerado este lançamento guardava o id
+            // dele. Sem soltar aqui, sobrava um apontamento para o nada —
+            // a ficha do cliente dizia "lançado no caixa" para um
+            // lançamento que não existe mais, e o envio levava a
+            // referência morta para o servidor, que recusava tudo.
+            (estado.pagamentos || []).forEach(function (pg) {
+              if (pg.lancamentoId === existente.id) pg.lancamentoId = '';
+            });
             salvar();
             fecharFolha();
             desenhar();
@@ -19697,7 +20030,12 @@
       return pedirNuvem('/rest/v1/instantaneos?select=id&dia=eq.' + hojeTexto() + '&motivo=eq.dia', {});
     }).then(function (r) {
       if (r && r.length) return false;
-      return guardarInstantaneo('dia');
+      return guardarInstantaneo('dia').then(function (deu) {
+        // A do dia também conta como ponto guardado: sem isto, a de
+        // alteração subiria o mesmo estado 45 segundos depois.
+        if (deu) marcaDoUltimoInstantaneo = marcaDoEstado;
+        return deu;
+      });
     }).catch(function () { return false; });
   }
 
@@ -19726,7 +20064,10 @@
     var assinatura = assinaturaDoEstado();
     if (assinatura === ultimaCopiaDeExclusao) return Promise.resolve(true);
     return guardarInstantaneo(descricao).then(function (deu) {
-      if (deu) ultimaCopiaDeExclusao = assinatura;
+      if (deu) {
+        ultimaCopiaDeExclusao = assinatura;
+        marcaDoUltimoInstantaneo = marcaDoEstado;
+      }
       return deu;
     });
   }
@@ -19749,10 +20090,52 @@
     });
   }
 
-  // Catorze dias de cópias. E, dentro deles, um teto para as de exclusão:
-  // quem apaga trinta coisas numa tarde geraria trinta estados inteiros, e
-  // o que interessa são os últimos.
-  var MAXIMO_COPIAS_DE_EXCLUSAO = 40;
+  // Catorze dias de histórico, e dentro de cada dia uma cópia de
+  // alteração só: a última.
+  //
+  // Pedido do Vitor em 24/10/2026: "das 100 vezes que foi feito backup só
+  // a última será salva, que é a última alteração feita pelo usuário". Faz
+  // sentido — entre a cópia das 14h03 e a das 14h04 de um mesmo dia quase
+  // nada muda, e quem volta no tempo volta para um DIA, não para um
+  // minuto. Guardar as cem é pagar cem vezes pelo mesmo dia.
+  //
+  // Isso vale só para as de alteração. A cópia de antes de apagar é
+  // procurada pela frase do que ia sair ("antes de apagar os 128
+  // lançamentos do Banco Inter"), e pode haver várias num dia que
+  // importam todas. A feita à mão a pessoa fez de propósito. Essas duas
+  // ficam, limitadas só pelo teto abaixo e pelos catorze dias.
+  var MAXIMO_DE_EXCLUSAO = 40;
+
+  // ---------- Cópia a cada alteração ----------
+  //
+  // A do dia responde "me leva para ontem". Esta responde "desfaz o que eu
+  // acabei de fazer", que é o que a pessoa quer na hora do erro — e erro
+  // não é só exclusão: valor trocado, data errada, conta errada.
+  //
+  // Não dá para gravar a cada salvar(): salvar roda a cada tecla em alguns
+  // campos, e cada cópia é o estado inteiro subindo. Então ela espera o
+  // sossego. Uma rajada de edições vira uma cópia só, e o que se perde no
+  // pior caso é o último minuto.
+  var ESPERA_DE_INSTANTANEO = 45000;
+  var tempoInstantaneo = null;
+  var marcaDoUltimoInstantaneo = -1;
+
+  // O relógio NÃO se reinicia a cada gravação. Reiniciando, quem fica
+  // mexendo sem parar nunca teria cópia nenhuma — e é justamente quem mais
+  // precisa. Assim o pior caso é perder os últimos 45 segundos, mexendo
+  // muito ou pouco.
+  function agendarInstantaneo() {
+    if (!NUVEM.ligada || !sessaoNuvem) return;
+    if (tempoInstantaneo) return;
+    tempoInstantaneo = setTimeout(function () {
+      tempoInstantaneo = null;
+      if (marcaDoEstado === marcaDoUltimoInstantaneo) return;
+      var marcaAgora = marcaDoEstado;
+      guardarInstantaneo('alteração').then(function (deu) {
+        if (deu) marcaDoUltimoInstantaneo = marcaAgora;
+      });
+    }, ESPERA_DE_INSTANTANEO);
+  }
 
   function limparInstantaneosVelhos() {
     var corte = new Date();
@@ -19760,11 +20143,23 @@
     return pedirNuvem('/rest/v1/instantaneos?dia=lt.' + deData(corte), {
       metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
     }).then(function () {
-      return pedirNuvem('/rest/v1/instantaneos?select=id,criado_em,motivo&motivo=neq.dia', {});
+      return pedirNuvem('/rest/v1/instantaneos?select=id,dia,criado_em,motivo&motivo=neq.dia', {});
     }).then(function (r) {
-      var sobrando = (r || []).slice().sort(function (a, b) {
-        return a.criado_em < b.criado_em ? 1 : -1;
-      }).slice(MAXIMO_COPIAS_DE_EXCLUSAO);
+      var maisNovaPrimeiro = function (a, b) { return a.criado_em < b.criado_em ? 1 : -1; };
+      var daMexida = [], doResto = [];
+      (r || []).forEach(function (i) {
+        (i.motivo === 'alteração' ? daMexida : doResto).push(i);
+      });
+
+      // Uma de alteração por dia: a mais nova fica, as outras saem.
+      var jaTemDoDia = {};
+      var sobrando = [];
+      daMexida.sort(maisNovaPrimeiro).forEach(function (i) {
+        if (jaTemDoDia[i.dia]) sobrando.push(i);
+        else jaTemDoDia[i.dia] = true;
+      });
+
+      sobrando = sobrando.concat(doResto.sort(maisNovaPrimeiro).slice(MAXIMO_DE_EXCLUSAO));
       return sobrando.reduce(function (antes, i) {
         return antes.then(function () {
           return pedirNuvem('/rest/v1/instantaneos?id=eq.' + encodeURIComponent(i.id), {
@@ -19858,7 +20253,11 @@
         return sincronizarAgora();
       }).then(function () {
         desenhar();
-        if (aoTerminar) aoTerminar(linha.dia);
+        // sincronizar() engole o próprio erro e devolve false, então quem
+        // diz se a nuvem recebeu é a marca de falha. Sem isto o app
+        // prometia "a nuvem já está com essa versão" mesmo tendo falhado
+        // no envio — e a pessoa ia dormir achando que estava resolvido.
+        if (aoTerminar) aoTerminar(linha.dia, !falhaDaSincronia);
       });
     });
   }
@@ -19873,9 +20272,9 @@
     abrirFolha('Voltar a uma data', function (folha) {
       var forma = no('div');
       forma.appendChild(no('p', 'linha-sub',
-        'Todo dia o app guarda na nuvem uma cópia inteira dos seus dados, e guarda outra ' +
-        'sempre que você vai apagar alguma coisa. Segura as últimas duas semanas. ' +
-        'Escolha uma cópia para voltar tudo ao que era nela.'));
+        'O app guarda na nuvem uma cópia inteira dos seus dados sempre que você mexe em ' +
+        'alguma coisa, mais uma por dia e uma antes de cada exclusão. Escolha uma cópia ' +
+        'para voltar tudo ao que era nela.'));
 
       // Guardar na hora. A automática sai uma vez por dia; quem vai mexer
       // em alguma coisa grande quer poder marcar o ponto antes, sem
@@ -19920,36 +20319,47 @@
         }
         var cartaoLista = cartao('liso');
         var hoje = hojeTexto();
-        lista.forEach(function (i) {
+        // A lista cresce rápido agora que cada mexida guarda uma cópia. As
+        // mais novas são as que interessam; as velhas estão lá e saem pela
+        // data, mas rolar quarenta linhas num celular não ajuda ninguém.
+        var MOSTRAR = 40;
+        lista.slice(0, MOSTRAR).forEach(function (i) {
           var dia = i.dia === hoje ? 'hoje' : dataBr(i.dia);
-          // Com mais de uma cópia no mesmo dia, a data sozinha não separa
-          // uma da outra. A hora vai em todas.
+          // Com várias cópias no mesmo dia, a data sozinha não separa uma
+          // da outra. A hora vai em todas.
           var quando = dia + ' às ' + horaDe(i.criado_em);
 
-          // Três tipos, e cada um é procurado de um jeito: a automática
-          // pela data, a de antes de apagar pelo que ia sair, a feita à
-          // mão porque a pessoa lembra de ter feito.
+          // Quatro tipos, e cada um se procura de um jeito: a de alteração
+          // pela hora (é a última coisa que eu fiz), a do dia pela data, a
+          // feita à mão porque a pessoa lembra, a de antes de apagar pelo
+          // que ia sair.
           var motivo = i.motivo || 'dia';
-          var automatica = motivo === 'dia';
-          var daPessoa = motivo === 'cópia feita por você';
-          var titulo = automatica ? dia : maiusculaInicial(motivo);
-          var selinho = automatica ? '🕑' : daPessoa ? '💾' : '🗑';
-          var cor = automatica ? '#60A5FA' : daPessoa ? '#34D399' : '#F87171';
+          var tipos = {
+            'dia':                   { selo: '🕑', cor: '#60A5FA', titulo: dia,    sub: 'cópia do dia · às ' + horaDe(i.criado_em) },
+            'alteração':             { selo: '✎',  cor: '#C8A96A', titulo: quando, sub: '' },
+            'cópia feita por você':  { selo: '💾', cor: '#34D399', titulo: 'Cópia feita por você', sub: quando },
+            'antes de atualizar o app': { selo: '⬆', cor: '#A78BFA', titulo: 'Antes de atualizar o app', sub: quando }
+          };
+          var t = tipos[motivo] ||
+                  { selo: '🗑', cor: '#F87171', titulo: maiusculaInicial(motivo), sub: quando };
 
-          var linha = botao('linha', null, function () { confirmarVolta(i, quando, titulo); });
+          var linha = botao('linha', null, function () { confirmarVolta(i, quando, t.titulo); });
           juntar(linha,
-            selo(cor, selinho),
+            selo(t.cor, t.selo),
             juntar(no('div', 'linha-texto'),
-              no('div', 'linha-titulo', titulo),
-              no('div', 'linha-sub',
-                (automatica ? 'às ' + horaDe(i.criado_em) : quando) + ' · ' + (i.resumo || 'sem resumo'))),
+              no('div', 'linha-titulo', t.titulo),
+              no('div', 'linha-sub', (t.sub ? t.sub + ' · ' : '') + (i.resumo || 'sem resumo'))),
             juntar(no('div', 'linha-fim'), no('div', 'linha-sub', 'voltar ›')));
           cartaoLista.appendChild(linha);
         });
         caixa.appendChild(cartaoLista);
         caixa.appendChild(no('div', 'linha-nota',
-          lista.length + ' cópia(s) guardada(s). A mais antiga sai sozinha ao completar ' +
-          DIAS_DE_INSTANTANEO + ' dias.'));
+          (lista.length === 1 ? 'Uma cópia guardada' : lista.length + ' cópias guardadas') +
+          (lista.length > MOSTRAR ? ', mostrando as ' + MOSTRAR + ' mais novas' : '') +
+          '. O histórico guarda ' + DIAS_DE_INSTANTANEO + ' dias. De cada dia fica uma ' +
+          'cópia de alteração, a última — você pode mexer cem vezes num dia que a do dia ' +
+          'é a mais recente. As de antes de apagar e as que você faz à mão ficam todas, ' +
+          'até as ' + MAXIMO_DE_EXCLUSAO + ' mais novas.'));
       }).catch(function (e) {
         caixa.textContent = '';
         caixa.appendChild(no('div', 'linha-nota vermelho',
@@ -19968,7 +20378,7 @@
           ok: 'Voltar a esta cópia', tom: 'perigo'
         }, function () {
           avisar('Voltando...');
-          voltarParaInstantaneo(i.id, function (dia) {
+          voltarParaInstantaneo(i.id, function (dia, naNuvem) {
             // fecharFolha() e não voltarNavegacao(): o voltar passa pelo
             // history, que chega depois: abrindo o aviso em seguida, o
             // history.back() fechava o aviso e deixava a folha aberta por
@@ -19977,7 +20387,12 @@
             setTimeout(function () {
               avisarCaixa('Pronto',
                 'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
-                'A nuvem já está com essa versão.', function () {});
+                (naNuvem
+                  ? 'A nuvem já está com essa versão.'
+                  : 'A nuvem ainda NÃO recebeu: o envio falhou. O app continua ' +
+                    'tentando sozinho, e termina assim que a conexão voltar. Até lá, ' +
+                    'não entre nesta conta em outro aparelho — ele ainda tem a versão ' +
+                    'antiga e ia mandar ela de volta.'), function () {});
             }, 280);
           }).catch(function (e) {
             avisarCaixa('Não deu para voltar',
@@ -20070,24 +20485,73 @@
     });
   }
 
+  // Apagar tudo apagava nada.
+  //
+  // Até a 5.16.1 isto esvaziava o aparelho e pronto: a sincronização
+  // seguinte baixava do servidor tudo de volta em quatro segundos. O app
+  // dizia "Tudo apagado" e os dados estavam na tela de novo. Conferido com
+  // o lançamento ainda no servidor um segundo, treze segundos e um
+  // recarregamento depois.
+  //
+  // Agora apaga de verdade, aqui e na conta — marcarTrocaTotal() é o que
+  // faz o envio tirar do servidor o que não veio junto.
+  //
+  // E as cópias NÃO são tocadas. Elas moram em `instantaneos`, que fica de
+  // fora da sincronização: quem apagar tudo por engano acha o caminho de
+  // volta em Mais → "Voltar a uma data". Mas é a pessoa que tem de ir lá;
+  // nada volta sozinho.
   function apagarTudo() {
     var quanto = estado.lancamentos.length + estado.contas.length + estado.ativos.length + estado.metas.length;
     if (!quanto) { avisar('Não há nada para apagar.'); return; }
+    var naNuvem = NUVEM.ligada && sessaoNuvem;
     perguntar({
       titulo: 'Apagar todos os seus dados?',
-      texto: 'São ' + quanto + ' registros deste aparelho.',
+      texto: 'São ' + quanto + ' registros' + (naNuvem
+        ? ' — deste aparelho e da sua conta no servidor.'
+        : ' deste aparelho.'),
       ok: 'Quero apagar', tom: 'perigo'
     }, function () {
       perguntar({
         titulo: 'Tem certeza mesmo?',
-        texto: 'Depois disso não tem volta. Faça um backup antes, se quiser guardar.',
+        texto: naNuvem
+          ? 'Some de todos os seus aparelhos.\n\nAs cópias em "Voltar a uma data" não ' +
+            'são apagadas: se você se arrepender, elas continuam lá e você escolhe uma ' +
+            'para voltar. Mas nada volta sozinho — é você quem vai lá.'
+          : 'Depois disso não tem volta. Faça um backup antes, se quiser guardar.',
         ok: 'Apagar tudo', cancelar: 'Melhor não', tom: 'perigo',
         copiaAntes: 'antes de apagar tudo: ' + quanto + ' registro(s)'
       }, function () {
         estado = estadoPadrao();
+        if (naNuvem) {
+          marcarTrocaTotal();
+          // Esta conta ficou vazia porque a pessoa mandou. Na próxima
+          // entrada neste aparelho, nada de "achei cópias suas, quer
+          // voltar?" — ela sabe onde elas estão.
+          try {
+            if (sessao) localStorage.setItem('caixa.convitetrazer.' + sessao.contaId, '1');
+          } catch (e) { /* sem espaço */ }
+        }
         salvar();
         desenhar();
-        avisar('Tudo apagado.');
+        avisar(naNuvem ? 'Apagando aqui e no servidor…' : 'Tudo apagado.');
+        if (naNuvem) {
+          // sincronizar() engole o próprio erro e devolve false, então
+          // quem diz se deu certo é a marca de falha, não um catch.
+          sincronizarAgora().then(function () {
+            if (falhaDaSincronia) {
+              avisarCaixa('Apaguei aqui, mas ainda não no servidor',
+                'Os dados saíram deste aparelho. Não consegui falar com o servidor para ' +
+                'tirá-los de lá: ' + falhaDaSincronia.mensagem + '\n\nO app continua ' +
+                'tentando sozinho, e termina assim que a conexão voltar.',
+                function () {});
+              return;
+            }
+            avisarCaixa('Tudo apagado',
+              'Seus dados saíram deste aparelho e da sua conta. As cópias em ' +
+              '"Voltar a uma data" continuam guardadas, caso você mude de ideia.',
+              function () {});
+          });
+        }
       });
     });
   }
@@ -20120,12 +20584,97 @@
     aviso.appendChild(no('span', null, 'Nova versão disponível.'));
     var b = botao(null, 'Atualizar', function () {
       b.disabled = true;
-      b.textContent = 'Atualizando…';
-      atualizacaoPedida = true;
-      trabalhador.postMessage({ tipo: 'PULAR_ESPERA' });
+      prepararAtualizacao(trabalhador, b);
     });
     aviso.appendChild(b);
     document.body.appendChild(aviso);
+  }
+
+  // O que está na tela já está na nuvem?
+  //
+  // Duas perguntas, porque são duas coisas diferentes: os dados estão no
+  // servidor (sincronizados) E existe um ponto de volta guardado (cópia).
+  // Qualquer uma faltando conta como pendente.
+  function faltaSalvarNaNuvem() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessao) return false;
+    if (estaVazio(estado)) return false;
+    if (falhaDaSincronia) return true;
+    if (marcaDaUltimaMexida > marcaSincronizada) return true;
+    if (marcaDaUltimaMexida > marcaDoUltimoInstantaneo) return true;
+    return false;
+  }
+
+  // Antes de trocar de versão.
+  //
+  // Atualizar não apaga nada — o service worker só limpa a caixa de
+  // arquivos da versão velha, e os dados ficam no armazenamento do site,
+  // que ele não encosta. Mas o Vitor tem razão no fundo do pedido: a
+  // pessoa não pode correr risco nenhum numa hora dessas, e até a 5.16.1
+  // o app guardava a cópia em silêncio, com seis segundos de paciência, e
+  // seguia em frente mesmo tendo falhado. Falhar calado numa hora em que
+  // a pessoa está esperando é o pior jeito de falhar.
+  //
+  // Agora: confere, pergunta, mostra a espera, e diz se deu certo ou não.
+  function prepararAtualizacao(trabalhador, b) {
+    var seguiu = false;
+    var trocarDeVersao = function () {
+      if (seguiu) return;
+      seguiu = true;
+      atualizacaoPedida = true;
+      b.textContent = 'Atualizando…';
+      trabalhador.postMessage({ tipo: 'PULAR_ESPERA' });
+    };
+    var desistir = function () {
+      b.disabled = false;
+      b.textContent = 'Atualizar';
+    };
+
+    if (!faltaSalvarNaNuvem()) { trocarDeVersao(); return; }
+
+    perguntar({
+      titulo: 'Salvar na nuvem antes?',
+      texto: 'Tem coisa aqui que ainda não subiu para a sua conta.\n\nAtualizar não ' +
+             'apaga os seus dados — eles ficam neste aparelho de qualquer jeito. Mas ' +
+             'com tudo no servidor você fica coberto mesmo que algo dê errado.',
+      ok: 'Salvar e atualizar', cancelar: 'Agora não',
+      aoCancelar: desistir
+    }, function () { salvarTudoNaNuvem(trocarDeVersao, desistir); });
+  }
+
+  function salvarTudoNaNuvem(aoDarCerto, aoDesistir) {
+    abrirEspera('Salvando na nuvem',
+      'Mandando os seus dados e guardando uma cópia de agora. Não feche o app.');
+
+    sincronizarAgora().then(function () {
+      // sincronizar() engole o próprio erro e devolve false; quem diz se
+      // deu certo é a marca de falha.
+      if (falhaDaSincronia) throw new Error(falhaDaSincronia.mensagem);
+      if (marcaDaUltimaMexida <= marcaDoUltimoInstantaneo) return true;
+      var marcaAgora = marcaDoEstado;
+      return guardarInstantaneo('antes de atualizar o app').then(function (deu) {
+        if (!deu) throw new Error('os dados subiram, mas não consegui guardar a cópia');
+        marcaDoUltimoInstantaneo = marcaAgora;
+        return true;
+      });
+    }).then(function () {
+      perguntar({
+        titulo: 'Pronto, está salvo',
+        texto: 'Seus dados estão na sua conta, e há uma cópia de agora em "Voltar a uma ' +
+               'data". Pode atualizar sem medo.',
+        ok: 'Atualizar agora', soAviso: true, semHistorico: true, icone: 'escudoOk'
+      }, aoDarCerto);
+    }).catch(function (e) {
+      perguntar({
+        titulo: 'Não consegui salvar',
+        texto: String(e && e.message ? e.message : 'o servidor não respondeu')
+                 .replace(/\.*$/, '') + '.\n\n' +
+               'Atualizar não apaga os seus dados: eles continuam neste aparelho. Mas se ' +
+               'preferir esperar a conexão melhorar e atualizar depois, não tem problema ' +
+               'nenhum — o aviso volta.',
+        ok: 'Atualizar assim mesmo', cancelar: 'Esperar', tom: 'perigo',
+        semHistorico: true, aoCancelar: aoDesistir
+      }, aoDarCerto);
+    });
   }
 
   function registrarServiceWorker() {
@@ -20168,6 +20717,12 @@
   }
 
   // ---------- Ligações ----------
+
+  // As duas horas de tentar de novo sem esperar relógio. Ficam aqui, junto
+  // das outras ligações, e não dentro do service worker: não têm nada a
+  // ver com versão nova, e o app precisa delas mesmo sem service worker.
+  document.addEventListener('visibilitychange', sincronizarAoVoltar);
+  window.addEventListener('online', sincronizarAoVoltar);
 
   $('fab').addEventListener('click', function () {
     if (noEmpreendedor()) abrirFolhaCliente(null);

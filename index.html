@@ -1655,7 +1655,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.17.1';
+  var VERSAO = '5.17.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1664,6 +1664,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.17.2',
+      data: '2026-10-25',
+      itens: [
+        'Conserto da duplicação: contas e clientes apareciam em dobro. Quando você volta a uma cópia, ou traz dados de outra conta, isso SUBSTITUI o que está na nuvem — o app sobe o que está aqui e apaga de lá o que não veio junto. Só que ele fazia na ordem errada: subia primeiro e apagava depois. Se o envio quebrasse no meio, o novo já estava lá e o velho não tinha saído, e a próxima descida trazia as duas levas somadas. Agora ele apaga antes de subir. Falhando agora, o pior caso é um envio atrasado, que a próxima sincronização refaz sozinha.',
+        'E a marca de "isto substitui" passou a sobreviver ao recarregamento. Ela se perdia quando o app reabria — inclusive ao atualizar de versão. Quem voltou a uma cópia, viu a sincronização falhar e só então atualizou, perdia a marca: a sincronização seguinte virava acréscimo em cima do que ela devia ter apagado. Era esse o caminho da duplicação.',
+        'Voltar a uma cópia parou de prometer o que não cumpriu. Ele dizia "a nuvem já está com essa versão" mesmo quando o envio tinha falhado. Agora diz a verdade, e avisa para não entrar na conta em outro aparelho enquanto isso — o outro ainda tem a versão antiga e mandaria ela de volta.',
+        'E o convite para trazer dados de outra conta não aparece mais com a sincronização falhando. Com ela falhando o app não sabe o que a sua conta tem, e oferecer uma junção ali é propor somar com dados que existem e só não chegaram.'
+      ]
+    },
     {
       versao: '5.17.1',
       data: '2026-10-24',
@@ -3326,6 +3336,18 @@
       }).slice(0, 5000);
     }
 
+    // A marca de "isto aqui SUBSTITUI o que está na nuvem" tem de
+    // sobreviver ao recarregamento, e não sobrevivia: esta função copia
+    // campo por campo e `trocaTotal` não estava na lista. Quem restaurou
+    // uma cópia, a sincronização falhou, e aí atualizou o app ou só
+    // reabriu, perdia a marca — e a sincronização seguinte virava um
+    // acréscimo em cima do que ela devia ter apagado.
+    //
+    // Foi assim que as contas do Vitor apareceram em dobro em 25/10/2026:
+    // Banco Inter duas vezes, C6 duas vezes, Itaú duas vezes, cada par com
+    // um pedaço dos lançamentos.
+    if (bruto.trocaTotal) limpo.trocaTotal = true;
+
     if (Array.isArray(bruto.pagamentos)) {
       limpo.pagamentos = bruto.pagamentos.filter(function (p) {
         return p && typeof p === 'object' && typeof p.id === 'string' &&
@@ -4391,6 +4413,40 @@
       tarefa = tarefa.then(function () { return apagarNaNuvemOqueNaoVeio(); });
     }
 
+    // Apagar vem ANTES de mandar, e não depois.
+    //
+    // Era depois, e assim uma substituição virava uma união toda vez que o
+    // envio quebrasse no meio: as linhas novas já tinham subido, as velhas
+    // ainda não tinham sido marcadas como excluídas, e o download seguinte
+    // trazia as duas levas somadas.
+    //
+    // Na ordem certa o pior caso é o contrário, e ele se conserta sozinho:
+    // apaga, falha ao mandar, e a próxima sincronização manda de novo o
+    // que está aqui — nada se perde, porque o que está aqui continua aqui.
+    // União é o estrago que ninguém desfaz sozinho; envio atrasado é só
+    // esperar o próximo.
+    //
+    // A lista é lida dentro da corrente, não ao montá-la: a limpeza da
+    // troca total só enche `excluidos` quando roda, e um forEach aqui fora
+    // leria a lista vazia.
+    tarefa = tarefa.then(function () {
+      return (estado.excluidos || []).reduce(function (antes, marca) {
+        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
+            metodo: 'PATCH',
+            corpo: { excluido_em: agora },
+            cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      // Só depois de a limpeza ter subido inteira. Falhando no meio, as
+      // marcas continuam de pé e a próxima tentativa refaz o serviço.
+      estado.excluidos = [];
+      estado.trocaTotal = false;
+    });
+
     // Perfil e o teto geral do orçamento
     tarefa = tarefa.then(function () { return enviarLinhas('perfis', [perfilParaLinha(uid)], 'id'); });
 
@@ -4435,30 +4491,7 @@
       return enviarLinhas('subcategorias_extras', subs, 'user_id,tipo,categoria,nome');
     });
 
-    // Marca como excluído o que a pessoa apagou aqui. A lista é lida dentro
-    // da corrente, não ao montá-la: a limpeza da troca total só enche
-    // `excluidos` quando roda, e um forEach aqui fora leria a lista vazia.
-    tarefa = tarefa.then(function () {
-      return (estado.excluidos || []).reduce(function (antes, marca) {
-        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
-        return antes.then(function () {
-          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
-            metodo: 'PATCH',
-            corpo: { excluido_em: agora },
-            cabecalhos: { 'Prefer': 'return=minimal' }
-          });
-        });
-      }, Promise.resolve());
-    });
-
-    return tarefa.then(function () {
-      estado.excluidos = [];
-      // Só agora: se o envio falhou no meio, a marca continua de pé e a
-      // próxima tentativa refaz a limpeza. Uma troca feita sem internet não
-      // vira união quando a internet voltar.
-      estado.trocaTotal = false;
-      return true;
-    });
+    return tarefa.then(function () { return true; });
   }
 
   function nuvemBaixar() {
@@ -5100,6 +5133,10 @@
   // numa conta que só está esperando o download chegar.
   function convidarATrazer() {
     if (!NUVEM.ligada || !sessao) return Promise.resolve();
+    // Sincronização falhada quer dizer que eu não sei o que esta conta
+    // tem. Oferecer o cofre de outra conta agora é propor uma união em
+    // cima de dados que existem, só não chegaram.
+    if (falhaDaSincronia) return Promise.resolve();
     var marca = 'caixa.convitetrazer.' + sessao.contaId;
     try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
     if (!estaVazio(estado)) return Promise.resolve();
@@ -5141,9 +5178,11 @@
           ok: 'Voltar para ' + quando, cancelar: 'Agora não'
         }, function () {
           avisar('Voltando...');
-          voltarParaInstantaneo(ultima.id, function (dia) {
+          voltarParaInstantaneo(ultima.id, function (dia, naNuvem) {
             avisarCaixa('Pronto',
-              'Seus dados voltaram ao que eram em ' + dataBr(dia) + '.', function () {});
+              'Seus dados voltaram ao que eram em ' + dataBr(dia) + '.' +
+              (naNuvem ? '' : ' A nuvem ainda não recebeu: o envio falhou, e o app ' +
+                              'continua tentando sozinho.'), function () {});
           }).catch(function (e) {
             avisarCaixa('Não deu para voltar',
               (e && e.message ? e.message : 'erro no servidor') +
@@ -20224,7 +20263,11 @@
         return sincronizarAgora();
       }).then(function () {
         desenhar();
-        if (aoTerminar) aoTerminar(linha.dia);
+        // sincronizar() engole o próprio erro e devolve false, então quem
+        // diz se a nuvem recebeu é a marca de falha. Sem isto o app
+        // prometia "a nuvem já está com essa versão" mesmo tendo falhado
+        // no envio — e a pessoa ia dormir achando que estava resolvido.
+        if (aoTerminar) aoTerminar(linha.dia, !falhaDaSincronia);
       });
     });
   }
@@ -20345,7 +20388,7 @@
           ok: 'Voltar a esta cópia', tom: 'perigo'
         }, function () {
           avisar('Voltando...');
-          voltarParaInstantaneo(i.id, function (dia) {
+          voltarParaInstantaneo(i.id, function (dia, naNuvem) {
             // fecharFolha() e não voltarNavegacao(): o voltar passa pelo
             // history, que chega depois: abrindo o aviso em seguida, o
             // history.back() fechava o aviso e deixava a folha aberta por
@@ -20354,7 +20397,12 @@
             setTimeout(function () {
               avisarCaixa('Pronto',
                 'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
-                'A nuvem já está com essa versão.', function () {});
+                (naNuvem
+                  ? 'A nuvem já está com essa versão.'
+                  : 'A nuvem ainda NÃO recebeu: o envio falhou. O app continua ' +
+                    'tentando sozinho, e termina assim que a conexão voltar. Até lá, ' +
+                    'não entre nesta conta em outro aparelho — ele ainda tem a versão ' +
+                    'antiga e ia mandar ela de volta.'), function () {});
             }, 280);
           }).catch(function (e) {
             avisarCaixa('Não deu para voltar',

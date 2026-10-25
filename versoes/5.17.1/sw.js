@@ -1,4 +1,4 @@
-const VERSAO = '5.14.1';
+const VERSAO = '5.17.1';
 const CACHE = 'finanz-v' + VERSAO;
 const CACHE_PARTILHA = 'finanz-partilha';
 
@@ -28,9 +28,25 @@ self.addEventListener('activate', (evento) => {
   evento.waitUntil(
     caches.keys()
       .then((chaves) => Promise.all(
-        // O cache da partilha guarda o arquivo que a pessoa acabou de
-        // compartilhar: apagar ele numa atualização perderia o arquivo.
-        chaves.filter((chave) => chave !== CACHE && chave !== CACHE_PARTILHA)
+        // Saem SÓ as caixas de arquivos de versões anteriores do Finanz
+        // (finanz-v5.16.0 e companhia). Elas guardam html, js e imagens —
+        // nunca dado seu. Os seus dados moram no armazenamento do site,
+        // que atualização nenhuma encosta: é por isso que atualizar nunca
+        // apagou nada, e o teste t114 confere isso a cada rodada.
+        //
+        // Antes esta linha apagava tudo o que não fosse a caixa desta
+        // versão. Era largo demais: qualquer caixa que o app passasse a
+        // usar para guardar algo da pessoa sumiria numa atualização sem
+        // ninguém notar — o cache da partilha, que segura o extrato
+        // recém-compartilhado, já precisava de uma exceção escrita à mão.
+        // Agora a regra é ao contrário: só apago o que eu sei que é
+        // descartável.
+        //
+        // As caixas das versões velhas saem mesmo, e de propósito: são uns
+        // megabytes de arquivos mortos por versão, e armazenamento cheio é
+        // o que faz o navegador começar a jogar coisa fora por conta
+        // própria — inclusive o que interessa.
+        chaves.filter((chave) => /^finanz-v/.test(chave) && chave !== CACHE)
           .map((chave) => caches.delete(chave))
       ))
       .then(() => self.clients.claim())
