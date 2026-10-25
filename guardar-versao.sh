@@ -44,6 +44,7 @@ fi
   echo 'a.v small{color:#7C7362;font-size:12px}'
   echo '.agora{border-color:#E9B44C}'
   echo 'a.voltar{color:#E9B44C;text-decoration:none;font-size:14px;display:inline-block;margin-bottom:14px}'
+  echo 'p.aviso{border-left:2px solid #E9B44C;padding-left:12px;color:#C9BFA8}'
   echo '#tudo{display:none}'
   echo '</style></head><body>'
   echo '<a class="voltar" href="../">‹ Voltar ao app</a>'
@@ -54,6 +55,14 @@ fi
   echo '<p>Versões guardadas. A de cima é a que está no ar. Se uma atualização'
   echo 'estragar alguma coisa, abra a de baixo — seus dados continuam os mesmos,'
   echo 'porque ficam guardados no aparelho e não dentro da versão.</p>'
+  echo '<p class="aviso"><b>Feche o app nas outras abas antes.</b> Cada versão'
+  echo 'guardada é um app inteiro apontando para o mesmo servidor. Duas abertas'
+  echo 'na mesma conta mandam versões diferentes dos seus dados e ficam'
+  echo 'desfazendo uma à outra — é assim que o saldo começa a mudar sozinho.</p>'
+  echo '<p class="aviso">Por isso a versão guardada abre <b>desconectada</b>: ela'
+  echo 'enxerga os dados deste aparelho (dá para olhar e salvar um backup), mas'
+  echo 'não sincroniza sozinha. Para sincronizar é preciso entrar na conta ali'
+  echo 'dentro, de propósito.</p>'
   echo "<a class=\"v agora\" href=\"../\"><span>Versão $VERSAO</span><small>no ar agora</small></a>"
   ls -1 versoes | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1nr -k2,2nr -k3,3nr | while read -r v; do
     [ "$v" = "$VERSAO" ] && continue

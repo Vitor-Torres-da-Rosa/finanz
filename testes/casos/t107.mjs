@@ -186,7 +186,7 @@ await page.screenshot({ path: dir+'/u02-depois-de-trazer.png', fullPage: true })
 const noServidor = async (quando) => {
   const r = await page.evaluate(async () => {
     const chaves = { local: Object.keys(localStorage), sessao: Object.keys(sessionStorage) };
-    let pac = localStorage.getItem('caixa.nuvem.v3');
+    let pac = localStorage.getItem('caixa.nuvem.v4');
     if (!pac) return { semSessao: true, chaves };
     let tok = null, pacote = null;
     try { pacote = JSON.parse(pac); } catch (e) { return { ilegivel: pac.slice(0, 160), chaves }; }

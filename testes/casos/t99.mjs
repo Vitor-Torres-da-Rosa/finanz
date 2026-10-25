@@ -80,7 +80,7 @@ const cofres = await quantosCofres();
 conferir('2. o aparelho tem três cofres, como no caso real', cofres === 3, cofres + ' cofre(s)');
 
 // --- servidor fora, sessão apagada: a porta de trás ---
-await page.evaluate(() => { localStorage.removeItem('caixa.nuvem.v3'); });
+await page.evaluate(() => { localStorage.removeItem('caixa.nuvem.v4'); });
 await page.route('**/auth/v1/**', (rota) => rota.abort('failed'));
 await page.route('**/rest/v1/**', (rota) => rota.abort('failed'));
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(3000);

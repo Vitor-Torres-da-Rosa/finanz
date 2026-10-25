@@ -59,7 +59,7 @@ const totalEmContas = async () => {
   return m ? m[1].replace('−', '-') : '(não achei)';
 };
 const copias = async () => page.evaluate(async () => {
-  const pac = localStorage.getItem('caixa.nuvem.v3');
+  const pac = localStorage.getItem('caixa.nuvem.v4');
   if (!pac) return [];
   const tok = JSON.parse(pac).access_token;
   const cfg = window.FINANZ_CONFIG;
@@ -127,10 +127,10 @@ await page.screenshot({ path: dir+'/y03-copia-por-alteracao.png', fullPage: true
 // dado. Com a nuvem vazia e as cópias de pé, entrar na conta tem que
 // oferecer a mais nova.
 const apagados = await page.evaluate(async () => {
-  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v3')).access_token;
+  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).access_token;
   const cfg = window.FINANZ_CONFIG;
   const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok };
-  const uid = JSON.parse(localStorage.getItem('caixa.nuvem.v3')).usuario.id;
+  const uid = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).usuario.id;
   const fora = [];
   for (const t of ['lancamentos', 'contas']) {
     const r = await fetch(cfg.supabaseUrl + '/rest/v1/' + t + '?user_id=eq.' + uid,

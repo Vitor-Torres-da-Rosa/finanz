@@ -48,7 +48,7 @@ const totalEmContas = async () => {
   return m ? m[1].replace('−', '-') : '(não achei)';
 };
 const copiasNaNuvem = async () => page.evaluate(async () => {
-  const pac = localStorage.getItem('caixa.nuvem.v3');
+  const pac = localStorage.getItem('caixa.nuvem.v4');
   if (!pac) return [];
   const tok = JSON.parse(pac).access_token;
   const cfg = window.FINANZ_CONFIG;

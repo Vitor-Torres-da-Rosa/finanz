@@ -45,7 +45,7 @@ const irParaInicio = async () => {
 // Quantos lançamentos o SERVIDOR tem. É a única prova que vale: a tela
 // mostra o que está no aparelho, que continua certo mesmo sem subir.
 const noServidor = async () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=descricao&excluido_em=is.null', {
     headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });

@@ -67,7 +67,7 @@ await page.goBack(); await page.waitForTimeout(1200);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
 
 // --- o estrago do bug antigo: a sessão apagada, servidor fora ---
-await page.evaluate(() => { localStorage.removeItem('caixa.nuvem.v3'); });
+await page.evaluate(() => { localStorage.removeItem('caixa.nuvem.v4'); });
 await page.route('**/auth/v1/**', (rota) => rota.abort('failed'));
 await page.route('**/rest/v1/**', (rota) => rota.abort('failed'));
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(3000);

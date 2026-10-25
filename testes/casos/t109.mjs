@@ -27,7 +27,7 @@ page.on('filechooser', async fc => { await fc.setFiles(arquivo); });
 
 // O que está guardado no servidor, sem baixar o conteúdo.
 const arquivosNaNuvem = async () => page.evaluate(async () => {
-  const pac = localStorage.getItem('caixa.nuvem.v3');
+  const pac = localStorage.getItem('caixa.nuvem.v4');
   if (!pac) return 'sem sessão';
   const tok = JSON.parse(pac).access_token;
   const cfg = window.FINANZ_CONFIG;

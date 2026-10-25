@@ -114,7 +114,7 @@ conferir('2. nenhuma renovação começou com outra ainda no ar',
 // não será mais intermitente.
 await page.waitForTimeout(14000);
 const noServidor = await page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=descricao&excluido_em=is.null', {
     headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });

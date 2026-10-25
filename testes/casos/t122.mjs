@@ -41,7 +41,7 @@ const irParaInicio = async () => {
   }
 };
 const naConta = async () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token };
   const pegar = async (t, q) => {

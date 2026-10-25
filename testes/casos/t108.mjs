@@ -52,7 +52,7 @@ const totalEmContas = async () => {
 };
 // O que está guardado na nuvem, lido direto do servidor.
 const instantaneosNaNuvem = async () => page.evaluate(async () => {
-  const pac = localStorage.getItem('caixa.nuvem.v3');
+  const pac = localStorage.getItem('caixa.nuvem.v4');
   if (!pac) return 'sem sessão';
   const tok = JSON.parse(pac).access_token;
   const cfg = window.FINANZ_CONFIG;
@@ -161,7 +161,7 @@ const depoisDeRecarregar = await totalEmContas();
 conferir('11. recarregando, a nuvem devolve o estado bom',
   depoisDeRecarregar === '-R$ 320,00', depoisDeRecarregar);
 const naNuvem = await page.evaluate(async () => {
-  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v3')).access_token;
+  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).access_token;
   const cfg = window.FINANZ_CONFIG;
   const r = await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=nome&excluido_em=is.null', {
     headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });

@@ -1659,7 +1659,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.20.1';
+  var VERSAO = '5.21.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1668,6 +1668,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.21.0',
+      data: '2026-10-25',
+      itens: [
+        'Achei por que o seu saldo mudava sozinho — e o Histórico do saldo foi quem entregou: "Veio da nuvem", sem você ter mexido em nada. A porta era a página de versões guardadas. Cada versão ali é um app INTEIRO, no mesmo endereço e apontando para o mesmo servidor; até a 5.18.0 ela abria numa aba nova. A aba ficou aberta, leu a sua sessão e virou um segundo Finanz logado na mesma conta. Os dois mandavam versões diferentes dos seus dados, cada um desfazendo o outro.',
+        'Agora o app avisa na hora: percebendo outra aba mexendo nos mesmos dados, ele diz "Tem outro Finanz aberto nesta conta" e explica o que fechar.',
+        'E a porta foi fechada: a versão guardada abre DESCONECTADA. Ela continua enxergando os dados deste aparelho — dá para olhar e salvar um backup, que é para o que ela existe —, mas não sincroniza sozinha. Para sincronizar é preciso entrar na conta ali dentro, de propósito. Quem já estava logado não é deslogado: a sessão passa sozinha para a chave nova.',
+        'A página de versões passou a dizer isso em cima, antes de você abrir qualquer uma.',
+        'E o Histórico do saldo parou de se apagar. Ele é deste aparelho e não vai para o servidor, então cada descida de dados zerava a lista inteira — justamente a ferramenta que estava explicando as descidas.'
+      ]
+    },
     {
       versao: '5.20.1',
       data: '2026-10-25',
@@ -3917,7 +3928,23 @@
     chave: String(CFG.supabaseAnonKey || ''),
     dono: String(CFG.dono || '')
   };
-  var CHAVE_NUVEM = 'caixa.nuvem.v3';
+  // A sessão da nuvem mudou de v3 para v4 de propósito, e não por causa do
+  // formato: é uma tranca.
+  //
+  // Cada pasta em versoes/ é um app inteiro, na mesma origem, apontando
+  // para o mesmo servidor. Aberta numa aba, ela lia a sessão guardada aqui
+  // e virava um segundo Finanz logado na mesma conta — dois mandando
+  // versões diferentes, cada um desfazendo o outro. Foi o que derrubou os
+  // números do Vitor em 25/10/2026, a tarde inteira, e o histórico do
+  // saldo acusou: "veio da nuvem", sem ninguém ter mexido.
+  //
+  // Com a chave nova, a versão guardada não acha sessão nenhuma e abre
+  // desconectada. Os dados deste aparelho continuam ao alcance dela (o
+  // cofre é o mesmo), que é para o que ela existe: olhar e salvar um
+  // backup quando a versão nova der problema. Para sincronizar, é preciso
+  // entrar na conta de propósito — e aí a pessoa sabe o que está fazendo.
+  var CHAVE_NUVEM = 'caixa.nuvem.v4';
+  var CHAVE_NUVEM_VELHA = 'caixa.nuvem.v3';
   var CHAVE_APARELHO = 'caixa.aparelho.v3';
 
   var sessaoNuvem = null;   // { access_token, refresh_token, expira_em, usuario }
@@ -3925,7 +3952,15 @@
   function lerSessaoNuvem() {
     try {
       var bruto = localStorage.getItem(CHAVE_NUVEM);
-      return bruto ? JSON.parse(bruto) : null;
+      if (bruto) return JSON.parse(bruto);
+      // Quem já estava logado não pode ser deslogado por uma troca de
+      // chave minha: a sessão antiga passa para a nova e a antiga sai, que
+      // é o que fecha a porta para as versões guardadas.
+      var velha = localStorage.getItem(CHAVE_NUVEM_VELHA);
+      if (!velha) return null;
+      localStorage.setItem(CHAVE_NUVEM, velha);
+      localStorage.removeItem(CHAVE_NUVEM_VELHA);
+      return JSON.parse(velha);
     } catch (e) { return null; }
   }
 
@@ -3934,6 +3969,8 @@
     try {
       if (dados) localStorage.setItem(CHAVE_NUVEM, JSON.stringify(dados));
       else localStorage.removeItem(CHAVE_NUVEM);
+      // A antiga some junto, sempre: deixá-la para trás reabriria a porta.
+      localStorage.removeItem(CHAVE_NUVEM_VELHA);
     } catch (e) { /* sem espaço, segue só nesta aba */ }
   }
 
@@ -5015,6 +5052,12 @@
         agendarSincronia();
         return false;
       }
+      // O histórico é deste aparelho e não vai para o servidor, então o
+      // estado que desce não tem nenhum. Sem esta linha, cada descida
+      // apagava o histórico inteiro — e era justamente ele que estava
+      // explicando as descidas. A ferramenta de diagnóstico se apagando a
+      // cada diagnóstico.
+      doServidor.historico = estado.historico;
       estado = doServidor;
       // A mudança que ninguém vê acontecer: o estado inteiro foi trocado
       // pelo que estava no servidor. É a primeira coisa que eu quero saber
@@ -21320,6 +21363,32 @@
   // ver com versão nova, e o app precisa delas mesmo sem service worker.
   document.addEventListener('visibilitychange', sincronizarAoVoltar);
   window.addEventListener('online', sincronizarAoVoltar);
+
+  // Outra aba mexendo no mesmo cofre.
+  //
+  // O evento `storage` chega quando OUTRA aba da mesma origem grava. Se o
+  // que ela gravou foi o cofre desta conta, então existe um segundo Finanz
+  // aberto aqui, logado no mesmo lugar — e os dois mandam versões
+  // diferentes para o servidor, cada um desfazendo o outro.
+  //
+  // Em 25/10/2026 isso derrubou os números do Vitor a tarde inteira. A
+  // porta era a página de versões: até a 5.18.0 ela abria numa aba nova, e
+  // cada pasta de versão guardada é um app inteiro, apontando para o mesmo
+  // servidor, com acesso ao mesmo cofre. A aba ficou aberta e virou um
+  // segundo aparelho dentro do mesmo celular.
+  var avisouDeOutraAba = false;
+
+  window.addEventListener('storage', function (e) {
+    if (!e || !e.key || !sessao || avisouDeOutraAba) return;
+    if (e.key !== 'caixa.cofre.' + sessao.contaId) return;
+    avisouDeOutraAba = true;
+    avisarCaixa('Tem outro Finanz aberto nesta conta',
+      'Outra aba ou janela acabou de gravar os seus dados. Duas abertas na mesma ' +
+      'conta mandam versões diferentes para o servidor e ficam desfazendo uma à ' +
+      'outra — é assim que o saldo começa a mudar sozinho.\n\nFeche as outras e ' +
+      'deixe só esta. Se você abriu uma versão guardada em Mais, ela é um app ' +
+      'inteiro: feche a aba dela.', function () {});
+  });
 
   $('fab').addEventListener('click', function () {
     if (noEmpreendedor()) abrirFolhaCliente(null);

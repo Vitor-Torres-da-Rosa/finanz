@@ -97,7 +97,7 @@ conferir('3. e os dados continuam na tela', (await totalEmContas()) === '-R$ 320
 // Outro aparelho mexe. Agora tem de baixar de novo — senão a economia
 // seria só deixar de ver o que os outros fazem.
 await page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
     method: 'POST',

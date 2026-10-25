@@ -57,7 +57,7 @@ const avisoDeSincronia = async () => {
   });
 };
 const noServidor = async () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=descricao&excluido_em=is.null', {
     headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
@@ -102,7 +102,7 @@ conferir('1. a transferência subiu', (await noServidor()).indexOf('Passando par
 // É assim que o Vitor chegou lá: a bagunça da duplicação apagou contas no
 // servidor e deixou lançamentos apontando para elas.
 const montado = await page.evaluate(async (marca) => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token };
   const r = await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id,nome&excluido_em=is.null',

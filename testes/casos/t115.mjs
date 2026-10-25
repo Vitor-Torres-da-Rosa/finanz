@@ -36,7 +36,7 @@ const irParaInicio = async () => {
   }
 };
 const contar = async () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const r = await fetch(cfg.supabaseUrl + '/rest/v1/instantaneos?select=motivo', {
     headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
@@ -76,7 +76,7 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 // da tabela, não por usuário, e repetir um id de outra rodada devolve 400
 // — insere nada e o teste passaria por engano.
 const antes = await page.evaluate(async (marca) => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v3'));
+  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const linhas = [];
   const base = Date.now() - 6 * 3600 * 1000;
