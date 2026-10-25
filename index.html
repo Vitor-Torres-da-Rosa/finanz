@@ -1659,7 +1659,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.20.0';
+  var VERSAO = '5.20.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1668,6 +1668,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.20.1',
+      data: '2026-10-25',
+      itens: [
+        'Voltar a uma cópia agora confere o próprio resultado. Se a cópia tinha 412 lançamentos e o app terminar com outro número, ele avisa na hora — "A volta não bateu" — em vez de dizer "Pronto" por cima de uma mistura. Número diferente quer dizer que entrou coisa junto, de outro aparelho ou de outra aba aberta.',
+        'E agora é uma volta de cada vez. Duas correndo juntas eram o caminho curto para o estrago: cada uma marcava a substituição, cada uma mandava a sua versão, e no servidor sobrava a mistura das duas.'
+      ]
+    },
     {
       versao: '5.20.0',
       data: '2026-10-25',
@@ -20690,14 +20698,35 @@
 
   // Volta o app para o estado de um dia. É o mesmo caminho do restaurar
   // backup: marca a troca total e deixa a sincronização limpar a nuvem.
+  // Uma volta de cada vez. Duas correndo juntas é o caminho curto para o
+  // estrago: cada uma marca troca total, cada uma manda a sua versão, e o
+  // que sobra no servidor é a mistura das duas.
+  var voltandoNoTempo = false;
+
   function voltarParaInstantaneo(id, aoTerminar) {
+    if (voltandoNoTempo) {
+      return Promise.reject(new Error('já tem uma volta em andamento'));
+    }
+    voltandoNoTempo = true;
+    var solta = function () { voltandoNoTempo = false; };
+
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/instantaneos?select=dia,dados&id=eq.' + encodeURIComponent(id), {});
     }).then(function (r) {
       var linha = r && r[0];
       if (!linha) throw new Error('não achei esse dia');
+      var esperado = null;
       return descomprimirTexto(linha.dados, pareceZip(linha.dados)).then(function (texto) {
         var limpo = limparEstado(JSON.parse(texto));
+        // O que a cópia tinha dentro, para conferir no fim. Restauração
+        // que termina com outro número de lançamentos não é restauração:
+        // é mistura, e tem de aparecer na hora em vez de virar um saldo
+        // estranho que ninguém sabe explicar.
+        esperado = {
+          lancamentos: limpo.lancamentos.length,
+          contas: limpo.contas.length,
+          clientes: limpo.clientes.length
+        };
         // O histórico é desta conta, não da cópia: ele conta o que
         // aconteceu, e voltar no tempo não desfaz o que aconteceu.
         limpo.historico = estado.historico;
@@ -20710,13 +20739,24 @@
         return sincronizarAgora();
       }).then(function () {
         desenhar();
+        solta();
+        var bateu = estado.lancamentos.length === esperado.lancamentos &&
+                    estado.contas.length === esperado.contas &&
+                    estado.clientes.length === esperado.clientes;
         // sincronizar() engole o próprio erro e devolve false, então quem
         // diz se a nuvem recebeu é a marca de falha. Sem isto o app
         // prometia "a nuvem já está com essa versão" mesmo tendo falhado
         // no envio — e a pessoa ia dormir achando que estava resolvido.
-        if (aoTerminar) aoTerminar(linha.dia, !falhaDaSincronia);
+        if (aoTerminar) aoTerminar(linha.dia, !falhaDaSincronia, bateu ? null : {
+          esperado: esperado,
+          ficou: {
+            lancamentos: estado.lancamentos.length,
+            contas: estado.contas.length,
+            clientes: estado.clientes.length
+          }
+        });
       });
-    });
+    }).catch(function (e) { solta(); throw e; });
   }
 
   // De onde veio cada mudança nos números.
@@ -20905,13 +20945,31 @@
           // tela, a pessoa fica olhando para um app que parece parado.
           abrirEspera('Voltando a esta cópia',
             'Trazendo a cópia, aplicando aqui e mandando para a nuvem. Não feche o app.');
-          voltarParaInstantaneo(i.id, function (dia, naNuvem) {
+          voltarParaInstantaneo(i.id, function (dia, naNuvem, naoBateu) {
             // fecharFolha() e não voltarNavegacao(): o voltar passa pelo
             // history, que chega depois: abrindo o aviso em seguida, o
             // history.back() fechava o aviso e deixava a folha aberta por
             // cima dos dados que a pessoa acabou de recuperar.
             fecharFolha();
             setTimeout(function () {
+              if (naoBateu) {
+                perguntar({
+                  titulo: 'A volta não bateu',
+                  texto: 'A cópia de ' + dataBr(dia) + ' tinha ' +
+                    naoBateu.esperado.lancamentos + ' lançamentos, ' +
+                    naoBateu.esperado.contas + ' contas e ' +
+                    naoBateu.esperado.clientes + ' clientes.\n\nO app ficou com ' +
+                    naoBateu.ficou.lancamentos + ' lançamentos, ' +
+                    naoBateu.ficou.contas + ' contas e ' +
+                    naoBateu.ficou.clientes + ' clientes.\n\nQuer dizer que entrou ' +
+                    'coisa junto, de outro aparelho ou de outra aba aberta. NÃO volte ' +
+                    'de novo por cima: feche o app nos outros lugares, deixe só este, ' +
+                    'e aí volte à cópia uma vez só. Em Mais → Histórico do saldo dá ' +
+                    'para ver o que entrou.',
+                  ok: 'Entendi', soAviso: true, semHistorico: true, tom: 'perigo'
+                }, function () {});
+                return;
+              }
               perguntar({
                 titulo: naNuvem ? 'Pronto, voltou' : 'Voltou aqui, falta a nuvem',
                 texto: 'Seus dados voltaram ao que eram em ' + dataBr(dia) + '. ' +
