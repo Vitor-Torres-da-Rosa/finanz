@@ -1659,7 +1659,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.21.0';
+  var VERSAO = '5.22.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1668,6 +1668,20 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.22.0',
+      data: '2026-10-26',
+      itens: [
+        'Achei a causa inteira de os seus números mudarem sozinhos — e não era a página de versões. Aquilo era outra porta, de verdade, e continua fechada; só não era esta. É isto: o servidor corta toda resposta em 1000 linhas, e corta calado. Você tem 3520 lançamentos. O app pedia "me dá os meus lançamentos", recebia 1000 com cara de lista inteira, e montava o seu saldo com esses 1000.',
+        'O Histórico do saldo vinha dizendo isso o tempo todo, e eu demorei a ler: TODA linha "Veio da nuvem" marcava exatamente 1000 lançamentos, e TODA volta no tempo marcava 3520. Mil nunca foi a sua conta. Era o teto do servidor.',
+        'E o pedido não dizia em que ordem. Sem ordem, o servidor escolhe quais mil manda — e nada o obriga a escolher os mesmos mil na vez seguinte. Eram lançamentos diferentes a cada sincronização. Por isso o saldo mudava com você olhando a tela, sem ter mexido em nada, e nunca para o mesmo número.',
+        'Agora a leitura vai em páginas, em ordem, até a tabela acabar. E ela não para porque a página veio menor do que eu pedi: o teto é do servidor e pode ser outro, então eu só paro quando vem uma página vazia. Custa um pedido pequeno a mais por tabela, e em troca nunca mais desce um pedaço no lugar do todo.',
+        'Restaurar um backup tinha o mesmo defeito, no outro sentido. "Substitui os dados atuais" precisa tirar do servidor o que não veio no backup, e a lista do que tirar parava nas mesmas mil linhas: o que passava disso ficava lá e voltava na sincronização seguinte. Era isso que você estava vendo quando escreveu "acho que tá restaurando mais que uma vez". No teste, restaurar por cima de 1101 lançamentos deixava 102 vivos no servidor; agora deixa 1.',
+        'Nada se perdeu no servidor por causa disso: o corte era na leitura, e o que não descia continuou lá em cima. Na primeira sincronização depois de atualizar, os seus 3520 voltam inteiros.',
+        'Um recado prático: como a limpeza do restauro andava cega, o servidor pode estar com sobras de antes — lançamentos que o último restauro devia ter tirado e não tirou. Elas vão aparecer agora que o app enxerga tudo. Se aparecer coisa a mais, faça Mais → "Voltar a uma data" na cópia boa UMA vez: a limpeza agora vai até o fim e o servidor fica igualzinho a ela.',
+        'Dois testes novos trancam isso, e o servidor de teste passou a cortar em 1000 igual ao de verdade. Sem esse corte no teste, a suíte ficava verde com o defeito inteiro de pé — foi exatamente o que aconteceu até hoje.'
+      ]
+    },
     {
       versao: '5.21.0',
       data: '2026-10-25',
@@ -4629,6 +4643,90 @@
     return tarefa.then(function () { return true; });
   }
 
+  // ---------- Ler a tabela inteira, e não as primeiras mil linhas ----------
+  //
+  // O Supabase corta toda resposta em 1000 linhas (é o "Max rows" do
+  // painel) e corta calado: devolve 200 com as mil primeiras como se
+  // fossem a tabela toda. Quem tem 3520 lançamentos baixava 1000 — e o
+  // download não acrescenta, ele monta o estado do zero com o que
+  // chegou. O saldo virava o saldo de mil lançamentos.
+  //
+  // E o select não pedia ordem nenhuma. Sem ordem, o banco escolhe quais
+  // mil manda, e pode escolher outras mil na vez seguinte: era por isso
+  // que o saldo mudava sozinho a cada sincronização, sem ninguém ter
+  // mexido em nada. Toda linha "Veio da nuvem" do histórico do saldo
+  // marcava exatamente 1000 lançamentos — era o teto, não a conta.
+  //
+  // Daqui para a frente a leitura vai em páginas, pedindo "o que vem
+  // depois do último id que eu vi". Pelo id, e não por "pule as
+  // primeiras N": com pulo, uma linha que entra no meio da leitura
+  // empurra as outras e uma delas não vem em página nenhuma.
+  //
+  // A leitura para quando vem uma página vazia, e não quando vem uma
+  // página menor do que pedi. É de propósito: o teto é do servidor, não
+  // meu, e cada projeto pode ter o seu. Pedir 1000 e receber 400 não
+  // quer dizer que acabou — pode ser o teto de lá. Custa um pedido
+  // pequeno a mais por tabela; truncar o saldo de alguém custa muito
+  // mais.
+  var LINHAS_POR_PAGINA = 1000;
+
+  // Cinto de segurança: se o servidor ignorar o limite ou o avanço, a
+  // volta se repete para sempre e martela a nuvem. Falha visível é
+  // melhor do que laço infinito — a sincronização reclama e tenta de
+  // novo depois.
+  var MAXIMO_DE_PAGINAS = 400;
+
+  function baixarTudo(tabela, consulta) {
+    var tudo = [];
+    var ultimo = null;
+
+    function proxima(numero) {
+      if (numero > MAXIMO_DE_PAGINAS) {
+        throw new Error('Leitura de ' + tabela + ' não terminou em ' +
+          MAXIMO_DE_PAGINAS + ' páginas.');
+      }
+      var caminho = '/rest/v1/' + tabela + '?' + consulta +
+        '&order=id.asc&limit=' + LINHAS_POR_PAGINA +
+        (ultimo === null ? '' : '&id=gt.' + encodeURIComponent(ultimo));
+      return pedirNuvem(caminho, {}).then(function (r) {
+        var pagina = r || [];
+        if (!pagina.length) return tudo;
+        tudo = tudo.concat(pagina);
+        var fim = pagina[pagina.length - 1].id;
+        // Sem id para avançar eu repetiria a mesma página para sempre.
+        if (fim == null || String(fim) === String(ultimo)) return tudo;
+        ultimo = String(fim);
+        return proxima(numero + 1);
+      });
+    }
+
+    return Promise.resolve().then(function () { return proxima(1); });
+  }
+
+  // Orçamentos e categorias não têm `id`: a chave é composta. São poucas
+  // linhas — uma por categoria —, mas poucas hoje não é poucas sempre, e
+  // aqui o pulo serve: a ordem é fixa e ninguém cria categoria no meio
+  // de uma sincronização.
+  function baixarTudoPorPulo(tabela, consulta, ordem) {
+    var tudo = [];
+
+    function proxima(pulo, numero) {
+      if (numero > MAXIMO_DE_PAGINAS) {
+        throw new Error('Leitura de ' + tabela + ' não terminou em ' +
+          MAXIMO_DE_PAGINAS + ' páginas.');
+      }
+      return pedirNuvem('/rest/v1/' + tabela + '?' + consulta + '&order=' + ordem +
+        '&limit=' + LINHAS_POR_PAGINA + '&offset=' + pulo, {}).then(function (r) {
+        var pagina = r || [];
+        if (!pagina.length) return tudo;
+        tudo = tudo.concat(pagina);
+        return proxima(pulo + pagina.length, numero + 1);
+      });
+    }
+
+    return Promise.resolve().then(function () { return proxima(0, 1); });
+  }
+
   function nuvemBaixar() {
     if (!sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.reject(new Error('Sem sessão na nuvem.'));
     var recolhido = {};
@@ -4639,18 +4737,21 @@
 
     TABELAS_SINCRONIA.forEach(function (t) {
       tarefa = tarefa.then(function () {
-        return pedirNuvem('/rest/v1/' + t + '?select=*&excluido_em=is.null', {});
+        return baixarTudo(t, 'select=*&excluido_em=is.null');
       }).then(function (r) { recolhido[t] = r || []; });
     });
 
     tarefa = tarefa.then(function () {
-      return pedirNuvem('/rest/v1/orcamentos?select=*', {});
+      return baixarTudoPorPulo('orcamentos', 'select=*', 'categoria.asc');
     }).then(function (r) { recolhido.orcamentos = r || []; })
-      .then(function () { return pedirNuvem('/rest/v1/categorias_extras?select=*', {}); })
+      .then(function () {
+        return baixarTudoPorPulo('categorias_extras', 'select=*', 'tipo.asc,nome.asc');
+      })
       .then(function (r) { recolhido.categorias_extras = r || []; })
       // Banco sem a migração nova: volta vazio em vez de derrubar a leitura.
       .then(function () {
-        return pedirNuvem('/rest/v1/subcategorias_extras?select=*', {}).catch(function () { return []; });
+        return baixarTudoPorPulo('subcategorias_extras', 'select=*',
+          'tipo.asc,categoria.asc,nome.asc').catch(function () { return []; });
       })
       .then(function (r) { recolhido.subcategorias_extras = r || []; });
 
@@ -20384,7 +20485,11 @@
     var tarefa = comTokenValido();
     TABELAS_SINCRONIA.forEach(function (t) {
       tarefa = tarefa.then(function () {
-        return pedirNuvem('/rest/v1/' + t + '?select=id&excluido_em=is.null', {});
+        // Em páginas, como o download. Truncada, esta lista decidia o que
+        // apagar olhando só as primeiras mil linhas: o resto ficava de pé
+        // no servidor e voltava no download seguinte. Era por isso que
+        // restaurar um backup parecia valer e depois desvalia.
+        return baixarTudo(t, 'select=id&excluido_em=is.null');
       }).then(function (r) {
         (r || []).forEach(function (linha) {
           var id = String(linha.id);

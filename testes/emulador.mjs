@@ -61,6 +61,7 @@ function condicoes(params) {
   const valores = [];
   for (const [chave, valor] of params) {
     if (chave === 'select' || chave === 'on_conflict' || chave === 'order') continue;
+    if (chave === 'limit' || chave === 'offset') continue;
     const m = /^(\w+)\.(.*)$/.exec(valor);
     if (!m) continue;
     const [, op, alvo] = m;
@@ -69,6 +70,30 @@ function condicoes(params) {
     else if (op === 'is') { onde.push(`"${chave}" IS ${alvo.toUpperCase() === 'NULL' ? 'NULL' : 'NOT NULL'}`); }
   }
   return { onde: onde.length ? 'WHERE ' + onde.join(' AND ') : '', valores };
+}
+
+const TETO_DE_LINHAS = 1000;
+
+// `order=id.asc` / `order=tipo.asc,nome.desc`.
+function ordenacao(params) {
+  const pedacos = (params.get('order') || '').split(',').filter(Boolean).map((p) => {
+    const [coluna, direcao] = p.split('.');
+    if (!/^\w+$/.test(coluna || '')) return '';
+    return `"${coluna}" ${String(direcao).toLowerCase() === 'desc' ? 'DESC' : 'ASC'}`;
+  }).filter(Boolean);
+  return pedacos.length ? ' ORDER BY ' + pedacos.join(', ') : '';
+}
+
+// `limit` e `offset`, com o teto por cima do que foi pedido.
+function fatia(params) {
+  const inteiro = (t, padrao) => {
+    const cru = params.get(t);
+    if (cru === null || cru === '') return padrao;
+    const n = Math.floor(Number(cru));
+    return Number.isFinite(n) && n >= 0 ? n : padrao;
+  };
+  const quanto = Math.min(inteiro('limit', TETO_DE_LINHAS), TETO_DE_LINHAS);
+  return ` LIMIT ${quanto} OFFSET ${inteiro('offset', 0)}`;
 }
 
 async function comoUsuario(uid, executar) {
@@ -197,8 +222,14 @@ const servidor = http.createServer(async (req, res) => {
       const { onde, valores } = condicoes(url.searchParams);
 
       if (req.method === 'GET') {
+        // O Supabase corta toda resposta em 1000 linhas: é o "Max rows"
+        // do painel, e vale para qualquer projeto novo. Aqui corta
+        // também, de propósito. Foi esse teto que truncou os dados do
+        // Vitor, e um emulador sem teto deixaria a suíte verde para
+        // sempre com o defeito inteiro de pé.
         const linhas = await comoUsuario(uid, (c) =>
-          c.query(`select * from public."${tabela}" ${onde}`, valores));
+          c.query(`select * from public."${tabela}" ${onde}` +
+            ordenacao(url.searchParams) + fatia(url.searchParams), valores));
         return json(res, 200, linhas.rows);
       }
 
