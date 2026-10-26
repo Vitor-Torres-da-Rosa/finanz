@@ -905,6 +905,42 @@
     border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
   .etiqueta-vazia { border-style: dashed; color: var(--fraco); font-weight: 400; }
   .ja-tem { color: var(--ouro); }
+  /* O dia da conta aberto embaixo da linha do extrato. Recuado 34px para
+     ficar alinhado com o texto: 23 da caixinha mais os 11 do vão. */
+  .etiqueta-acao { background: rgba(255,255,255,.05); border: 1px solid var(--borda);
+    border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+  .etiqueta-dia { color: var(--suave); }
+  .etiqueta-dia-aberta { background: rgba(233,180,76,.12); border-color: var(--ouro);
+    color: var(--ouro); }
+  .dia-real { margin: 2px 0 10px 34px; padding: 10px 12px; border-radius: 11px;
+    background: rgba(255,255,255,.035); border: 1px solid var(--borda); }
+  .dia-topo { display: flex; justify-content: space-between; gap: 10px;
+    font-size: 11.5px; color: var(--suave); font-weight: 600; margin-bottom: 8px;
+    flex-wrap: wrap; }
+  .dia-topo-conta { color: var(--fraco); font-weight: 400; }
+  .dia-vazio { font-size: 12px; color: var(--fraco); line-height: 1.4; }
+  .dia-linha { display: flex; align-items: baseline; gap: 10px; padding: 6px 0;
+    border-top: 1px solid var(--borda); }
+  .dia-linha:first-of-type { border-top: 0; padding-top: 0; }
+  .dia-meio { flex: 1 1 auto; min-width: 0; }
+  .dia-desc { font-size: 12.5px; line-height: 1.3; word-break: break-word; }
+  .dia-nota { font-size: 11px; color: var(--fraco); margin-top: 1px;
+    line-height: 1.3; word-break: break-word; }
+  .dia-valor { flex: 0 0 auto; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .dia-igual { background: rgba(233,180,76,.09); border-radius: 8px;
+    padding-left: 7px; padding-right: 7px; }
+  .dia-igual .dia-nota { color: var(--ouro); }
+  .dia-tirar { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 7px;
+    border: 1px solid var(--borda); background: transparent; color: var(--fraco);
+    font-size: 12px; line-height: 1; display: grid; place-items: center; }
+  .dia-tirar:active { background: rgba(248,113,113,.14); color: var(--vermelho);
+    border-color: var(--vermelho); }
+  .acoes-arquivo { flex: 0 0 auto; display: flex; gap: 6px; align-items: center; }
+  .acoes-arquivo button:disabled { opacity: .35; }
+  .arquivo-ausente { font-size: 11px; color: var(--fraco); font-style: italic; }
+  .dia-saldo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--borda);
+    font-size: 11.5px; color: var(--suave); }
   .caixinha { flex: 0 0 auto; width: 23px; height: 23px; border-radius: 7px;
     border: 1px solid var(--borda-viva); background: transparent; color: #1A1408;
     font-size: 13px; font-weight: 800; display: grid; place-items: center; }
@@ -1659,7 +1695,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.22.0';
+  var VERSAO = '5.23.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1668,6 +1704,19 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.23.0',
+      data: '2026-10-26',
+      itens: [
+        'Na conferência do extrato, cada linha ganhou "o dia na conta". Tocando ali abre, logo embaixo, tudo o que a conta JÁ TEM naquela data: descrição, categoria, valor, quanto entrou e saiu no dia e o saldo no fim dele. A etiqueta "já existe" dizia que eu achei um igual, mas não dizia qual — e para ver com os próprios olhos você tinha que sair da conferência, ir em Transações, achar o dia e voltar. Voltando, o arquivo lido já tinha ido embora.',
+        'O lançamento que casa com a linha que você está olhando vem marcado em ouro, com "igual a esta linha". É exatamente o motivo da etiqueta, mostrado em vez de prometido.',
+        'E tem um ✕ em cada lançamento do dia: achou o duplicado ali, apaga ali. Apaga de verdade — sai do aparelho e sai do servidor, não volta na sincronização seguinte. O dia fica vazio na hora, na sua frente.',
+        'Apagando o duplicado, a linha do extrato deixa de ser "já existe" e volta marcada sozinha para ser lançada. Ela só estava desmarcada por causa dele.',
+        'Um dia aberto de cada vez: abrindo outro, o primeiro fecha. Com três ou quatro abertos a lista virava uma coluna de painéis onde não se achava mais a linha do extrato.',
+        'Em Conferir esta conta → Extratos importados, o botão "Baixar" parou de nascer escondido. Ele existia desde a 5.13.0, mas só aparecia depois que a nuvem respondesse que o arquivo estava guardado — e não estando, não aparecia nada. Ficava só o "Tirar", e não havia como saber que "Baixar" existia. Agora ele está sempre lá: ou liga, ou diz "sem arquivo".',
+        'E ao lado dele nasceu o "Relançar": lê de novo o arquivo que já está guardado na nuvem e abre a conferência normal, sem você ter que caçar o PDF no celular. Não apaga nada sozinho — o que já entrou continua lá e aparece marcado como "já existe", linha por linha, agora com o dia para conferir.'
+      ]
+    },
     {
       versao: '5.22.0',
       data: '2026-10-26',
@@ -13107,12 +13156,26 @@
         // Os arquivos ficam guardados na nuvem desde a 5.13.0. A lista vem
         // sem o conteúdo — só o que a tela precisa — e o arquivo só desce
         // quando alguém toca em "Baixar".
+        // Os botões do arquivo nascem visíveis e desligados, e só ligam
+        // quando a nuvem diz que o arquivo existe. Antes eles nasciam
+        // escondidos: não existindo o arquivo, nada aparecia e a tela
+        // ficava só com "Tirar" — a pessoa não tinha como saber que
+        // "Baixar" sequer existia. Botão que some calado não é botão.
         var guardados = {};
         listarArquivosDeExtrato(id).then(function (lista) {
           lista.forEach(function (a) { if (a.importacao_id) guardados[a.importacao_id] = a; });
-          Object.keys(guardados).forEach(function (k) {
-            var alvo = imp.querySelector('[data-leva="' + k + '"]');
-            if (alvo) alvo.style.display = '';
+          minhas.forEach(function (i) {
+            var caixaB = imp.querySelector('[data-leva="' + i.id + '"]');
+            if (!caixaB) return;
+            if (guardados[i.id]) {
+              Array.prototype.forEach.call(caixaB.querySelectorAll('button'), function (b) {
+                b.disabled = false;
+              });
+              return;
+            }
+            // Sem arquivo: em vez de botão morto, o motivo.
+            caixaB.textContent = '';
+            caixaB.appendChild(no('span', 'arquivo-ausente', 'sem arquivo'));
           });
         });
 
@@ -13120,6 +13183,10 @@
           var linha = no('div', 'linha');
           var sub = i.quantos + ' lançamento(s)' +
             (i.de ? ' · ' + dataBr(i.de) + ' a ' + dataBr(i.ate) : '');
+
+          var doArquivo = no('div', 'acoes-arquivo');
+          doArquivo.setAttribute('data-leva', i.id);
+
           var baixar = botao('btn-mini', 'Baixar', function () {
             var a = guardados[i.id];
             if (!a) { avisar('O arquivo desta leva não está guardado.'); return; }
@@ -13128,13 +13195,25 @@
               avisar('Não consegui baixar o arquivo.');
             });
           });
-          baixar.setAttribute('data-leva', i.id);
-          baixar.style.display = 'none';
+          baixar.disabled = true;
+
+          // Relançar lê o arquivo guardado de novo e abre a conferência
+          // normal. Não apaga nada sozinho: o que já entrou continua lá e
+          // aparece marcado como "já existe", linha por linha.
+          var relancar = botao('btn-mini', 'Relançar', function () {
+            var a = guardados[i.id];
+            if (!a) { avisar('O arquivo desta leva não está guardado.'); return; }
+            relancarArquivoDeExtrato(a);
+          });
+          relancar.disabled = true;
+
+          juntar(doArquivo, baixar, relancar);
+
           juntar(linha,
             juntar(no('div', 'linha-texto'),
               no('div', 'linha-titulo', i.arquivo || i.banco || 'Extrato'),
               no('div', 'linha-sub', sub)),
-            baixar,
+            doArquivo,
             botao('btn-mini', 'Tirar', function () {
               desfazerImportacao(i.id, function () {
                 fecharFolha();
@@ -20062,6 +20141,131 @@
     avisar('Conta ' + conta.nome + ' criada.');
   }
 
+  // Tirar um lançamento de dentro da conferência, sem sair dela. Pedido do
+  // Vitor em 26/10/2026: achando o duplicado ali, apagar ali — e ficar
+  // apagado de verdade, não só sumir da tela até a próxima sincronização.
+  function tirarLancamentoDoDia(l, aoTerminar) {
+    perguntar({
+      titulo: 'Excluir este lançamento?',
+      texto: '"' + (l.descricao || l.categoria || 'sem descrição') + '", de ' +
+             emReais(l.valor) + ', em ' + dataBr(l.data) + '. Não dá para desfazer.',
+      ok: 'Excluir', tom: 'perigo',
+      copiaAntes: 'antes de excluir o lançamento ' +
+                  (l.descricao || l.categoria || 'sem descrição') + ', de ' + emReais(l.valor)
+    }, function () {
+      marcarExcluido('lancamentos', l.id);
+      estado.lancamentos = estado.lancamentos.filter(function (x) { return x.id !== l.id; });
+      // Mesmo cuidado de quando se exclui pela ficha do cliente: pagamento
+      // que apontava para este lançamento ficaria apontando para o nada, e
+      // o envio leva a referência morta para o servidor, que recusa tudo.
+      (estado.pagamentos || []).forEach(function (pg) {
+        if (pg.lancamentoId === l.id) pg.lancamentoId = '';
+      });
+      salvar();
+      avisar('Lançamento excluído.');
+      if (aoTerminar) aoTerminar();
+    });
+  }
+
+  // Tirando o duplicado, a linha do extrato deixa de ter igual na conta —
+  // e ela só estava desmarcada por causa dele. Volta a valer sozinha,
+  // senão a pessoa apaga a cópia e a linha continua apagada sem dizer por
+  // quê.
+  function reconferirRepetidos(contaId) {
+    if (!extratoLido) return;
+    (extratoLido.itens || []).forEach(function (x) {
+      var antes = x.repetido;
+      x.repetido = jaTemIgual(x, contaId);
+      if (antes && !x.repetido) x.usar = true;
+    });
+  }
+
+  // ---------- O dia que já está na conta, aberto na própria conferência ----------
+  //
+  // Pedido do Vitor em 26/10/2026: a etiqueta "já existe" diz que achei um
+  // igual, mas não mostra qual. Conferir com os olhos obrigava a sair da
+  // conferência, ir em Transações, achar o dia, e voltar — e voltando o
+  // arquivo lido já tinha ido embora.
+  //
+  // Agora o dia abre aqui embaixo da linha: tudo o que a conta já tem
+  // naquela data, o que casa com esta linha marcado em ouro, quanto entrou
+  // e saiu no dia, e o saldo da conta no fim dele. Sai do estado na hora
+  // de desenhar, então é o que está valendo agora.
+  function painelDoDiaNaConta(item, contaId) {
+    var caixa = no('div', 'dia-real');
+    var conta = achar(estado.contas, contaId);
+
+    if (!conta) {
+      caixa.appendChild(no('div', 'dia-vazio',
+        'Escolha a conta aí em cima para eu poder mostrar o dia.'));
+      return caixa;
+    }
+
+    juntar(caixa, juntar(no('div', 'dia-topo'),
+      no('span', null, 'O que a conta já tem em ' + dataBr(item.data)),
+      no('span', 'dia-topo-conta', conta.nome)));
+
+    // Transferência conta dos dois lados: o dinheiro passou por esta conta
+    // sendo ela a origem ou o destino. É isso que "está na conta no dia".
+    var doDia = estado.lancamentos.filter(function (l) {
+      return l.data === item.data && (l.contaId === contaId || l.contaDestinoId === contaId);
+    }).sort(function (a, b) {
+      return String(a.descricao || '').localeCompare(String(b.descricao || ''));
+    });
+
+    if (!doDia.length) {
+      caixa.appendChild(no('div', 'dia-vazio',
+        'Nada lançado nesse dia nessa conta. Esta linha é nova.'));
+    }
+
+    var entrou = 0, saiu = 0;
+    doDia.forEach(function (l) {
+      var entra = l.tipo === 'entrada' ||
+        (l.tipo === 'transferencia' && l.contaDestinoId === contaId);
+      if (entra) entrou += l.valor; else saiu += l.valor;
+
+      // O motivo da etiqueta "já existe": mesma data, mesmo valor, mesmo
+      // tipo, mesma conta. Em ouro, para a conferência ser de olho.
+      var igual = l.valor === item.valor && l.tipo === item.tipo && l.contaId === contaId;
+
+      var linha = no('div', 'dia-linha' + (igual ? ' dia-igual' : ''));
+      var meio = no('div', 'dia-meio');
+      meio.appendChild(no('div', 'dia-desc', l.descricao || '(sem descrição)'));
+
+      var nota = l.categoria || '';
+      if (l.tipo === 'transferencia') {
+        var outraId = l.contaId === contaId ? l.contaDestinoId : l.contaId;
+        var outra = achar(estado.contas, outraId);
+        nota = 'Transferência · ' + (entra ? 'de ' : 'para ') + (outra ? outra.nome : 'outra conta');
+      }
+      if (igual) nota = nota + ' · igual a esta linha';
+      meio.appendChild(no('div', 'dia-nota', nota));
+      linha.appendChild(meio);
+
+      linha.appendChild(no('div', 'dia-valor ' + (entra ? 'verde' : 'vermelho'),
+        (entra ? '+' : '−') + ' ' + emReais(l.valor)));
+      linha.appendChild(botao('dia-tirar', '✕', function () {
+        tirarLancamentoDoDia(l, function () {
+          reconferirRepetidos(contaId);
+          montarFolhaExtrato();
+        });
+      }));
+      caixa.appendChild(linha);
+    });
+
+    var rodape = no('div', 'dia-saldo');
+    rodape.appendChild(no('span', null,
+      'No dia: ' + (entrou ? '+' + emReais(entrou) : emReais(0)) +
+      ' / −' + emReais(saiu)));
+    // Cartão não tem saldo, tem fatura: dizer "saldo" ali seria mentira.
+    rodape.appendChild(no('span', 'num', ehCartao(conta)
+      ? 'Lançados: ' + doDia.length
+      : 'Saldo no fim do dia: ' + emReais(saldoConta(contaId, item.data))));
+    caixa.appendChild(rodape);
+
+    return caixa;
+  }
+
   function montarFolhaExtrato() {
     var dados = extratoLido;
     if (!dados) return;
@@ -20202,7 +20406,11 @@
 
       if (paginas > 1) lista.appendChild(barraDePaginas());
 
-      itens.slice(de, ate).forEach(function (it) {
+      itens.slice(de, ate).forEach(function (it, n) {
+        // O índice no array inteiro, não na página: é ele que diz qual dia
+        // está aberto, e a pessoa vira de página com o dia aberto.
+        var indice = de + n;
+        var diaAberto = dados.diaAberto === indice;
         var linha = no('div', 'item-extrato' + (it.usar ? '' : ' apagado'));
 
         var marca = botao('caixinha' + (it.usar ? ' marcada' : ''), it.usar ? '✓' : '', function () {
@@ -20243,6 +20451,15 @@
           });
         sub.appendChild(subEtiqueta);
         if (it.repetido) sub.appendChild(no('span', 'ja-tem', 'já existe'));
+
+        // Um dia aberto de cada vez. Dois ou três abertos e a lista vira
+        // uma coluna de painéis onde não se acha mais a linha do extrato.
+        sub.appendChild(botao('etiqueta-acao etiqueta-dia' + (diaAberto ? ' etiqueta-dia-aberta' : ''),
+          (diaAberto ? '▴ ' : '▾ ') + 'o dia na conta', function () {
+            dados.diaAberto = diaAberto ? null : indice;
+            montarFolhaExtrato();
+          }));
+
         meio.appendChild(sub);
         linha.appendChild(meio);
 
@@ -20250,6 +20467,7 @@
           (it.tipo === 'entrada' ? '+' : '−') + ' ' + emReais(it.valor)));
 
         lista.appendChild(linha);
+        if (diaAberto) lista.appendChild(painelDoDiaNaConta(it, contaId === '__nova__' ? '' : contaId));
       });
 
       if (paginas > 1) lista.appendChild(barraDePaginas());
@@ -20821,13 +21039,49 @@
     }).then(function (r) { return r || []; }).catch(function () { return []; });
   }
 
-  function baixarArquivoDeExtrato(id, nome, tipo) {
+  // O conteúdo do arquivo como o banco entregou. Serve para salvar no
+  // celular e para ler de novo sem ter de caçar o original.
+  function bytesDeArquivoDeExtrato(id) {
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=conteudo,nome,tipo&id=eq.' + encodeURIComponent(id), {});
     }).then(function (r) {
       var linha = r && r[0];
       if (!linha) throw new Error('não achei esse arquivo');
-      baixarArquivo(linha.nome || nome || 'extrato', deBase64(linha.conteudo), linha.tipo || tipo || 'application/octet-stream');
+      return { bytes: deBase64(linha.conteudo), nome: linha.nome, tipo: linha.tipo };
+    });
+  }
+
+  function baixarArquivoDeExtrato(id, nome, tipo) {
+    return bytesDeArquivoDeExtrato(id).then(function (a) {
+      baixarArquivo(a.nome || nome || 'extrato', a.bytes,
+        a.tipo || tipo || 'application/octet-stream');
+    });
+  }
+
+  // Ler de novo o arquivo que já está guardado. O leitor é o mesmo de
+  // sempre — o arquivo vira um File de verdade e entra pela fila normal —,
+  // então tudo o que vale para um extrato recém-baixado vale aqui: o
+  // banco reconhecido, a conta sugerida, e cada linha já existente
+  // marcada como "já existe".
+  function relancarArquivoDeExtrato(a) {
+    avisar('Baixando o arquivo guardado...');
+    return bytesDeArquivoDeExtrato(a.id).then(function (x) {
+      var nome = x.nome || a.nome || 'extrato';
+      var tipo = x.tipo || a.tipo || 'application/octet-stream';
+      var arq;
+      try {
+        arq = new File([x.bytes], nome, { type: tipo });
+      } catch (e) {
+        // Navegador velho sem o construtor File: o Blob serve, só precisa
+        // do nome pendurado porque o leitor decide o formato por ele.
+        arq = new Blob([x.bytes], { type: tipo });
+        arq.name = nome;
+      }
+      fecharFolha();
+      limparAviso();
+      setTimeout(function () { lerVariosExtratos([arq], null, ['']); }, 260);
+    }).catch(function () {
+      avisar('Não consegui baixar o arquivo para relançar.');
     });
   }
 
