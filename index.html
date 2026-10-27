@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.0';
+  var VERSAO = '5.25.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.1',
+      data: '2026-10-27',
+      itens: [
+        'Conferir esta conta ganhou o botão "Importar extrato desta conta" dentro do cartão de Extratos importados. Antes era preciso sair, ir em Mais → Importar extrato do banco e depois escolher a conta. Agora o extrato já entra na conta que você está conferindo.'
+      ]
+    },
     {
       versao: '5.25.0',
       data: '2026-10-27',
@@ -13268,6 +13275,14 @@
         .sort(function (a, b) { return b.quando - a.quando; });
       var imp = cartao();
       imp.appendChild(no('div', 'rotulo', 'Extratos importados'));
+
+      var importarAqui = botao('btn btn-fantasma', 'Importar extrato desta conta', function () {
+        contaIdParaProximoExtrato = id;
+        abrirImportarExtrato();
+      });
+      importarAqui.style.margin = '8px 0';
+      imp.appendChild(importarAqui);
+
       if (!minhas.length) {
         imp.appendChild(no('div', 'linha-nota',
           'Nenhuma importação registrada nesta conta. Extratos importados antes desta versão ' +
@@ -19719,6 +19734,7 @@
   }
 
   var extratoLido = null;
+  var contaIdParaProximoExtrato = '';
 
   // Teto para guardar o arquivo na nuvem. Extrato de banco raramente passa
   // de um mega; acima disso é digitalização pesada, e encher o banco com
@@ -20286,9 +20302,10 @@
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
       saldoFinal: lido.saldoFinal == null ? null : lido.saldoFinal,
-      contaId: contaSugerida(lido),
+      contaId: contaIdParaProximoExtrato || contaSugerida(lido),
       lote: lote || null
     };
+    contaIdParaProximoExtrato = '';
     abrirFolhaExtrato();
   }
 
