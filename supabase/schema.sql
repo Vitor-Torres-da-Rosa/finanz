@@ -114,6 +114,10 @@ create table if not exists public.lancamentos (
   data              date        not null,
   conta_id          text        references public.contas (id) on delete set null,
   conta_destino_id  text        references public.contas (id) on delete set null,
+  -- Transferência: o dia em que o dinheiro caiu no destino, quando difere
+  -- do dia da saída. Juntando um par, a data que fica é a da saída — e o
+  -- extrato da conta de destino traz a outra.
+  data_destino      date,
   criado_em         timestamptz not null default now(),
   atualizado_em     timestamptz not null default now(),
   excluido_em       timestamptz,

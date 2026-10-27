@@ -938,6 +938,9 @@
   .acoes-arquivo { flex: 0 0 auto; display: flex; gap: 6px; align-items: center; }
   .acoes-arquivo button:disabled { opacity: .35; }
   .arquivo-ausente { font-size: 11px; color: var(--fraco); font-style: italic; }
+  .dia-perto-rotulo { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--borda);
+    font-size: 11px; color: var(--ouro); font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; }
   .dia-saldo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--borda);
     font-size: 11.5px; color: var(--suave); }
@@ -1695,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.23.0';
+  var VERSAO = '5.24.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1704,6 +1707,18 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.24.0',
+      data: '2026-10-26',
+      itens: [
+        'Achei por que aqueles PIX voltavam desmarcados na conferência, como se fossem novos: é a transferência. Quando o app junta um par — a saída de uma conta com a entrada de outra —, os dois lançamentos viram UM, do tipo transferência. E aí ele deixa de bater com o extrato por três motivos ao mesmo tempo: o tipo deixou de ser "entrada", a conta passou a ser a de ORIGEM (o C6, não o Inter), e a data passou a ser a da saída.',
+        'O estrago crescia junto: quanto mais pares o app achasse, mais linhas cada reimportação ofereceria lançar de novo. Com nove pares juntados, nove duplicatas por extrato reimportado.',
+        'Agora a checagem enxerga a transferência dos dois lados. A etiqueta também diz o caminho: "já existe · transferência", e quando as datas não batem, "já existe · transferência de 29/08/2026".',
+        'A data do outro lado passou a ser guardada. Juntando um par com datas diferentes, o app fica com a da saída — é quando o dinheiro saiu — e antes simplesmente jogava a outra fora. Só que o extrato da conta de destino traz justamente o dia em que o dinheiro CAIU. Guardando as duas, a conferência volta a ser exata.',
+        'Para os pares que você já juntou antes desta versão não há como recuperar a data perdida, então ali eu aceito alguns dias de diferença — e digo na tela de que dia é a transferência que casou, para você conferir em vez de acreditar.',
+        'E o painel "o dia na conta" mostra a prova mesmo quando ela mora em outra data: abre uma parte "Por perto, e é esta mesma linha" com a transferência que casou, de onde veio e de que dia. Antes a linha dizia "já existe" e o dia aparecia vazio — a acusação sem a prova.'
+      ]
+    },
     {
       versao: '5.23.0',
       data: '2026-10-26',
@@ -4371,6 +4386,7 @@
           id: l.id, user_id: uid, tipo: l.tipo, valor: l.valor, descricao: l.descricao,
           categoria: l.categoria, subcategoria: l.subcategoria || '',
           data: l.data, importacao_id: l.importacaoId || '',
+          data_destino: l.dataDestino || null,
           conta_id: ouNulo(l.contaId), conta_destino_id: ouNulo(l.contaDestinoId)
         });
       }),
@@ -4855,6 +4871,7 @@
         id: l.id, tipo: l.tipo, valor: l.valor, descricao: l.descricao || '',
         categoria: l.categoria || 'Outros', subcategoria: l.subcategoria || '', data: l.data,
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
+        dataDestino: l.data_destino || '',
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
       };
@@ -8429,6 +8446,11 @@
       categoria: 'Transferência',
       // Com datas diferentes fica a da saída: é quando o dinheiro saiu.
       data: p.saida.data,
+      // E a do outro lado fica guardada. Sem ela, reimportar o extrato da
+      // conta de destino não achava esta transferência — o extrato de lá
+      // traz o dia em que o dinheiro CAIU, que é o que foi jogado fora
+      // aqui. Só guardo quando as duas diferem: igual não é informação.
+      dataDestino: p.entrada.data !== p.saida.data ? p.entrada.data : '',
       contaId: p.saida.contaId,
       contaDestinoId: p.entrada.contaId,
       criadoEm: Date.now() + (ordem || 0)
@@ -20039,11 +20061,64 @@
     });
   }
 
-  // Um lançamento igual já na conta, no mesmo dia e valor, é repetido.
-  function jaTemIgual(item, contaId) {
-    return estado.lancamentos.some(function (l) {
-      return l.contaId === contaId && l.data === item.data && l.valor === item.valor && l.tipo === item.tipo;
+  // Transferência junta dois lançamentos num só, e a data que sobra é a
+  // da saída. Deste lado — o do destino — o dinheiro caiu noutro dia, e
+  // essa data foi jogada fora no caminho. Daí a folga, e só aqui.
+  var DIAS_DE_FOLGA_NA_TRANSFERENCIA = 4;
+
+  // Este lançamento que já está na conta É esta linha do extrato?
+  // Devolve o motivo, para a tela poder explicar, ou null.
+  //
+  // O caso que faltava era a transferência, e ele era grave. Quando o app
+  // junta um par — a saída de uma conta com a entrada de outra —, os dois
+  // viram UM lançamento do tipo 'transferencia', cujo contaId passa a ser
+  // o da conta de ORIGEM e cuja data passa a ser a da saída. Vista da
+  // conta de destino, ela deixava de bater por três motivos ao mesmo
+  // tempo: tipo diferente, conta diferente e, às vezes, data diferente.
+  //
+  // Resultado: reimportando o mesmo extrato, tudo o que o app tinha
+  // juntado como transferência entrava de novo — e quanto mais pares o
+  // app achava, mais duplicatas a reimportação criava.
+  function porQueJaTem(l, item, contaId) {
+    if (l.valor !== item.valor) return null;
+
+    if (l.tipo !== 'transferencia') {
+      if (l.contaId !== contaId || l.tipo !== item.tipo) return null;
+      return l.data === item.data ? 'igual' : null;
+    }
+
+    // Saindo daqui: a data da transferência É a desta ponta, sem folga.
+    if (item.tipo === 'saida') {
+      return (l.contaId === contaId && l.data === item.data) ? 'transferência' : null;
+    }
+
+    if (item.tipo === 'entrada') {
+      if (l.contaDestinoId !== contaId) return null;
+      // Pares juntados a partir da 5.24.0 guardam a data do destino, e aí
+      // a conferência volta a ser exata.
+      if ((l.dataDestino || l.data) === item.data) return 'transferência';
+      if (l.dataDestino) return null;
+      return Math.abs(diasEntre(l.data, item.data)) <= DIAS_DE_FOLGA_NA_TRANSFERENCIA
+        ? 'transferência de ' + dataBr(l.data) : null;
+    }
+
+    // Extrato que já vem com a transferência pronta.
+    return (l.contaId === contaId && l.data === item.data) ? 'transferência' : null;
+  }
+
+  // O motivo do primeiro que bater, ou '' se nenhum bate.
+  function motivoDeJaTer(item, contaId) {
+    var motivo = '';
+    estado.lancamentos.some(function (l) {
+      var m = porQueJaTem(l, item, contaId);
+      if (m) { motivo = m; return true; }
+      return false;
     });
+    return motivo;
+  }
+
+  function jaTemIgual(item, contaId) {
+    return !!motivoDeJaTer(item, contaId);
   }
 
   function mostrarExtrato(lido, arquivo, problema, lote) {
@@ -20175,7 +20250,8 @@
     if (!extratoLido) return;
     (extratoLido.itens || []).forEach(function (x) {
       var antes = x.repetido;
-      x.repetido = jaTemIgual(x, contaId);
+      x.motivoRepetido = motivoDeJaTer(x, contaId);
+      x.repetido = !!x.motivoRepetido;
       if (antes && !x.repetido) x.usar = true;
     });
   }
@@ -20213,9 +20289,13 @@
       return String(a.descricao || '').localeCompare(String(b.descricao || ''));
     });
 
+    var achouPerto = estado.lancamentos.some(function (l) {
+      return l.data !== item.data && !!porQueJaTem(l, item, contaId);
+    });
     if (!doDia.length) {
-      caixa.appendChild(no('div', 'dia-vazio',
-        'Nada lançado nesse dia nessa conta. Esta linha é nova.'));
+      caixa.appendChild(no('div', 'dia-vazio', achouPerto
+        ? 'Nada lançado nesse dia nessa conta — mas achei isto aqui embaixo.'
+        : 'Nada lançado nesse dia nessa conta. Esta linha é nova.'));
     }
 
     var entrou = 0, saiu = 0;
@@ -20253,6 +20333,36 @@
       caixa.appendChild(linha);
     });
 
+    // O que casa com esta linha mas mora em outra data — hoje só a
+    // transferência cai aqui, porque juntando um par a data que fica é a
+    // da saída e o extrato do destino traz a da entrada. Sem esta parte,
+    // a linha dizia "já existe" e o dia aparecia vazio: a pessoa via a
+    // acusação e não via a prova.
+    var porPerto = estado.lancamentos.filter(function (l) {
+      return l.data !== item.data && !!porQueJaTem(l, item, contaId);
+    });
+    if (porPerto.length) {
+      caixa.appendChild(no('div', 'dia-perto-rotulo', 'Por perto, e é esta mesma linha'));
+      porPerto.forEach(function (l) {
+        var outraId = l.contaId === contaId ? l.contaDestinoId : l.contaId;
+        var outra = achar(estado.contas, outraId);
+        var linha = no('div', 'dia-linha dia-igual');
+        var meio = no('div', 'dia-meio');
+        meio.appendChild(no('div', 'dia-desc', l.descricao || '(sem descrição)'));
+        meio.appendChild(no('div', 'dia-nota', 'Transferência de ' + dataBr(l.data) +
+          (outra ? ' · de ' + outra.nome : '')));
+        linha.appendChild(meio);
+        linha.appendChild(no('div', 'dia-valor verde', '+ ' + emReais(l.valor)));
+        linha.appendChild(botao('dia-tirar', '✕', function () {
+          tirarLancamentoDoDia(l, function () {
+            reconferirRepetidos(contaId);
+            montarFolhaExtrato();
+          });
+        }));
+        caixa.appendChild(linha);
+      });
+    }
+
     var rodape = no('div', 'dia-saldo');
     rodape.appendChild(no('span', null,
       'No dia: ' + (entrou ? '+' + emReais(entrou) : emReais(0)) +
@@ -20279,7 +20389,8 @@
 
     itens.forEach(function (it) {
       if (it.repetido === undefined || it.contaConferida !== contaId) {
-        it.repetido = jaTemIgual(it, contaId);
+        it.motivoRepetido = motivoDeJaTer(it, contaId);
+        it.repetido = !!it.motivoRepetido;
         it.contaConferida = contaId;
         it.usar = !it.repetido;
       }
@@ -20450,7 +20561,10 @@
             });
           });
         sub.appendChild(subEtiqueta);
-        if (it.repetido) sub.appendChild(no('span', 'ja-tem', 'já existe'));
+        if (it.repetido) {
+          sub.appendChild(no('span', 'ja-tem', it.motivoRepetido && it.motivoRepetido !== 'igual'
+            ? 'já existe · ' + it.motivoRepetido : 'já existe'));
+        }
 
         // Um dia aberto de cada vez. Dois ou três abertos e a lista vira
         // uma coluna de painéis onde não se acha mais a linha do extrato.
