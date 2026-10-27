@@ -169,28 +169,41 @@ conferir('4. as duas são reconhecidas como já lançadas (eram 0)',
   jaExiste === 2, jaExiste + ' de 2 marcadas como "já existe"');
 conferir('5. e nenhuma vem marcada para entrar de novo',
   marcadas === 0, marcadas + ' marcada(s) para lançar');
-conferir('6. a etiqueta diz que o que casou foi uma transferência',
-  etiquetas.filter((t) => /transfer/.test(t)).length === 2, JSON.stringify(etiquetas));
-// ---- segundo ato: o par JÁ JUNTADO antes desta versão ----
+conferir('6. casam pela regra comum, porque as pernas continuam inteiras',
+  etiquetas.length === 2 && etiquetas.every((t) => /já existe/.test(t)),
+  JSON.stringify(etiquetas));
+// ---- segundo ato: o par juntado por versão ANTERIOR à 5.25.0 ----
 //
-// Esses não têm dataDestino: a data do destino foi jogada fora quando o
-// par foi juntado, e não há como recuperá-la. É o caso dos dados do
-// Vitor, com nove pares já juntados. Aqui eu tiro o campo para ficar
-// igual ao que ele tem, e entro de novo para o aparelho baixar assim.
+// Até a 5.24.1, juntar apagava os dois lançamentos e criava um terceiro,
+// do tipo 'transferencia', com a data da saída. São esses que estão na
+// conta do Vitor — nove deles —, e é só para eles que existe o caminho
+// de casamento por transferência.
+//
+// Aqui eu produzo exatamente essa forma antiga: apago as duas pernas do
+// par de R$ 541,40 e ponho no lugar uma transferência só, de 29/08, sem
+// data_destino. Depois entro de novo, para o aparelho baixar assim.
 await page.keyboard.press('Escape'); await page.waitForTimeout(1200);
 await semDialogo();
-const limpou = await page.evaluate(async () => {
+const virouAntigo = await page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?valor=eq.54140&tipo=eq.transferencia', {
-    method: 'PATCH',
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-               'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify({ data_destino: null })
-  });
-  return r.status;
+  const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
+                'Content-Type': 'application/json', Prefer: 'return=minimal' };
+  const contas = await (await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id,nome', { headers: cab })).json();
+  const c6 = contas.find((x) => /C6/.test(x.nome)).id;
+  const inter = contas.find((x) => /Inter/.test(x.nome)).id;
+  const m = pac.usuario.id.slice(0, 8);
+  const fora = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?valor=eq.54140',
+    { method: 'DELETE', headers: cab });
+  const dentro = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
+    method: 'POST', headers: cab, body: JSON.stringify([{
+      id: 'velha-' + m, user_id: pac.usuario.id, tipo: 'transferencia', valor: 54140,
+      descricao: 'Pix enviado para VITOR T', categoria: 'Transferência', subcategoria: '',
+      importacao_id: '', data: '2026-08-29', conta_id: c6, conta_destino_id: inter
+    }]) });
+  return 'DELETE ' + fora.status + ' POST ' + dentro.status;
 });
-console.log('data_destino apagada ·', limpou);
+console.log('forma antiga posta no lugar ·', virouAntigo);
 
 await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
@@ -211,14 +224,13 @@ if (await seletor2.count()) {
 }
 const velhas = await page.$$eval('#folha .ja-tem', ns => ns.map(n => n.textContent.trim()));
 const marcadas2 = await page.locator('#folha .caixinha.marcada').count();
-console.log('etiquetas (par antigo):', JSON.stringify(velhas));
-conferir('7. par juntado por versão antiga também é reconhecido',
+console.log('etiquetas (forma antiga):', JSON.stringify(velhas));
+conferir('7. transferência da forma antiga também é reconhecida',
   velhas.length === 2 && marcadas2 === 0, velhas.length + ' etiquetas · ' + marcadas2 + ' marcada(s)');
 conferir('8. e a etiqueta diz de que dia é a transferência que casou',
   velhas.some((t) => /transferência de 29\/08\/2026/.test(t)), JSON.stringify(velhas));
 await page.screenshot({ path: dir+'/w02-reimportando.png', fullPage: true });
 
-// ---- e o painel do dia mostra a prova, mesmo estando noutra data ----
 await page.locator('#folha .etiqueta-dia').nth(1).click(); await page.waitForTimeout(1200);
 const painel = limpo(await page.locator('#folha .dia-real').first().textContent().catch(() => ''));
 console.log('painel 31/08:', painel.slice(0, 220));

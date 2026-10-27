@@ -118,6 +118,11 @@ create table if not exists public.lancamentos (
   -- do dia da saída. Juntando um par, a data que fica é a da saída — e o
   -- extrato da conta de destino traz a outra.
   data_destino      date,
+  -- Transferência juntada: o id do lançamento do outro lado. Os dois ficam
+  -- onde estão, somando no saldo das suas contas; a marca é o que os tira
+  -- de receitas e despesas. Sem FK de propósito — perna órfã volta a ser
+  -- lançamento comum em vez de derrubar o envio.
+  par_transferencia text        not null default '',
   criado_em         timestamptz not null default now(),
   atualizado_em     timestamptz not null default now(),
   excluido_em       timestamptz,

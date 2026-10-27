@@ -103,8 +103,12 @@ conferir('8. o cartão sumiu depois de juntar', !/Transferências entre contas/.
 await page.click('#navegacao button:has-text("Transações")'); await page.waitForTimeout(1600);
 const transacoes = limpo(await page.textContent('#telaTransacoes'));
 console.log('transações:', transacoes.slice(0, 300));
-conferir('9. virou uma transferência só, sem receita nem despesa',
-  /Transferência/.test(transacoes) && !/PIX TRANSF VITOR/.test(transacoes));
+conferir('9. os dois lançamentos continuam lá, com a descrição do banco',
+  /PIX TRANSF VITOR/.test(transacoes) && /Pix Enviado Para Vitor/i.test(transacoes),
+  transacoes.slice(0, 120));
+conferir('9b. e cada um marcado como perna de transferência',
+  /⇄ transferência com [^·]*· fora de receitas e despesas/.test(transacoes),
+  (transacoes.match(/⇄ transferência[^+]*/) || ['(não achei a etiqueta)'])[0]);
 await page.screenshot({ path: dir+'/v02-depois.png', fullPage: true });
 
 await browser.close();
