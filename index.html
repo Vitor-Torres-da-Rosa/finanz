@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.1';
+  var VERSAO = '5.25.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.2',
+      data: '2026-10-27',
+      itens: [
+        'O campo "Saldo que o banco mostra" em Conferir esta conta agora aceita valor negativo. Basta digitar o sinal de menos antes do número.',
+        'Importar vários extratos pelo botão "Importar extrato desta conta" parou de travar no último arquivo. A tela ficava congelada porque a folha da conferência não se fechava junto com a do extrato.'
+      ]
+    },
     {
       versao: '5.25.1',
       data: '2026-10-27',
@@ -13043,7 +13051,7 @@
         'Saldo inicial ' + emReais(conta.saldoInicial) + ' + entradas ' + emReais(r.entrou) +
         ' − saídas ' + emReais(r.saiu)));
 
-      var campoBanco = entradaValor(saldo, false);
+      var campoBanco = entradaValor(saldo, false, true);
       conf.appendChild(campo('Saldo que o banco mostra', campoBanco));
 
       var diferenca = no('div', 'linha-nota');
@@ -13051,7 +13059,7 @@
       conf.appendChild(diferenca);
 
       var ajustar = botao('btn btn-fantasma', 'Acertar o saldo inicial', function () {
-        var alvo = digitosParaCentavos(campoBanco.value);
+        var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
         if (!falta) { avisar('Já está batendo.'); return; }
         perguntar({
@@ -13073,7 +13081,7 @@
       forma.appendChild(conf);
 
       function medirDiferenca() {
-        var alvo = digitosParaCentavos(campoBanco.value);
+        var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
@@ -15584,6 +15592,14 @@
     return d ? parseInt(d, 10) : 0;
   }
 
+  function digitosParaCentavosComSinal(str) {
+    var s = String(str);
+    var neg = /[-−]/.test(s);
+    var d = s.replace(/\D/g, '').slice(0, 11);
+    var v = d ? parseInt(d, 10) : 0;
+    return neg ? -v : v;
+  }
+
   // Mostra (51) 98501-9255 enquanto a pessoa digita, mas guarda só os números.
   function entradaTelefone(valor) {
     var i = no('input', 'entrada');
@@ -15608,11 +15624,11 @@
     return i;
   }
 
-  function entradaValor(centavos, grande) {
+  function entradaValor(centavos, grande, comSinal) {
     var i = no('input', grande ? 'valor-grande' : 'entrada');
     i.type = 'text';
     i.id = proximoId();
-    i.inputMode = 'numeric';
+    i.inputMode = comSinal ? 'text' : 'numeric';
     i.autocomplete = 'off';
     i.value = emReais(centavos || 0);
 
@@ -15623,7 +15639,13 @@
     }
 
     i.addEventListener('input', function () {
-      i.value = emReais(digitosParaCentavos(i.value));
+      if (comSinal) {
+        var neg = /[-−]/.test(i.value);
+        var abs = digitosParaCentavos(i.value);
+        i.value = (neg ? '-' : '') + emReais(abs);
+      } else {
+        i.value = emReais(digitosParaCentavos(i.value));
+      }
       fim();
     });
     ['focus', 'click', 'select', 'keyup'].forEach(function (ev) { i.addEventListener(ev, fim); });
@@ -20880,10 +20902,26 @@
       var todosMarcados = escolhidos.length === dados.itens.length;
       extratoLido = null;
       salvar();
-      voltarNavegacao();
+
+      var ehUltimo = !lote || !lote.seguir || lote.indice + 1 >= lote.total;
+      if (ehUltimo) {
+        // Fechar tudo: a folha do extrato e qualquer folha por baixo (a
+        // conferência da conta, por exemplo). Sem isso, a folha ficava
+        // aberta por cima de tudo quando a importação vinha de dentro de
+        // "Conferir esta conta".
+        while (pilha.length && (pilha[pilha.length - 1].tipo === 'aba' ||
+               pilha[pilha.length - 1].tipo === 'folha')) {
+          var topo = pilha.pop();
+          if (topo.tipo === 'aba' && topo.voltar) topo.voltar();
+        }
+        fecharFolhaEfeito();
+      } else {
+        voltarNavegacao();
+      }
+
       setTimeout(function () {
         // Veio um monte de arquivos de uma vez? O próximo entra agora.
-        if (lote && lote.seguir && lote.indice + 1 < lote.total) {
+        if (!ehUltimo) {
           avisar(escolhidos.length + ' lançamento(s) importados. Vamos ao próximo arquivo.');
           lote.seguir();
           return;
