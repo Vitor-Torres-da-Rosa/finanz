@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.24.0';
+  var VERSAO = '5.24.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.24.1',
+      data: '2026-10-27',
+      itens: [
+        'Conserto de um perigo que eu mesmo criei na 5.24.0. A coluna nova que guarda a data do outro lado da transferência só existe depois da migração 10 rodar no servidor — e entre atualizar o app e a migração rodar há uma janela. Nessa janela, o servidor recusava TODO envio de lançamentos por não conhecer a coluna, e a sincronização parava inteira. Testado: zero lançamentos chegavam.',
+        'O app já sabia contornar isso para outra coluna: tentar de novo sem ela e seguir a vida. Faltava registrar a nova na mesma lista. Agora, servidor desatualizado só deixa o campo para trás — tudo o mais sobe normalmente, e o campo passa a subir sozinho assim que a migração roda.'
+      ]
+    },
     {
       versao: '5.24.0',
       data: '2026-10-26',
@@ -4566,7 +4574,14 @@
   // faria o app reenviar sem aquele campo e apagar no servidor um dado que
   // estava certo. Adivinhar a coluna pela mensagem é perigoso; uma lista
   // fechada não é.
-  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'], contas: ['limite'] };
+  // Colunas que o app manda mas que podem ainda não existir no banco:
+  // entre atualizar o app e a migração rodar há uma janela, e sem esta
+  // lista a sincronização INTEIRA falha em vez de só deixar o campo para
+  // trás. O envio tenta de novo sem elas e segue a vida.
+  var COLUNAS_OPCIONAIS = {
+    lancamentos: ['subcategoria', 'data_destino'],
+    contas: ['limite']
+  };
 
   function oQueFaltou(e, tabela) {
     var opcionais = COLUNAS_OPCIONAIS[tabela];
