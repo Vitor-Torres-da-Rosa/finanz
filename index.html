@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.3';
+  var VERSAO = '5.25.4';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.4',
+      data: '2026-10-28',
+      itens: [
+        'Corrigida a leitura de extratos do Banco Inter e de outros bancos que agrupam lançamentos por dia. Quando o PDF quebrava a linha "Saldo do dia: R$ X" em pedaços, o valor do saldo virava um lançamento fantasma e o saldo da conta ia ficando errado mês a mês.'
+      ]
+    },
     {
       versao: '5.25.3',
       data: '2026-10-28',
@@ -19140,6 +19147,10 @@
       if (/entradas?\s*:/.test(s) && /saidas?\s*:/.test(s)) return true;
       if (/^[a-z]+\s+\d{4}\s*\(/.test(s)) return true;
       for (var i = 0; i < PULAR.length; i++) if (PULAR[i].test(s)) return true;
+      // Linha que é só valor monetário, sem descrição nenhuma: sobra de um
+      // "Saldo do dia: R$ X" que o PDF quebrou em duas ou três linhas.
+      var semValor = s.replace(/(-|\+)?\s*r?\$?\s*(-)?\s*(\d{1,3}(?:\.\d{3})+|\d+),\d{2}/g, '').replace(/[\s.]/g, '');
+      if (!semValor) return true;
       return false;
     }
 
