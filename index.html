@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.4';
+  var VERSAO = '5.25.5';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.5',
+      data: '2026-10-28',
+      itens: [
+        'Lançamentos de "Vencimento Renda Fixa" do Banco Inter agora são lidos corretamente como entrada. Antes, o filtro de linhas descartáveis confundia esse tipo de lançamento com cabeçalho de fatura de cartão, e toda a renda de investimentos sumia do extrato — causando saldo negativo crescente na conta.'
+      ]
+    },
     {
       versao: '5.25.4',
       data: '2026-10-28',
@@ -19135,7 +19142,7 @@
       /^(cpf|cnpj)\b/, /^banco\b/, /^cliente:/, /^titular/, /^s\.?a\.?$/,
       /^saldo/, /nao ha lancamentos/, /^continua/, /^transporte de saldo/,
       // resumo de fatura de cartão
-      /total da fatura/, /^vencimento/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
+      /total da fatura/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
       /pagamento minimo/, /fatura anterior/, /melhor dia/, /^encargos/, /^juros do rotativo/,
       /^valor total\b/, /^total a pagar/, /^total de compras/
     ];

@@ -1622,7 +1622,7 @@
       /^(cpf|cnpj)\b/, /^banco\b/, /^cliente:/, /^titular/, /^s\.?a\.?$/,
       /^saldo/, /nao ha lancamentos/, /^continua/, /^transporte de saldo/,
       // resumo de fatura de cartão
-      /total da fatura/, /^vencimento/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
+      /total da fatura/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
       /pagamento minimo/, /fatura anterior/, /melhor dia/, /^encargos/, /^juros do rotativo/,
       /^valor total\b/, /^total a pagar/, /^total de compras/
     ];
