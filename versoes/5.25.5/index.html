@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.0';
+  var VERSAO = '5.25.5';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,42 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.5',
+      data: '2026-10-28',
+      itens: [
+        'Lançamentos de "Vencimento Renda Fixa" do Banco Inter agora são lidos corretamente como entrada. Antes, o filtro de linhas descartáveis confundia esse tipo de lançamento com cabeçalho de fatura de cartão, e toda a renda de investimentos sumia do extrato — causando saldo negativo crescente na conta.'
+      ]
+    },
+    {
+      versao: '5.25.4',
+      data: '2026-10-28',
+      itens: [
+        'Corrigida a leitura de extratos do Banco Inter e de outros bancos que agrupam lançamentos por dia. Quando o PDF quebrava a linha "Saldo do dia: R$ X" em pedaços, o valor do saldo virava um lançamento fantasma e o saldo da conta ia ficando errado mês a mês.'
+      ]
+    },
+    {
+      versao: '5.25.3',
+      data: '2026-10-28',
+      itens: [
+        'O "Total em contas" na tela inicial agora bate exatamente com a soma dos saldos de cada conta. Antes, transferências antigas podiam ser ignoradas no cálculo e o total ficava errado.'
+      ]
+    },
+    {
+      versao: '5.25.2',
+      data: '2026-10-27',
+      itens: [
+        'O campo "Saldo que o banco mostra" em Conferir esta conta agora aceita valor negativo. Basta digitar o sinal de menos antes do número.',
+        'Importar vários extratos pelo botão "Importar extrato desta conta" parou de travar no último arquivo. A tela ficava congelada porque a folha da conferência não se fechava junto com a do extrato.'
+      ]
+    },
+    {
+      versao: '5.25.1',
+      data: '2026-10-27',
+      itens: [
+        'Conferir esta conta ganhou o botão "Importar extrato desta conta" dentro do cartão de Extratos importados. Antes era preciso sair, ir em Mais → Importar extrato do banco e depois escolher a conta. Agora o extrato já entra na conta que você está conferindo.'
+      ]
+    },
     {
       versao: '5.25.0',
       data: '2026-10-27',
@@ -5818,19 +5854,10 @@
     return s;
   }
 
-  // Dinheiro que está mesmo nas contas. Cartão de crédito fica de fora: o
-  // que você gastou nele ainda não saiu do banco, é dívida, não saldo.
   function totalEmContas(ate) {
-    var cartao = {};
-    estado.contas.forEach(function (c) { if (ehCartao(c)) cartao[c.id] = true; });
-
     var s = 0;
-    estado.contas.forEach(function (c) { if (!ehCartao(c)) s += c.saldoInicial; });
-    estado.lancamentos.forEach(function (l) {
-      if (ate && l.data > ate) return;
-      if (cartao[l.contaId]) return;
-      if (l.tipo === 'entrada') s += l.valor;
-      else if (l.tipo === 'saida') s -= l.valor;
+    estado.contas.forEach(function (c) {
+      if (!ehCartao(c)) s += saldoConta(c.id, ate);
     });
     return s;
   }
@@ -13036,7 +13063,7 @@
         'Saldo inicial ' + emReais(conta.saldoInicial) + ' + entradas ' + emReais(r.entrou) +
         ' − saídas ' + emReais(r.saiu)));
 
-      var campoBanco = entradaValor(saldo, false);
+      var campoBanco = entradaValor(saldo, false, true);
       conf.appendChild(campo('Saldo que o banco mostra', campoBanco));
 
       var diferenca = no('div', 'linha-nota');
@@ -13044,7 +13071,7 @@
       conf.appendChild(diferenca);
 
       var ajustar = botao('btn btn-fantasma', 'Acertar o saldo inicial', function () {
-        var alvo = digitosParaCentavos(campoBanco.value);
+        var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
         if (!falta) { avisar('Já está batendo.'); return; }
         perguntar({
@@ -13066,7 +13093,7 @@
       forma.appendChild(conf);
 
       function medirDiferenca() {
-        var alvo = digitosParaCentavos(campoBanco.value);
+        var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
@@ -13268,6 +13295,14 @@
         .sort(function (a, b) { return b.quando - a.quando; });
       var imp = cartao();
       imp.appendChild(no('div', 'rotulo', 'Extratos importados'));
+
+      var importarAqui = botao('btn btn-fantasma', 'Importar extrato desta conta', function () {
+        contaIdParaProximoExtrato = id;
+        abrirImportarExtrato();
+      });
+      importarAqui.style.margin = '8px 0';
+      imp.appendChild(importarAqui);
+
       if (!minhas.length) {
         imp.appendChild(no('div', 'linha-nota',
           'Nenhuma importação registrada nesta conta. Extratos importados antes desta versão ' +
@@ -15569,6 +15604,14 @@
     return d ? parseInt(d, 10) : 0;
   }
 
+  function digitosParaCentavosComSinal(str) {
+    var s = String(str);
+    var neg = /[-−]/.test(s);
+    var d = s.replace(/\D/g, '').slice(0, 11);
+    var v = d ? parseInt(d, 10) : 0;
+    return neg ? -v : v;
+  }
+
   // Mostra (51) 98501-9255 enquanto a pessoa digita, mas guarda só os números.
   function entradaTelefone(valor) {
     var i = no('input', 'entrada');
@@ -15593,11 +15636,11 @@
     return i;
   }
 
-  function entradaValor(centavos, grande) {
+  function entradaValor(centavos, grande, comSinal) {
     var i = no('input', grande ? 'valor-grande' : 'entrada');
     i.type = 'text';
     i.id = proximoId();
-    i.inputMode = 'numeric';
+    i.inputMode = comSinal ? 'text' : 'numeric';
     i.autocomplete = 'off';
     i.value = emReais(centavos || 0);
 
@@ -15608,7 +15651,13 @@
     }
 
     i.addEventListener('input', function () {
-      i.value = emReais(digitosParaCentavos(i.value));
+      if (comSinal) {
+        var neg = /[-−]/.test(i.value);
+        var abs = digitosParaCentavos(i.value);
+        i.value = (neg ? '-' : '') + emReais(abs);
+      } else {
+        i.value = emReais(digitosParaCentavos(i.value));
+      }
       fim();
     });
     ['focus', 'click', 'select', 'keyup'].forEach(function (ev) { i.addEventListener(ev, fim); });
@@ -19093,7 +19142,7 @@
       /^(cpf|cnpj)\b/, /^banco\b/, /^cliente:/, /^titular/, /^s\.?a\.?$/,
       /^saldo/, /nao ha lancamentos/, /^continua/, /^transporte de saldo/,
       // resumo de fatura de cartão
-      /total da fatura/, /^vencimento/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
+      /total da fatura/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
       /pagamento minimo/, /fatura anterior/, /melhor dia/, /^encargos/, /^juros do rotativo/,
       /^valor total\b/, /^total a pagar/, /^total de compras/
     ];
@@ -19105,6 +19154,10 @@
       if (/entradas?\s*:/.test(s) && /saidas?\s*:/.test(s)) return true;
       if (/^[a-z]+\s+\d{4}\s*\(/.test(s)) return true;
       for (var i = 0; i < PULAR.length; i++) if (PULAR[i].test(s)) return true;
+      // Linha que é só valor monetário, sem descrição nenhuma: sobra de um
+      // "Saldo do dia: R$ X" que o PDF quebrou em duas ou três linhas.
+      var semValor = s.replace(/(-|\+)?\s*r?\$?\s*(-)?\s*(\d{1,3}(?:\.\d{3})+|\d+),\d{2}/g, '').replace(/[\s.]/g, '');
+      if (!semValor) return true;
       return false;
     }
 
@@ -19719,6 +19772,7 @@
   }
 
   var extratoLido = null;
+  var contaIdParaProximoExtrato = '';
 
   // Teto para guardar o arquivo na nuvem. Extrato de banco raramente passa
   // de um mega; acima disso é digitalização pesada, e encher o banco com
@@ -20286,9 +20340,10 @@
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
       saldoFinal: lido.saldoFinal == null ? null : lido.saldoFinal,
-      contaId: contaSugerida(lido),
+      contaId: contaIdParaProximoExtrato || contaSugerida(lido),
       lote: lote || null
     };
+    contaIdParaProximoExtrato = '';
     abrirFolhaExtrato();
   }
 
@@ -20863,10 +20918,26 @@
       var todosMarcados = escolhidos.length === dados.itens.length;
       extratoLido = null;
       salvar();
-      voltarNavegacao();
+
+      var ehUltimo = !lote || !lote.seguir || lote.indice + 1 >= lote.total;
+      if (ehUltimo) {
+        // Fechar tudo: a folha do extrato e qualquer folha por baixo (a
+        // conferência da conta, por exemplo). Sem isso, a folha ficava
+        // aberta por cima de tudo quando a importação vinha de dentro de
+        // "Conferir esta conta".
+        while (pilha.length && (pilha[pilha.length - 1].tipo === 'aba' ||
+               pilha[pilha.length - 1].tipo === 'folha')) {
+          var topo = pilha.pop();
+          if (topo.tipo === 'aba' && topo.voltar) topo.voltar();
+        }
+        fecharFolhaEfeito();
+      } else {
+        voltarNavegacao();
+      }
+
       setTimeout(function () {
         // Veio um monte de arquivos de uma vez? O próximo entra agora.
-        if (lote && lote.seguir && lote.indice + 1 < lote.total) {
+        if (!ehUltimo) {
           avisar(escolhidos.length + ' lançamento(s) importados. Vamos ao próximo arquivo.');
           lote.seguir();
           return;
