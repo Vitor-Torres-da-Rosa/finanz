@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.24.0';
+  var VERSAO = '5.25.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,48 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.3',
+      data: '2026-10-28',
+      itens: [
+        'O "Total em contas" na tela inicial agora bate exatamente com a soma dos saldos de cada conta. Antes, transferências antigas podiam ser ignoradas no cálculo e o total ficava errado.'
+      ]
+    },
+    {
+      versao: '5.25.2',
+      data: '2026-10-27',
+      itens: [
+        'O campo "Saldo que o banco mostra" em Conferir esta conta agora aceita valor negativo. Basta digitar o sinal de menos antes do número.',
+        'Importar vários extratos pelo botão "Importar extrato desta conta" parou de travar no último arquivo. A tela ficava congelada porque a folha da conferência não se fechava junto com a do extrato.'
+      ]
+    },
+    {
+      versao: '5.25.1',
+      data: '2026-10-27',
+      itens: [
+        'Conferir esta conta ganhou o botão "Importar extrato desta conta" dentro do cartão de Extratos importados. Antes era preciso sair, ir em Mais → Importar extrato do banco e depois escolher a conta. Agora o extrato já entra na conta que você está conferindo.'
+      ]
+    },
+    {
+      versao: '5.25.0',
+      data: '2026-10-27',
+      itens: [
+        'Juntar uma transferência parou de apagar os seus lançamentos. Até agora, juntar um par sumia com os dois e criava um terceiro no lugar — com a data e a descrição de UM dos lados. Na prática: a linha "PIX TRANSF VITOR, dia 7" virava "Pix enviado para VITOR, dia 5", e conferir o app contra o extrato do banco ficava impossível. O saldo sempre esteve certo; o que se perdia era a linha que você reconhece.',
+        'Agora os dois ficam exatamente onde estavam: cada um na sua conta, com a sua data e a descrição que veio do banco, somando no saldo de cada uma. Eles só ganham uma marca apontando um para o outro — e é essa marca que os tira de receitas e despesas, que é onde transferência realmente não pode entrar.',
+        'No extrato da conta a linha agora diz para onde o dinheiro foi, ou de onde veio: "⇄ Veio de C6 Bank". Na aba Transferências aparecem as duas pernas do par, para conferir depois com calma.',
+        'E ganhou volta: "Separar da transferência", na folha do lançamento. Antes não dava, porque não sobrava o que separar — os dois tinham sido apagados. Separando, os dois voltam a contar como receita e despesa e o app pode sugerir o par de novo.',
+        'O cartão de crédito saiu do radar de transferências, inteiro. Uma compra de R$ 150 no cartão com uma entrada de R$ 150 na conta, dentro da janela de cinco dias, era oferecida como par — e aceitar isso apagava uma despesa de verdade, inventava uma transferência no sentido contrário e ainda mexia na dívida da fatura. Pagamento de fatura continua tendo o caminho dele.',
+        'As transferências que você já juntou antes desta versão continuam como estão: aquelas duas linhas originais não existem mais e não há como trazê-las de volta. Da próxima em diante, nada é apagado.'
+      ]
+    },
+    {
+      versao: '5.24.1',
+      data: '2026-10-27',
+      itens: [
+        'Conserto de um perigo que eu mesmo criei na 5.24.0. A coluna nova que guarda a data do outro lado da transferência só existe depois da migração 10 rodar no servidor — e entre atualizar o app e a migração rodar há uma janela. Nessa janela, o servidor recusava TODO envio de lançamentos por não conhecer a coluna, e a sincronização parava inteira. Testado: zero lançamentos chegavam.',
+        'O app já sabia contornar isso para outra coluna: tentar de novo sem ela e seguir a vida. Faltava registrar a nova na mesma lista. Agora, servidor desatualizado só deixa o campo para trás — tudo o mais sobe normalmente, e o campo passa a subir sozinho assim que a migração roda.'
+      ]
+    },
     {
       versao: '5.24.0',
       data: '2026-10-26',
@@ -4387,6 +4429,7 @@
           categoria: l.categoria, subcategoria: l.subcategoria || '',
           data: l.data, importacao_id: l.importacaoId || '',
           data_destino: l.dataDestino || null,
+          par_transferencia: l.parTransferencia || '',
           conta_id: ouNulo(l.contaId), conta_destino_id: ouNulo(l.contaDestinoId)
         });
       }),
@@ -4566,7 +4609,14 @@
   // faria o app reenviar sem aquele campo e apagar no servidor um dado que
   // estava certo. Adivinhar a coluna pela mensagem é perigoso; uma lista
   // fechada não é.
-  var COLUNAS_OPCIONAIS = { lancamentos: ['subcategoria'], contas: ['limite'] };
+  // Colunas que o app manda mas que podem ainda não existir no banco:
+  // entre atualizar o app e a migração rodar há uma janela, e sem esta
+  // lista a sincronização INTEIRA falha em vez de só deixar o campo para
+  // trás. O envio tenta de novo sem elas e segue a vida.
+  var COLUNAS_OPCIONAIS = {
+    lancamentos: ['subcategoria', 'data_destino', 'par_transferencia'],
+    contas: ['limite']
+  };
 
   function oQueFaltou(e, tabela) {
     var opcionais = COLUNAS_OPCIONAIS[tabela];
@@ -4872,6 +4922,7 @@
         categoria: l.categoria || 'Outros', subcategoria: l.subcategoria || '', data: l.data,
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
         dataDestino: l.data_destino || '',
+        parTransferencia: l.par_transferencia || '',
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
       };
@@ -5789,19 +5840,10 @@
     return s;
   }
 
-  // Dinheiro que está mesmo nas contas. Cartão de crédito fica de fora: o
-  // que você gastou nele ainda não saiu do banco, é dívida, não saldo.
   function totalEmContas(ate) {
-    var cartao = {};
-    estado.contas.forEach(function (c) { if (ehCartao(c)) cartao[c.id] = true; });
-
     var s = 0;
-    estado.contas.forEach(function (c) { if (!ehCartao(c)) s += c.saldoInicial; });
-    estado.lancamentos.forEach(function (l) {
-      if (ate && l.data > ate) return;
-      if (cartao[l.contaId]) return;
-      if (l.tipo === 'entrada') s += l.valor;
-      else if (l.tipo === 'saida') s -= l.valor;
+    estado.contas.forEach(function (c) {
+      if (!ehCartao(c)) s += saldoConta(c.id, ate);
     });
     return s;
   }
@@ -6033,6 +6075,11 @@
   }
 
   function totaisDaLista(lista) {
+    // O dinheiro que só andou de conta não é receita de um lado nem
+    // despesa do outro. Tirar aqui, e não na origem da lista, é o que
+    // deixa as duas pernas continuarem aparecendo no extrato de cada
+    // conta e somando no saldo delas.
+    lista = semPernasDeTransferencia(lista);
     var v = visaoDeConsumo(lista);
     var entradas = 0, saidas = 0, saidasCaixa = 0;
     lista.forEach(function (l) {
@@ -6048,6 +6095,7 @@
   }
 
   function porCategoriaDaLista(lista, tipo) {
+    lista = semPernasDeTransferencia(lista);
     var lado = tipo === 'entrada' ? 'entrada' : 'saida';
     var base = lado === 'saida'
       ? visaoDeConsumo(lista)
@@ -8249,9 +8297,22 @@
   // eles continuam sendo transferência na vida real, mesmo tendo sido
   // deixados como saída e entrada aqui dentro.
   function paresDeTransferencia(incluirIgnorados) {
+    // Cartão de crédito fica fora, inteiro. Uma compra de R$ 150 no cartão
+    // e uma entrada de R$ 150 na corrente dentro da janela eram oferecidas
+    // como par — e aceitar isso apagava uma despesa de verdade, inventava
+    // uma transferência no sentido contrário (do cartão para a conta) e
+    // ainda mexia na dívida da fatura. Pagar fatura tem caminho próprio,
+    // em ehPagamentoDeFatura().
+    var deCartao = {};
+    estado.contas.forEach(function (c) { if (ehCartao(c)) deCartao[c.id] = true; });
+
     var saidas = [], entradas = [];
     estado.lancamentos.forEach(function (l) {
       if (!l.contaId) return;
+      if (deCartao[l.contaId]) return;
+      // Já juntado: ele continua sendo saída e entrada, então apareceria
+      // de novo na lista de "achei estes pares" para sempre.
+      if (l.parTransferencia) return;
       if (l.tipo === 'saida') saidas.push(l);
       else if (l.tipo === 'entrada') entradas.push(l);
     });
@@ -8433,34 +8494,60 @@
   // onde. Nesse caso é melhor não mexer.
   function juntarUmPar(p, ordem) {
     if (!achar(estado.contas, p.saida.contaId) || !achar(estado.contas, p.entrada.contaId)) return false;
-    marcarExcluido('lancamentos', p.saida.id);
-    marcarExcluido('lancamentos', p.entrada.id);
-    estado.lancamentos = estado.lancamentos.filter(function (l) {
-      return l.id !== p.saida.id && l.id !== p.entrada.id;
-    });
-    estado.lancamentos.push({
-      id: novoId(),
-      tipo: 'transferencia',
-      valor: p.saida.valor,
-      descricao: p.saida.descricao || 'Transferência entre contas',
-      categoria: 'Transferência',
-      // Com datas diferentes fica a da saída: é quando o dinheiro saiu.
-      data: p.saida.data,
-      // E a do outro lado fica guardada. Sem ela, reimportar o extrato da
-      // conta de destino não achava esta transferência — o extrato de lá
-      // traz o dia em que o dinheiro CAIU, que é o que foi jogado fora
-      // aqui. Só guardo quando as duas diferem: igual não é informação.
-      dataDestino: p.entrada.data !== p.saida.data ? p.entrada.data : '',
-      contaId: p.saida.contaId,
-      contaDestinoId: p.entrada.contaId,
-      criadoEm: Date.now() + (ordem || 0)
-    });
-    // O par deixa de existir, então a marca de "não pergunte de novo" não
-    // serve mais para nada — e segurá-la faria a lista crescer para sempre.
+
+    // Antes isto apagava os DOIS lançamentos e criava um terceiro, do tipo
+    // 'transferencia'. O saldo das contas continuava certo, mas a linha
+    // que a pessoa reconhece do extrato do banco sumia: no lugar das duas
+    // ficava uma só, com a data e a descrição do outro lado. Medido em
+    // 27/10/2026: "PIX TRANSF VITOR, dia 7" virava "Pix enviado para
+    // VITOR, dia 5". Conferir o app contra o extrato do banco ficava
+    // impossível, e não havia como desfazer — o outro lado tinha sumido.
+    //
+    // Pedido do Vitor no mesmo dia: "não vai acontecer nada nesses
+    // lançamentos (...) quero que continuem somando mas que apareçam lá na
+    // aba de transferência pra mim conferir depois".
+    //
+    // Agora os dois ficam exatamente onde estavam, cada um com a sua data,
+    // a sua descrição e a sua conta, somando no saldo de cada uma. Ganham
+    // só uma marca apontando um para o outro. É essa marca que os tira de
+    // receitas e despesas — onde eles realmente não podem entrar — e que
+    // os junta na aba de Transferências.
+    p.saida.parTransferencia = p.entrada.id;
+    p.entrada.parTransferencia = p.saida.id;
+
+    // O par deixou de ser uma pergunta em aberto, então a marca de "não
+    // pergunte de novo" não serve mais — e segurá-la faria a lista crescer
+    // para sempre.
     if (estado.paresIgnorados) {
       estado.paresIgnorados = estado.paresIgnorados.filter(function (k) { return k !== p.chave; });
     }
     return true;
+  }
+
+  // Desfazer, que antes não existia porque não sobrava o que desfazer.
+  function separarParDeTransferencia(l) {
+    var outro = achar(estado.lancamentos, l.parTransferencia);
+    l.parTransferencia = '';
+    if (outro) outro.parTransferencia = '';
+    return outro;
+  }
+
+  // Uma perna de transferência juntada: continua sendo saída ou entrada na
+  // sua conta, mas não conta como despesa nem como receita.
+  //
+  // Se o outro lado foi apagado, a marca aponta para o nada e ela volta a
+  // ser um lançamento comum. É de propósito: melhor voltar a contar do que
+  // sumir com dinheiro por causa de uma referência morta.
+  function semPernasDeTransferencia(lista) {
+    var existe = null;
+    return lista.filter(function (l) {
+      if (!l.parTransferencia) return true;
+      if (!existe) {
+        existe = {};
+        estado.lancamentos.forEach(function (x) { existe[x.id] = true; });
+      }
+      return !existe[l.parTransferencia];
+    });
   }
 
   function aplicarTransferencias(pares, marcados) {
@@ -12509,7 +12596,16 @@
     var termo = paraBusca(buscaTransacoes);
     var faixa = faixaDoPeriodo();
     var itens = lancamentosDoPeriodo().filter(function (l) {
-      if (filtroTransacoes !== 'todas' && l.tipo !== filtroTransacoes) return false;
+      if (filtroTransacoes === 'transferencia') {
+        // As duas pernas de um par juntado são transferência tanto quanto
+        // as linhas do tipo 'transferencia' das versões antigas.
+        if (l.tipo !== 'transferencia' && !l.parTransferencia) return false;
+      } else if (filtroTransacoes !== 'todas') {
+        // E elas não são receita nem despesa, então não entram nesses dois
+        // filtros — do mesmo jeito que não entram nos totais. Em "Todas"
+        // aparecem, porque ali a lista é o extrato.
+        if (l.tipo !== filtroTransacoes || l.parTransferencia) return false;
+      }
       if (!termo) return true;
       return paraBusca(l.descricao + ' ' + l.categoria + ' ' + (l.subcategoria || ''))
         .indexOf(termo) >= 0;
@@ -12649,6 +12745,17 @@
       marca.style.marginTop = '5px';
       texto.appendChild(marca);
     }
+    // Perna de transferência juntada: a linha é a mesma do extrato do
+    // banco, com a data e a descrição que vieram de lá. A etiqueta é o que
+    // diz por que ela não aparece nos totais.
+    var outroLado = l.parTransferencia ? achar(estado.lancamentos, l.parTransferencia) : null;
+    if (outroLado) {
+      var ondeCai = achar(estado.contas, outroLado.contaId);
+      var mT = no('span', 'etiqueta fora',
+        '⇄ transferência' + (ondeCai ? ' com ' + ondeCai.nome : '') + ' · fora de receitas e despesas');
+      mT.style.marginTop = '5px';
+      texto.appendChild(mT);
+    }
 
     juntar(b,
       selo(cor, sinal),
@@ -12732,15 +12839,22 @@
     var sinal = efeito > 0 ? '+' : efeito < 0 ? '−' : '⇄';
 
     var sub;
+    var parDele = l.parTransferencia ? achar(estado.lancamentos, l.parTransferencia) : null;
     if (l.tipo === 'transferencia') {
       var outra = achar(estado.contas, l.contaDestinoId === id ? l.contaId : l.contaDestinoId);
       sub = (efeito > 0 ? 'Veio de ' : 'Foi para ') + (outra ? outra.nome : 'outra conta');
+    } else if (parDele) {
+      // No extrato da conta a linha fica igual à do banco. O subtítulo é
+      // que conta para onde esse dinheiro foi, ou de onde veio.
+      var aOutra = achar(estado.contas, parDele.contaId);
+      sub = (efeito > 0 ? '⇄ Veio de ' : '⇄ Foi para ') + (aOutra ? aOutra.nome : 'outra conta') +
+            ' · ' + l.categoria;
     } else {
       sub = l.categoria;
     }
 
     juntar(b,
-      selo(cor, sinal),
+      selo(parDele ? '#60A5FA' : cor, sinal),
       juntar(no('div', 'linha-texto'),
         no('div', 'linha-titulo', l.descricao || (l.tipo === 'transferencia' ? 'Transferência' : l.categoria)),
         no('div', 'linha-sub', sub)),
@@ -12935,7 +13049,7 @@
         'Saldo inicial ' + emReais(conta.saldoInicial) + ' + entradas ' + emReais(r.entrou) +
         ' − saídas ' + emReais(r.saiu)));
 
-      var campoBanco = entradaValor(saldo, false);
+      var campoBanco = entradaValor(saldo, false, true);
       conf.appendChild(campo('Saldo que o banco mostra', campoBanco));
 
       var diferenca = no('div', 'linha-nota');
@@ -12943,7 +13057,7 @@
       conf.appendChild(diferenca);
 
       var ajustar = botao('btn btn-fantasma', 'Acertar o saldo inicial', function () {
-        var alvo = digitosParaCentavos(campoBanco.value);
+        var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
         if (!falta) { avisar('Já está batendo.'); return; }
         perguntar({
@@ -12965,7 +13079,7 @@
       forma.appendChild(conf);
 
       function medirDiferenca() {
-        var alvo = digitosParaCentavos(campoBanco.value);
+        var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
@@ -13167,6 +13281,14 @@
         .sort(function (a, b) { return b.quando - a.quando; });
       var imp = cartao();
       imp.appendChild(no('div', 'rotulo', 'Extratos importados'));
+
+      var importarAqui = botao('btn btn-fantasma', 'Importar extrato desta conta', function () {
+        contaIdParaProximoExtrato = id;
+        abrirImportarExtrato();
+      });
+      importarAqui.style.margin = '8px 0';
+      imp.appendChild(importarAqui);
+
       if (!minhas.length) {
         imp.appendChild(no('div', 'linha-nota',
           'Nenhuma importação registrada nesta conta. Extratos importados antes desta versão ' +
@@ -15468,6 +15590,14 @@
     return d ? parseInt(d, 10) : 0;
   }
 
+  function digitosParaCentavosComSinal(str) {
+    var s = String(str);
+    var neg = /[-−]/.test(s);
+    var d = s.replace(/\D/g, '').slice(0, 11);
+    var v = d ? parseInt(d, 10) : 0;
+    return neg ? -v : v;
+  }
+
   // Mostra (51) 98501-9255 enquanto a pessoa digita, mas guarda só os números.
   function entradaTelefone(valor) {
     var i = no('input', 'entrada');
@@ -15492,11 +15622,11 @@
     return i;
   }
 
-  function entradaValor(centavos, grande) {
+  function entradaValor(centavos, grande, comSinal) {
     var i = no('input', grande ? 'valor-grande' : 'entrada');
     i.type = 'text';
     i.id = proximoId();
-    i.inputMode = 'numeric';
+    i.inputMode = comSinal ? 'text' : 'numeric';
     i.autocomplete = 'off';
     i.value = emReais(centavos || 0);
 
@@ -15507,7 +15637,13 @@
     }
 
     i.addEventListener('input', function () {
-      i.value = emReais(digitosParaCentavos(i.value));
+      if (comSinal) {
+        var neg = /[-−]/.test(i.value);
+        var abs = digitosParaCentavos(i.value);
+        i.value = (neg ? '-' : '') + emReais(abs);
+      } else {
+        i.value = emReais(digitosParaCentavos(i.value));
+      }
       fim();
     });
     ['focus', 'click', 'select', 'keyup'].forEach(function (ev) { i.addEventListener(ev, fim); });
@@ -15763,6 +15899,33 @@
         desenhar();
         avisar(existente ? 'Lançamento atualizado.' : 'Lançamento salvo.');
       }));
+
+      // Perna de transferência juntada: dá para separar. Antes não dava,
+      // porque juntar apagava os dois lançamentos e criava um terceiro —
+      // não sobrava o que separar.
+      if (existente && existente.parTransferencia) {
+        var oParceiro = achar(estado.lancamentos, existente.parTransferencia);
+        var contaDoPar = oParceiro ? achar(estado.contas, oParceiro.contaId) : null;
+        acoes.appendChild(botao('btn btn-fantasma', 'Separar da transferência', function () {
+          perguntar({
+            titulo: 'Separar este par?',
+            texto: 'Os dois lançamentos voltam a contar como receita e como despesa, ' +
+                   'cada um na sua conta. Nenhum deles é apagado, e o app pode sugerir ' +
+                   'o par de novo depois.',
+            ok: 'Separar'
+          }, function () {
+            separarParDeTransferencia(existente);
+            salvar();
+            fecharFolha();
+            desenhar();
+            avisar('Par separado.');
+          });
+        }));
+        acoes.appendChild(no('p', 'ajuda',
+          'Este lançamento está juntado como transferência' +
+          (contaDoPar ? ' com ' + contaDoPar.nome : '') +
+          ', então ele soma no saldo da conta mas fica fora de receitas e despesas.'));
+      }
 
       if (existente) {
         acoes.appendChild(botao('btn btn-perigo', 'Excluir lançamento', function () {
@@ -19591,6 +19754,7 @@
   }
 
   var extratoLido = null;
+  var contaIdParaProximoExtrato = '';
 
   // Teto para guardar o arquivo na nuvem. Extrato de banco raramente passa
   // de um mega; acima disso é digitalização pesada, e encher o banco com
@@ -20158,9 +20322,10 @@
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
       saldoFinal: lido.saldoFinal == null ? null : lido.saldoFinal,
-      contaId: contaSugerida(lido),
+      contaId: contaIdParaProximoExtrato || contaSugerida(lido),
       lote: lote || null
     };
+    contaIdParaProximoExtrato = '';
     abrirFolhaExtrato();
   }
 
@@ -20735,10 +20900,26 @@
       var todosMarcados = escolhidos.length === dados.itens.length;
       extratoLido = null;
       salvar();
-      voltarNavegacao();
+
+      var ehUltimo = !lote || !lote.seguir || lote.indice + 1 >= lote.total;
+      if (ehUltimo) {
+        // Fechar tudo: a folha do extrato e qualquer folha por baixo (a
+        // conferência da conta, por exemplo). Sem isso, a folha ficava
+        // aberta por cima de tudo quando a importação vinha de dentro de
+        // "Conferir esta conta".
+        while (pilha.length && (pilha[pilha.length - 1].tipo === 'aba' ||
+               pilha[pilha.length - 1].tipo === 'folha')) {
+          var topo = pilha.pop();
+          if (topo.tipo === 'aba' && topo.voltar) topo.voltar();
+        }
+        fecharFolhaEfeito();
+      } else {
+        voltarNavegacao();
+      }
+
       setTimeout(function () {
         // Veio um monte de arquivos de uma vez? O próximo entra agora.
-        if (lote && lote.seguir && lote.indice + 1 < lote.total) {
+        if (!ehUltimo) {
           avisar(escolhidos.length + ' lançamento(s) importados. Vamos ao próximo arquivo.');
           lote.seguir();
           return;
