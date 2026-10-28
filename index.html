@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.2';
+  var VERSAO = '5.25.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.25.3',
+      data: '2026-10-28',
+      itens: [
+        'O "Total em contas" na tela inicial agora bate exatamente com a soma dos saldos de cada conta. Antes, transferências antigas podiam ser ignoradas no cálculo e o total ficava errado.'
+      ]
+    },
     {
       versao: '5.25.2',
       data: '2026-10-27',
@@ -5833,19 +5840,10 @@
     return s;
   }
 
-  // Dinheiro que está mesmo nas contas. Cartão de crédito fica de fora: o
-  // que você gastou nele ainda não saiu do banco, é dívida, não saldo.
   function totalEmContas(ate) {
-    var cartao = {};
-    estado.contas.forEach(function (c) { if (ehCartao(c)) cartao[c.id] = true; });
-
     var s = 0;
-    estado.contas.forEach(function (c) { if (!ehCartao(c)) s += c.saldoInicial; });
-    estado.lancamentos.forEach(function (l) {
-      if (ate && l.data > ate) return;
-      if (cartao[l.contaId]) return;
-      if (l.tipo === 'entrada') s += l.valor;
-      else if (l.tipo === 'saida') s -= l.valor;
+    estado.contas.forEach(function (c) {
+      if (!ehCartao(c)) s += saldoConta(c.id, ate);
     });
     return s;
   }
