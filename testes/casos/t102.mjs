@@ -85,11 +85,13 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 
 // --- C: a transferência não pode estar entre as despesas que se repetem ---
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1500);
-const cartaoAnalise = limpo(await page.textContent('#telaMais'));
+const telaMais = limpo(await page.textContent('#telaMais'));
+const pos = telaMais.indexOf('se repetem');
+const cardRepetem = pos >= 0 ? telaMais.slice(Math.max(0, pos - 40), pos + 160) : '';
 conferir('1. o comprometido conta 1 despesa, não 2: a transferência ficou de fora',
-  /1 despesas que se repetem/.test(cartaoAnalise) && /1\.138,50/.test(cartaoAnalise)
-  && !/2\.138,50/.test(cartaoAnalise),
-  cartaoAnalise.slice(cartaoAnalise.indexOf('se repetem') - 30, cartaoAnalise.indexOf('se repetem') + 60));
+  /1 despesas que se repetem/.test(cardRepetem) && /1\.138,50/.test(cardRepetem)
+  && !/2\.138,50/.test(cardRepetem),
+  cardRepetem.slice(0, 90));
 
 // O botão fica dentro do cartão de achado, não numa .linha.
 await page.click('#telaMais button:has-text("Revisar despesas"), #telaMais .linha-verTudo:has-text("Ver análise completa")');

@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.5';
+  var VERSAO = '5.26.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.26.0',
+      data: '2026-10-31',
+      itens: [
+        'Na ficha do cliente, a aba Parcelas agora tem um filtro por serviço. Quando o cliente tem parcelas de mais de um serviço, aparece um seletor no topo da lista — tocando no nome do serviço, só as parcelas dele são mostradas.'
+      ]
+    },
     {
       versao: '5.25.5',
       data: '2026-10-28',
@@ -9400,11 +9407,13 @@
   }
 
   var abaFicha = 'servicos';
+  var filtroParcelaServico = '';
 
   function abrirFichaCliente(id) {
     var cliente = achar(estado.clientes, id);
     if (!cliente) return;
     abaFicha = 'servicos';
+    filtroParcelaServico = '';
     montarFichaCliente(id);
   }
 
@@ -9529,23 +9538,37 @@
           lista.appendChild(estadoVazio('Sem parcelas combinadas',
             'Monte a previsão de pagamento para acompanhar o que vence e quando.'));
         } else {
+          var servicosIds = {};
+          parcelas.forEach(function (p) { if (p.servicoId) servicosIds[p.servicoId] = true; });
+          var servicosDistintos = Object.keys(servicosIds).map(function (sid) {
+            return achar(estado.servicos, sid);
+          }).filter(Boolean);
+          if (servicosDistintos.length > 1) {
+            if (filtroParcelaServico && !servicosIds[filtroParcelaServico]) filtroParcelaServico = '';
+            var opsServico = [{ valor: '', rotulo: 'Todos' }];
+            servicosDistintos.forEach(function (sv) {
+              var nome = sv.nome.length > 18 ? sv.nome.slice(0, 17) + '…' : sv.nome;
+              opsServico.push({ valor: sv.id, rotulo: nome });
+            });
+            lista.appendChild(segmentos(opsServico, filtroParcelaServico, function (v) {
+              filtroParcelaServico = v;
+              montarFichaCliente(id);
+            }));
+          }
+          var parcelasFiltradas = filtroParcelaServico
+            ? parcelas.filter(function (p) { return p.servicoId === filtroParcelaServico; })
+            : parcelas;
           var hojeP = hojeTexto();
-          parcelas.forEach(function (p) {
+          parcelasFiltradas.forEach(function (p) {
             var paga = parcelaPaga(p);
             var vencida = !paga && p.vencimento < hojeP;
             var servicoP = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
             var parcial = parcelaParcial(p);
             var jurosP = jurosDaParcela(p);
             var recebido = pagoNaParcela(p);
-            // Numa parcela paga, o número em verde é o que entrou de verdade.
-            // Quando ela foi coberta pela sobra de outro pagamento, não há
-            // dinheiro lançado nela, então mostramos o valor combinado.
             var comDinheiro = paga && recebido > 0;
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
 
-            // Na parcela paga as duas datas interessam: quando entrou e
-            // quando era para ter entrado. Só a primeira não responde se
-            // o cliente pagou em dia, que é a pergunta de quem olha.
             var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
               dataBr(paga && p.quitadaEm ? p.quitadaEm : p.vencimento);
             if (paga && p.quitadaEm && p.vencimento && p.quitadaEm !== p.vencimento) {
@@ -9555,7 +9578,7 @@
             if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
             if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
             if (jurosP > 0) sub += ' · ' + emReais(jurosP) + ' de juros';
-            if (servicoP) sub += ' · ' + servicoP.nome;
+            if (servicoP && !filtroParcelaServico) sub += ' · ' + servicoP.nome;
 
             var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
               if (!paga) { abrirFolhaParcela(id, p.id); return; }
