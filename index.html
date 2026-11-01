@@ -186,7 +186,10 @@
   .kpi .rotulo { font-size: 11px; letter-spacing: .04em; }
   .kpi .n { font-size: 14.5px; font-weight: 700; margin: 5px 0 4px; }
   .kpi .variacao { font-size: 12px; }
-  .kpi-extra { font-size: 10.5px; color: var(--suave); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi { min-width: 0; }
+  .kpi-extra { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--borda); }
+  .kpi-extra .r { font-size: 10px; letter-spacing: .03em; color: var(--suave); }
+  .kpi-extra .v { font-size: 12px; font-weight: 600; color: var(--texto, #eee); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   [hidden] { display: none !important; }
@@ -1703,7 +1706,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.27.1';
+  var VERSAO = '5.27.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1712,6 +1715,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.27.2',
+      data: '2026-11-01',
+      itens: [
+        'Início: a estimativa embaixo de Receitas e Despesas aparece sempre, desde o primeiro dia do mês. Ela parte do seu costume dos últimos três meses, e nunca fica abaixo do que já aconteceu.',
+        'Mês que já passou mostra a média dos três anteriores, para comparar; 3 meses, ano e período escolhido mostram a média por mês.',
+        'Investido mostra sempre a rentabilidade (um traço quando ainda não tem nada aplicado), e os três cartões cabem lado a lado no celular.'
+      ]
+    },
     {
       versao: '5.27.1',
       data: '2026-11-01',
@@ -6205,6 +6217,50 @@
     return Math.round(soma / contados);
   }
 
+  // Média por mês dos n meses antes de (ano, mes). Mês sem movimento
+  // nenhum fica de fora: é conta que ainda não existia, não mês zerado.
+  function mediaDosMesesAntes(ano, mes, n) {
+    var e = 0, s = 0, contados = 0;
+    for (var i = 1; i <= n; i++) {
+      var d = new Date(ano, mes - i, 1);
+      var t = totaisDoMes(d.getFullYear(), d.getMonth());
+      if (t.entradas > 0 || t.saidas > 0) { e += t.entradas; s += t.saidas; contados++; }
+    }
+    return contados ? { entradas: Math.round(e / contados), saidas: Math.round(s / contados) } : null;
+  }
+
+  // A linha de baixo de Receitas e Despesas no Início. Projetar o ritmo
+  // do mês no dia 1 multiplica o salário por 30; o costume dos últimos
+  // meses é a base, e o que já aconteceu é o piso.
+  function estimativaDoPeriodo(t, faixa) {
+    if (periodo.tipo !== 'mes') {
+      var dias = Math.round((comoData(faixa.ate) - comoData(faixa.de)) / 86400000) + 1;
+      var meses = Math.max(1, dias / 30.44);
+      return { rotulo: 'Média/mês',
+               entradas: emReais(Math.round(t.entradas / meses)),
+               saidas: emReais(Math.round(t.saidas / meses)) };
+    }
+    var hoje = new Date();
+    var ano = mesAtivo.ano, mes = mesAtivo.mes;
+    var costume = mediaDosMesesAntes(ano, mes, 3);
+    var ativo = ano * 12 + mes, atual = hoje.getFullYear() * 12 + hoje.getMonth();
+    if (ativo < atual) {
+      return { rotulo: 'Média',
+               entradas: costume ? emReais(costume.entradas) : '—',
+               saidas: costume ? emReais(costume.saidas) : '—' };
+    }
+    var diasMes = ultimoDia(ano, mes);
+    var passados = ativo === atual ? hoje.getDate() : 0;
+    function estimar(feito, deCostume) {
+      if (deCostume != null) return Math.max(feito, deCostume);
+      if (passados >= 10) return Math.round(feito / passados * diasMes);
+      return feito;
+    }
+    return { rotulo: 'Estimativa',
+             entradas: emReais(estimar(t.entradas, costume ? costume.entradas : null)),
+             saidas: emReais(estimar(t.saidas, costume ? costume.saidas : null)) };
+  }
+
   function seriePatrimonio(dias) {
     var pontos = [];
     var fim = hojeTexto();
@@ -8219,18 +8275,12 @@
     var tAnt = totaisNaFaixa(faixaAnterior());
 
     var kpis = no('div', 'kpis');
-    var estimR = '', estimD = '';
-    var hjKpi = new Date();
-    var diaKpi = hjKpi.getDate();
-    var diasMes = new Date(hjKpi.getFullYear(), hjKpi.getMonth() + 1, 0).getDate();
-    var ehMesAtualKpi = periodo.tipo === 'mes' && mesAtivo.ano === hjKpi.getFullYear() && mesAtivo.mes === hjKpi.getMonth();
-    if (ehMesAtualKpi && diaKpi >= 3) {
-      estimR = 'Estimativa: ' + emReais(Math.round(t.entradas / diaKpi * diasMes));
-      estimD = 'Estimativa: ' + emReais(Math.round(t.saidas / diaKpi * diasMes));
-    }
+    var est = estimativaDoPeriodo(t, faixa);
+    var estimR = est.rotulo + ': ' + est.entradas;
+    var estimD = est.rotulo + ': ' + est.saidas;
     var investidoKpi = totalInvestido(faixa.ate < hojeTexto() ? faixa.ate : null);
     var aplicadoKpi = totalAplicado();
-    var rentKpi = '';
+    var rentKpi = 'Rentabilidade: —';
     if (aplicadoKpi > 0) {
       var lucroKpi = investidoKpi - aplicadoKpi;
       var pctKpi = (lucroKpi / aplicadoKpi) * 100;
@@ -12496,7 +12546,11 @@
     } else {
       k.appendChild(no('div', 'variacao', ' '));
     }
-    if (extra) k.appendChild(no('div', 'kpi-extra', extra));
+    if (extra) {
+      var partes = extra.split(': ');
+      k.appendChild(juntar(no('div', 'kpi-extra'),
+        no('div', 'r', partes[0]), no('div', 'v', partes.slice(1).join(': '))));
+    }
     return k;
   }
 
