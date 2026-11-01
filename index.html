@@ -1703,7 +1703,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.27.0';
+  var VERSAO = '5.27.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1712,6 +1712,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.27.1',
+      data: '2026-11-01',
+      itens: [
+        'Importar fatura: o mês agora vem do vencimento impresso na fatura ("Vencimento: 10 de Outubro"), e não da compra mais recente. Antes, uma parcela de dezembro jogava a fatura inteira para janeiro.',
+        'Na conferência da fatura aparece o vencimento lido e em qual fatura do cartão tudo vai entrar. Dá para corrigir a data ali mesmo.',
+        'Fatura do C6: a data "06 dez" passou a ser lida. Antes, o app pegava o "10/12" de "Parcela 10/12" como data e perdia o nome da loja, que aparecia como "Entrada".',
+        'O pagamento da fatura anterior ("Inclusão de Pagamento") vem como crédito e desmarcado: ele já sai da sua conta corrente.',
+        'Depois de importar a fatura, o Início vai para o mês dela.'
+      ]
+    },
     {
       versao: '5.27.0',
       data: '2026-11-01',
@@ -8818,6 +8829,29 @@
     return { chave: prefixoMes(ano, mes), de: de, ate: ate,
              vence: vence ? proximoDia(ano, mes, vence, vence > fecha ? 0 : 1) : '',
              rotulo: MESES[mes] + ' de ' + ano };
+  }
+
+  // Uma data que cai dentro da fatura com esse vencimento, neste cartão.
+  // É com ela que os itens de uma fatura importada entram: todos juntos na
+  // mesma fatura, a que o banco imprimiu, e não espalhados pela data de
+  // compra de cada parcela.
+  function dataNaFatura(cart, vencimento) {
+    if (!cart || !vencimento) return '';
+    var p = vencimento.split('-');
+    var ano = +p[0], mes = +p[1] - 1;
+    var k, d, f;
+    for (k = -2; k <= 1; k++) {
+      d = new Date(ano, mes + k, 1);
+      f = faturaDoCartao(cart, d.getFullYear(), d.getMonth());
+      if (f.vence && f.vence.slice(0, 7) === vencimento.slice(0, 7)) return f.ate;
+    }
+    // Cartão sem dia de vencimento: a última fatura fechada antes dele.
+    for (k = 0; k >= -2; k--) {
+      d = new Date(ano, mes + k, 1);
+      f = faturaDoCartao(cart, d.getFullYear(), d.getMonth());
+      if (f.ate < vencimento) return f.ate;
+    }
+    return '';
   }
 
   function proximoDia(ano, mes, dia, somaMes) {
@@ -19050,6 +19084,18 @@
 
     // Acha a primeira data da linha e devolve onde ela termina.
     function acharData(linha, anoPadrao) {
+      // "06 dez MERCADOLIVRE - Parcela 10/12": o C6 escreve o mês por extenso
+      // no começo da linha. Sem isto, o "10/12" da parcela virava a data e a
+      // descrição inteira ficava para trás.
+      var c = /^([^0-9a-zA-Z]{0,4})(\d{1,2})\s+(?:de\s+)?([a-zA-ZçÇ]{3,9})\.?(?:\s+(?:de\s+)?(\d{4}))?(?=[\s,;-]|$)/.exec(linha);
+      if (c) {
+        var nomeMes = semAcento(c[3]);
+        var numMes = MESES[nomeMes];
+        if (numMes && (c[4] || anoPadrao)) {
+          return { data: montarData(+c[2], numMes, c[4] ? +c[4] : anoPadrao),
+                   fim: c[0].length, ini: c[1].length, semAno: !c[4], dia: +c[2], mes: numMes };
+        }
+      }
       var m = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})/.exec(linha);
       if (m) return { data: montarData(+m[1], +m[2], +m[3]), fim: m.index + m[0].length, ini: m.index };
       m = /(\d{4})-(\d{2})-(\d{2})/.exec(linha);
@@ -19062,8 +19108,13 @@
       if (m && MESES[semAcento(m[2]).slice(0, 3)]) {
         return { data: montarData(+m[1], MESES[semAcento(m[2]).slice(0, 3)], +m[3]), fim: m.index + m[0].length, ini: m.index };
       }
-      // Sem ano: comum no C6, que põe o ano só no cabeçalho do mês.
-      m = /(^|\s)(\d{1,2})\/(\d{1,2})(?!\/|\d)/.exec(linha);
+      // Sem ano: comum no C6, que põe o ano só no cabeçalho do mês. O "3/6"
+      // de "Parcela 3/6" não é data: apago antes de procurar, mantendo as
+      // posições no lugar.
+      var semParcela = linha.replace(/parc(?:ela)?s?\.?\s*\d{1,2}\s*\/\s*\d{1,2}/gi, function (p) {
+        return p.replace(/./g, ' ');
+      });
+      m = /(^|\s)(\d{1,2})\/(\d{1,2})(?!\/|\d)/.exec(semParcela);
       if (m && anoPadrao) {
         return { data: montarData(+m[2], +m[3], anoPadrao), fim: m.index + m[0].length,
                  ini: m.index + m[1].length, semAno: true, dia: +m[2], mes: +m[3] };
@@ -19207,8 +19258,52 @@
       return pontos >= 2;
     }
 
+    // De qual mês é a fatura: o vencimento que o banco imprime. A data das
+    // compras não serve, porque parcela antiga vem com a data da compra.
+    function acharVencimento(texto, nomeArquivo, anoPadrao) {
+      var s = semAcento(texto || '').slice(0, 60000);
+      var m = /venc(?:imento|e)(?:\s+da\s+fatura)?(?:\s+em)?\s*:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})/.exec(s);
+      if (m) {
+        var d1 = montarData(+m[1], +m[2], +m[3]);
+        if (d1) return d1;
+      }
+      m = /venc(?:imento|e)(?:\s+da\s+fatura)?(?:\s+em)?\s*:?\s*(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/.exec(s);
+      if (m && MESES[m[2]]) {
+        var ano = m[3] ? +m[3] : 0;
+        if (!ano) {
+          var a = /venc[^\n]{0,40}?\d{1,2}\/\d{1,2}\/(\d{4})/.exec(s) ||
+                  /(?:^|\D)(\d{4})-\d{2}-\d{2}/.exec(semAcento(nomeArquivo || '')) ||
+                  /\d{1,2}\/\d{1,2}\/(20\d{2})/.exec(s);
+          ano = a ? +a[1] : (anoPadrao || new Date().getFullYear());
+        }
+        var d2 = montarData(+m[1], MESES[m[2]], ano);
+        if (d2) return d2;
+      }
+      m = /(20\d{2})[-_.](\d{2})[-_.](\d{2})/.exec(nomeArquivo || '');
+      if (m) {
+        var d3 = montarData(+m[3], +m[2], +m[1]);
+        if (d3) return d3;
+      }
+      return '';
+    }
+
+    // Numa fatura nada foi comprado depois do vencimento. Data sem ano que
+    // passou dele é do ano anterior: "06 dez" numa fatura de outubro.
+    function anoCertoNaFatura(itens, vencimento) {
+      if (!vencimento) return itens;
+      itens.forEach(function (it) {
+        while (it.data && it.data > vencimento) {
+          var p = it.data.split('-');
+          it.data = (+p[0] - 1) + '-' + p[1] + '-' + p[2];
+        }
+      });
+      return itens;
+    }
+
     // Numa fatura, isso é crédito: abate, não soma.
-    var CREDITO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura)|estorno|credito de|devolucao|cashback|desconto|ajuste a credito|anuidade diferenciada|reembolso)/;
+    var CREDITO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura|estorno|credito de|devolucao|cashback|desconto|ajuste a credito|anuidade diferenciada|reembolso)/;
+    // O pagamento da fatura anterior já saiu da conta corrente.
+    var PAGAMENTO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura)/;
 
     // Extrato que agrupa por dia (Inter, entre outros) põe a data numa linha
     // sozinha e deixa os lançamentos do dia embaixo, sem data nenhuma.
@@ -19446,6 +19541,7 @@
       itens.forEach(function (it) {
         // Numa fatura não existe coluna "Tipo": o que eu tirei era descrição.
         if (it.descricaoCheia) it.descricao = it.descricaoCheia.slice(0, 80);
+        if (PAGAMENTO_NA_FATURA.test(semAcento(it.descricao))) { it.credito = true; it.pagamentoDeFatura = true; }
         if (it.credito || !it.negativoNoTexto) {
           it.tipo = it.credito ? 'entrada' : 'saida';
           var d = categoriaDe(it.descricao, it.tipo);
@@ -19543,11 +19639,12 @@
 
       var cheio = linhas.join('\n');
       var fatura = pareceFatura(cheio, nomeArquivo);
-      if (fatura) ajeitarFatura(itens);
+      var vencimento = fatura ? acharVencimento(cheio, nomeArquivo, ano) : '';
+      if (fatura) { ajeitarFatura(itens); anoCertoNaFatura(itens, vencimento); }
       // O saldo que o próprio banco imprime na última linha é a melhor prova
       // de que a leitura saiu certa: dá para comparar com a conta do app.
       return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
-               saldoFinal: fatura ? null : saldoFinal };
+               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento };
     }
 
     function arrumarVirada(itens) {
@@ -19589,7 +19686,8 @@
       });
       var fatura = pareceFatura(texto, nomeArquivo);
       if (fatura) ajeitarFatura(itens);
-      return { itens: itens, fatura: fatura, banco: acharBanco(texto, nomeArquivo) };
+      return { itens: itens, fatura: fatura, banco: acharBanco(texto, nomeArquivo),
+               vencimento: fatura ? acharVencimento(texto, nomeArquivo) : '' };
     }
 
     // ---------- CSV ----------
@@ -19690,7 +19788,10 @@
       });
 
       arrumarVirada(itens);
-      return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo) };
+      var vencimento = fatura ? acharVencimento(cheio, nomeArquivo) : '';
+      if (fatura) anoCertoNaFatura(itens, vencimento);
+      return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
+               vencimento: vencimento };
     }
 
     // Divide respeitando aspas: sem isso um valor "1.234,56" vira duas colunas.
@@ -20426,8 +20527,12 @@
   // O motivo do primeiro que bater, ou '' se nenhum bate.
   function motivoDeJaTer(item, contaId) {
     var motivo = '';
+    // Item de fatura entra com a data da fatura, não a da compra: quem já
+    // foi importado está guardado com ela.
+    var naFatura = item.dataFatura && item.dataFatura !== item.data
+      ? { valor: item.valor, tipo: item.tipo, data: item.dataFatura } : null;
     estado.lancamentos.some(function (l) {
-      var m = porQueJaTem(l, item, contaId);
+      var m = porQueJaTem(l, item, contaId) || (naFatura && porQueJaTem(l, naFatura, contaId));
       if (m) { motivo = m; return true; }
       return false;
     });
@@ -20471,6 +20576,7 @@
       bytes: lido.bytes || null,
       nomeArquivo: lido.nomeArquivo || nomeDoArquivo(arquivo),
       fatura: !!lido.fatura,
+      vencimento: lido.vencimento || '',
       banco: lido.banco || null,
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
@@ -20705,12 +20811,16 @@
     var folhaEl = $('folha');
     var rolagem = folhaEl.classList.contains('aberta') ? folhaEl.scrollTop : 0;
 
+    // Fatura: tudo entra na fatura do vencimento impresso nela.
+    var carimbo = dados.fatura ? dataNaFatura(achar(estado.contas, contaId), dados.vencimento) : '';
     itens.forEach(function (it) {
-      if (it.repetido === undefined || it.contaConferida !== contaId) {
+      it.dataFatura = carimbo;
+      if (it.repetido === undefined || it.contaConferida !== contaId || it.carimboConferido !== carimbo) {
         it.motivoRepetido = motivoDeJaTer(it, contaId);
         it.repetido = !!it.motivoRepetido;
         it.contaConferida = contaId;
-        it.usar = !it.repetido;
+        it.carimboConferido = carimbo;
+        it.usar = !it.repetido && !(dados.fatura && it.pagamentoDeFatura);
       }
     });
 
@@ -20756,6 +20866,32 @@
       };
       forma.appendChild(campo(dados.fatura ? 'Cartão' : 'Conta', seletor));
 
+      // O mês vem do vencimento que o banco imprimiu. Dá para corrigir aqui.
+      if (dados.fatura) {
+        var venc = entradaData(dados.vencimento);
+        venc.value = dados.vencimento || '';
+        venc.addEventListener('change', function () {
+          dados.vencimento = ehData(venc.value) ? venc.value : '';
+          montarFolhaExtrato();
+        });
+        forma.appendChild(campo('Vencimento da fatura', venc));
+        var cartaoDaFatura = achar(estado.contas, contaId);
+        var fDestino = null;
+        if (carimbo && cartaoDaFatura) {
+          var pc = carimbo.split('-');
+          fDestino = faturaDoCartao(cartaoDaFatura, +pc[0], +pc[1] - 1);
+        }
+        var notaVenc = no('p', 'ajuda');
+        notaVenc.style.marginTop = '-6px';
+        notaVenc.textContent = fDestino
+          ? 'Tudo entra na fatura de ' + fDestino.rotulo +
+            (fDestino.vence ? ', que vence em ' + dataBr(fDestino.vence) : '') + '.'
+          : dados.vencimento
+            ? 'Escolha o cartão para eu saber em qual fatura lançar.'
+            : 'Não achei o vencimento no arquivo. Diga qual é, para tudo cair na mesma fatura.';
+        forma.appendChild(notaVenc);
+      }
+
       var resumo = no('div', 'resumo-extrato');
       forma.appendChild(resumo);
 
@@ -20800,6 +20936,12 @@
         montarFolhaExtrato();
       }));
       forma.insertBefore(atalhos, lista);
+
+      var pagamentosDeFatura = dados.fatura
+        ? itens.filter(function (i) { return i.pagamentoDeFatura && !i.usar; }).length : 0;
+      if (pagamentosDeFatura) {
+        forma.insertBefore(no('p', 'ajuda', 'Deixei desmarcado o pagamento da fatura anterior: ele já sai da sua conta corrente. Marque se quiser lançar no cartão também.'), resumo);
+      }
 
       var repetidos = itens.filter(function (i) { return i.repetido; }).length;
       if (repetidos) {
@@ -21013,9 +21155,12 @@
     }, function () {
       var agora = Date.now();
       var importacaoId = novoId();
+      // Fatura: todos na fatura do vencimento. Sem vencimento nem cartão
+      // configurado, o mais recente ainda junta tudo num mês só.
       var dataFatura = '';
       if (dados.fatura) {
-        escolhidos.forEach(function (it) { if (it.data > dataFatura) dataFatura = it.data; });
+        dataFatura = dataNaFatura(achar(estado.contas, contaId), dados.vencimento);
+        if (!dataFatura) escolhidos.forEach(function (it) { if (it.data > dataFatura) dataFatura = it.data; });
       }
       escolhidos.forEach(function (it, i) {
         estado.lancamentos.push({
@@ -21034,7 +21179,7 @@
 
       // Guardo de onde veio cada leva. Se o extrato entrou errado, dá para
       // tirar tudo de uma vez em vez de apagar um por um.
-      var quando = escolhidos.map(function (i) { return i.data; }).sort();
+      var quando = escolhidos.map(function (i) { return dataFatura || i.data; }).sort();
       if (!estado.importacoes) estado.importacoes = [];
       estado.importacoes.push({
         id: importacaoId, contaId: contaId,
@@ -21049,8 +21194,13 @@
         ((dados.arquivo && dados.arquivo.name) || (dados.banco && dados.banco.nome) || 'um extrato'));
       // O extrato quase sempre é de outro mês. Sem levar a tela para a data
       // do que entrou, a pessoa importa e não vê nada na frente dela.
-      var datas = escolhidos.map(function (i) { return i.data; }).sort();
-      periodo = { tipo: 'escolhido', de: datas[0], ate: datas[datas.length - 1] };
+      // Fatura entrou toda num dia só: mostra o mês dela inteiro.
+      if (dataFatura) {
+        mesAtivo = { ano: +dataFatura.slice(0, 4), mes: +dataFatura.slice(5, 7) - 1 };
+        periodo = { tipo: 'mes', de: '', ate: '' };
+      } else {
+        periodo = { tipo: 'escolhido', de: quando[0], ate: quando[quando.length - 1] };
+      }
 
       var lote = dados.lote;
       var saldoDoExtrato = dados.saldoFinal;
