@@ -105,7 +105,7 @@ await page.evaluate(async () => {
                'Content-Type': 'application/json', Prefer: 'return=minimal' },
     body: JSON.stringify([{ id: 'outro-' + Date.now(), user_id: pac.usuario.id,
       tipo: 'saida', valor: 7700, descricao: 'Veio do outro aparelho',
-      categoria: 'Outros', data: '2026-10-20', conta_id: null }]) });
+      categoria: 'Outros', data: new Date().toISOString().slice(0, 10), conta_id: null }]) });
 });
 
 baixado = 0;
