@@ -186,6 +186,10 @@
   .kpi .rotulo { font-size: 11px; letter-spacing: .04em; }
   .kpi .n { font-size: 14.5px; font-weight: 700; margin: 5px 0 4px; }
   .kpi .variacao { font-size: 12px; }
+  .kpi { min-width: 0; }
+  .kpi-extra { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--borda); }
+  .kpi-extra .r { font-size: 10px; letter-spacing: .03em; color: var(--suave); }
+  .kpi-extra .v { font-size: 12px; font-weight: 600; color: var(--texto, #eee); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   [hidden] { display: none !important; }
@@ -646,7 +650,7 @@
                     align-items: center; margin-top: 8px; }
   .linha-item-orc .entrada { margin: 0; }
   .linha-item-orc .btn-mini { padding: 10px 0; }
-  .aba-cliente button { flex: 1 1 0; min-width: 0; font-size: 12.5px; padding: 9px 4px; }
+  .aba-cliente button { flex: 0 0 auto; font-size: 12.5px; padding: 9px 10px; }
 
   /* As transações de dentro de um grupo repetido, recuadas e presas nele. */
   .grupo-aberto { margin: 0 0 6px 14px; border-left: 2px solid var(--borda);
@@ -1588,18 +1592,22 @@
   .resumo-grade .r { font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
   .resumo-grade .v { font-size: 15px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
 
-  .aba-cliente { display: flex; gap: 8px; margin: 14px 0 6px; }
+  .aba-cliente { display: flex; gap: 8px; margin: 14px 0 6px; overflow-x: auto; scrollbar-width: none; }
+  .aba-cliente::-webkit-scrollbar { display: none; }
   .aba-cliente button {
-    flex: 1;
-    padding: 10px;
+    flex: 0 0 auto;
+    padding: 10px 14px;
     border-radius: 11px;
     background: var(--cartao-2);
     border: 1px solid var(--borda);
     font-size: 13.5px;
     font-weight: 600;
     color: var(--suave);
+    white-space: nowrap;
   }
   .aba-cliente button[aria-selected="true"] { background: var(--ouro); color: #1A1408; border-color: var(--ouro); }
+  .conteudo-aba { animation: entrarAba .2s ease; }
+  @keyframes entrarAba { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   .etiqueta {
     display: inline-block;
@@ -1615,6 +1623,95 @@
   .etiqueta.fora { background: rgba(255,255,255,.05); color: var(--fraco);
                    border: 1px solid var(--borda); display: inline-block; }
   .cartao.recado { padding: 14px 16px; }
+
+  /* ---------- O "+" com o que lançar ---------- */
+  .menu-novo-fundo {
+    position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.45);
+    opacity: 0; transition: opacity .16s ease;
+  }
+  .menu-novo-fundo.aberto { opacity: 1; }
+  .menu-novo {
+    position: absolute; left: 50%; bottom: calc(var(--nav) + var(--baixo) + 86px + var(--fundo-oculto));
+    width: min(300px, calc(100vw - 32px)); padding: 8px; border-radius: 20px;
+    background: #17140F; border: 1px solid var(--borda);
+    box-shadow: 0 18px 40px rgba(0,0,0,.6);
+    transform: translateX(-50%) translateY(10px) scale(.97); transform-origin: bottom center;
+    transition: transform .16s ease;
+  }
+  .menu-novo-fundo.aberto .menu-novo { transform: translateX(-50%); }
+  .menu-novo-item {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    padding: 9px 12px; border-radius: 14px; text-align: left;
+    font-size: 16px; font-weight: 500; color: var(--texto);
+  }
+  .menu-novo-item:active { background: var(--cartao-2); }
+  .menu-novo-icone {
+    width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%;
+    display: grid; place-items: center; background: var(--cartao-2);
+  }
+  .menu-novo-icone svg { width: 22px; height: 22px; }
+  .menu-novo-icone.ouro { color: var(--ouro); }
+  .menu-novo-icone.verde { color: var(--verde); }
+  .menu-novo-icone.vermelho { color: var(--vermelho); }
+  .menu-novo-icone.azul { color: #60A5FA; }
+  .fab { transition: transform .16s ease; }
+  .fab.girado { transform: translateX(-50%) rotate(45deg); z-index: 46; }
+
+  /* ---------- Fatura, contador e repetição no lançamento ---------- */
+  .linha-fatura {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 6px; border-radius: 12px; background: var(--cartao-2); border: 1px solid var(--borda);
+  }
+  .fatura-seta {
+    width: 40px; height: 40px; border-radius: 10px; font-size: 24px; line-height: 1;
+    color: var(--ouro); display: grid; place-items: center;
+  }
+  .fatura-seta:active { background: rgba(233,180,76,.14); }
+  .fatura-mes { font-size: 16px; font-weight: 600; text-align: center; flex: 1; }
+  .contador { display: inline-flex; align-items: center; gap: 6px; }
+  .contador-botao {
+    width: 36px; height: 36px; border-radius: 50%; font-size: 20px; line-height: 1;
+    display: grid; place-items: center; color: var(--ouro);
+    background: var(--cartao-2); border: 1px solid var(--borda);
+  }
+  .contador-botao:disabled { opacity: .35; }
+  .contador-num { min-width: 34px; text-align: center; font-size: 17px; font-weight: 700; }
+  .config-repeticao {
+    margin-top: 10px; padding: 6px 12px 12px; border-radius: 12px;
+    background: var(--cartao-2); border: 1px solid var(--borda);
+  }
+  .config-linha {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--borda);
+  }
+  .config-linha .entrada.selecao { width: auto; min-width: 150px; }
+  .config-rotulo { font-size: 14px; color: var(--suave); }
+  .config-repeticao .segmentos { margin-top: 12px; }
+  .segmentos-pequenos button { font-size: 12.5px; }
+  .previa-repeticao { color: var(--ouro); }
+  .cabeca-resumo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .botao-info {
+    position: relative; flex: 0 0 auto; width: 34px; height: 34px; margin: -8px -6px -8px 0;
+    display: grid; place-items: center; border-radius: 50%;
+    background: var(--cartao-2); border: 1px solid var(--borda); color: var(--ouro);
+  }
+  .botao-info svg { width: 20px; height: 20px; }
+  .botao-info:active { background: rgba(233,180,76,.16); }
+  .botao-info .selo-num {
+    position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px; background: var(--ouro); color: #1A1408;
+    font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+  }
+  .previsto-mes {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    width: 100%; margin: 14px 0 8px; padding: 12px 14px; border-radius: 12px; text-align: left;
+    background: rgba(233,180,76,.06); border: 1px solid var(--borda); color: inherit;
+  }
+  .previsto-mes:active { background: rgba(233,180,76,.12); }
+  .previsto-texto { min-width: 0; }
+  .previsto-rotulo { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); }
+  .previsto-sub { font-size: 12px; color: var(--suave); margin-top: 3px; line-height: 1.35; }
+  .previsto-valor { font-size: 18px; font-weight: 700; white-space: nowrap; }
   .recado-topo { display: flex; align-items: flex-start; gap: 9px; }
   .recado-icone { font-size: 16px; line-height: 1.35; }
   .recado-texto { font-size: 13.5px; color: var(--suave); line-height: 1.45; }
@@ -1698,7 +1795,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.26.1';
+  var VERSAO = '5.29.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1804,55 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.29.0',
+      data: '2026-11-01',
+      itens: [
+        'O "+" agora abre um menu: Transferência, Receita, Despesa e Despesa cartão. No Empreendedor ele continua cadastrando cliente.',
+        'Despesa no cartão: escolha o cartão e a fatura com as setas (‹ dezembro ›). A data da compra anda junto, e o app mostra quando a fatura fecha e vence.',
+        'Repetição em qualquer despesa ou receita nova: Única, Parcelada ou Fixa mensal. Na parcelada dá para dizer o total de parcelas, em qual começar, a frequência (mensal, diária, semanal, trimestral, anual ou a cada N dias) e se o valor digitado é o total ou o de cada parcela.',
+        'No cartão, cada parcela cai numa fatura seguida, com "(1/3)", "(2/3)"... na descrição. Abrindo uma delas, dá para excluir todas de uma vez.',
+        'Fixa mensal lança os próximos 12 meses de uma vez.'
+      ]
+    },
+    {
+      versao: '5.28.0',
+      data: '2026-11-01',
+      itens: [
+        'Empreendedor: no resumo "A receber de todos os clientes" tem agora o "Previsto para o mês" — o que já entrou no mês mais as parcelas em aberto que vencem até o fim dele. Tocando, aparece a lista dessas parcelas, cliente por cliente.',
+        'Os recados dos clientes (Pix que cai hoje, cliente perto de quitar) saíram da tela e foram para o "i" no canto do resumo. O número em cima do "i" diz quantos tem.'
+      ]
+    },
+    {
+      versao: '5.27.2',
+      data: '2026-11-01',
+      itens: [
+        'Início: a estimativa embaixo de Receitas e Despesas aparece sempre, desde o primeiro dia do mês. Ela parte do seu costume dos últimos três meses, e nunca fica abaixo do que já aconteceu.',
+        'Mês que já passou mostra a média dos três anteriores, para comparar; 3 meses, ano e período escolhido mostram a média por mês.',
+        'Investido mostra sempre a rentabilidade (um traço quando ainda não tem nada aplicado), e os três cartões cabem lado a lado no celular.'
+      ]
+    },
+    {
+      versao: '5.27.1',
+      data: '2026-11-01',
+      itens: [
+        'Importar fatura: o mês agora vem do vencimento impresso na fatura ("Vencimento: 10 de Outubro"), e não da compra mais recente. Antes, uma parcela de dezembro jogava a fatura inteira para janeiro.',
+        'Na conferência da fatura aparece o vencimento lido e em qual fatura do cartão tudo vai entrar. Dá para corrigir a data ali mesmo.',
+        'Fatura do C6: a data "06 dez" passou a ser lida. Antes, o app pegava o "10/12" de "Parcela 10/12" como data e perdia o nome da loja, que aparecia como "Entrada".',
+        'O pagamento da fatura anterior ("Inclusão de Pagamento") vem como crédito e desmarcado: ele já sai da sua conta corrente.',
+        'Depois de importar a fatura, o Início vai para o mês dela.'
+      ]
+    },
+    {
+      versao: '5.27.0',
+      data: '2026-11-01',
+      itens: [
+        'Início: embaixo de Receitas e Despesas agora aparece a estimativa para o fim do mês; embaixo de Investido, a rentabilidade da carteira.',
+        'Empreendedor: trocar de aba na ficha do cliente (Registros, Parcelas, Pagos, Orçamentos) agora é suave — o conteúdo desliza sem piscar e a posição da tela não pula.',
+        'Importar fatura: todos os lançamentos de uma fatura de cartão agora caem no mesmo mês de cobrança, mesmo que as datas de compra sejam de meses diferentes.',
+        'Cartão: botão para apagar todos os gastos de um cartão de uma vez.'
+      ]
+    },
     {
       versao: '5.26.1',
       data: '2026-11-01',
@@ -3629,6 +3775,7 @@
           data: soData(l.data),
           contaId: texto(l.contaId),
           contaDestinoId: texto(l.contaDestinoId),
+          grupo: texto(l.grupo),
           criadoEm: inteiro(l.criadoEm) || Date.now()
         };
       });
@@ -4458,6 +4605,7 @@
           data: l.data, importacao_id: l.importacaoId || '',
           data_destino: l.dataDestino || null,
           par_transferencia: l.parTransferencia || '',
+          grupo: l.grupo || '',
           conta_id: ouNulo(l.contaId), conta_destino_id: ouNulo(l.contaDestinoId)
         });
       }),
@@ -4642,7 +4790,7 @@
   // lista a sincronização INTEIRA falha em vez de só deixar o campo para
   // trás. O envio tenta de novo sem elas e segue a vida.
   var COLUNAS_OPCIONAIS = {
-    lancamentos: ['subcategoria', 'data_destino', 'par_transferencia'],
+    lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
     contas: ['limite']
   };
 
@@ -4951,6 +5099,7 @@
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
         dataDestino: l.data_destino || '',
         parTransferencia: l.par_transferencia || '',
+        grupo: l.grupo || '',
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
       };
@@ -6179,6 +6328,50 @@
     return Math.round(soma / contados);
   }
 
+  // Média por mês dos n meses antes de (ano, mes). Mês sem movimento
+  // nenhum fica de fora: é conta que ainda não existia, não mês zerado.
+  function mediaDosMesesAntes(ano, mes, n) {
+    var e = 0, s = 0, contados = 0;
+    for (var i = 1; i <= n; i++) {
+      var d = new Date(ano, mes - i, 1);
+      var t = totaisDoMes(d.getFullYear(), d.getMonth());
+      if (t.entradas > 0 || t.saidas > 0) { e += t.entradas; s += t.saidas; contados++; }
+    }
+    return contados ? { entradas: Math.round(e / contados), saidas: Math.round(s / contados) } : null;
+  }
+
+  // A linha de baixo de Receitas e Despesas no Início. Projetar o ritmo
+  // do mês no dia 1 multiplica o salário por 30; o costume dos últimos
+  // meses é a base, e o que já aconteceu é o piso.
+  function estimativaDoPeriodo(t, faixa) {
+    if (periodo.tipo !== 'mes') {
+      var dias = Math.round((comoData(faixa.ate) - comoData(faixa.de)) / 86400000) + 1;
+      var meses = Math.max(1, dias / 30.44);
+      return { rotulo: 'Média/mês',
+               entradas: emReais(Math.round(t.entradas / meses)),
+               saidas: emReais(Math.round(t.saidas / meses)) };
+    }
+    var hoje = new Date();
+    var ano = mesAtivo.ano, mes = mesAtivo.mes;
+    var costume = mediaDosMesesAntes(ano, mes, 3);
+    var ativo = ano * 12 + mes, atual = hoje.getFullYear() * 12 + hoje.getMonth();
+    if (ativo < atual) {
+      return { rotulo: 'Média',
+               entradas: costume ? emReais(costume.entradas) : '—',
+               saidas: costume ? emReais(costume.saidas) : '—' };
+    }
+    var diasMes = ultimoDia(ano, mes);
+    var passados = ativo === atual ? hoje.getDate() : 0;
+    function estimar(feito, deCostume) {
+      if (deCostume != null) return Math.max(feito, deCostume);
+      if (passados >= 10) return Math.round(feito / passados * diasMes);
+      return feito;
+    }
+    return { rotulo: 'Estimativa',
+             entradas: emReais(estimar(t.entradas, costume ? costume.entradas : null)),
+             saidas: emReais(estimar(t.saidas, costume ? costume.saidas : null)) };
+  }
+
   function seriePatrimonio(dias) {
     var pontos = [];
     var fim = hojeTexto();
@@ -6541,6 +6734,10 @@
     rota: 'M21 3 3 10.5l7.5 3 3 7.5z',
     calendario: 'M4.5 6.5h15a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1zM8 3.5v5M16 3.5v5M3.5 11h17',
     alerta: 'M12 8.5v5M12 17h.01M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3.1L13.7 3.9a2 2 0 0 0-3.4 0z',
+    info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.8h.01',
+    setas: 'M8 20V5M4.5 8.5 8 5l3.5 3.5M16 4v15M12.5 15.5 16 19l3.5-3.5',
+    menos: 'M5 12h14',
+    cartao: 'M4 6h16a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 18H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 6zM2.5 10h19M6 14.5h4',
     saindo: 'M15 12H3.5M7 8l-4 4 4 4M13 3.5h5.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H13',
     extrato: 'M6 3.5h9L19.5 8v12.5a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1zM14.5 3.5V8h5M8.5 12.5h7M8.5 16h4',
     lixo: 'M5 7h14M10 7V5.5A1.5 1.5 0 0 1 11.5 4h1A1.5 1.5 0 0 1 14 5.5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4L17.5 7'
@@ -8095,6 +8292,89 @@
     return fora.sort(function (a, b) { return a.ordem - b.ordem; });
   }
 
+  function abrirRecadosDosClientes() {
+    abrirFolha('Recados dos clientes', function (folha) {
+      var lista = recadosDosClientes();
+      if (!lista.length) {
+        var vazio = cartao('liso');
+        vazio.appendChild(estadoVazio('Nenhum recado agora',
+          'Aqui aparecem o Pix que cai hoje e os clientes perto de quitar, com o que dá para fazer.'));
+        folha.appendChild(vazio);
+        return;
+      }
+      lista.forEach(function (r) {
+        var cr = cartao('recado tom-' + r.recado.tom);
+        cr.appendChild(juntar(no('div', 'recado-topo'),
+          no('span', 'recado-icone', r.recado.icone),
+          no('span', 'recado-texto', r.recado.texto)));
+        cr.appendChild(botao('btn-acao', (r.ordem === 0 ? 'Ver ' : 'Abrir ') + r.cliente.nome + ' ›', function () {
+          empilhar({ tipo: 'aba', voltar: function () { abrirRecadosDosClientes(); } });
+          abrirFichaCliente(r.cliente.id);
+        }));
+        folha.appendChild(cr);
+      });
+    });
+  }
+
+  // O que entra no mês pelos vencimentos, de todos os clientes. Cliente
+  // apagado não conta: a parcela dele não vai pagar ninguém.
+  function previstoDosClientes(ano, mes) {
+    var prefixo = prefixoMes(ano, mes);
+    var existe = {};
+    estado.clientes.forEach(function (c) { existe[c.id] = true; });
+    var parcelas = estado.parcelas.filter(function (p) {
+      return existe[p.clienteId] && (p.vencimento || '').slice(0, 7) === prefixo && !parcelaPaga(p);
+    }).sort(function (a, b) {
+      return a.vencimento < b.vencimento ? -1 : a.vencimento > b.vencimento ? 1 : 0;
+    });
+    var aVencer = parcelas.reduce(function (s, p) { return s + faltaNaParcela(p); }, 0);
+    var recebido = estado.pagamentos.reduce(function (s, g) {
+      return existe[g.clienteId] && (g.data || '').slice(0, 7) === prefixo ? s + g.valor : s;
+    }, 0);
+    return { parcelas: parcelas, aVencer: aVencer, recebido: recebido, total: aVencer + recebido };
+  }
+
+  function abrirPrevistoDoMes(ano, mes) {
+    abrirFolha('Previsto para ' + MESES[mes], function (folha) {
+      var prev = previstoDosClientes(ano, mes);
+      var topo = cartao();
+      topo.appendChild(no('div', 'rotulo', 'Entrada prevista em ' + MESES[mes] + ' de ' + ano));
+      topo.appendChild(no('div', 'valorao num ouro', emReais(prev.total)));
+      topo.appendChild(no('div', 'linha-nota',
+        emReais(prev.recebido) + ' já recebido no mês · ' + emReais(prev.aVencer) + ' a receber pelos vencimentos.'));
+      folha.appendChild(topo);
+
+      var lista = cartao('liso');
+      var cab = topoDeCartao('Parcelas a vencer', null);
+      cab.style.padding = '16px 16px 0';
+      cab.style.marginBottom = '8px';
+      lista.appendChild(cab);
+      if (!prev.parcelas.length) {
+        lista.appendChild(estadoVazio('Nada em aberto', 'Nenhuma parcela em aberto vence em ' + MESES[mes] + '.'));
+      }
+      var hoje = hojeTexto();
+      prev.parcelas.forEach(function (p) {
+        var c = achar(estado.clientes, p.clienteId);
+        var sv = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
+        var vencida = p.vencimento < hoje;
+        var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
+          empilhar({ tipo: 'aba', voltar: function () { abrirPrevistoDoMes(ano, mes); } });
+          abrirFichaCliente(p.clienteId);
+        });
+        juntar(linha,
+          selo(vencida ? '#FF6B6B' : '#E9B44C', c.nome.charAt(0).toUpperCase()),
+          juntar(no('div', 'linha-texto'),
+            no('div', 'linha-titulo', c.nome),
+            no('div', 'linha-sub', (vencida ? 'Venceu em ' : 'Vence em ') + dataBr(p.vencimento) +
+              ' · parcela ' + p.numero + ' de ' + p.total + (sv ? ' · ' + sv.nome : ''))),
+          juntar(no('div', 'linha-fim'),
+            no('div', 'linha-valor num ' + (vencida ? 'vermelho' : 'ouro'), emReais(faltaNaParcela(p)))));
+        lista.appendChild(linha);
+      });
+      folha.appendChild(lista);
+    });
+  }
+
   function proximoPagamentoGeral() {
     var datas = estado.clientes.filter(function (c) {
       return resumoCliente(c.id).restante > 0;
@@ -8193,10 +8473,20 @@
     var tAnt = totaisNaFaixa(faixaAnterior());
 
     var kpis = no('div', 'kpis');
-    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde'));
-    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho'));
-    kpis.appendChild(blocoKpi('Investido', totalInvestido(faixa.ate < hojeTexto() ? faixa.ate : null),
-      totalInvestido(faixaAnterior().ate), 'ouro'));
+    var est = estimativaDoPeriodo(t, faixa);
+    var estimR = est.rotulo + ': ' + est.entradas;
+    var estimD = est.rotulo + ': ' + est.saidas;
+    var investidoKpi = totalInvestido(faixa.ate < hojeTexto() ? faixa.ate : null);
+    var aplicadoKpi = totalAplicado();
+    var rentKpi = 'Rentabilidade: —';
+    if (aplicadoKpi > 0) {
+      var lucroKpi = investidoKpi - aplicadoKpi;
+      var pctKpi = (lucroKpi / aplicadoKpi) * 100;
+      rentKpi = 'Rentabilidade: ' + (pctKpi >= 0 ? '+' : '') + pctKpi.toFixed(1).replace('.', ',') + '%';
+    }
+    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde', estimR));
+    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho', estimD));
+    kpis.appendChild(blocoKpi('Investido', investidoKpi, totalInvestido(faixaAnterior().ate), 'ouro', rentKpi));
     tela.appendChild(kpis);
 
     // Só aparece quando há algo para conferir.
@@ -8789,6 +9079,29 @@
              rotulo: MESES[mes] + ' de ' + ano };
   }
 
+  // Uma data que cai dentro da fatura com esse vencimento, neste cartão.
+  // É com ela que os itens de uma fatura importada entram: todos juntos na
+  // mesma fatura, a que o banco imprimiu, e não espalhados pela data de
+  // compra de cada parcela.
+  function dataNaFatura(cart, vencimento) {
+    if (!cart || !vencimento) return '';
+    var p = vencimento.split('-');
+    var ano = +p[0], mes = +p[1] - 1;
+    var k, d, f;
+    for (k = -2; k <= 1; k++) {
+      d = new Date(ano, mes + k, 1);
+      f = faturaDoCartao(cart, d.getFullYear(), d.getMonth());
+      if (f.vence && f.vence.slice(0, 7) === vencimento.slice(0, 7)) return f.ate;
+    }
+    // Cartão sem dia de vencimento: a última fatura fechada antes dele.
+    for (k = 0; k >= -2; k--) {
+      d = new Date(ano, mes + k, 1);
+      f = faturaDoCartao(cart, d.getFullYear(), d.getMonth());
+      if (f.ate < vencimento) return f.ate;
+    }
+    return '';
+  }
+
   function proximoDia(ano, mes, dia, somaMes) {
     var d = new Date(ano, mes + (somaMes || 0), 1);
     return comDia(d.getFullYear(), d.getMonth(), dia);
@@ -8968,6 +9281,27 @@
       cUlt.appendChild(topoUlt);
       recentes.forEach(function (l) { cUlt.appendChild(linhaDeGasto(l, cart)); });
       folha.appendChild(cUlt);
+
+      var todosGastos = estado.lancamentos.filter(function (l) { return l.contaId === id; });
+      if (todosGastos.length) {
+        var acoesCart = no('div', 'acoes');
+        acoesCart.appendChild(botao('btn btn-perigo', 'Apagar todos os gastos (' + todosGastos.length + ')', function () {
+          perguntar({
+            titulo: 'Apagar ' + todosGastos.length + ' gasto(s)?',
+            texto: 'Todos os lançamentos deste cartão serão removidos. Os pagamentos de fatura ficam.',
+            ok: 'Apagar', tom: 'perigo',
+            copiaAntes: 'antes de apagar ' + todosGastos.length + ' lançamento(s) do cartão ' + cart.nome
+          }, function () {
+            var fora = {};
+            todosGastos.forEach(function (l) { fora[l.id] = true; marcarExcluido('lancamentos', l.id); });
+            estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+            salvar();
+            abrirFolhaCartao(id);
+            avisar(todosGastos.length + ' gasto(s) apagado(s).');
+          });
+        }));
+        folha.appendChild(acoesCart);
+      }
     });
   }
 
@@ -9017,7 +9351,15 @@
     var geral = resumoGeralClientes();
 
     var cResumo = cartao();
-    cResumo.appendChild(no('div', 'rotulo', 'A receber de todos os clientes'));
+    // Os recados moram atrás do "i": a tela principal fica com os números
+    // e a lista, e o número no "i" avisa que tem coisa para ver.
+    var recados = recadosDosClientes();
+    var info = botao('botao-info', null, function () { abrirRecadosDosClientes(); });
+    info.setAttribute('aria-label', recados.length ? recados.length + ' recado(s) dos clientes' : 'Recados dos clientes');
+    info.appendChild(icone('info'));
+    if (recados.length) info.appendChild(no('span', 'selo-num', String(recados.length)));
+    cResumo.appendChild(juntar(no('div', 'cabeca-resumo'),
+      no('div', 'rotulo', 'A receber de todos os clientes'), info));
     cResumo.appendChild(no('div', 'valorao num ' + (geral.restante > 0 ? 'ouro' : 'verde'), emReais(geral.restante)));
 
     var barra = no('div', 'barra-dupla');
@@ -9040,6 +9382,21 @@
     });
     cResumo.appendChild(grade);
 
+    // O que entra no mês pelos vencimentos: o já recebido mais as
+    // parcelas em aberto que vencem até o fim dele.
+    var mesPrev = periodo.tipo === 'mes' ? mesAtivo : { ano: new Date().getFullYear(), mes: new Date().getMonth() };
+    var prev = previstoDosClientes(mesPrev.ano, mesPrev.mes);
+    var bPrev = botao('previsto-mes', null, function () { abrirPrevistoDoMes(mesPrev.ano, mesPrev.mes); });
+    var partesPrev = [];
+    if (prev.recebido) partesPrev.push(emReais(prev.recebido) + ' já recebido');
+    if (prev.parcelas.length) partesPrev.push(emReais(prev.aVencer) + ' em ' + prev.parcelas.length + ' parcela(s) a vencer');
+    juntar(bPrev,
+      juntar(no('div', 'previsto-texto'),
+        no('div', 'previsto-rotulo', 'Previsto para ' + MESES[mesPrev.mes]),
+        no('div', 'previsto-sub', partesPrev.length ? partesPrev.join(' · ') : 'Nenhuma parcela vence neste mês')),
+      no('div', 'previsto-valor num ' + (prev.total ? 'ouro' : ''), emReais(prev.total)));
+    cResumo.appendChild(bPrev);
+
     var proxima = proximoPagamentoGeral();
     if (proxima) {
       cResumo.appendChild(no('div', 'linha-nota', 'Próximo pagamento previsto para ' + dataBr(proxima) + '.'));
@@ -9050,19 +9407,6 @@
       cResumo.appendChild(alerta);
     }
     tela.appendChild(cResumo);
-
-    // Os recados vêm antes da lista: são coisas para fazer hoje.
-    recadosDosClientes().slice(0, 4).forEach(function (r) {
-      var cr = cartao('recado tom-' + r.recado.tom);
-      var topo = no('div', 'recado-topo');
-      topo.appendChild(no('span', 'recado-icone', r.recado.icone));
-      topo.appendChild(no('span', 'recado-texto', r.recado.texto));
-      cr.appendChild(topo);
-      var b = botao('btn-acao', (r.ordem === 0 ? 'Ver ' : 'Abrir ') + r.cliente.nome + ' ›',
-        function () { abrirFichaCliente(r.cliente.id); });
-      cr.appendChild(b);
-      tela.appendChild(cr);
-    });
 
     var cClientes = cartao('liso');
     var topo = topoDeCartao('Clientes', '+ Novo', function () { abrirFolhaCliente(null); });
@@ -9445,12 +9789,14 @@
 
   var abaFicha = 'servicos';
   var filtroParcelaServico = '';
+  var fichaClienteAberta = '';
 
   function abrirFichaCliente(id) {
     var cliente = achar(estado.clientes, id);
     if (!cliente) return;
     abaFicha = 'servicos';
     filtroParcelaServico = '';
+    fichaClienteAberta = '';
     montarFichaCliente(id);
   }
 
@@ -9459,6 +9805,20 @@
     if (!cliente) { fecharFolha(); return; }
     var r = resumoCliente(id);
     var atraso = atrasoDoCliente(id);
+    var soTroca = fichaClienteAberta === id;
+    if (soTroca) {
+      var folhaEl = $('folha');
+      var abasEl = folhaEl.querySelector('.aba-cliente');
+      if (abasEl) {
+        ['servicos', 'parcelas', 'pagamentos', 'orcamentos'].forEach(function (n, i) {
+          if (abasEl.children[i]) abasEl.children[i].setAttribute('aria-selected', abaFicha === n ? 'true' : 'false');
+        });
+        while (abasEl.nextSibling) folhaEl.removeChild(abasEl.nextSibling);
+        conteudoFicha(folhaEl, true);
+        return;
+      }
+    }
+    fichaClienteAberta = id;
 
     abrirFolha(cliente.nome, function (folha) {
       var tituloEl = $('folhaTitulo');
@@ -9535,8 +9895,12 @@
         abas.appendChild(b);
       });
       folha.appendChild(abas);
+      conteudoFicha(folha, false);
+    });
 
+    function conteudoFicha(folha, animar) {
       var lista = cartao('liso');
+      if (animar) lista.classList.add('conteudo-aba');
       if (abaFicha === 'servicos') {
         var servicos = servicosDoCliente(id);
         if (!servicos.length) {
@@ -9685,6 +10049,7 @@
       folha.appendChild(lista);
 
       var acoes = no('div', 'acoes');
+      if (animar) acoes.classList.add('conteudo-aba');
       if (abaFicha === 'orcamentos') {
         acoes.appendChild(botao('btn btn-ouro', '+ Simular serviço', function () {
           empilhar({ tipo: 'aba', voltar: function () { montarFichaCliente(id); } });
@@ -9765,7 +10130,7 @@
       }
 
       folha.appendChild(acoes);
-    });
+    }
   }
 
   // A pessoa escolhe o tipo, cria os seus, renomeia e apaga.
@@ -12376,7 +12741,7 @@
     });
   }
 
-  function blocoKpi(rotulo, valor, anterior, classeCor) {
+  function blocoKpi(rotulo, valor, anterior, classeCor, extra) {
     var k = no('div', 'kpi');
     k.appendChild(no('div', 'rotulo', rotulo));
     k.appendChild(no('div', 'n num ' + classeCor, emReais(valor)));
@@ -12388,6 +12753,11 @@
       k.appendChild(v);
     } else {
       k.appendChild(no('div', 'variacao', ' '));
+    }
+    if (extra) {
+      var partes = extra.split(': ');
+      k.appendChild(juntar(no('div', 'kpi-extra'),
+        no('div', 'r', partes[0]), no('div', 'v', partes.slice(1).join(': '))));
     }
     return k;
   }
@@ -15248,6 +15618,7 @@
     $('cortina').classList.remove('aberta');
     document.body.style.overflow = telaEntrada && !$('entrada').classList.contains('escondida') ? 'hidden' : '';
     folhaAberta = false;
+    fichaClienteAberta = '';
   }
 
   function fecharFolha() {
@@ -15792,6 +16163,146 @@
 
   // ---------- Folha: lançamento ----------
 
+  // ---------- O "+" da tela: o que você quer lançar ----------
+
+  var acaoDoMenuNovo = null;
+
+  function abrirMenuNovo() {
+    var fundo = $('menuNovo');
+    if (!fundo) {
+      fundo = no('div', 'menu-novo-fundo');
+      fundo.id = 'menuNovo';
+      fundo.hidden = true;
+      fundo.addEventListener('click', function (e) { if (e.target === fundo) escolherNoMenuNovo(null); });
+      document.body.appendChild(fundo);
+    }
+    fundo.textContent = '';
+    var caixa = no('div', 'menu-novo');
+    caixa.setAttribute('role', 'menu');
+    [['transferencia', 'Transferência', 'setas', 'ouro'],
+     ['entrada', 'Receita', 'mais', 'verde'],
+     ['saida', 'Despesa', 'menos', 'vermelho'],
+     ['cartao', 'Despesa cartão', 'cartao', 'azul']].forEach(function (o) {
+      var b = botao('menu-novo-item', null, function () { escolherNoMenuNovo(o[0]); });
+      b.setAttribute('role', 'menuitem');
+      b.setAttribute('data-opcao', o[0]);
+      var bola = no('span', 'menu-novo-icone ' + o[3]);
+      bola.appendChild(icone(o[2]));
+      juntar(b, bola, no('span', null, o[1]));
+      caixa.appendChild(b);
+    });
+    fundo.appendChild(caixa);
+    acaoDoMenuNovo = null;
+    fundo.hidden = false;
+    requestAnimationFrame(function () { fundo.classList.add('aberto'); });
+    $('fab').classList.add('girado');
+    empilhar({ tipo: 'aba', voltar: fecharMenuNovo });
+  }
+
+  // Escolher passa pelo "voltar" do aparelho, como as listas de escolha:
+  // assim o histórico não fica com um menu que já fechou.
+  function escolherNoMenuNovo(opcao) {
+    acaoDoMenuNovo = opcao;
+    if (topoEh('aba')) { voltarNavegacao(); return; }
+    fecharMenuNovo();
+  }
+
+  function fecharMenuNovo() {
+    var fundo = $('menuNovo');
+    if (fundo) {
+      fundo.classList.remove('aberto');
+      setTimeout(function () { if (!fundo.classList.contains('aberto')) fundo.hidden = true; }, 180);
+    }
+    $('fab').classList.remove('girado');
+    var opcao = acaoDoMenuNovo;
+    acaoDoMenuNovo = null;
+    if (opcao) setTimeout(function () { abrirNovoLancamento(opcao); }, 0);
+  }
+
+  function abrirNovoLancamento(opcao) {
+    contaPadrao();
+    if (opcao === 'cartao') {
+      var cartoes = estado.contas.filter(ehCartao);
+      if (!cartoes.length) {
+        perguntar({
+          titulo: 'Nenhum cartão ainda',
+          texto: 'Cadastre o cartão de crédito com o dia em que a fatura fecha e o dia em que vence. ' +
+                 'Assim cada compra cai sozinha na fatura certa.',
+          ok: 'Cadastrar cartão', icone: 'cartao'
+        }, function () { abrirFolhaConta(null, true); });
+        return;
+      }
+      var ultimo = cartoes.filter(function (c) { return c.id === ultimoCartaoUsado; })[0] || cartoes[0];
+      abrirFolhaLancamento(null, novoRascunho('saida', ultimo.id, 'cartao'));
+      return;
+    }
+    abrirFolhaLancamento(null, novoRascunho(opcao || 'saida', null, ''));
+  }
+
+  var ultimoCartaoUsado = '';
+
+  function novoRascunho(tipo, contaId, modo) {
+    var semCartao = estado.contas.filter(function (c) { return !ehCartao(c); });
+    var origem = contaId || (semCartao[0] || estado.contas[0]).id;
+    var destino = estado.contas.filter(function (c) { return c.id !== origem; })[0];
+    return {
+      tipo: tipo, modo: modo || '', valor: 0, descricao: '', categoria: 'Outros', subcategoria: '',
+      data: dataPadrao(), contaId: origem, contaDestinoId: destino ? destino.id : '',
+      rep: { tipo: 'unica', total: 2, inicio: 1, freq: 'mensal', cadaDias: 2, valorE: 'total' }
+    };
+  }
+
+  var FREQUENCIAS = [
+    { valor: 'mensal', rotulo: 'Mensal' }, { valor: 'diario', rotulo: 'Diário' },
+    { valor: 'semanal', rotulo: 'Semanal' }, { valor: 'trimestral', rotulo: 'Trimestral' },
+    { valor: 'anual', rotulo: 'Anual' }, { valor: 'personalizar', rotulo: 'Personalizar' }
+  ];
+
+  // A data da n-ésima repetição. Mês curto segura o dia no último que
+  // existe: dia 31 todo mês vira 30 em novembro, não 1º de dezembro.
+  function somarPeriodo(data, freq, n, cadaDias) {
+    var p = data.split('-');
+    var meses = { mensal: 1, trimestral: 3, anual: 12 }[freq];
+    if (meses) {
+      var x = new Date(+p[0], +p[1] - 1 + meses * n, 1);
+      return comDia(x.getFullYear(), x.getMonth(), +p[2]);
+    }
+    var dias = freq === 'semanal' ? 7 : freq === 'diario' ? 1 : Math.max(1, cadaDias || 1);
+    return somaDias(data, dias * n);
+  }
+
+  // A fatura em que cai uma compra feita nesta data.
+  function faturaDaCompra(cart, data) {
+    var p = data.split('-');
+    var ano = +p[0], mes = +p[1] - 1;
+    var fecha = diaValido(inteiro(cart.fechamento));
+    if (fecha && +p[2] > fecha) {
+      var x = new Date(ano, mes + 1, 1);
+      ano = x.getFullYear(); mes = x.getMonth();
+    }
+    return faturaDoCartao(cart, ano, mes);
+  }
+
+  function contador(valor, minimo, maximo, aoMudar) {
+    var caixa = no('div', 'contador');
+    var num = no('span', 'contador-num num', String(valor));
+    function por(v) {
+      valor = Math.min(maximo, Math.max(minimo, v));
+      num.textContent = String(valor);
+      menos.disabled = valor <= minimo;
+      mais.disabled = valor >= maximo;
+      aoMudar(valor);
+    }
+    var menos = botao('contador-botao', '−', function () { por(valor - 1); });
+    var mais = botao('contador-botao', '+', function () { por(valor + 1); });
+    menos.setAttribute('aria-label', 'Diminuir');
+    mais.setAttribute('aria-label', 'Aumentar');
+    menos.disabled = valor <= minimo;
+    mais.disabled = valor >= maximo;
+    juntar(caixa, menos, num, mais);
+    return caixa;
+  }
+
   function abrirFolhaLancamento(id, rascunho) {
     var existente = id ? achar(estado.lancamentos, id) : null;
     if (id && !existente) return;
@@ -15800,6 +16311,7 @@
 
     var dados = rascunho || (existente ? {
       tipo: existente.tipo,
+      modo: existente.tipo === 'saida' && ehCartao(achar(estado.contas, existente.contaId)) ? 'cartao' : '',
       valor: existente.valor,
       descricao: existente.descricao,
       categoria: existente.categoria,
@@ -15807,39 +16319,43 @@
       data: existente.data,
       contaId: existente.contaId || estado.contas[0].id,
       contaDestinoId: existente.contaDestinoId || ''
-    } : {
-      tipo: 'saida',
-      valor: 0,
-      descricao: '',
-      categoria: 'Outros',
-      subcategoria: '',
-      data: dataPadrao(),
-      contaId: estado.contas[0].id,
-      contaDestinoId: estado.contas.length > 1 ? estado.contas[1].id : ''
-    });
+    } : novoRascunho('saida', null, ''));
+    if (!dados.rep) dados.rep = { tipo: 'unica', total: 2, inicio: 1, freq: 'mensal', cadaDias: 2, valorE: 'total' };
+    var noCartao = dados.modo === 'cartao';
+    // Repetir só faz sentido ao criar: editar mexe num lançamento só.
+    var repete = !existente && dados.tipo !== 'transferencia';
 
     var categoriaTocada = rascunho ? !!rascunho.categoriaTocada : !!existente;
 
-    abrirFolha(existente ? 'Editar lançamento' : 'Novo lançamento', function (folha) {
+    var titulo = existente ? 'Editar lançamento'
+      : noCartao ? 'Nova despesa no cartão'
+      : dados.tipo === 'entrada' ? 'Nova receita'
+      : dados.tipo === 'transferencia' ? 'Nova transferência' : 'Nova despesa';
+
+    abrirFolha(titulo, function (folha) {
       var forma = no('div', 'forma');
       forma.setAttribute('data-tipo', dados.tipo);
+      if (noCartao) forma.setAttribute('data-modo', 'cartao');
 
-      var tipos = segmentos([
-        { valor: 'saida', rotulo: 'Saída' },
-        { valor: 'entrada', rotulo: 'Entrada' },
-        { valor: 'transferencia', rotulo: 'Transferência' }
-      ], dados.tipo, function (v) {
-        if (v === dados.tipo) return;
-        var novo = coletar();
-        novo.tipo = v;
-        novo.categoriaTocada = categoriaTocada;
-        if (v !== 'transferencia' && categoriasDe(v).indexOf(novo.categoria) < 0) {
-          novo.categoria = 'Outros';
-          novo.subcategoria = '';
-        }
-        abrirFolhaLancamento(id, novo);
-      });
-      forma.appendChild(tipos);
+      // Na despesa de cartão o tipo já está dito: é gasto no cartão.
+      if (!noCartao) {
+        var tipos = segmentos([
+          { valor: 'saida', rotulo: 'Saída' },
+          { valor: 'entrada', rotulo: 'Entrada' },
+          { valor: 'transferencia', rotulo: 'Transferência' }
+        ], dados.tipo, function (v) {
+          if (v === dados.tipo) return;
+          var novo = coletar();
+          novo.tipo = v;
+          novo.categoriaTocada = categoriaTocada;
+          if (v !== 'transferencia' && categoriasDe(v).indexOf(novo.categoria) < 0) {
+            novo.categoria = 'Outros';
+            novo.subcategoria = '';
+          }
+          abrirFolhaLancamento(id, novo);
+        });
+        forma.appendChild(tipos);
+      }
 
       var campoValorEl = entradaValor(dados.valor, true);
       forma.appendChild(campo('Valor', campoValorEl));
@@ -15847,6 +16363,52 @@
       var campoDescricao = entradaTexto(dados.descricao,
         dados.tipo === 'transferencia' ? 'Ex.: Reserva para o mês' : 'Ex.: Abastecimento no posto');
       forma.appendChild(campo('Descrição', campoDescricao));
+
+      // ---- cartão e fatura ----
+      var campoConta, campoDestino = null, campoData, notaFatura = null, rotuloFatura = null;
+      if (noCartao) {
+        var cartoes = estado.contas.filter(ehCartao).map(function (c) { return { valor: c.id, rotulo: c.nome }; });
+        campoConta = entradaSelecao(cartoes, dados.contaId, 'Qual cartão?');
+        campoConta.aoMudar = function () { pintarFatura(); pintarPrevia(); };
+        forma.appendChild(campo('Cartão de crédito', campoConta));
+
+        campoData = entradaData(dados.data);
+        campoData.addEventListener('change', function () { pintarFatura(); pintarPrevia(); });
+
+        // A fatura anda de mês em mês levando a data da compra junto: é a
+        // data que decide a fatura, então as duas nunca se desencontram.
+        var linhaFatura = no('div', 'linha-fatura');
+        var antes = botao('fatura-seta', '‹', function () { andarFatura(-1); });
+        var depois = botao('fatura-seta', '›', function () { andarFatura(1); });
+        antes.setAttribute('aria-label', 'Fatura anterior');
+        depois.setAttribute('aria-label', 'Próxima fatura');
+        rotuloFatura = no('span', 'fatura-mes');
+        juntar(linhaFatura, antes, rotuloFatura, depois);
+        forma.appendChild(campo('Fatura', linhaFatura));
+        notaFatura = no('p', 'ajuda');
+        notaFatura.style.marginTop = '-6px';
+        forma.appendChild(notaFatura);
+        forma.appendChild(campo('Data da compra', campoData));
+      }
+
+      function andarFatura(passo) {
+        if (!ehData(campoData.value)) campoData.value = hojeTexto();
+        campoData.value = somarPeriodo(campoData.value, 'mensal', passo);
+        pintarFatura();
+        pintarPrevia();
+      }
+
+      function pintarFatura() {
+        if (!noCartao) return;
+        var cart = achar(estado.contas, campoConta.value);
+        if (!cart || !ehData(campoData.value)) { rotuloFatura.textContent = '—'; notaFatura.textContent = ''; return; }
+        var f = faturaDaCompra(cart, campoData.value);
+        rotuloFatura.textContent = f.rotulo.charAt(0).toUpperCase() + f.rotulo.slice(1);
+        notaFatura.textContent = !diaValido(inteiro(cart.fechamento))
+          ? 'Este cartão ainda não tem dia de fechamento: a fatura segue o mês da compra. Dá para acertar em Editar cartão.'
+          : f.vence ? 'Fecha em ' + dataBr(f.ate) + ' e vence em ' + dataBr(f.vence) + '. A conta que paga é escolhida quando a fatura for paga.'
+          : 'Fecha em ' + dataBr(f.ate) + '.';
+      }
 
       var caixaChips = null;
       var caixaSub = null;
@@ -15876,6 +16438,7 @@
         pintarSubs();
 
         campoDescricao.addEventListener('input', function () {
+          pintarPrevia();
           if (categoriaTocada) return;
           var sugerida = sugerirCategoria(campoDescricao.value, dados.tipo);
           if (!sugerida || sugerida.categoria === dados.categoria) return;
@@ -15910,21 +16473,119 @@
         }));
       }
 
-      var campoConta = entradaSelecao(opcoesDeConta(), dados.contaId);
-      forma.appendChild(campo(dados.tipo === 'transferencia' ? 'De qual conta' : 'Conta', campoConta));
+      if (!noCartao) {
+        campoConta = entradaSelecao(opcoesDeConta(), dados.contaId);
+        forma.appendChild(campo(dados.tipo === 'transferencia' ? 'De qual conta' : 'Conta', campoConta));
 
-      var campoDestino = null;
-      if (dados.tipo === 'transferencia') {
-        campoDestino = entradaSelecao(opcoesDeConta(), dados.contaDestinoId);
-        forma.appendChild(campo('Para qual conta', campoDestino));
+        if (dados.tipo === 'transferencia') {
+          campoDestino = entradaSelecao(opcoesDeConta(), dados.contaDestinoId);
+          forma.appendChild(campo('Para qual conta', campoDestino));
+        }
+
+        campoData = entradaData(dados.data);
+        campoData.addEventListener('change', pintarPrevia);
+        forma.appendChild(campo('Data', campoData));
       }
 
-      var campoData = entradaData(dados.data);
-      forma.appendChild(campo('Data', campoData));
+      // ---- repetição: única, parcelada ou fixa todo mês ----
+      var rep = dados.rep;
+      var caixaRep = null, previa = null;
+      if (repete) {
+        caixaRep = no('div', 'caixa-repeticao');
+        forma.appendChild(campo('Repetição', caixaRep));
+        previa = no('p', 'ajuda previa-repeticao');
+        forma.appendChild(previa);
+        pintarRepeticao();
+      }
+
+      function pintarRepeticao() {
+        caixaRep.textContent = '';
+        caixaRep.appendChild(segmentos([
+          { valor: 'unica', rotulo: 'Única' },
+          { valor: 'parcelada', rotulo: 'Parcelada' },
+          { valor: 'fixa', rotulo: 'Fixa mensal' }
+        ], rep.tipo, function (v) { rep.tipo = v; pintarRepeticao(); }));
+        if (rep.tipo === 'parcelada') {
+          var cfg = no('div', 'config-repeticao');
+          var linha = function (rotulo, controle) {
+            return juntar(no('div', 'config-linha'), no('span', 'config-rotulo', rotulo), controle);
+          };
+          cfg.appendChild(linha('Total de parcelas', contador(rep.total, 2, 120, function (v) {
+            rep.total = v;
+            if (rep.inicio > v) { rep.inicio = v; pintarRepeticao(); return; }
+            pintarPrevia();
+          })));
+          cfg.appendChild(linha('Começar na parcela', contador(rep.inicio, 1, rep.total, function (v) {
+            rep.inicio = v; pintarPrevia();
+          })));
+          var freq = entradaSelecao(FREQUENCIAS, rep.freq, 'Frequência');
+          freq.aoMudar = function (v) { rep.freq = v; pintarRepeticao(); };
+          cfg.appendChild(linha('Frequência', freq));
+          if (rep.freq === 'personalizar') {
+            cfg.appendChild(linha('Repetir a cada (dias)', contador(rep.cadaDias, 1, 365, function (v) {
+              rep.cadaDias = v; pintarPrevia();
+            })));
+          }
+          var valorE = segmentos([
+            { valor: 'total', rotulo: 'Valor é o total' },
+            { valor: 'parcela', rotulo: 'Valor é de cada parcela' }
+          ], rep.valorE, function (v) { rep.valorE = v; pintarPrevia(); });
+          valorE.classList.add('segmentos-pequenos');
+          cfg.appendChild(valorE);
+          caixaRep.appendChild(cfg);
+        }
+        pintarPrevia();
+      }
+
+      function pintarPrevia() {
+        if (!previa) return;
+        var lista = ocorrencias(true);
+        if (!lista || lista.length < 2) { previa.textContent = ''; previa.hidden = true; return; }
+        previa.hidden = false;
+        var cart = noCartao ? achar(estado.contas, campoConta.value) : null;
+        var onde = function (o) {
+          if (cart) {
+            var ch = faturaDaCompra(cart, o.data).chave.split('-');
+            return MESES[+ch[1] - 1].slice(0, 3) + '/' + ch[0];
+          }
+          return dataBr(o.data);
+        };
+        var iguais = lista.every(function (o) { return o.valor === lista[0].valor; });
+        previa.textContent = lista.length + ' lançamentos' +
+          (iguais ? ' de ' + emReais(lista[0].valor) : ', somando ' + emReais(lista.reduce(function (s, o) { return s + o.valor; }, 0))) +
+          (cart ? ', nas faturas de ' : ', de ') + onde(lista[0]) + ' a ' + onde(lista[lista.length - 1]) + '.' +
+          (rep.tipo === 'fixa' ? ' Lança os próximos 12 meses; o que sobrar dá para apagar de uma vez.' : '');
+      }
+
+      // Cada lançamento que o Salvar vai criar: a data, o valor e o "(2/5)".
+      function ocorrencias(soPrevia) {
+        var valor = digitosParaCentavos(campoValorEl.value);
+        var base = campoData.value;
+        if (!ehData(base) || (!valor && !soPrevia)) return null;
+        if (!repete || rep.tipo === 'unica') return [{ data: base, valor: valor, sufixo: '' }];
+        if (rep.tipo === 'fixa') {
+          var fixas = [];
+          for (var m = 0; m < 12; m++) fixas.push({ data: somarPeriodo(base, 'mensal', m), valor: valor, sufixo: '' });
+          return fixas;
+        }
+        var n = rep.total, k = Math.min(rep.inicio, n);
+        // Dividindo o total, o centavo que sobra fica na primeira parcela,
+        // como fazem as lojas: 100 em 3 é 33,34 + 33,33 + 33,33.
+        var cada = rep.valorE === 'total' ? Math.floor(valor / n) : valor;
+        var sobra = rep.valorE === 'total' ? valor - cada * n : 0;
+        var fora = [];
+        for (var i = k; i <= n; i++) {
+          fora.push({ data: somarPeriodo(base, rep.freq, i - k, rep.cadaDias),
+                      valor: cada + (i === 1 ? sobra : 0), sufixo: ' (' + i + '/' + n + ')' });
+        }
+        return fora;
+      }
 
       function coletar() {
         return {
           tipo: dados.tipo,
+          modo: dados.modo || '',
+          rep: rep,
           valor: digitosParaCentavos(campoValorEl.value),
           descricao: campoDescricao.value,
           categoria: dados.categoria,
@@ -15935,11 +16596,15 @@
         };
       }
 
+      pintarFatura();
+      pintarPrevia();
+
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         var valor = digitosParaCentavos(campoValorEl.value);
         if (valor <= 0) { mostrarErro(forma, 'Informe um valor maior que zero.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        if (noCartao && !achar(estado.contas, campoConta.value)) { mostrarErro(forma, 'Escolha o cartão.'); return; }
         if (dados.tipo === 'transferencia') {
           if (!campoDestino.value || campoDestino.value === campoConta.value) {
             mostrarErro(forma, 'Escolha duas contas diferentes para a transferência.');
@@ -15947,31 +16612,48 @@
           }
         }
 
-        var registro = {
-          id: existente ? existente.id : novoId(),
-          tipo: dados.tipo,
-          valor: valor,
-          descricao: campoDescricao.value.trim(),
-          categoria: dados.tipo === 'transferencia' ? 'Transferência' : dados.categoria,
-          subcategoria: dados.tipo === 'transferencia' ? '' : (dados.subcategoria || ''),
-          data: campoData.value,
-          contaId: campoConta.value,
-          contaDestinoId: dados.tipo === 'transferencia' ? campoDestino.value : '',
-          criadoEm: existente ? existente.criadoEm : Date.now()
-        };
+        var lista = ocorrencias(false);
+        if (lista.some(function (o) { return o.valor <= 0; })) {
+          mostrarErro(forma, 'O valor dividido pelas parcelas ficou em zero. Aumente o valor ou diminua as parcelas.');
+          return;
+        }
+        var grupo = lista.length > 1 ? novoId() : (existente ? existente.grupo || '' : '');
+        var descricao = campoDescricao.value.trim();
+        var agora = Date.now();
+        var registros = lista.map(function (o, i) {
+          var r = {
+            id: existente ? existente.id : novoId(),
+            tipo: dados.tipo,
+            valor: o.valor,
+            descricao: ((descricao || (o.sufixo ? dados.categoria : '')) + o.sufixo).slice(0, 80),
+            categoria: dados.tipo === 'transferencia' ? 'Transferência' : dados.categoria,
+            subcategoria: dados.tipo === 'transferencia' ? '' : (dados.subcategoria || ''),
+            data: o.data,
+            contaId: campoConta.value,
+            contaDestinoId: dados.tipo === 'transferencia' ? campoDestino.value : '',
+            criadoEm: existente ? existente.criadoEm : agora + i
+          };
+          if (grupo) r.grupo = grupo;
+          if (existente && existente.parTransferencia) r.parTransferencia = existente.parTransferencia;
+          if (existente && existente.dataDestino) r.dataDestino = existente.dataDestino;
+          if (existente && existente.importacaoId) r.importacaoId = existente.importacaoId;
+          return r;
+        });
 
         if (existente) {
-          estado.lancamentos = estado.lancamentos.map(function (l) { return l.id === existente.id ? registro : l; });
+          estado.lancamentos = estado.lancamentos.map(function (l) { return l.id === existente.id ? registros[0] : l; });
         } else {
-          estado.lancamentos.push(registro);
+          registros.forEach(function (r) { estado.lancamentos.push(r); });
         }
+        if (noCartao) ultimoCartaoUsado = campoConta.value;
 
         salvar();
-        var p = partes(registro.data);
+        var p = partes(registros[0].data);
         mesAtivo = { ano: p.ano, mes: p.mes };
         fecharFolha();
         desenhar();
-        avisar(existente ? 'Lançamento atualizado.' : 'Lançamento salvo.');
+        avisar(existente ? 'Lançamento atualizado.'
+          : registros.length > 1 ? registros.length + ' lançamentos salvos.' : 'Lançamento salvo.');
       }));
 
       // Perna de transferência juntada: dá para separar. Antes não dava,
@@ -16011,22 +16693,35 @@
                         (existente.descricao || existente.categoria || 'sem descrição') +
                         ', de ' + emReais(existente.valor)
           }, function () {
-            marcarExcluido('lancamentos', existente.id);
-            estado.lancamentos = estado.lancamentos.filter(function (l) { return l.id !== existente.id; });
-            // O pagamento que tinha gerado este lançamento guardava o id
-            // dele. Sem soltar aqui, sobrava um apontamento para o nada —
-            // a ficha do cliente dizia "lançado no caixa" para um
-            // lançamento que não existe mais, e o envio levava a
-            // referência morta para o servidor, que recusava tudo.
-            (estado.pagamentos || []).forEach(function (pg) {
-              if (pg.lancamentoId === existente.id) pg.lancamentoId = '';
-            });
-            salvar();
+            excluirLancamentos([existente.id]);
             fecharFolha();
             desenhar();
             avisar('Lançamento excluído.');
           });
         }));
+
+        // Parcelas e repetições andam juntas: dá para tirar todas de uma vez.
+        var doGrupo = existente.grupo ? estado.lancamentos.filter(function (l) { return l.grupo === existente.grupo; }) : [];
+        if (doGrupo.length > 1) {
+          var soma = doGrupo.reduce(function (s, l) { return s + l.valor; }, 0);
+          acoes.appendChild(botao('btn btn-perigo', 'Excluir todas as ' + doGrupo.length + ' do grupo', function () {
+            perguntar({
+              titulo: 'Excluir as ' + doGrupo.length + '?',
+              texto: 'Saem todas as parcelas ou repetições lançadas juntas com esta, somando ' + emReais(soma) + '. Não dá para desfazer.',
+              ok: 'Excluir todas', tom: 'perigo',
+              copiaAntes: 'antes de excluir ' + doGrupo.length + ' lançamentos de ' +
+                          (existente.descricao || existente.categoria || 'sem descrição')
+            }, function () {
+              excluirLancamentos(doGrupo.map(function (l) { return l.id; }));
+              fecharFolha();
+              desenhar();
+              avisar(doGrupo.length + ' lançamentos excluídos.');
+            });
+          }));
+          acoes.appendChild(no('p', 'ajuda', 'Este lançamento faz parte de um grupo de ' + doGrupo.length +
+            ' (parcelas ou repetições), de ' + dataBr(doGrupo.map(function (l) { return l.data; }).sort()[0]) +
+            ' a ' + dataBr(doGrupo.map(function (l) { return l.data; }).sort().pop()) + '.'));
+        }
       }
 
       forma.appendChild(acoes);
@@ -16034,6 +16729,19 @@
 
       setTimeout(function () { campoValorEl.focus(); }, 270);
     });
+  }
+
+  function excluirLancamentos(ids) {
+    var fora = {};
+    ids.forEach(function (i) { fora[i] = true; marcarExcluido('lancamentos', i); });
+    estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+    // O pagamento que tinha gerado este lançamento guardava o id dele. Sem
+    // soltar aqui, sobrava um apontamento para o nada, e o envio levava a
+    // referência morta para o servidor, que recusava tudo.
+    (estado.pagamentos || []).forEach(function (pg) {
+      if (fora[pg.lancamentoId]) pg.lancamentoId = '';
+    });
+    salvar();
   }
 
   function dataPadrao() {
@@ -18975,6 +19683,18 @@
 
     // Acha a primeira data da linha e devolve onde ela termina.
     function acharData(linha, anoPadrao) {
+      // "06 dez MERCADOLIVRE - Parcela 10/12": o C6 escreve o mês por extenso
+      // no começo da linha. Sem isto, o "10/12" da parcela virava a data e a
+      // descrição inteira ficava para trás.
+      var c = /^([^0-9a-zA-Z]{0,4})(\d{1,2})\s+(?:de\s+)?([a-zA-ZçÇ]{3,9})\.?(?:\s+(?:de\s+)?(\d{4}))?(?=[\s,;-]|$)/.exec(linha);
+      if (c) {
+        var nomeMes = semAcento(c[3]);
+        var numMes = MESES[nomeMes];
+        if (numMes && (c[4] || anoPadrao)) {
+          return { data: montarData(+c[2], numMes, c[4] ? +c[4] : anoPadrao),
+                   fim: c[0].length, ini: c[1].length, semAno: !c[4], dia: +c[2], mes: numMes };
+        }
+      }
       var m = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})/.exec(linha);
       if (m) return { data: montarData(+m[1], +m[2], +m[3]), fim: m.index + m[0].length, ini: m.index };
       m = /(\d{4})-(\d{2})-(\d{2})/.exec(linha);
@@ -18987,8 +19707,13 @@
       if (m && MESES[semAcento(m[2]).slice(0, 3)]) {
         return { data: montarData(+m[1], MESES[semAcento(m[2]).slice(0, 3)], +m[3]), fim: m.index + m[0].length, ini: m.index };
       }
-      // Sem ano: comum no C6, que põe o ano só no cabeçalho do mês.
-      m = /(^|\s)(\d{1,2})\/(\d{1,2})(?!\/|\d)/.exec(linha);
+      // Sem ano: comum no C6, que põe o ano só no cabeçalho do mês. O "3/6"
+      // de "Parcela 3/6" não é data: apago antes de procurar, mantendo as
+      // posições no lugar.
+      var semParcela = linha.replace(/parc(?:ela)?s?\.?\s*\d{1,2}\s*\/\s*\d{1,2}/gi, function (p) {
+        return p.replace(/./g, ' ');
+      });
+      m = /(^|\s)(\d{1,2})\/(\d{1,2})(?!\/|\d)/.exec(semParcela);
       if (m && anoPadrao) {
         return { data: montarData(+m[2], +m[3], anoPadrao), fim: m.index + m[0].length,
                  ini: m.index + m[1].length, semAno: true, dia: +m[2], mes: +m[3] };
@@ -19132,8 +19857,52 @@
       return pontos >= 2;
     }
 
+    // De qual mês é a fatura: o vencimento que o banco imprime. A data das
+    // compras não serve, porque parcela antiga vem com a data da compra.
+    function acharVencimento(texto, nomeArquivo, anoPadrao) {
+      var s = semAcento(texto || '').slice(0, 60000);
+      var m = /venc(?:imento|e)(?:\s+da\s+fatura)?(?:\s+em)?\s*:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})/.exec(s);
+      if (m) {
+        var d1 = montarData(+m[1], +m[2], +m[3]);
+        if (d1) return d1;
+      }
+      m = /venc(?:imento|e)(?:\s+da\s+fatura)?(?:\s+em)?\s*:?\s*(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/.exec(s);
+      if (m && MESES[m[2]]) {
+        var ano = m[3] ? +m[3] : 0;
+        if (!ano) {
+          var a = /venc[^\n]{0,40}?\d{1,2}\/\d{1,2}\/(\d{4})/.exec(s) ||
+                  /(?:^|\D)(\d{4})-\d{2}-\d{2}/.exec(semAcento(nomeArquivo || '')) ||
+                  /\d{1,2}\/\d{1,2}\/(20\d{2})/.exec(s);
+          ano = a ? +a[1] : (anoPadrao || new Date().getFullYear());
+        }
+        var d2 = montarData(+m[1], MESES[m[2]], ano);
+        if (d2) return d2;
+      }
+      m = /(20\d{2})[-_.](\d{2})[-_.](\d{2})/.exec(nomeArquivo || '');
+      if (m) {
+        var d3 = montarData(+m[3], +m[2], +m[1]);
+        if (d3) return d3;
+      }
+      return '';
+    }
+
+    // Numa fatura nada foi comprado depois do vencimento. Data sem ano que
+    // passou dele é do ano anterior: "06 dez" numa fatura de outubro.
+    function anoCertoNaFatura(itens, vencimento) {
+      if (!vencimento) return itens;
+      itens.forEach(function (it) {
+        while (it.data && it.data > vencimento) {
+          var p = it.data.split('-');
+          it.data = (+p[0] - 1) + '-' + p[1] + '-' + p[2];
+        }
+      });
+      return itens;
+    }
+
     // Numa fatura, isso é crédito: abate, não soma.
-    var CREDITO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura)|estorno|credito de|devolucao|cashback|desconto|ajuste a credito|anuidade diferenciada|reembolso)/;
+    var CREDITO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura|estorno|credito de|devolucao|cashback|desconto|ajuste a credito|anuidade diferenciada|reembolso)/;
+    // O pagamento da fatura anterior já saiu da conta corrente.
+    var PAGAMENTO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura)/;
 
     // Extrato que agrupa por dia (Inter, entre outros) põe a data numa linha
     // sozinha e deixa os lançamentos do dia embaixo, sem data nenhuma.
@@ -19371,6 +20140,7 @@
       itens.forEach(function (it) {
         // Numa fatura não existe coluna "Tipo": o que eu tirei era descrição.
         if (it.descricaoCheia) it.descricao = it.descricaoCheia.slice(0, 80);
+        if (PAGAMENTO_NA_FATURA.test(semAcento(it.descricao))) { it.credito = true; it.pagamentoDeFatura = true; }
         if (it.credito || !it.negativoNoTexto) {
           it.tipo = it.credito ? 'entrada' : 'saida';
           var d = categoriaDe(it.descricao, it.tipo);
@@ -19468,11 +20238,12 @@
 
       var cheio = linhas.join('\n');
       var fatura = pareceFatura(cheio, nomeArquivo);
-      if (fatura) ajeitarFatura(itens);
+      var vencimento = fatura ? acharVencimento(cheio, nomeArquivo, ano) : '';
+      if (fatura) { ajeitarFatura(itens); anoCertoNaFatura(itens, vencimento); }
       // O saldo que o próprio banco imprime na última linha é a melhor prova
       // de que a leitura saiu certa: dá para comparar com a conta do app.
       return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
-               saldoFinal: fatura ? null : saldoFinal };
+               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento };
     }
 
     function arrumarVirada(itens) {
@@ -19514,7 +20285,8 @@
       });
       var fatura = pareceFatura(texto, nomeArquivo);
       if (fatura) ajeitarFatura(itens);
-      return { itens: itens, fatura: fatura, banco: acharBanco(texto, nomeArquivo) };
+      return { itens: itens, fatura: fatura, banco: acharBanco(texto, nomeArquivo),
+               vencimento: fatura ? acharVencimento(texto, nomeArquivo) : '' };
     }
 
     // ---------- CSV ----------
@@ -19615,7 +20387,10 @@
       });
 
       arrumarVirada(itens);
-      return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo) };
+      var vencimento = fatura ? acharVencimento(cheio, nomeArquivo) : '';
+      if (fatura) anoCertoNaFatura(itens, vencimento);
+      return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
+               vencimento: vencimento };
     }
 
     // Divide respeitando aspas: sem isso um valor "1.234,56" vira duas colunas.
@@ -20351,8 +21126,12 @@
   // O motivo do primeiro que bater, ou '' se nenhum bate.
   function motivoDeJaTer(item, contaId) {
     var motivo = '';
+    // Item de fatura entra com a data da fatura, não a da compra: quem já
+    // foi importado está guardado com ela.
+    var naFatura = item.dataFatura && item.dataFatura !== item.data
+      ? { valor: item.valor, tipo: item.tipo, data: item.dataFatura } : null;
     estado.lancamentos.some(function (l) {
-      var m = porQueJaTem(l, item, contaId);
+      var m = porQueJaTem(l, item, contaId) || (naFatura && porQueJaTem(l, naFatura, contaId));
       if (m) { motivo = m; return true; }
       return false;
     });
@@ -20396,6 +21175,7 @@
       bytes: lido.bytes || null,
       nomeArquivo: lido.nomeArquivo || nomeDoArquivo(arquivo),
       fatura: !!lido.fatura,
+      vencimento: lido.vencimento || '',
       banco: lido.banco || null,
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
@@ -20630,12 +21410,16 @@
     var folhaEl = $('folha');
     var rolagem = folhaEl.classList.contains('aberta') ? folhaEl.scrollTop : 0;
 
+    // Fatura: tudo entra na fatura do vencimento impresso nela.
+    var carimbo = dados.fatura ? dataNaFatura(achar(estado.contas, contaId), dados.vencimento) : '';
     itens.forEach(function (it) {
-      if (it.repetido === undefined || it.contaConferida !== contaId) {
+      it.dataFatura = carimbo;
+      if (it.repetido === undefined || it.contaConferida !== contaId || it.carimboConferido !== carimbo) {
         it.motivoRepetido = motivoDeJaTer(it, contaId);
         it.repetido = !!it.motivoRepetido;
         it.contaConferida = contaId;
-        it.usar = !it.repetido;
+        it.carimboConferido = carimbo;
+        it.usar = !it.repetido && !(dados.fatura && it.pagamentoDeFatura);
       }
     });
 
@@ -20681,6 +21465,32 @@
       };
       forma.appendChild(campo(dados.fatura ? 'Cartão' : 'Conta', seletor));
 
+      // O mês vem do vencimento que o banco imprimiu. Dá para corrigir aqui.
+      if (dados.fatura) {
+        var venc = entradaData(dados.vencimento);
+        venc.value = dados.vencimento || '';
+        venc.addEventListener('change', function () {
+          dados.vencimento = ehData(venc.value) ? venc.value : '';
+          montarFolhaExtrato();
+        });
+        forma.appendChild(campo('Vencimento da fatura', venc));
+        var cartaoDaFatura = achar(estado.contas, contaId);
+        var fDestino = null;
+        if (carimbo && cartaoDaFatura) {
+          var pc = carimbo.split('-');
+          fDestino = faturaDoCartao(cartaoDaFatura, +pc[0], +pc[1] - 1);
+        }
+        var notaVenc = no('p', 'ajuda');
+        notaVenc.style.marginTop = '-6px';
+        notaVenc.textContent = fDestino
+          ? 'Tudo entra na fatura de ' + fDestino.rotulo +
+            (fDestino.vence ? ', que vence em ' + dataBr(fDestino.vence) : '') + '.'
+          : dados.vencimento
+            ? 'Escolha o cartão para eu saber em qual fatura lançar.'
+            : 'Não achei o vencimento no arquivo. Diga qual é, para tudo cair na mesma fatura.';
+        forma.appendChild(notaVenc);
+      }
+
       var resumo = no('div', 'resumo-extrato');
       forma.appendChild(resumo);
 
@@ -20725,6 +21535,12 @@
         montarFolhaExtrato();
       }));
       forma.insertBefore(atalhos, lista);
+
+      var pagamentosDeFatura = dados.fatura
+        ? itens.filter(function (i) { return i.pagamentoDeFatura && !i.usar; }).length : 0;
+      if (pagamentosDeFatura) {
+        forma.insertBefore(no('p', 'ajuda', 'Deixei desmarcado o pagamento da fatura anterior: ele já sai da sua conta corrente. Marque se quiser lançar no cartão também.'), resumo);
+      }
 
       var repetidos = itens.filter(function (i) { return i.repetido; }).length;
       if (repetidos) {
@@ -20938,12 +21754,19 @@
     }, function () {
       var agora = Date.now();
       var importacaoId = novoId();
+      // Fatura: todos na fatura do vencimento. Sem vencimento nem cartão
+      // configurado, o mais recente ainda junta tudo num mês só.
+      var dataFatura = '';
+      if (dados.fatura) {
+        dataFatura = dataNaFatura(achar(estado.contas, contaId), dados.vencimento);
+        if (!dataFatura) escolhidos.forEach(function (it) { if (it.data > dataFatura) dataFatura = it.data; });
+      }
       escolhidos.forEach(function (it, i) {
         estado.lancamentos.push({
           id: novoId(), tipo: it.tipo, valor: it.valor,
           descricao: it.descricao, categoria: it.categoria,
           subcategoria: it.subcategoria || '',
-          data: it.data, contaId: contaId, contaDestinoId: '',
+          data: dataFatura || it.data, contaId: contaId, contaDestinoId: '',
           importacaoId: importacaoId,
           criadoEm: agora + i
         });
@@ -20955,7 +21778,7 @@
 
       // Guardo de onde veio cada leva. Se o extrato entrou errado, dá para
       // tirar tudo de uma vez em vez de apagar um por um.
-      var quando = escolhidos.map(function (i) { return i.data; }).sort();
+      var quando = escolhidos.map(function (i) { return dataFatura || i.data; }).sort();
       if (!estado.importacoes) estado.importacoes = [];
       estado.importacoes.push({
         id: importacaoId, contaId: contaId,
@@ -20970,8 +21793,13 @@
         ((dados.arquivo && dados.arquivo.name) || (dados.banco && dados.banco.nome) || 'um extrato'));
       // O extrato quase sempre é de outro mês. Sem levar a tela para a data
       // do que entrou, a pessoa importa e não vê nada na frente dela.
-      var datas = escolhidos.map(function (i) { return i.data; }).sort();
-      periodo = { tipo: 'escolhido', de: datas[0], ate: datas[datas.length - 1] };
+      // Fatura entrou toda num dia só: mostra o mês dela inteiro.
+      if (dataFatura) {
+        mesAtivo = { ano: +dataFatura.slice(0, 4), mes: +dataFatura.slice(5, 7) - 1 };
+        periodo = { tipo: 'mes', de: '', ate: '' };
+      } else {
+        periodo = { tipo: 'escolhido', de: quando[0], ate: quando[quando.length - 1] };
+      }
 
       var lote = dados.lote;
       var saldoDoExtrato = dados.saldoFinal;
@@ -22123,8 +22951,9 @@
   });
 
   $('fab').addEventListener('click', function () {
-    if (noEmpreendedor()) abrirFolhaCliente(null);
-    else abrirFolhaLancamento(null);
+    if (noEmpreendedor()) { abrirFolhaCliente(null); return; }
+    if ($('menuNovo') && $('menuNovo').classList.contains('aberto')) { escolherNoMenuNovo(null); return; }
+    abrirMenuNovo();
   });
   $('cortina').addEventListener('click', fecharFolha);
   $('relFechar').addEventListener('click', fecharRelatorio);
