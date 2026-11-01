@@ -13,6 +13,7 @@
 // E 409 não derruba aquele registro: derruba o envio inteiro. Nada mais
 // sobe, por tentativa nenhuma, até alguém achar a referência.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes, irParaVisaoGeral } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
@@ -84,7 +85,7 @@ await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await p
 await folha().locator('input.entrada[type=text]').first().fill('Banco Inter');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1300);
 
-await page.click('#telaInicio .aba-topo button:has-text("Empreendedor")').catch(() => {});
+await irParaClientes(page);
 await page.waitForTimeout(1000);
 if (!(await page.locator('#telaInicio .cartao:has-text("Clientes")').count())) {
   const abas = page.locator('#telaInicio button', { hasText: 'Empreendedor' });
@@ -169,7 +170,7 @@ conferir('4. o pagamento continua lá, sem o apontamento morto',
 await irParaInicio();
 // Volto para a Visão geral: no Empreendedor o botão + abre cliente novo,
 // não lançamento.
-await page.click('#telaInicio button:has-text("Visão geral")').catch(() => {});
+await irParaVisaoGeral(page);
 await page.waitForTimeout(1000);
 await tocarFab(page); await page.waitForTimeout(1200);
 if (await folha().locator('.valor-grande').count()) {

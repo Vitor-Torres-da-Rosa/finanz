@@ -7,6 +7,7 @@
 // porta. Este teste é essa porta.
 import fs from 'node:fs';
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
@@ -45,7 +46,7 @@ conferir('1. os dados entraram com o servidor de pé',
 
 // O Empreendedor também: cliente, registro e parcelas. É a parte que mais
 // assusta perder, e tem de sair no backup junto com o resto.
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1400);
+await irParaClientes(page); await page.waitForTimeout(1400);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")');
 await page.waitForTimeout(1200);
 await page.locator('#folha input.entrada').nth(0).fill('Gustavo do teste');

@@ -1,4 +1,5 @@
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -18,7 +19,7 @@ await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitF
 await page.click('#telaInicio .cartao-acao:has-text("+ Nova")'); await page.waitForTimeout(500);
 await folha().locator('input.entrada[type=text]').first().fill('Carteira');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(900);
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(600);
+await irParaClientes(page); await page.waitForTimeout(600);
 await tocarFab(page); await page.waitForTimeout(700);
 await folha().locator('input.entrada[type=text]').nth(0).fill('Cliente A');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(900);

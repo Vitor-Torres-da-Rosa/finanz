@@ -271,6 +271,19 @@ create table if not exists public.parcelas (
   excluido_em   timestamptz
 );
 
+-- Uber e Corridas, Distribuição de Doces: uma tabela só. Cada linha diz
+-- de que lista é (tipo) e leva os campos em `dados`.
+create table if not exists public.empreendedor_registros (
+  id            text        primary key,
+  user_id       uuid        not null default auth.uid() references auth.users (id) on delete cascade,
+  tipo          text        not null check (length(tipo) between 1 and 40),
+  dados         jsonb       not null default '{}'
+                            check (jsonb_typeof(dados) = 'object' and octet_length(dados::text) <= 20000),
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  excluido_em   timestamptz
+);
+
 -- ------------------------------------------------------------
 -- Índices
 -- ------------------------------------------------------------
@@ -287,6 +300,7 @@ create index if not exists idx_servicos_user          on public.servicos (user_i
 create index if not exists idx_pagamentos_user        on public.pagamentos (user_id, cliente_id);
 create index if not exists idx_parcelas_user         on public.parcelas (user_id, cliente_id, vencimento);
 create index if not exists idx_pagamentos_parcela     on public.pagamentos (user_id, parcela_id);
+create index if not exists idx_empreendedor_registros_user on public.empreendedor_registros (user_id, atualizado_em);
 
 -- ------------------------------------------------------------
 -- Row Level Security
@@ -300,7 +314,8 @@ declare
   t text;
   tabelas text[] := array[
     'contas', 'lancamentos', 'ativos', 'ativo_historico', 'metas',
-    'orcamentos', 'categorias_extras', 'subcategorias_extras', 'clientes', 'servicos', 'pagamentos', 'parcelas'
+    'orcamentos', 'categorias_extras', 'subcategorias_extras', 'clientes', 'servicos', 'pagamentos', 'parcelas',
+    'empreendedor_registros'
   ];
 begin
   -- Perfil: a chave é a própria id do usuário.
@@ -338,7 +353,7 @@ declare
   t text;
   tabelas text[] := array[
     'perfis', 'contas', 'lancamentos', 'ativos', 'ativo_historico', 'metas',
-    'orcamentos', 'clientes', 'servicos', 'pagamentos', 'parcelas'
+    'orcamentos', 'clientes', 'servicos', 'pagamentos', 'parcelas', 'empreendedor_registros'
   ];
 begin
   foreach t in array tabelas loop
@@ -561,6 +576,7 @@ as $$
     union all select max(atualizado_em) from public.parcelas
     union all select max(atualizado_em) from public.metas
     union all select max(atualizado_em) from public.orcamentos
+    union all select max(atualizado_em) from public.empreendedor_registros
   ) t;
 $$;
 

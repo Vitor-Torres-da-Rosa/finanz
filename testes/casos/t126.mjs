@@ -107,12 +107,27 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
 await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
 await page.click('#folha .linha:has-text("Cópia feita por você")'); await page.waitForTimeout(1200);
+// A espera pode durar menos do que um olhar com hora marcada: quando a
+// cópia é pequena, a volta termina antes de 400 ms. Um observador ligado
+// antes do toque anota a espera no instante em que ela aparece.
+await page.evaluate(() => {
+  window.__espera = null;
+  const olhar = () => {
+    if (window.__espera || !document.querySelector('#dialogoAcoes .dialogo-espera')) return;
+    window.__espera = {
+      titulo: (document.getElementById('dialogoTitulo') || {}).textContent || '',
+      rodinha: true,
+      botoes: document.querySelectorAll('#dialogoAcoes button').length
+    };
+  };
+  new MutationObserver(olhar).observe(document.body, { childList: true, subtree: true, characterData: true });
+});
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(400);
-const esperando = await page.evaluate(() => ({
+const esperando = await page.evaluate(() => window.__espera || {
   titulo: (document.getElementById('dialogoTitulo') || {}).textContent || '',
   rodinha: !!document.querySelector('#dialogoAcoes .dialogo-espera'),
   botoes: document.querySelectorAll('#dialogoAcoes button').length
-}));
+});
 conferir('3. enquanto volta, mostra a espera em vez de deixar o app parado',
   /Voltando a esta cópia/.test(esperando.titulo) && esperando.rodinha && esperando.botoes === 0,
   JSON.stringify(esperando));

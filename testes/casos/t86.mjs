@@ -7,6 +7,7 @@
 //   2x       R$   900,00        2 de R$ 450,00
 //   3x       R$ 1.000,00        3 de R$ 333,34 (a última, menor, R$ 333,32)
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import fs from 'node:fs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, acceptDownloads:true });
@@ -32,7 +33,7 @@ const conferir = (rotulo, ok, achado) => {
 const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
 
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")'); await page.waitForTimeout(1000);
 await page.locator('#folha input.entrada').nth(0).fill('Gustavo Appelt');
 await page.locator('#folha input[type=tel]').first().fill('47984213185');

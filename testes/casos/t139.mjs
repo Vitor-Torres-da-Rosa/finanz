@@ -5,6 +5,7 @@
 // 20 de novembro, ela entra em novembro, mais todas as outras que vencem
 // dentro do mês. O já recebido no mês soma junto.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -61,7 +62,7 @@ await page.evaluate(() => new Promise(res => {
 }));
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1000);
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 
 const mes = MESES[new Date().getMonth()];
 const bloco = limpo(await page.textContent('#telaInicio .previsto-mes').catch(() => ''));

@@ -6,6 +6,7 @@
 // cartão escolhe o cartão e a fatura (‹ dezembro ›), e dá para parcelar
 // (total, começar na parcela, frequência, a cada N dias) ou fixar todo mês.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes, irParaVisaoGeral } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -94,13 +95,13 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1000);
 
 // ---- no Empreendedor o "+" continua sendo cliente novo ----
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(800);
+await irParaClientes(page); await page.waitForTimeout(800);
 await page.click('#fab'); await page.waitForTimeout(800);
 conferir('3. no Empreendedor não tem menu: abre o cliente novo',
   !(await page.locator('#menuNovo.aberto').count()) && /cliente/i.test(await page.textContent('#folhaTitulo')),
   await page.textContent('#folhaTitulo'));
 await fecharTudo();
-await page.click('#telaInicio .segmentos button:has-text("Visão geral")'); await page.waitForTimeout(800);
+await irParaVisaoGeral(page); await page.waitForTimeout(800);
 
 // ---- Receita pelo menu ----
 await menu('entrada');

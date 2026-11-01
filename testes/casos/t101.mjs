@@ -16,6 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -82,7 +83,7 @@ await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.wa
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1600);
+await irParaClientes(page); await page.waitForTimeout(1600);
 const tela = limpo(await page.textContent('#telaInicio'));
 console.log('clientes:', tela.slice(tela.indexOf('Clientes'), tela.indexOf('Clientes') + 220));
 
@@ -125,7 +126,7 @@ conferir('6. e oferece tirar a data do cadastro',
 await page.screenshot({ path: dir+'/l02-de-onde-veio.png', fullPage: true });
 
 await page.click('#folha button:has-text("Tirar essa data do cadastro")'); await page.waitForTimeout(2500);
-await page.click('#telaInicio button:has-text("Empreendedor")').catch(() => {});
+await irParaClientes(page);
 await page.waitForTimeout(1400);
 const hermDepois = await linhaDoCliente('Hermes Klagenberg');
 conferir('7. tirada a data, o Hermes sai do vermelho',

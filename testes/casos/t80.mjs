@@ -1,5 +1,6 @@
 // Endereço do cliente com botão de rota, e orçamento do começo ao PDF.
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import fs from 'fs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, acceptDownloads:true });
@@ -29,7 +30,7 @@ console.log('1. emitente salvo');
 
 // cliente com endereço
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")'); await page.waitForTimeout(1000);
 const campos = page.locator('#folha input.entrada');
 await campos.nth(0).fill('Gustavo Appelt');

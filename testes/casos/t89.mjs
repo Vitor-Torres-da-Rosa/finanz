@@ -4,6 +4,7 @@
 // Dois na fila         -> fica vazio, quem escolhe é a pessoa.
 // Um já parcelado      -> sobra um, e esse vem apontado.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -32,7 +33,7 @@ const referente = () => page.textContent('#folha .campo:has-text("Referente a") 
 
 // cliente
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")'); await page.waitForTimeout(1000);
 await page.locator('#folha input.entrada').nth(0).fill('Fabi do juliano');
 await page.locator('#folha input[type=tel]').first().fill('51994923028');

@@ -4,6 +4,7 @@
 // Registro de R$ 1.000,00 com R$ 100,00 de acréscimo por parcela:
 //   1x R$ 1.000,00 · 2x R$ 1.100,00 · 3x R$ 1.200,00 · 4x R$ 1.300,00
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -43,7 +44,7 @@ const folhaFechou = () => page.waitForFunction(
 
 // cliente e um registro de R$ 1.000,00
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")'); await page.waitForTimeout(1000);
 await page.locator('#folha input.entrada').nth(0).fill('Fabi do juliano');
 await page.locator('#folha input[type=tel]').first().fill('51994923028');

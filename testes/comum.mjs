@@ -36,3 +36,28 @@ export async function tocarFab(page, opcao = 'saida') {
   await item.click();
   await page.locator('#folha.aberta').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
 }
+
+// O Empreendedor virou três módulos. Os clientes (o Empreendedor de antes)
+// moram em Serviços e Vendas › Clientes. Funciona de onde estiver: Visão
+// geral, entrada do Empreendedor ou dentro de outro módulo.
+export async function irParaClientes(page) {
+  const naTela = async (sel) => (await page.locator(sel).count()) > 0;
+  if (await naTela('#telaInicio .modulo-cabecalho') &&
+      !(await naTela('#telaInicio .abas-modulo button:has-text("Clientes")'))) {
+    await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
+  }
+  if (!(await naTela('#telaInicio .modulo-cabecalho'))) {
+    const seg = page.locator('#telaInicio .segmentos button:has-text("Empreendedor")');
+    if (await seg.count()) { await seg.first().click(); await page.waitForTimeout(800); }
+    await page.click('#telaInicio [data-modulo="servicos"]'); await page.waitForTimeout(800);
+  }
+  await page.click('#telaInicio .abas-modulo button:has-text("Clientes")'); await page.waitForTimeout(700);
+}
+
+export async function irParaVisaoGeral(page) {
+  for (let i = 0; i < 3; i++) {
+    if (!(await page.locator('#telaInicio .modulo-cabecalho').count())) break;
+    await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
+  }
+  await page.click('#telaInicio .segmentos button:has-text("Visão geral")'); await page.waitForTimeout(800);
+}

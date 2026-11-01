@@ -1,5 +1,6 @@
 // Orçamento com tipo, outros valores, formas de pagamento e parcelado direto.
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import fs from 'fs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, acceptDownloads:true });
@@ -19,7 +20,7 @@ await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeou
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
 
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")'); await page.waitForTimeout(1000);
 await page.locator('#folha input.entrada').nth(0).fill('Daniela Torres');
 await page.locator('#folha input[type=tel]').first().fill('51985010000');

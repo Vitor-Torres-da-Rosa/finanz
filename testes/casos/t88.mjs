@@ -6,6 +6,7 @@
 //  · recado no dia do vencimento e quando o cliente está acabando de pagar
 //  · meta não fala em percentual negativo e mostra os últimos meses
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes, irParaVisaoGeral } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -37,7 +38,7 @@ const digitar = async (el, texto) => {
 
 // ---------- 1) os três campos do parcelamento ----------
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1200);
+await irParaClientes(page); await page.waitForTimeout(1200);
 await page.click('#telaInicio .fab, #telaInicio button:has-text("Cadastrar primeiro cliente")'); await page.waitForTimeout(1000);
 await page.locator('#folha input.entrada').nth(0).fill('Fabi do juliano');
 await page.locator('#folha input[type=tel]').first().fill('51994923028');
@@ -138,7 +139,7 @@ await page.evaluate(() => new Promise(res => {
 }));
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
-await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1500);
+await irParaClientes(page); await page.waitForTimeout(1500);
 // Os recados moram atrás do "i" do cartão de resumo, não soltos na tela.
 conferir('9a. nenhum recado solto na tela principal',
   (await page.$$('#telaInicio .cartao.recado')).length === 0);
@@ -175,7 +176,7 @@ await page.evaluate(() => new Promise(res => {
 }));
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(4000);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1500);
-await page.click('#telaInicio button:has-text("Visão geral")'); await page.waitForTimeout(2500);
+await irParaVisaoGeral(page); await page.waitForTimeout(2500);
 const t0 = Date.now();
 await page.click('#telaInicio .linha-alvo:has-text("Banco Inter")');
 await page.locator('#folha .dia-cabecalho').first().waitFor({ timeout: 20000 });

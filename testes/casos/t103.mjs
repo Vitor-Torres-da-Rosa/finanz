@@ -9,6 +9,7 @@
 // manter o registro no Empreendedor, que é onde o pagamento sempre foi o
 // registro de verdade.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
@@ -77,7 +78,7 @@ await folha().locator('input.entrada[type=text]').first().fill('C6 Bank');
 await page.click('#folha .btn-ouro'); await folhaFechou(); await page.waitForTimeout(900);
 
 // cliente + registro
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
+await irParaClientes(page); await page.waitForTimeout(900);
 await tocarFab(page); await page.waitForTimeout(800);
 await folha().locator('input.entrada[type=text]').nth(0).fill('Fabi do juliano');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1000);
@@ -114,7 +115,7 @@ conferir('3. marcada, a entrada aparece no extrato',
 
 // --- volta no pagamento e DESMARCA ---
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
+await irParaClientes(page); await page.waitForTimeout(900);
 await page.click('#telaInicio .linha-alvo:has-text("Fabi do juliano")'); await page.waitForTimeout(1100);
 await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
 await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(1200);
@@ -136,7 +137,7 @@ await page.screenshot({ path: dir+'/n01-saiu-do-extrato.png', fullPage: true });
 
 // --- mas o pagamento continua no Empreendedor ---
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
+await irParaClientes(page); await page.waitForTimeout(900);
 await page.click('#telaInicio .linha-alvo:has-text("Fabi do juliano")'); await page.waitForTimeout(1100);
 await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
 const ficha = limpo(await page.textContent('#folha'));

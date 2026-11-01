@@ -1,4 +1,5 @@
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -20,7 +21,7 @@ await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeou
 await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(400);
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
 
-await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(500);
+await irParaClientes(page); await page.waitForTimeout(500);
 await tocarFab(page); await page.waitForTimeout(700);
 console.log('1. botões da folha:', await page.$$eval('#folha button', ns => ns.map(b=>b.textContent.trim()).filter(t=>t)));
 console.log('   dica:', await page.textContent('#folha .telefone-marca'));
