@@ -9,6 +9,7 @@
 // O caminho existia (backup, sair, restaurar), mas ninguém adivinha isso
 // olhando uma tela zerada. Este teste é o convite que faltava.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -44,7 +45,7 @@ await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeou
 await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1800);
 await criarConta('Vitor', 't100a-' + selo + '@exemplo.com');
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 await page.locator('#folha input[inputmode=numeric]').first().fill('54321');
 await page.locator('#folha input.entrada[type=text]').first().fill('Tesouro guardado');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(2500);

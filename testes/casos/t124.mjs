@@ -15,6 +15,7 @@
 // conta, a transferência sobrevive porque ela mora na outra ponta, e o
 // download traz um estado com a transferência e sem a conta.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -83,7 +84,7 @@ await novaConta('C6 Bank');
 
 // Uma transferência de uma conta para a outra.
 await irParaInicio();
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 await page.click('#folha button:has-text("Transferência")'); await page.waitForTimeout(900);
 await porDinheiro(folha().locator('.valor-grande'), '50000');
 await folha().locator('input.entrada[type=text]').first().fill('Passando para o C6');
@@ -163,7 +164,7 @@ for (let i = 0; i < 6; i++) {
 
 // E agora a pessoa mexe em alguma coisa, o que obriga um envio.
 await irParaInicio();
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 await porDinheiro(folha().locator('.valor-grande'), '18000');
 await folha().locator('input.entrada[type=text]').first().fill('Luz');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(10000);

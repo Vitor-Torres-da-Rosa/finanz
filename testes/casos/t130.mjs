@@ -14,6 +14,7 @@
 // Aqui: backup com 1 lançamento, servidor com 1101, restaura, sincroniza.
 // Tem que sobrar 1 no servidor. Antes sobravam 101.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 
 const SEMEADOS = 1100;
 
@@ -102,7 +103,7 @@ await irParaInicio();
 await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await page.waitForTimeout(900);
 await folha().locator('input.entrada[type=text]').first().fill('Banco Inter');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1300);
-await page.click('#fab'); await page.waitForTimeout(900);
+await tocarFab(page); await page.waitForTimeout(900);
 await porDinheiro(folha().locator('.valor-grande'), '32000');
 await folha().locator('input.entrada[type=text]').first().fill('Aluguel');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1600);

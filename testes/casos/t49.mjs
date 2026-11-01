@@ -1,11 +1,12 @@
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, acceptDownloads:true });
 const page = await ctx.newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
 const folha = () => page.locator('#folha');
 const lanc = async (desc, val) => {
-  await page.click('#fab'); await page.waitForTimeout(700);
+  await tocarFab(page); await page.waitForTimeout(700);
   await folha().locator('input[inputmode=numeric]').first().fill(val);
   await folha().locator('input.entrada[type=text]').first().fill(desc);
   await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1100);

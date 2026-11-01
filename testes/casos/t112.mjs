@@ -10,6 +10,7 @@
 // o app cria a conta do banco, lança o extrato, e a conta sumia. Mas o
 // defeito não é da importação; é de qualquer coisa criada na hora errada.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -58,7 +59,7 @@ await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeou
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
 
 await novaConta('Banco Inter');
-await page.click('#fab'); await page.waitForTimeout(900);
+await tocarFab(page); await page.waitForTimeout(900);
 await porDinheiro(folha().locator('.valor-grande'), '32000');
 await folha().locator('input.entrada[type=text]').first().fill('Aluguel');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1600);
@@ -78,7 +79,7 @@ await page.route('**/rest/v1/**', async (rota) => {
 });
 
 // Uma edição qualquer agenda a sincronização (4s depois de salvar).
-await page.click('#fab'); await page.waitForTimeout(900);
+await tocarFab(page); await page.waitForTimeout(900);
 await porDinheiro(folha().locator('.valor-grande'), '1000');
 await folha().locator('input.entrada[type=text]').first().fill('Café');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(5500);

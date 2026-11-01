@@ -25,3 +25,14 @@ async function acharChromium() {
 }
 
 export const chromium = await acharChromium();
+
+// O "+" abre um menu (Transferência, Receita, Despesa, Despesa cartão)
+// fora do Empreendedor. No Empreendedor ele continua abrindo o cliente.
+// `opcao` é o data-opcao do item: 'saida', 'entrada', 'transferencia', 'cartao'.
+export async function tocarFab(page, opcao = 'saida') {
+  await page.click('#fab');
+  const item = page.locator('#menuNovo.aberto button[data-opcao="' + opcao + '"]');
+  try { await item.waitFor({ state: 'visible', timeout: 700 }); } catch (e) { return; }
+  await item.click();
+  await page.locator('#folha.aberta').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+}

@@ -11,6 +11,7 @@
 // A segunda parte é a rede que não depende deste aparelho: entrando numa
 // conta vazia, se a nuvem tiver cópia, o app oferece voltar para ela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 // O relógio da cópia por alteração é de 45 segundos no app. Aqui ele vai a
@@ -91,7 +92,7 @@ await irParaInicio();
 await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await page.waitForTimeout(900);
 await folha().locator('input.entrada[type=text]').first().fill('Banco Inter');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1300);
-await page.click('#fab'); await page.waitForTimeout(900);
+await tocarFab(page); await page.waitForTimeout(900);
 await porDinheiro(folha().locator('.valor-grande'), '32000');
 await folha().locator('input.entrada[type=text]').first().fill('Aluguel');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1600);

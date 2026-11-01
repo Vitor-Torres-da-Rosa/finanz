@@ -8,6 +8,7 @@
 // o que estava prestes a sair: "antes de excluir o lançamento Aluguel, de
 // R$ 320,00". Quem se arrepende acha pela frase, não pela hora.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -76,7 +77,7 @@ await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await p
 await folha().locator('input.entrada[type=text]').first().fill('Banco Inter');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1300);
 for (const [valor, nome] of [['32000', 'Aluguel'], ['15000', 'Mercado']]) {
-  await page.click('#fab'); await page.waitForTimeout(900);
+  await tocarFab(page); await page.waitForTimeout(900);
   await porDinheiro(folha().locator('.valor-grande'), valor);
   await folha().locator('input.entrada[type=text]').first().fill(nome);
   await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1600);

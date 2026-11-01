@@ -12,6 +12,7 @@
 // Vale só para as de alteração: a de antes de apagar é procurada pela
 // frase do que ia sair, e pode haver várias num dia que importam todas.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -63,7 +64,7 @@ await irParaInicio();
 await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await page.waitForTimeout(900);
 await folha().locator('input.entrada[type=text]').first().fill('Banco Inter');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1300);
-await page.click('#fab'); await page.waitForTimeout(900);
+await tocarFab(page); await page.waitForTimeout(900);
 await porDinheiro(folha().locator('.valor-grande'), '32000');
 await folha().locator('input.entrada[type=text]').first().fill('Aluguel');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2500);

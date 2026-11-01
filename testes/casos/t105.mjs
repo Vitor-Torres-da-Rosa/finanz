@@ -8,6 +8,7 @@
 // Pedido do Vitor em 20/10/2026. Agora ele é somado ao registro que o
 // gerou e some da escolha.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -46,7 +47,7 @@ await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitF
 
 // cliente + registro de R$ 1.000
 await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
-await page.click('#fab'); await page.waitForTimeout(800);
+await tocarFab(page); await page.waitForTimeout(800);
 await folha().locator('input.entrada[type=text]').nth(0).fill('Fabi do juliano');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1100);
 await page.click('#telaInicio .linha-alvo:has-text("Fabi do juliano")'); await page.waitForTimeout(1000);

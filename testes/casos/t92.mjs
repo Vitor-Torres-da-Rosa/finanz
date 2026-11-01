@@ -4,6 +4,7 @@
 // perder nada, dá para escolher a subcategoria no lançamento, e dá para
 // criar categoria e subcategoria novas na própria tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -86,7 +87,7 @@ conferir('8. o teto de Combustível virou teto de Transporte',
 
 // --- escolher subcategoria num lançamento novo ---
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 const chipsCat = () => page.locator('#folha .campo:has-text("Categoria") .chips').first();
 const chipsSub = () => page.locator('#folha .campo:has-text("Subcategoria") .chips').first();
 const catsNaTela = await chipsCat().locator('.chip').allTextContents();
@@ -115,7 +116,7 @@ conferir('12. a linha mostra categoria e subcategoria',
 
 // --- criar subcategoria nova ---
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 await page.locator('#folha input[inputmode=numeric]').first().fill('9000');
 await page.locator('#folha input.entrada[type=text]').first().fill('Guincho do Zé');
 await page.waitForTimeout(700);
@@ -134,7 +135,7 @@ await page.screenshot({ path: dir+'/u03-criada.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(1500);
 
 // --- criar categoria nova pelo mesmo caminho ---
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 await page.locator('#folha input[inputmode=numeric]').first().fill('3000');
 await page.locator('#folha input.entrada[type=text]').first().fill('Dízimo');
 await page.waitForTimeout(700);

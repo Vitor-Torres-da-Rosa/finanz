@@ -17,6 +17,7 @@
 //  3. E o convite para trazer dados de outra conta aparecia mesmo com a
 //     sincronização falhando, quando o app não sabe o que a conta tem.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -73,7 +74,7 @@ const novaConta = async (nome) => {
 };
 const novoLancamento = async (nome, valor) => {
   await irParaInicio();
-  await page.click('#fab'); await page.waitForTimeout(900);
+  await tocarFab(page); await page.waitForTimeout(900);
   await porDinheiro(folha().locator('.valor-grande'), valor);
   await folha().locator('input.entrada[type=text]').first().fill(nome);
   await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1600);

@@ -10,6 +10,7 @@
 // aba mostrava só os pares já JUNTADOS; os achados e os deixados como
 // estão continuam guardados como saída e entrada, e sumiam dali.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -46,7 +47,7 @@ const novaConta = async (nome) => {
 // Um lançamento numa conta escolhida pelo nome.
 const lancar = async (tipo, nome, valor, conta) => {
   await irParaInicio();
-  await page.click('#fab'); await page.waitForTimeout(1000);
+  await tocarFab(page); await page.waitForTimeout(1000);
   if (tipo === 'entrada') { await page.click('#folha button:has-text("Entrada")'); await page.waitForTimeout(800); }
   await porDinheiro(folha().locator('.valor-grande'), valor);
   await folha().locator('input.entrada[type=text]').first().fill(nome);

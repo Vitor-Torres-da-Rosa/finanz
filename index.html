@@ -1623,6 +1623,72 @@
   .etiqueta.fora { background: rgba(255,255,255,.05); color: var(--fraco);
                    border: 1px solid var(--borda); display: inline-block; }
   .cartao.recado { padding: 14px 16px; }
+
+  /* ---------- O "+" com o que lançar ---------- */
+  .menu-novo-fundo {
+    position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.45);
+    opacity: 0; transition: opacity .16s ease;
+  }
+  .menu-novo-fundo.aberto { opacity: 1; }
+  .menu-novo {
+    position: absolute; left: 50%; bottom: calc(var(--nav) + var(--baixo) + 86px + var(--fundo-oculto));
+    width: min(300px, calc(100vw - 32px)); padding: 8px; border-radius: 20px;
+    background: #17140F; border: 1px solid var(--borda);
+    box-shadow: 0 18px 40px rgba(0,0,0,.6);
+    transform: translateX(-50%) translateY(10px) scale(.97); transform-origin: bottom center;
+    transition: transform .16s ease;
+  }
+  .menu-novo-fundo.aberto .menu-novo { transform: translateX(-50%); }
+  .menu-novo-item {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    padding: 9px 12px; border-radius: 14px; text-align: left;
+    font-size: 16px; font-weight: 500; color: var(--texto);
+  }
+  .menu-novo-item:active { background: var(--cartao-2); }
+  .menu-novo-icone {
+    width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%;
+    display: grid; place-items: center; background: var(--cartao-2);
+  }
+  .menu-novo-icone svg { width: 22px; height: 22px; }
+  .menu-novo-icone.ouro { color: var(--ouro); }
+  .menu-novo-icone.verde { color: var(--verde); }
+  .menu-novo-icone.vermelho { color: var(--vermelho); }
+  .menu-novo-icone.azul { color: #60A5FA; }
+  .fab { transition: transform .16s ease; }
+  .fab.girado { transform: translateX(-50%) rotate(45deg); z-index: 46; }
+
+  /* ---------- Fatura, contador e repetição no lançamento ---------- */
+  .linha-fatura {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 6px; border-radius: 12px; background: var(--cartao-2); border: 1px solid var(--borda);
+  }
+  .fatura-seta {
+    width: 40px; height: 40px; border-radius: 10px; font-size: 24px; line-height: 1;
+    color: var(--ouro); display: grid; place-items: center;
+  }
+  .fatura-seta:active { background: rgba(233,180,76,.14); }
+  .fatura-mes { font-size: 16px; font-weight: 600; text-align: center; flex: 1; }
+  .contador { display: inline-flex; align-items: center; gap: 6px; }
+  .contador-botao {
+    width: 36px; height: 36px; border-radius: 50%; font-size: 20px; line-height: 1;
+    display: grid; place-items: center; color: var(--ouro);
+    background: var(--cartao-2); border: 1px solid var(--borda);
+  }
+  .contador-botao:disabled { opacity: .35; }
+  .contador-num { min-width: 34px; text-align: center; font-size: 17px; font-weight: 700; }
+  .config-repeticao {
+    margin-top: 10px; padding: 6px 12px 12px; border-radius: 12px;
+    background: var(--cartao-2); border: 1px solid var(--borda);
+  }
+  .config-linha {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--borda);
+  }
+  .config-linha .entrada.selecao { width: auto; min-width: 150px; }
+  .config-rotulo { font-size: 14px; color: var(--suave); }
+  .config-repeticao .segmentos { margin-top: 12px; }
+  .segmentos-pequenos button { font-size: 12.5px; }
+  .previa-repeticao { color: var(--ouro); }
   .cabeca-resumo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .botao-info {
     position: relative; flex: 0 0 auto; width: 34px; height: 34px; margin: -8px -6px -8px 0;
@@ -1729,7 +1795,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.28.0';
+  var VERSAO = '5.29.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1738,6 +1804,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.29.0',
+      data: '2026-11-01',
+      itens: [
+        'O "+" agora abre um menu: Transferência, Receita, Despesa e Despesa cartão. No Empreendedor ele continua cadastrando cliente.',
+        'Despesa no cartão: escolha o cartão e a fatura com as setas (‹ dezembro ›). A data da compra anda junto, e o app mostra quando a fatura fecha e vence.',
+        'Repetição em qualquer despesa ou receita nova: Única, Parcelada ou Fixa mensal. Na parcelada dá para dizer o total de parcelas, em qual começar, a frequência (mensal, diária, semanal, trimestral, anual ou a cada N dias) e se o valor digitado é o total ou o de cada parcela.',
+        'No cartão, cada parcela cai numa fatura seguida, com "(1/3)", "(2/3)"... na descrição. Abrindo uma delas, dá para excluir todas de uma vez.',
+        'Fixa mensal lança os próximos 12 meses de uma vez.'
+      ]
+    },
     {
       versao: '5.28.0',
       data: '2026-11-01',
@@ -3698,6 +3775,7 @@
           data: soData(l.data),
           contaId: texto(l.contaId),
           contaDestinoId: texto(l.contaDestinoId),
+          grupo: texto(l.grupo),
           criadoEm: inteiro(l.criadoEm) || Date.now()
         };
       });
@@ -4527,6 +4605,7 @@
           data: l.data, importacao_id: l.importacaoId || '',
           data_destino: l.dataDestino || null,
           par_transferencia: l.parTransferencia || '',
+          grupo: l.grupo || '',
           conta_id: ouNulo(l.contaId), conta_destino_id: ouNulo(l.contaDestinoId)
         });
       }),
@@ -4711,7 +4790,7 @@
   // lista a sincronização INTEIRA falha em vez de só deixar o campo para
   // trás. O envio tenta de novo sem elas e segue a vida.
   var COLUNAS_OPCIONAIS = {
-    lancamentos: ['subcategoria', 'data_destino', 'par_transferencia'],
+    lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
     contas: ['limite']
   };
 
@@ -5020,6 +5099,7 @@
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
         dataDestino: l.data_destino || '',
         parTransferencia: l.par_transferencia || '',
+        grupo: l.grupo || '',
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
       };
@@ -6655,6 +6735,9 @@
     calendario: 'M4.5 6.5h15a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1zM8 3.5v5M16 3.5v5M3.5 11h17',
     alerta: 'M12 8.5v5M12 17h.01M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3.1L13.7 3.9a2 2 0 0 0-3.4 0z',
     info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.8h.01',
+    setas: 'M8 20V5M4.5 8.5 8 5l3.5 3.5M16 4v15M12.5 15.5 16 19l3.5-3.5',
+    menos: 'M5 12h14',
+    cartao: 'M4 6h16a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 18H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 6zM2.5 10h19M6 14.5h4',
     saindo: 'M15 12H3.5M7 8l-4 4 4 4M13 3.5h5.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H13',
     extrato: 'M6 3.5h9L19.5 8v12.5a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1zM14.5 3.5V8h5M8.5 12.5h7M8.5 16h4',
     lixo: 'M5 7h14M10 7V5.5A1.5 1.5 0 0 1 11.5 4h1A1.5 1.5 0 0 1 14 5.5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4L17.5 7'
@@ -16080,6 +16163,146 @@
 
   // ---------- Folha: lançamento ----------
 
+  // ---------- O "+" da tela: o que você quer lançar ----------
+
+  var acaoDoMenuNovo = null;
+
+  function abrirMenuNovo() {
+    var fundo = $('menuNovo');
+    if (!fundo) {
+      fundo = no('div', 'menu-novo-fundo');
+      fundo.id = 'menuNovo';
+      fundo.hidden = true;
+      fundo.addEventListener('click', function (e) { if (e.target === fundo) escolherNoMenuNovo(null); });
+      document.body.appendChild(fundo);
+    }
+    fundo.textContent = '';
+    var caixa = no('div', 'menu-novo');
+    caixa.setAttribute('role', 'menu');
+    [['transferencia', 'Transferência', 'setas', 'ouro'],
+     ['entrada', 'Receita', 'mais', 'verde'],
+     ['saida', 'Despesa', 'menos', 'vermelho'],
+     ['cartao', 'Despesa cartão', 'cartao', 'azul']].forEach(function (o) {
+      var b = botao('menu-novo-item', null, function () { escolherNoMenuNovo(o[0]); });
+      b.setAttribute('role', 'menuitem');
+      b.setAttribute('data-opcao', o[0]);
+      var bola = no('span', 'menu-novo-icone ' + o[3]);
+      bola.appendChild(icone(o[2]));
+      juntar(b, bola, no('span', null, o[1]));
+      caixa.appendChild(b);
+    });
+    fundo.appendChild(caixa);
+    acaoDoMenuNovo = null;
+    fundo.hidden = false;
+    requestAnimationFrame(function () { fundo.classList.add('aberto'); });
+    $('fab').classList.add('girado');
+    empilhar({ tipo: 'aba', voltar: fecharMenuNovo });
+  }
+
+  // Escolher passa pelo "voltar" do aparelho, como as listas de escolha:
+  // assim o histórico não fica com um menu que já fechou.
+  function escolherNoMenuNovo(opcao) {
+    acaoDoMenuNovo = opcao;
+    if (topoEh('aba')) { voltarNavegacao(); return; }
+    fecharMenuNovo();
+  }
+
+  function fecharMenuNovo() {
+    var fundo = $('menuNovo');
+    if (fundo) {
+      fundo.classList.remove('aberto');
+      setTimeout(function () { if (!fundo.classList.contains('aberto')) fundo.hidden = true; }, 180);
+    }
+    $('fab').classList.remove('girado');
+    var opcao = acaoDoMenuNovo;
+    acaoDoMenuNovo = null;
+    if (opcao) setTimeout(function () { abrirNovoLancamento(opcao); }, 0);
+  }
+
+  function abrirNovoLancamento(opcao) {
+    contaPadrao();
+    if (opcao === 'cartao') {
+      var cartoes = estado.contas.filter(ehCartao);
+      if (!cartoes.length) {
+        perguntar({
+          titulo: 'Nenhum cartão ainda',
+          texto: 'Cadastre o cartão de crédito com o dia em que a fatura fecha e o dia em que vence. ' +
+                 'Assim cada compra cai sozinha na fatura certa.',
+          ok: 'Cadastrar cartão', icone: 'cartao'
+        }, function () { abrirFolhaConta(null, true); });
+        return;
+      }
+      var ultimo = cartoes.filter(function (c) { return c.id === ultimoCartaoUsado; })[0] || cartoes[0];
+      abrirFolhaLancamento(null, novoRascunho('saida', ultimo.id, 'cartao'));
+      return;
+    }
+    abrirFolhaLancamento(null, novoRascunho(opcao || 'saida', null, ''));
+  }
+
+  var ultimoCartaoUsado = '';
+
+  function novoRascunho(tipo, contaId, modo) {
+    var semCartao = estado.contas.filter(function (c) { return !ehCartao(c); });
+    var origem = contaId || (semCartao[0] || estado.contas[0]).id;
+    var destino = estado.contas.filter(function (c) { return c.id !== origem; })[0];
+    return {
+      tipo: tipo, modo: modo || '', valor: 0, descricao: '', categoria: 'Outros', subcategoria: '',
+      data: dataPadrao(), contaId: origem, contaDestinoId: destino ? destino.id : '',
+      rep: { tipo: 'unica', total: 2, inicio: 1, freq: 'mensal', cadaDias: 2, valorE: 'total' }
+    };
+  }
+
+  var FREQUENCIAS = [
+    { valor: 'mensal', rotulo: 'Mensal' }, { valor: 'diario', rotulo: 'Diário' },
+    { valor: 'semanal', rotulo: 'Semanal' }, { valor: 'trimestral', rotulo: 'Trimestral' },
+    { valor: 'anual', rotulo: 'Anual' }, { valor: 'personalizar', rotulo: 'Personalizar' }
+  ];
+
+  // A data da n-ésima repetição. Mês curto segura o dia no último que
+  // existe: dia 31 todo mês vira 30 em novembro, não 1º de dezembro.
+  function somarPeriodo(data, freq, n, cadaDias) {
+    var p = data.split('-');
+    var meses = { mensal: 1, trimestral: 3, anual: 12 }[freq];
+    if (meses) {
+      var x = new Date(+p[0], +p[1] - 1 + meses * n, 1);
+      return comDia(x.getFullYear(), x.getMonth(), +p[2]);
+    }
+    var dias = freq === 'semanal' ? 7 : freq === 'diario' ? 1 : Math.max(1, cadaDias || 1);
+    return somaDias(data, dias * n);
+  }
+
+  // A fatura em que cai uma compra feita nesta data.
+  function faturaDaCompra(cart, data) {
+    var p = data.split('-');
+    var ano = +p[0], mes = +p[1] - 1;
+    var fecha = diaValido(inteiro(cart.fechamento));
+    if (fecha && +p[2] > fecha) {
+      var x = new Date(ano, mes + 1, 1);
+      ano = x.getFullYear(); mes = x.getMonth();
+    }
+    return faturaDoCartao(cart, ano, mes);
+  }
+
+  function contador(valor, minimo, maximo, aoMudar) {
+    var caixa = no('div', 'contador');
+    var num = no('span', 'contador-num num', String(valor));
+    function por(v) {
+      valor = Math.min(maximo, Math.max(minimo, v));
+      num.textContent = String(valor);
+      menos.disabled = valor <= minimo;
+      mais.disabled = valor >= maximo;
+      aoMudar(valor);
+    }
+    var menos = botao('contador-botao', '−', function () { por(valor - 1); });
+    var mais = botao('contador-botao', '+', function () { por(valor + 1); });
+    menos.setAttribute('aria-label', 'Diminuir');
+    mais.setAttribute('aria-label', 'Aumentar');
+    menos.disabled = valor <= minimo;
+    mais.disabled = valor >= maximo;
+    juntar(caixa, menos, num, mais);
+    return caixa;
+  }
+
   function abrirFolhaLancamento(id, rascunho) {
     var existente = id ? achar(estado.lancamentos, id) : null;
     if (id && !existente) return;
@@ -16088,6 +16311,7 @@
 
     var dados = rascunho || (existente ? {
       tipo: existente.tipo,
+      modo: existente.tipo === 'saida' && ehCartao(achar(estado.contas, existente.contaId)) ? 'cartao' : '',
       valor: existente.valor,
       descricao: existente.descricao,
       categoria: existente.categoria,
@@ -16095,39 +16319,43 @@
       data: existente.data,
       contaId: existente.contaId || estado.contas[0].id,
       contaDestinoId: existente.contaDestinoId || ''
-    } : {
-      tipo: 'saida',
-      valor: 0,
-      descricao: '',
-      categoria: 'Outros',
-      subcategoria: '',
-      data: dataPadrao(),
-      contaId: estado.contas[0].id,
-      contaDestinoId: estado.contas.length > 1 ? estado.contas[1].id : ''
-    });
+    } : novoRascunho('saida', null, ''));
+    if (!dados.rep) dados.rep = { tipo: 'unica', total: 2, inicio: 1, freq: 'mensal', cadaDias: 2, valorE: 'total' };
+    var noCartao = dados.modo === 'cartao';
+    // Repetir só faz sentido ao criar: editar mexe num lançamento só.
+    var repete = !existente && dados.tipo !== 'transferencia';
 
     var categoriaTocada = rascunho ? !!rascunho.categoriaTocada : !!existente;
 
-    abrirFolha(existente ? 'Editar lançamento' : 'Novo lançamento', function (folha) {
+    var titulo = existente ? 'Editar lançamento'
+      : noCartao ? 'Nova despesa no cartão'
+      : dados.tipo === 'entrada' ? 'Nova receita'
+      : dados.tipo === 'transferencia' ? 'Nova transferência' : 'Nova despesa';
+
+    abrirFolha(titulo, function (folha) {
       var forma = no('div', 'forma');
       forma.setAttribute('data-tipo', dados.tipo);
+      if (noCartao) forma.setAttribute('data-modo', 'cartao');
 
-      var tipos = segmentos([
-        { valor: 'saida', rotulo: 'Saída' },
-        { valor: 'entrada', rotulo: 'Entrada' },
-        { valor: 'transferencia', rotulo: 'Transferência' }
-      ], dados.tipo, function (v) {
-        if (v === dados.tipo) return;
-        var novo = coletar();
-        novo.tipo = v;
-        novo.categoriaTocada = categoriaTocada;
-        if (v !== 'transferencia' && categoriasDe(v).indexOf(novo.categoria) < 0) {
-          novo.categoria = 'Outros';
-          novo.subcategoria = '';
-        }
-        abrirFolhaLancamento(id, novo);
-      });
-      forma.appendChild(tipos);
+      // Na despesa de cartão o tipo já está dito: é gasto no cartão.
+      if (!noCartao) {
+        var tipos = segmentos([
+          { valor: 'saida', rotulo: 'Saída' },
+          { valor: 'entrada', rotulo: 'Entrada' },
+          { valor: 'transferencia', rotulo: 'Transferência' }
+        ], dados.tipo, function (v) {
+          if (v === dados.tipo) return;
+          var novo = coletar();
+          novo.tipo = v;
+          novo.categoriaTocada = categoriaTocada;
+          if (v !== 'transferencia' && categoriasDe(v).indexOf(novo.categoria) < 0) {
+            novo.categoria = 'Outros';
+            novo.subcategoria = '';
+          }
+          abrirFolhaLancamento(id, novo);
+        });
+        forma.appendChild(tipos);
+      }
 
       var campoValorEl = entradaValor(dados.valor, true);
       forma.appendChild(campo('Valor', campoValorEl));
@@ -16135,6 +16363,52 @@
       var campoDescricao = entradaTexto(dados.descricao,
         dados.tipo === 'transferencia' ? 'Ex.: Reserva para o mês' : 'Ex.: Abastecimento no posto');
       forma.appendChild(campo('Descrição', campoDescricao));
+
+      // ---- cartão e fatura ----
+      var campoConta, campoDestino = null, campoData, notaFatura = null, rotuloFatura = null;
+      if (noCartao) {
+        var cartoes = estado.contas.filter(ehCartao).map(function (c) { return { valor: c.id, rotulo: c.nome }; });
+        campoConta = entradaSelecao(cartoes, dados.contaId, 'Qual cartão?');
+        campoConta.aoMudar = function () { pintarFatura(); pintarPrevia(); };
+        forma.appendChild(campo('Cartão de crédito', campoConta));
+
+        campoData = entradaData(dados.data);
+        campoData.addEventListener('change', function () { pintarFatura(); pintarPrevia(); });
+
+        // A fatura anda de mês em mês levando a data da compra junto: é a
+        // data que decide a fatura, então as duas nunca se desencontram.
+        var linhaFatura = no('div', 'linha-fatura');
+        var antes = botao('fatura-seta', '‹', function () { andarFatura(-1); });
+        var depois = botao('fatura-seta', '›', function () { andarFatura(1); });
+        antes.setAttribute('aria-label', 'Fatura anterior');
+        depois.setAttribute('aria-label', 'Próxima fatura');
+        rotuloFatura = no('span', 'fatura-mes');
+        juntar(linhaFatura, antes, rotuloFatura, depois);
+        forma.appendChild(campo('Fatura', linhaFatura));
+        notaFatura = no('p', 'ajuda');
+        notaFatura.style.marginTop = '-6px';
+        forma.appendChild(notaFatura);
+        forma.appendChild(campo('Data da compra', campoData));
+      }
+
+      function andarFatura(passo) {
+        if (!ehData(campoData.value)) campoData.value = hojeTexto();
+        campoData.value = somarPeriodo(campoData.value, 'mensal', passo);
+        pintarFatura();
+        pintarPrevia();
+      }
+
+      function pintarFatura() {
+        if (!noCartao) return;
+        var cart = achar(estado.contas, campoConta.value);
+        if (!cart || !ehData(campoData.value)) { rotuloFatura.textContent = '—'; notaFatura.textContent = ''; return; }
+        var f = faturaDaCompra(cart, campoData.value);
+        rotuloFatura.textContent = f.rotulo.charAt(0).toUpperCase() + f.rotulo.slice(1);
+        notaFatura.textContent = !diaValido(inteiro(cart.fechamento))
+          ? 'Este cartão ainda não tem dia de fechamento: a fatura segue o mês da compra. Dá para acertar em Editar cartão.'
+          : f.vence ? 'Fecha em ' + dataBr(f.ate) + ' e vence em ' + dataBr(f.vence) + '. A conta que paga é escolhida quando a fatura for paga.'
+          : 'Fecha em ' + dataBr(f.ate) + '.';
+      }
 
       var caixaChips = null;
       var caixaSub = null;
@@ -16164,6 +16438,7 @@
         pintarSubs();
 
         campoDescricao.addEventListener('input', function () {
+          pintarPrevia();
           if (categoriaTocada) return;
           var sugerida = sugerirCategoria(campoDescricao.value, dados.tipo);
           if (!sugerida || sugerida.categoria === dados.categoria) return;
@@ -16198,21 +16473,119 @@
         }));
       }
 
-      var campoConta = entradaSelecao(opcoesDeConta(), dados.contaId);
-      forma.appendChild(campo(dados.tipo === 'transferencia' ? 'De qual conta' : 'Conta', campoConta));
+      if (!noCartao) {
+        campoConta = entradaSelecao(opcoesDeConta(), dados.contaId);
+        forma.appendChild(campo(dados.tipo === 'transferencia' ? 'De qual conta' : 'Conta', campoConta));
 
-      var campoDestino = null;
-      if (dados.tipo === 'transferencia') {
-        campoDestino = entradaSelecao(opcoesDeConta(), dados.contaDestinoId);
-        forma.appendChild(campo('Para qual conta', campoDestino));
+        if (dados.tipo === 'transferencia') {
+          campoDestino = entradaSelecao(opcoesDeConta(), dados.contaDestinoId);
+          forma.appendChild(campo('Para qual conta', campoDestino));
+        }
+
+        campoData = entradaData(dados.data);
+        campoData.addEventListener('change', pintarPrevia);
+        forma.appendChild(campo('Data', campoData));
       }
 
-      var campoData = entradaData(dados.data);
-      forma.appendChild(campo('Data', campoData));
+      // ---- repetição: única, parcelada ou fixa todo mês ----
+      var rep = dados.rep;
+      var caixaRep = null, previa = null;
+      if (repete) {
+        caixaRep = no('div', 'caixa-repeticao');
+        forma.appendChild(campo('Repetição', caixaRep));
+        previa = no('p', 'ajuda previa-repeticao');
+        forma.appendChild(previa);
+        pintarRepeticao();
+      }
+
+      function pintarRepeticao() {
+        caixaRep.textContent = '';
+        caixaRep.appendChild(segmentos([
+          { valor: 'unica', rotulo: 'Única' },
+          { valor: 'parcelada', rotulo: 'Parcelada' },
+          { valor: 'fixa', rotulo: 'Fixa mensal' }
+        ], rep.tipo, function (v) { rep.tipo = v; pintarRepeticao(); }));
+        if (rep.tipo === 'parcelada') {
+          var cfg = no('div', 'config-repeticao');
+          var linha = function (rotulo, controle) {
+            return juntar(no('div', 'config-linha'), no('span', 'config-rotulo', rotulo), controle);
+          };
+          cfg.appendChild(linha('Total de parcelas', contador(rep.total, 2, 120, function (v) {
+            rep.total = v;
+            if (rep.inicio > v) { rep.inicio = v; pintarRepeticao(); return; }
+            pintarPrevia();
+          })));
+          cfg.appendChild(linha('Começar na parcela', contador(rep.inicio, 1, rep.total, function (v) {
+            rep.inicio = v; pintarPrevia();
+          })));
+          var freq = entradaSelecao(FREQUENCIAS, rep.freq, 'Frequência');
+          freq.aoMudar = function (v) { rep.freq = v; pintarRepeticao(); };
+          cfg.appendChild(linha('Frequência', freq));
+          if (rep.freq === 'personalizar') {
+            cfg.appendChild(linha('Repetir a cada (dias)', contador(rep.cadaDias, 1, 365, function (v) {
+              rep.cadaDias = v; pintarPrevia();
+            })));
+          }
+          var valorE = segmentos([
+            { valor: 'total', rotulo: 'Valor é o total' },
+            { valor: 'parcela', rotulo: 'Valor é de cada parcela' }
+          ], rep.valorE, function (v) { rep.valorE = v; pintarPrevia(); });
+          valorE.classList.add('segmentos-pequenos');
+          cfg.appendChild(valorE);
+          caixaRep.appendChild(cfg);
+        }
+        pintarPrevia();
+      }
+
+      function pintarPrevia() {
+        if (!previa) return;
+        var lista = ocorrencias(true);
+        if (!lista || lista.length < 2) { previa.textContent = ''; previa.hidden = true; return; }
+        previa.hidden = false;
+        var cart = noCartao ? achar(estado.contas, campoConta.value) : null;
+        var onde = function (o) {
+          if (cart) {
+            var ch = faturaDaCompra(cart, o.data).chave.split('-');
+            return MESES[+ch[1] - 1].slice(0, 3) + '/' + ch[0];
+          }
+          return dataBr(o.data);
+        };
+        var iguais = lista.every(function (o) { return o.valor === lista[0].valor; });
+        previa.textContent = lista.length + ' lançamentos' +
+          (iguais ? ' de ' + emReais(lista[0].valor) : ', somando ' + emReais(lista.reduce(function (s, o) { return s + o.valor; }, 0))) +
+          (cart ? ', nas faturas de ' : ', de ') + onde(lista[0]) + ' a ' + onde(lista[lista.length - 1]) + '.' +
+          (rep.tipo === 'fixa' ? ' Lança os próximos 12 meses; o que sobrar dá para apagar de uma vez.' : '');
+      }
+
+      // Cada lançamento que o Salvar vai criar: a data, o valor e o "(2/5)".
+      function ocorrencias(soPrevia) {
+        var valor = digitosParaCentavos(campoValorEl.value);
+        var base = campoData.value;
+        if (!ehData(base) || (!valor && !soPrevia)) return null;
+        if (!repete || rep.tipo === 'unica') return [{ data: base, valor: valor, sufixo: '' }];
+        if (rep.tipo === 'fixa') {
+          var fixas = [];
+          for (var m = 0; m < 12; m++) fixas.push({ data: somarPeriodo(base, 'mensal', m), valor: valor, sufixo: '' });
+          return fixas;
+        }
+        var n = rep.total, k = Math.min(rep.inicio, n);
+        // Dividindo o total, o centavo que sobra fica na primeira parcela,
+        // como fazem as lojas: 100 em 3 é 33,34 + 33,33 + 33,33.
+        var cada = rep.valorE === 'total' ? Math.floor(valor / n) : valor;
+        var sobra = rep.valorE === 'total' ? valor - cada * n : 0;
+        var fora = [];
+        for (var i = k; i <= n; i++) {
+          fora.push({ data: somarPeriodo(base, rep.freq, i - k, rep.cadaDias),
+                      valor: cada + (i === 1 ? sobra : 0), sufixo: ' (' + i + '/' + n + ')' });
+        }
+        return fora;
+      }
 
       function coletar() {
         return {
           tipo: dados.tipo,
+          modo: dados.modo || '',
+          rep: rep,
           valor: digitosParaCentavos(campoValorEl.value),
           descricao: campoDescricao.value,
           categoria: dados.categoria,
@@ -16223,11 +16596,15 @@
         };
       }
 
+      pintarFatura();
+      pintarPrevia();
+
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         var valor = digitosParaCentavos(campoValorEl.value);
         if (valor <= 0) { mostrarErro(forma, 'Informe um valor maior que zero.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        if (noCartao && !achar(estado.contas, campoConta.value)) { mostrarErro(forma, 'Escolha o cartão.'); return; }
         if (dados.tipo === 'transferencia') {
           if (!campoDestino.value || campoDestino.value === campoConta.value) {
             mostrarErro(forma, 'Escolha duas contas diferentes para a transferência.');
@@ -16235,31 +16612,48 @@
           }
         }
 
-        var registro = {
-          id: existente ? existente.id : novoId(),
-          tipo: dados.tipo,
-          valor: valor,
-          descricao: campoDescricao.value.trim(),
-          categoria: dados.tipo === 'transferencia' ? 'Transferência' : dados.categoria,
-          subcategoria: dados.tipo === 'transferencia' ? '' : (dados.subcategoria || ''),
-          data: campoData.value,
-          contaId: campoConta.value,
-          contaDestinoId: dados.tipo === 'transferencia' ? campoDestino.value : '',
-          criadoEm: existente ? existente.criadoEm : Date.now()
-        };
+        var lista = ocorrencias(false);
+        if (lista.some(function (o) { return o.valor <= 0; })) {
+          mostrarErro(forma, 'O valor dividido pelas parcelas ficou em zero. Aumente o valor ou diminua as parcelas.');
+          return;
+        }
+        var grupo = lista.length > 1 ? novoId() : (existente ? existente.grupo || '' : '');
+        var descricao = campoDescricao.value.trim();
+        var agora = Date.now();
+        var registros = lista.map(function (o, i) {
+          var r = {
+            id: existente ? existente.id : novoId(),
+            tipo: dados.tipo,
+            valor: o.valor,
+            descricao: ((descricao || (o.sufixo ? dados.categoria : '')) + o.sufixo).slice(0, 80),
+            categoria: dados.tipo === 'transferencia' ? 'Transferência' : dados.categoria,
+            subcategoria: dados.tipo === 'transferencia' ? '' : (dados.subcategoria || ''),
+            data: o.data,
+            contaId: campoConta.value,
+            contaDestinoId: dados.tipo === 'transferencia' ? campoDestino.value : '',
+            criadoEm: existente ? existente.criadoEm : agora + i
+          };
+          if (grupo) r.grupo = grupo;
+          if (existente && existente.parTransferencia) r.parTransferencia = existente.parTransferencia;
+          if (existente && existente.dataDestino) r.dataDestino = existente.dataDestino;
+          if (existente && existente.importacaoId) r.importacaoId = existente.importacaoId;
+          return r;
+        });
 
         if (existente) {
-          estado.lancamentos = estado.lancamentos.map(function (l) { return l.id === existente.id ? registro : l; });
+          estado.lancamentos = estado.lancamentos.map(function (l) { return l.id === existente.id ? registros[0] : l; });
         } else {
-          estado.lancamentos.push(registro);
+          registros.forEach(function (r) { estado.lancamentos.push(r); });
         }
+        if (noCartao) ultimoCartaoUsado = campoConta.value;
 
         salvar();
-        var p = partes(registro.data);
+        var p = partes(registros[0].data);
         mesAtivo = { ano: p.ano, mes: p.mes };
         fecharFolha();
         desenhar();
-        avisar(existente ? 'Lançamento atualizado.' : 'Lançamento salvo.');
+        avisar(existente ? 'Lançamento atualizado.'
+          : registros.length > 1 ? registros.length + ' lançamentos salvos.' : 'Lançamento salvo.');
       }));
 
       // Perna de transferência juntada: dá para separar. Antes não dava,
@@ -16299,22 +16693,35 @@
                         (existente.descricao || existente.categoria || 'sem descrição') +
                         ', de ' + emReais(existente.valor)
           }, function () {
-            marcarExcluido('lancamentos', existente.id);
-            estado.lancamentos = estado.lancamentos.filter(function (l) { return l.id !== existente.id; });
-            // O pagamento que tinha gerado este lançamento guardava o id
-            // dele. Sem soltar aqui, sobrava um apontamento para o nada —
-            // a ficha do cliente dizia "lançado no caixa" para um
-            // lançamento que não existe mais, e o envio levava a
-            // referência morta para o servidor, que recusava tudo.
-            (estado.pagamentos || []).forEach(function (pg) {
-              if (pg.lancamentoId === existente.id) pg.lancamentoId = '';
-            });
-            salvar();
+            excluirLancamentos([existente.id]);
             fecharFolha();
             desenhar();
             avisar('Lançamento excluído.');
           });
         }));
+
+        // Parcelas e repetições andam juntas: dá para tirar todas de uma vez.
+        var doGrupo = existente.grupo ? estado.lancamentos.filter(function (l) { return l.grupo === existente.grupo; }) : [];
+        if (doGrupo.length > 1) {
+          var soma = doGrupo.reduce(function (s, l) { return s + l.valor; }, 0);
+          acoes.appendChild(botao('btn btn-perigo', 'Excluir todas as ' + doGrupo.length + ' do grupo', function () {
+            perguntar({
+              titulo: 'Excluir as ' + doGrupo.length + '?',
+              texto: 'Saem todas as parcelas ou repetições lançadas juntas com esta, somando ' + emReais(soma) + '. Não dá para desfazer.',
+              ok: 'Excluir todas', tom: 'perigo',
+              copiaAntes: 'antes de excluir ' + doGrupo.length + ' lançamentos de ' +
+                          (existente.descricao || existente.categoria || 'sem descrição')
+            }, function () {
+              excluirLancamentos(doGrupo.map(function (l) { return l.id; }));
+              fecharFolha();
+              desenhar();
+              avisar(doGrupo.length + ' lançamentos excluídos.');
+            });
+          }));
+          acoes.appendChild(no('p', 'ajuda', 'Este lançamento faz parte de um grupo de ' + doGrupo.length +
+            ' (parcelas ou repetições), de ' + dataBr(doGrupo.map(function (l) { return l.data; }).sort()[0]) +
+            ' a ' + dataBr(doGrupo.map(function (l) { return l.data; }).sort().pop()) + '.'));
+        }
       }
 
       forma.appendChild(acoes);
@@ -16322,6 +16729,19 @@
 
       setTimeout(function () { campoValorEl.focus(); }, 270);
     });
+  }
+
+  function excluirLancamentos(ids) {
+    var fora = {};
+    ids.forEach(function (i) { fora[i] = true; marcarExcluido('lancamentos', i); });
+    estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+    // O pagamento que tinha gerado este lançamento guardava o id dele. Sem
+    // soltar aqui, sobrava um apontamento para o nada, e o envio levava a
+    // referência morta para o servidor, que recusava tudo.
+    (estado.pagamentos || []).forEach(function (pg) {
+      if (fora[pg.lancamentoId]) pg.lancamentoId = '';
+    });
+    salvar();
   }
 
   function dataPadrao() {
@@ -22531,8 +22951,9 @@
   });
 
   $('fab').addEventListener('click', function () {
-    if (noEmpreendedor()) abrirFolhaCliente(null);
-    else abrirFolhaLancamento(null);
+    if (noEmpreendedor()) { abrirFolhaCliente(null); return; }
+    if ($('menuNovo') && $('menuNovo').classList.contains('aberto')) { escolherNoMenuNovo(null); return; }
+    abrirMenuNovo();
   });
   $('cortina').addEventListener('click', fecharFolha);
   $('relFechar').addEventListener('click', fecharRelatorio);

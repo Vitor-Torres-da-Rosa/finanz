@@ -13,6 +13,7 @@
 // O restaurar backup sempre chamou apagarNaNuvemOqueNaoVeio(); o trazer
 // nasceu sem esse passo na 5.9.8. Agora os dois usam a mesma marca.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -114,7 +115,7 @@ async function porDinheiroNaConta(nomeConta, reais) {
   await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await page.waitForTimeout(800);
   await folha().locator('input.entrada[type=text]').first().fill(nomeConta);
   await page.click('#folha .btn-ouro'); await page.waitForTimeout(1200);
-  await page.click('#fab'); await page.waitForTimeout(900);
+  await tocarFab(page); await page.waitForTimeout(900);
   await porDinheiro(folha().locator('.valor-grande'), reais);
   await folha().locator('input.entrada[type=text]').first().fill('Extrato ' + nomeConta);
   await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1500);

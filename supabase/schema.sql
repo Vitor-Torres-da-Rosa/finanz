@@ -123,6 +123,9 @@ create table if not exists public.lancamentos (
   -- de receitas e despesas. Sem FK de propósito — perna órfã volta a ser
   -- lançamento comum em vez de derrubar o envio.
   par_transferencia text        not null default '',
+  -- Parcelas de uma compra, ou as repetições de uma despesa fixa: o mesmo
+  -- valor aqui junta todas, para dar para apagar o conjunto de uma vez.
+  grupo             text        not null default '',
   criado_em         timestamptz not null default now(),
   atualizado_em     timestamptz not null default now(),
   excluido_em       timestamptz,

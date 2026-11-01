@@ -1,4 +1,5 @@
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -19,7 +20,7 @@ await folha().locator('input.entrada[type=text]').first().fill('Carteira');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(900);
 
 async function lancar(tipo, valor, desc, categoria) {
-  await page.click('#fab'); await page.waitForTimeout(700);
+  await tocarFab(page); await page.waitForTimeout(700);
   if (tipo === 'entrada') { await page.click('#folha .segmentos button:has-text("Entrada")'); await page.waitForTimeout(500); }
   await folha().locator('input[inputmode=numeric]').first().fill(valor);
   await folha().locator('input.entrada[type=text]').first().fill(desc);

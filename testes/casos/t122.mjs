@@ -13,6 +13,7 @@
 // E 409 não derruba aquele registro: derruba o envio inteiro. Nada mais
 // sobe, por tentativa nenhuma, até alguém achar a referência.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -170,7 +171,7 @@ await irParaInicio();
 // não lançamento.
 await page.click('#telaInicio button:has-text("Visão geral")').catch(() => {});
 await page.waitForTimeout(1000);
-await page.click('#fab'); await page.waitForTimeout(1200);
+await tocarFab(page); await page.waitForTimeout(1200);
 if (await folha().locator('.valor-grande').count()) {
   await porDinheiro(folha().locator('.valor-grande'), '18000');
   await folha().locator('input.entrada[type=text]').first().fill('Luz');

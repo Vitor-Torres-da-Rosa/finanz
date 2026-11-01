@@ -7,6 +7,7 @@
 // porta. Este teste é essa porta.
 import fs from 'node:fs';
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -35,7 +36,7 @@ await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeou
 await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(400);
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
 
-await page.click('#fab'); await page.waitForTimeout(1000);
+await tocarFab(page); await page.waitForTimeout(1000);
 await page.locator('#folha input[inputmode=numeric]').first().fill('54321');
 await page.locator('#folha input.entrada[type=text]').first().fill('Tesouro guardado');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await folhaFechou(); await page.waitForTimeout(2500);
