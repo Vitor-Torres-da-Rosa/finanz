@@ -1698,7 +1698,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.25.2';
+  var VERSAO = '5.26.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1707,41 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.26.1',
+      data: '2026-11-01',
+      itens: [
+        'Parcelas: pagar a mais numa parcela agora abate a sobra só nas parcelas do mesmo serviço. Antes a sobra vazava para parcelas de outro serviço do mesmo cliente.'
+      ]
+    },
+    {
+      versao: '5.26.0',
+      data: '2026-10-31',
+      itens: [
+        'Na ficha do cliente, a aba Parcelas agora tem um filtro por serviço. Quando o cliente tem parcelas de mais de um serviço, aparece um seletor no topo da lista — tocando no nome do serviço, só as parcelas dele são mostradas.'
+      ]
+    },
+    {
+      versao: '5.25.5',
+      data: '2026-10-28',
+      itens: [
+        'Lançamentos de "Vencimento Renda Fixa" do Banco Inter agora são lidos corretamente como entrada. Antes, o filtro de linhas descartáveis confundia esse tipo de lançamento com cabeçalho de fatura de cartão, e toda a renda de investimentos sumia do extrato — causando saldo negativo crescente na conta.'
+      ]
+    },
+    {
+      versao: '5.25.4',
+      data: '2026-10-28',
+      itens: [
+        'Corrigida a leitura de extratos do Banco Inter e de outros bancos que agrupam lançamentos por dia. Quando o PDF quebrava a linha "Saldo do dia: R$ X" em pedaços, o valor do saldo virava um lançamento fantasma e o saldo da conta ia ficando errado mês a mês.'
+      ]
+    },
+    {
+      versao: '5.25.3',
+      data: '2026-10-28',
+      itens: [
+        'O "Total em contas" na tela inicial agora bate exatamente com a soma dos saldos de cada conta. Antes, transferências antigas podiam ser ignoradas no cálculo e o total ficava errado.'
+      ]
+    },
     {
       versao: '5.25.2',
       data: '2026-10-27',
@@ -5833,19 +5868,10 @@
     return s;
   }
 
-  // Dinheiro que está mesmo nas contas. Cartão de crédito fica de fora: o
-  // que você gastou nele ainda não saiu do banco, é dívida, não saldo.
   function totalEmContas(ate) {
-    var cartao = {};
-    estado.contas.forEach(function (c) { if (ehCartao(c)) cartao[c.id] = true; });
-
     var s = 0;
-    estado.contas.forEach(function (c) { if (!ehCartao(c)) s += c.saldoInicial; });
-    estado.lancamentos.forEach(function (l) {
-      if (ate && l.data > ate) return;
-      if (cartao[l.contaId]) return;
-      if (l.tipo === 'entrada') s += l.valor;
-      else if (l.tipo === 'saida') s -= l.valor;
+    estado.contas.forEach(function (c) {
+      if (!ehCartao(c)) s += saldoConta(c.id, ate);
     });
     return s;
   }
@@ -7797,18 +7823,14 @@
   // e o resto do plano se ajusta em volta. Sem isso, acertar logo depois de
   // uma edição desfazia justamente a edição.
   function acertarParcelas(clienteId, parcelaBase, fixaId) {
-    var todas = parcelasDoCliente(clienteId);
-    // Sem parcela nenhuma eu não invento um plano: a pessoa apagou de propósito.
-    if (!todas.length) return;
+    var todasDoCliente = parcelasDoCliente(clienteId);
+    if (!todasDoCliente.length) return;
 
-    var abertas = todas.filter(function (p) { return !parcelaPaga(p); });
-    var restante = Math.max(resumoCliente(clienteId).restante, 0);
-
-    var fixa = fixaId ? achar(abertas, fixaId) : null;
-    if (fixa) {
-      restante = Math.max(restante - fixa.valor, 0);
-      abertas = abertas.filter(function (p) { return p.id !== fixa.id; });
-    }
+    var porServico = {};
+    todasDoCliente.forEach(function (p) {
+      var chave = p.servicoId || '';
+      (porServico[chave] = porServico[chave] || []).push(p);
+    });
 
     function apagar(lista) {
       if (!lista.length) return;
@@ -7817,61 +7839,95 @@
       estado.parcelas = estado.parcelas.filter(function (p) { return !fora[p.id]; });
     }
 
-    if (restante <= 0) {
-      apagar(abertas);
-      renumerarCliente(clienteId);
-      return;
-    }
-
-    // O valor combinado por parcela é o maior do plano: as sobras são menores.
-    // A parcela recém-mexida fica de fora da régua — senão baixar uma parcela
-    // encolheria o plano inteiro junto com ela.
-    var padrao = 0;
-    todas.forEach(function (p) {
-      if (fixa && p.id === fixa.id) return;
-      if (p.valor > padrao) padrao = p.valor;
-    });
-    if (padrao <= 0) padrao = restante;
-
-    var quantas = Math.max(1, Math.ceil(restante / padrao));
-    if (quantas > 240) { quantas = 240; padrao = Math.ceil(restante / 240); }
-
-    abertas.sort(function (a, b) {
-      if (a.vencimento !== b.vencimento) return a.vencimento < b.vencimento ? -1 : 1;
-      return (a.numero || 0) - (b.numero || 0);
-    });
-
-    var modelo = (parcelaBase && achar(estado.parcelas, parcelaBase.id)) || abertas[0] || todas[0];
-    var ultimoVencimento = '';
-    todas.forEach(function (p) { if (p.vencimento > ultimoVencimento) ultimoVencimento = p.vencimento; });
-
-    var sobrando = restante;
-    for (var i = 0; i < quantas; i++) {
-      var valor = i === quantas - 1 ? sobrando : Math.min(padrao, sobrando);
-      sobrando -= valor;
-
-      if (abertas[i]) {
-        abertas[i].valor = valor;
-        if (abertas[i].vencimento > ultimoVencimento) ultimoVencimento = abertas[i].vencimento;
-        continue;
+    function servicoDoPagamento(pg) {
+      if (pg.servicoId) return pg.servicoId;
+      if (pg.parcelaId) {
+        var par = achar(estado.parcelas, pg.parcelaId);
+        if (par) return par.servicoId || '';
       }
-      ultimoVencimento = somaMeses(ultimoVencimento || hojeTexto(), 1);
-      estado.parcelas.push({
-        id: novoId(),
-        clienteId: clienteId,
-        servicoId: modelo ? modelo.servicoId : '',
-        numero: 0, total: 0,
-        valor: valor,
-        vencimento: ultimoVencimento,
-        minimo: 0,
-        jurosAtraso: modelo ? (modelo.jurosAtraso || 0) : 0,
-        quitadaEm: '', pagamentoId: '',
-        criadoEm: Date.now() + i
-      });
+      return '';
     }
 
-    // Sobrou parcela em aberto além do necessário: sai.
-    if (abertas.length > quantas) apagar(abertas.slice(quantas));
+    Object.keys(porServico).forEach(function (servicoId) {
+      var todas = porServico[servicoId];
+      var abertas = todas.filter(function (p) { return !parcelaPaga(p); });
+
+      var servico = servicoId ? achar(estado.servicos, servicoId) : null;
+      if (!servicoId && !servico) return;
+      var totalServico = servico ? servico.valor : 0;
+
+      var pagoServico = 0;
+      estado.pagamentos.forEach(function (pg) {
+        if (pg.clienteId === clienteId && servicoDoPagamento(pg) === servicoId) pagoServico += pg.valor;
+      });
+      var restante = Math.max(totalServico - pagoServico, 0);
+
+      var fixa = null;
+      if (fixaId) {
+        fixa = achar(abertas, fixaId);
+        if (fixa && (fixa.servicoId || '') !== servicoId) fixa = null;
+      }
+      if (fixa) {
+        restante = Math.max(restante - fixa.valor, 0);
+        abertas = abertas.filter(function (p) { return p.id !== fixa.id; });
+      }
+
+      if (restante <= 0) {
+        apagar(abertas);
+        return;
+      }
+
+      var padrao = 0;
+      todas.forEach(function (p) {
+        if (fixa && p.id === fixa.id) return;
+        if (p.valor > padrao) padrao = p.valor;
+      });
+      if (padrao <= 0) padrao = restante;
+
+      var quantas = Math.max(1, Math.ceil(restante / padrao));
+      if (quantas > 240) { quantas = 240; padrao = Math.ceil(restante / 240); }
+
+      abertas.sort(function (a, b) {
+        if (a.vencimento !== b.vencimento) return a.vencimento < b.vencimento ? -1 : 1;
+        return (a.numero || 0) - (b.numero || 0);
+      });
+
+      var modelo = null;
+      if (parcelaBase && (parcelaBase.servicoId || '') === servicoId) {
+        modelo = achar(estado.parcelas, parcelaBase.id);
+      }
+      if (!modelo) modelo = abertas[0] || todas[0];
+
+      var ultimoVencimento = '';
+      todas.forEach(function (p) { if (p.vencimento > ultimoVencimento) ultimoVencimento = p.vencimento; });
+
+      var sobrando = restante;
+      for (var i = 0; i < quantas; i++) {
+        var valor = i === quantas - 1 ? sobrando : Math.min(padrao, sobrando);
+        sobrando -= valor;
+
+        if (abertas[i]) {
+          abertas[i].valor = valor;
+          if (abertas[i].vencimento > ultimoVencimento) ultimoVencimento = abertas[i].vencimento;
+          continue;
+        }
+        ultimoVencimento = somaMeses(ultimoVencimento || hojeTexto(), 1);
+        estado.parcelas.push({
+          id: novoId(),
+          clienteId: clienteId,
+          servicoId: servicoId,
+          numero: 0, total: 0,
+          valor: valor,
+          vencimento: ultimoVencimento,
+          minimo: 0,
+          jurosAtraso: modelo ? (modelo.jurosAtraso || 0) : 0,
+          quitadaEm: '', pagamentoId: '',
+          criadoEm: Date.now() + i
+        });
+      }
+
+      if (abertas.length > quantas) apagar(abertas.slice(quantas));
+    });
 
     renumerarCliente(clienteId);
   }
@@ -9388,11 +9444,13 @@
   }
 
   var abaFicha = 'servicos';
+  var filtroParcelaServico = '';
 
   function abrirFichaCliente(id) {
     var cliente = achar(estado.clientes, id);
     if (!cliente) return;
     abaFicha = 'servicos';
+    filtroParcelaServico = '';
     montarFichaCliente(id);
   }
 
@@ -9517,23 +9575,37 @@
           lista.appendChild(estadoVazio('Sem parcelas combinadas',
             'Monte a previsão de pagamento para acompanhar o que vence e quando.'));
         } else {
+          var servicosIds = {};
+          parcelas.forEach(function (p) { if (p.servicoId) servicosIds[p.servicoId] = true; });
+          var servicosDistintos = Object.keys(servicosIds).map(function (sid) {
+            return achar(estado.servicos, sid);
+          }).filter(Boolean);
+          if (servicosDistintos.length > 1) {
+            if (filtroParcelaServico && !servicosIds[filtroParcelaServico]) filtroParcelaServico = '';
+            var opsServico = [{ valor: '', rotulo: 'Todos' }];
+            servicosDistintos.forEach(function (sv) {
+              var nome = sv.nome.length > 18 ? sv.nome.slice(0, 17) + '…' : sv.nome;
+              opsServico.push({ valor: sv.id, rotulo: nome });
+            });
+            lista.appendChild(segmentos(opsServico, filtroParcelaServico, function (v) {
+              filtroParcelaServico = v;
+              montarFichaCliente(id);
+            }));
+          }
+          var parcelasFiltradas = filtroParcelaServico
+            ? parcelas.filter(function (p) { return p.servicoId === filtroParcelaServico; })
+            : parcelas;
           var hojeP = hojeTexto();
-          parcelas.forEach(function (p) {
+          parcelasFiltradas.forEach(function (p) {
             var paga = parcelaPaga(p);
             var vencida = !paga && p.vencimento < hojeP;
             var servicoP = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
             var parcial = parcelaParcial(p);
             var jurosP = jurosDaParcela(p);
             var recebido = pagoNaParcela(p);
-            // Numa parcela paga, o número em verde é o que entrou de verdade.
-            // Quando ela foi coberta pela sobra de outro pagamento, não há
-            // dinheiro lançado nela, então mostramos o valor combinado.
             var comDinheiro = paga && recebido > 0;
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
 
-            // Na parcela paga as duas datas interessam: quando entrou e
-            // quando era para ter entrado. Só a primeira não responde se
-            // o cliente pagou em dia, que é a pergunta de quem olha.
             var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
               dataBr(paga && p.quitadaEm ? p.quitadaEm : p.vencimento);
             if (paga && p.quitadaEm && p.vencimento && p.quitadaEm !== p.vencimento) {
@@ -9543,7 +9615,7 @@
             if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
             if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
             if (jurosP > 0) sub += ' · ' + emReais(jurosP) + ' de juros';
-            if (servicoP) sub += ' · ' + servicoP.nome;
+            if (servicoP && !filtroParcelaServico) sub += ' · ' + servicoP.nome;
 
             var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
               if (!paga) { abrirFolhaParcela(id, p.id); return; }
@@ -19130,7 +19202,7 @@
       /^(cpf|cnpj)\b/, /^banco\b/, /^cliente:/, /^titular/, /^s\.?a\.?$/,
       /^saldo/, /nao ha lancamentos/, /^continua/, /^transporte de saldo/,
       // resumo de fatura de cartão
-      /total da fatura/, /^vencimento/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
+      /total da fatura/, /vencimento (da fatura|em)/, /\blimite (total|disponivel|de credito)\b/,
       /pagamento minimo/, /fatura anterior/, /melhor dia/, /^encargos/, /^juros do rotativo/,
       /^valor total\b/, /^total a pagar/, /^total de compras/
     ];
@@ -19142,6 +19214,10 @@
       if (/entradas?\s*:/.test(s) && /saidas?\s*:/.test(s)) return true;
       if (/^[a-z]+\s+\d{4}\s*\(/.test(s)) return true;
       for (var i = 0; i < PULAR.length; i++) if (PULAR[i].test(s)) return true;
+      // Linha que é só valor monetário, sem descrição nenhuma: sobra de um
+      // "Saldo do dia: R$ X" que o PDF quebrou em duas ou três linhas.
+      var semValor = s.replace(/(-|\+)?\s*r?\$?\s*(-)?\s*(\d{1,3}(?:\.\d{3})+|\d+),\d{2}/g, '').replace(/[\s.]/g, '');
+      if (!semValor) return true;
       return false;
     }
 
