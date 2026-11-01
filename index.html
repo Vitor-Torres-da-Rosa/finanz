@@ -186,6 +186,7 @@
   .kpi .rotulo { font-size: 11px; letter-spacing: .04em; }
   .kpi .n { font-size: 14.5px; font-weight: 700; margin: 5px 0 4px; }
   .kpi .variacao { font-size: 12px; }
+  .kpi-extra { font-size: 10.5px; color: var(--suave); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   [hidden] { display: none !important; }
@@ -646,7 +647,7 @@
                     align-items: center; margin-top: 8px; }
   .linha-item-orc .entrada { margin: 0; }
   .linha-item-orc .btn-mini { padding: 10px 0; }
-  .aba-cliente button { flex: 1 1 0; min-width: 0; font-size: 12.5px; padding: 9px 4px; }
+  .aba-cliente button { flex: 0 0 auto; font-size: 12.5px; padding: 9px 10px; }
 
   /* As transações de dentro de um grupo repetido, recuadas e presas nele. */
   .grupo-aberto { margin: 0 0 6px 14px; border-left: 2px solid var(--borda);
@@ -1588,18 +1589,22 @@
   .resumo-grade .r { font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
   .resumo-grade .v { font-size: 15px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
 
-  .aba-cliente { display: flex; gap: 8px; margin: 14px 0 6px; }
+  .aba-cliente { display: flex; gap: 8px; margin: 14px 0 6px; overflow-x: auto; scrollbar-width: none; }
+  .aba-cliente::-webkit-scrollbar { display: none; }
   .aba-cliente button {
-    flex: 1;
-    padding: 10px;
+    flex: 0 0 auto;
+    padding: 10px 14px;
     border-radius: 11px;
     background: var(--cartao-2);
     border: 1px solid var(--borda);
     font-size: 13.5px;
     font-weight: 600;
     color: var(--suave);
+    white-space: nowrap;
   }
   .aba-cliente button[aria-selected="true"] { background: var(--ouro); color: #1A1408; border-color: var(--ouro); }
+  .conteudo-aba { animation: entrarAba .2s ease; }
+  @keyframes entrarAba { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   .etiqueta {
     display: inline-block;
@@ -1698,7 +1703,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.26.1';
+  var VERSAO = '5.27.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1707,6 +1712,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.27.0',
+      data: '2026-11-01',
+      itens: [
+        'Início: embaixo de Receitas e Despesas agora aparece a estimativa para o fim do mês; embaixo de Investido, a rentabilidade da carteira.',
+        'Empreendedor: trocar de aba na ficha do cliente (Registros, Parcelas, Pagos, Orçamentos) agora é suave — o conteúdo desliza sem piscar e a posição da tela não pula.',
+        'Importar fatura: todos os lançamentos de uma fatura de cartão agora caem no mesmo mês de cobrança, mesmo que as datas de compra sejam de meses diferentes.',
+        'Cartão: botão para apagar todos os gastos de um cartão de uma vez.'
+      ]
+    },
     {
       versao: '5.26.1',
       data: '2026-11-01',
@@ -8193,10 +8208,26 @@
     var tAnt = totaisNaFaixa(faixaAnterior());
 
     var kpis = no('div', 'kpis');
-    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde'));
-    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho'));
-    kpis.appendChild(blocoKpi('Investido', totalInvestido(faixa.ate < hojeTexto() ? faixa.ate : null),
-      totalInvestido(faixaAnterior().ate), 'ouro'));
+    var estimR = '', estimD = '';
+    var hjKpi = new Date();
+    var diaKpi = hjKpi.getDate();
+    var diasMes = new Date(hjKpi.getFullYear(), hjKpi.getMonth() + 1, 0).getDate();
+    var ehMesAtualKpi = periodo.tipo === 'mes' && mesAtivo.ano === hjKpi.getFullYear() && mesAtivo.mes === hjKpi.getMonth();
+    if (ehMesAtualKpi && diaKpi >= 3) {
+      estimR = 'Estimativa: ' + emReais(Math.round(t.entradas / diaKpi * diasMes));
+      estimD = 'Estimativa: ' + emReais(Math.round(t.saidas / diaKpi * diasMes));
+    }
+    var investidoKpi = totalInvestido(faixa.ate < hojeTexto() ? faixa.ate : null);
+    var aplicadoKpi = totalAplicado();
+    var rentKpi = '';
+    if (aplicadoKpi > 0) {
+      var lucroKpi = investidoKpi - aplicadoKpi;
+      var pctKpi = (lucroKpi / aplicadoKpi) * 100;
+      rentKpi = 'Rentabilidade: ' + (pctKpi >= 0 ? '+' : '') + pctKpi.toFixed(1).replace('.', ',') + '%';
+    }
+    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde', estimR));
+    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho', estimD));
+    kpis.appendChild(blocoKpi('Investido', investidoKpi, totalInvestido(faixaAnterior().ate), 'ouro', rentKpi));
     tela.appendChild(kpis);
 
     // Só aparece quando há algo para conferir.
@@ -8968,6 +8999,27 @@
       cUlt.appendChild(topoUlt);
       recentes.forEach(function (l) { cUlt.appendChild(linhaDeGasto(l, cart)); });
       folha.appendChild(cUlt);
+
+      var todosGastos = estado.lancamentos.filter(function (l) { return l.contaId === id; });
+      if (todosGastos.length) {
+        var acoesCart = no('div', 'acoes');
+        acoesCart.appendChild(botao('btn btn-perigo', 'Apagar todos os gastos (' + todosGastos.length + ')', function () {
+          perguntar({
+            titulo: 'Apagar ' + todosGastos.length + ' gasto(s)?',
+            texto: 'Todos os lançamentos deste cartão serão removidos. Os pagamentos de fatura ficam.',
+            ok: 'Apagar', tom: 'perigo',
+            copiaAntes: 'antes de apagar ' + todosGastos.length + ' lançamento(s) do cartão ' + cart.nome
+          }, function () {
+            var fora = {};
+            todosGastos.forEach(function (l) { fora[l.id] = true; marcarExcluido('lancamentos', l.id); });
+            estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+            salvar();
+            abrirFolhaCartao(id);
+            avisar(todosGastos.length + ' gasto(s) apagado(s).');
+          });
+        }));
+        folha.appendChild(acoesCart);
+      }
     });
   }
 
@@ -9445,12 +9497,14 @@
 
   var abaFicha = 'servicos';
   var filtroParcelaServico = '';
+  var fichaClienteAberta = '';
 
   function abrirFichaCliente(id) {
     var cliente = achar(estado.clientes, id);
     if (!cliente) return;
     abaFicha = 'servicos';
     filtroParcelaServico = '';
+    fichaClienteAberta = '';
     montarFichaCliente(id);
   }
 
@@ -9459,6 +9513,20 @@
     if (!cliente) { fecharFolha(); return; }
     var r = resumoCliente(id);
     var atraso = atrasoDoCliente(id);
+    var soTroca = fichaClienteAberta === id;
+    if (soTroca) {
+      var folhaEl = $('folha');
+      var abasEl = folhaEl.querySelector('.aba-cliente');
+      if (abasEl) {
+        ['servicos', 'parcelas', 'pagamentos', 'orcamentos'].forEach(function (n, i) {
+          if (abasEl.children[i]) abasEl.children[i].setAttribute('aria-selected', abaFicha === n ? 'true' : 'false');
+        });
+        while (abasEl.nextSibling) folhaEl.removeChild(abasEl.nextSibling);
+        conteudoFicha(folhaEl, true);
+        return;
+      }
+    }
+    fichaClienteAberta = id;
 
     abrirFolha(cliente.nome, function (folha) {
       var tituloEl = $('folhaTitulo');
@@ -9535,8 +9603,12 @@
         abas.appendChild(b);
       });
       folha.appendChild(abas);
+      conteudoFicha(folha, false);
+    });
 
+    function conteudoFicha(folha, animar) {
       var lista = cartao('liso');
+      if (animar) lista.classList.add('conteudo-aba');
       if (abaFicha === 'servicos') {
         var servicos = servicosDoCliente(id);
         if (!servicos.length) {
@@ -9685,6 +9757,7 @@
       folha.appendChild(lista);
 
       var acoes = no('div', 'acoes');
+      if (animar) acoes.classList.add('conteudo-aba');
       if (abaFicha === 'orcamentos') {
         acoes.appendChild(botao('btn btn-ouro', '+ Simular serviço', function () {
           empilhar({ tipo: 'aba', voltar: function () { montarFichaCliente(id); } });
@@ -9765,7 +9838,7 @@
       }
 
       folha.appendChild(acoes);
-    });
+    }
   }
 
   // A pessoa escolhe o tipo, cria os seus, renomeia e apaga.
@@ -12376,7 +12449,7 @@
     });
   }
 
-  function blocoKpi(rotulo, valor, anterior, classeCor) {
+  function blocoKpi(rotulo, valor, anterior, classeCor, extra) {
     var k = no('div', 'kpi');
     k.appendChild(no('div', 'rotulo', rotulo));
     k.appendChild(no('div', 'n num ' + classeCor, emReais(valor)));
@@ -12389,6 +12462,7 @@
     } else {
       k.appendChild(no('div', 'variacao', ' '));
     }
+    if (extra) k.appendChild(no('div', 'kpi-extra', extra));
     return k;
   }
 
@@ -15248,6 +15322,7 @@
     $('cortina').classList.remove('aberta');
     document.body.style.overflow = telaEntrada && !$('entrada').classList.contains('escondida') ? 'hidden' : '';
     folhaAberta = false;
+    fichaClienteAberta = '';
   }
 
   function fecharFolha() {
@@ -20938,12 +21013,16 @@
     }, function () {
       var agora = Date.now();
       var importacaoId = novoId();
+      var dataFatura = '';
+      if (dados.fatura) {
+        escolhidos.forEach(function (it) { if (it.data > dataFatura) dataFatura = it.data; });
+      }
       escolhidos.forEach(function (it, i) {
         estado.lancamentos.push({
           id: novoId(), tipo: it.tipo, valor: it.valor,
           descricao: it.descricao, categoria: it.categoria,
           subcategoria: it.subcategoria || '',
-          data: it.data, contaId: contaId, contaDestinoId: '',
+          data: dataFatura || it.data, contaId: contaId, contaDestinoId: '',
           importacaoId: importacaoId,
           criadoEm: agora + i
         });
