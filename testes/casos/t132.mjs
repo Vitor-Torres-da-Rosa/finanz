@@ -124,7 +124,7 @@ conferir('1. o app achou os dois pares de transferência',
   (noInicio.match(/Achei [^.]*\./) || ['(não achei o cartão)'])[0]);
 await page.screenshot({ path: dir+'/w01-pares-achados.png', fullPage: true });
 
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .btn-ouro');
+await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias');
 await page.waitForTimeout(1500);
 const botaoJuntar = limpo(await page.textContent('#folha .btn-ouro').catch(() => ''));
 conferir('2. a folha oferece juntar as duas', /Juntar 2 transfer/.test(botaoJuntar), botaoJuntar);

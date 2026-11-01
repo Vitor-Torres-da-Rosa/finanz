@@ -50,8 +50,8 @@ await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitF
 // ---- a entrada do Empreendedor ----
 await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
 const modulos = await page.$$eval('#telaInicio .modulo-cartao .modulo-titulo', ns => ns.map(n => n.textContent));
-conferir('1. o Empreendedor mostra os três módulos',
-  modulos.join('|') === 'Serviços e Vendas|Uber e Corridas|Distribuição de Doces', modulos.join(' | '));
+conferir('1. o Empreendedor mostra os três módulos e o painel',
+  modulos.join('|') === 'Serviços e Vendas|Uber e Corridas|Distribuição de Doces|Painel geral', modulos.join(' | '));
 conferir('2. e o resumo do mês, que abre o painel', await page.locator('#telaInicio [data-modulo="painel"]').count() === 1);
 conferir('3. na entrada o "+" some (cada módulo tem o seu)',
   await page.$eval('#fab', b => b.classList.contains('fab-oculto')));

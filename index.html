@@ -1931,6 +1931,214 @@
     .tela, .rel-folha { max-width: 620px; margin-left: auto; margin-right: auto; }
     nav { max-width: 620px; left: 50%; transform: translateX(-50%); border-radius: 18px 18px 0 0; border-left: 1px solid var(--borda); border-right: 1px solid var(--borda); }
   }
+
+  /* =====================================================================
+     Tema premium (5.31.0): preto profundo, borda dourada fina que acende
+     nos cantos, números grandes em branco, dourado só como acento. Fica
+     no fim da folha de estilo de propósito: ganha das regras de cima sem
+     mexer nelas.
+     ===================================================================== */
+  :root {
+    --borda-luz: linear-gradient(135deg, rgba(247,226,168,.80) 0%, rgba(233,180,76,.24) 18%,
+                 rgba(233,180,76,.07) 46%, rgba(233,180,76,.10) 64%, rgba(233,180,76,.30) 84%, rgba(247,226,168,.62) 100%);
+    --fundo-cartao: linear-gradient(158deg, rgba(27,21,12,.90) 0%, rgba(11,10,9,.94) 46%, rgba(6,6,7,.96) 100%);
+    --brilho: 0 18px 34px rgba(0,0,0,.55), 0 0 26px rgba(233,180,76,.05);
+  }
+
+  .cartao, .kpi, .tile, .modulo-cartao, .linha-verTudo, .item-prestacao {
+    border: 1px solid transparent;
+    background: var(--fundo-cartao) padding-box, var(--borda-luz) border-box;
+    box-shadow: var(--brilho);
+  }
+  .cartao { border-radius: 22px; }
+  .cartao.recado { background: var(--fundo-cartao) padding-box, var(--borda-luz) border-box; }
+  .cartao-destaque {
+    background: radial-gradient(130% 120% at 100% 100%, rgba(233,180,76,.10), rgba(233,180,76,0) 55%), var(--fundo-cartao) padding-box,
+                linear-gradient(135deg, rgba(247,226,168,.95) 0%, rgba(233,180,76,.30) 20%, rgba(233,180,76,.10) 50%, rgba(233,180,76,.35) 80%, rgba(247,226,168,.85) 100%) border-box;
+    box-shadow: 0 18px 34px rgba(0,0,0,.55), 0 0 30px rgba(233,180,76,.09);
+  }
+  .tile { border-radius: 16px; }
+  .kpi { border-radius: 18px; }
+
+  /* Títulos: branco, sem caixa-alta gritando; o dourado fica nos ícones. */
+  .cartao-titulo { font-size: 16px; font-weight: 600; letter-spacing: -.005em; display: inline-flex; align-items: center; gap: 9px; }
+  .titulo-icone { color: var(--ouro); display: inline-grid; }
+  .titulo-icone svg { width: 22px; height: 22px; }
+  .rotulo { color: #B9AE99; letter-spacing: .05em; }
+  .valorao { color: var(--texto); font-weight: 700; letter-spacing: -.025em; }
+  .valorao.ouro { color: var(--ouro-claro); }
+
+  /* Ações de cartão viram pílula de contorno dourado. */
+  .cartao-acao {
+    display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto;
+    padding: 6px 13px; border-radius: 999px; font-size: 12.5px; color: var(--texto);
+    border: 1px solid rgba(233,180,76,.55); background: rgba(233,180,76,.04);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .cartao-acao:active { background: rgba(233,180,76,.16); border-color: var(--ouro); }
+  .botao-pilula {
+    display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+    padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--texto);
+    border: 1px solid rgba(233,180,76,.70); background: rgba(233,180,76,.05);
+    box-shadow: 0 0 14px rgba(233,180,76,.08) inset;
+  }
+  .botao-pilula .seta { color: var(--ouro); font-size: 17px; line-height: 1; }
+  .botao-pilula:active { background: rgba(233,180,76,.16); }
+
+  .btn { border-radius: 16px; transition: transform .12s ease, filter .15s ease, background .15s ease; }
+  .btn:active { transform: scale(.985); }
+  .btn-ouro { box-shadow: 0 8px 22px rgba(233,180,76,.20), inset 0 1px 0 rgba(255,255,255,.35); }
+  .btn-fantasma { background: rgba(233,180,76,.03); border: 1px solid rgba(233,180,76,.45); color: var(--texto); }
+  .btn-fantasma:active { background: rgba(233,180,76,.12); }
+
+  .segmentos {
+    background: linear-gradient(rgba(5,5,6,.78), rgba(5,5,6,.78)) padding-box, var(--borda-luz) border-box;
+    border: 1px solid transparent;
+  }
+  .segmentos button { transition: background .2s ease, color .2s ease; }
+  .segmentos button[aria-selected="true"] {
+    box-shadow: 0 2px 14px rgba(233,180,76,.30), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .mes-seletor, .pilula-periodo {
+    background: linear-gradient(rgba(5,5,6,.78), rgba(5,5,6,.78)) padding-box, var(--borda-luz) border-box;
+    border: 1px solid transparent;
+  }
+  .chip { background: rgba(20,16,10,.85); border-color: rgba(233,180,76,.30); }
+
+  .linha { border-top-color: rgba(233,180,76,.14); }
+  .entrada, .valor-grande, .entrada.selecao, .busca {
+    border-color: rgba(233,180,76,.30);
+  }
+
+  /* Cabeçalho do Início: a marca à esquerda, sino e engrenagem à direita. */
+  .marca-topo {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(14px + var(--alto)) 0 4px;
+  }
+  .marca-esquerda { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .marca-topo .marca-selo { width: 54px; height: auto; margin: 0; filter: drop-shadow(0 4px 14px rgba(233,180,76,.25)); }
+  .marca-letras { min-width: 0; }
+  .marca-topo .marca-nome { font-size: 22px; letter-spacing: .34em; text-indent: 0; margin: 0; line-height: 1.1; }
+  .marca-topo .marca-sub { font-size: 9.5px; letter-spacing: .16em; margin-top: 5px; color: var(--ouro); text-align: left; }
+  .marca-topo .marca-sub::before, .marca-topo .marca-sub::after { display: none; }
+  .marca-botoes { display: flex; gap: 10px; flex: 0 0 auto; }
+  .marca-botao {
+    position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+    color: var(--ouro); border: 1px solid transparent;
+    background: radial-gradient(circle at 35% 30%, rgba(233,180,76,.16), rgba(0,0,0,0) 60%) padding-box,
+                linear-gradient(#0C0A07, #0C0A07) padding-box, var(--borda-luz) border-box;
+    box-shadow: 0 6px 16px rgba(0,0,0,.5);
+  }
+  .marca-botao svg { width: 22px; height: 22px; }
+  .marca-botao:active { transform: scale(.94); }
+  .marca-botao .ponto-aviso {
+    position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ouro); box-shadow: 0 0 8px rgba(233,180,76,.9);
+  }
+  .cabecalho.cabecalho-grande { padding-top: 12px; align-items: center; }
+  .cabecalho.cabecalho-grande h1 { font-size: 34px; letter-spacing: -.03em; line-height: 1.05; }
+  .cabecalho.cabecalho-grande .sub { font-size: 14.5px; margin-top: 6px; }
+
+  /* O patrimônio: número grande em branco, a pílula da variação e o
+     gráfico acendendo no canto. */
+  .cartao-heroi { position: relative; overflow: hidden; padding: 20px 20px 18px; min-height: 176px; }
+  .heroi-topo { display: flex; align-items: center; gap: 10px; font-size: 16.5px; font-weight: 600; position: relative; z-index: 1; }
+  .heroi-topo .titulo-icone svg { width: 26px; height: 26px; }
+  .heroi-valor { font-size: 36px; font-weight: 700; letter-spacing: -.03em; margin: 14px 0 12px; position: relative; z-index: 1;
+    text-shadow: 0 2px 18px rgba(0,0,0,.6); }
+  .pilula-variacao {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px;
+    padding: 7px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+    background: rgba(12,11,9,.86); border: 1px solid rgba(255,255,255,.07);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .pilula-variacao .resto { color: var(--suave); font-weight: 500; }
+  .pilula-variacao.sobe .pct { color: var(--verde); }
+  .pilula-variacao.desce .pct { color: var(--vermelho); }
+  .heroi-grafico { position: absolute; right: 0; bottom: 0; width: 62%; height: 72%; pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%); mask-image: linear-gradient(90deg, transparent 0%, #000 38%); }
+  .heroi-grafico svg { width: 100%; height: 100%; display: block; overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(233,180,76,.45)); }
+  .heroi-linha { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .entrando .heroi-linha { stroke-dashoffset: 1; animation: tracar 1.4s .15s ease forwards; }
+  .heroi-ponta {
+    position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+    background: #F7E2A8; box-shadow: 0 0 10px 3px rgba(233,180,76,.75);
+    animation: piscar 2.6s 1.4s ease-in-out infinite;
+  }
+  @keyframes tracar { to { stroke-dashoffset: 0; } }
+  @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  /* Um reflexo que atravessa o cartão de tempos em tempos, devagar. */
+  .cartao-heroi::after, .reflexo::after {
+    content: ''; position: absolute; top: -40%; bottom: -40%; left: -60%; width: 40%;
+    background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(247,226,168,.07) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-18deg); animation: reflexo 9s 1.2s ease-in-out infinite; pointer-events: none;
+  }
+  .reflexo { position: relative; overflow: hidden; }
+  @keyframes reflexo { 0% { left: -60%; } 22%, 100% { left: 130%; } }
+
+  /* Os números do período, dois a dois. */
+  .kpis.kpis-grade { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .kpi.kpi-tile { position: relative; padding: 14px 14px 13px; text-align: left; color: var(--texto); width: 100%;
+    display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
+  .kpi-cabeca { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+  .kpi-cabeca .titulo-icone svg { width: 24px; height: 24px; }
+  .kpi.kpi-tile .rotulo { font-size: 13.5px; text-transform: none; letter-spacing: 0; color: var(--texto); font-weight: 600; flex: 1; }
+  .kpi-seta { position: absolute; top: 15px; right: 13px; color: var(--ouro); font-size: 20px; line-height: 1; }
+  .kpi-cabeca { padding-right: 16px; }
+  .kpi.kpi-tile .n { font-size: 18px; margin: 2px 0 4px; }
+  .kpi.kpi-tile:active { transform: scale(.985); }
+  .kpi.kpi-tile .kpi-extra { border-top-color: rgba(233,180,76,.16); }
+  .kpi-analises .variacao { color: var(--suave); font-weight: 500; }
+
+  /* Transferências: título, valor e a pílula. */
+  .transf-corpo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+  .transf-corpo .valorao { margin: 0; }
+
+  /* Navegação: o ativo acende em dourado, com um fio de luz embaixo. */
+  nav { background: rgba(4,4,5,.94); border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, rgba(233,180,76,0), rgba(233,180,76,.45), rgba(233,180,76,0)) 1; }
+  nav button { position: relative; transition: color .2s ease; color: #8E8576; }
+  nav button svg { transition: filter .2s ease, transform .2s ease; }
+  nav button[aria-selected="true"] { color: var(--ouro); }
+  nav button[aria-selected="true"] svg { filter: drop-shadow(0 0 6px rgba(233,180,76,.55)); transform: translateY(-1px); }
+  nav button[aria-selected="true"]::after {
+    content: ''; position: absolute; left: 22%; right: 22%; bottom: 4px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(233,180,76,0), #F7E2A8, rgba(233,180,76,0));
+    box-shadow: 0 0 12px rgba(233,180,76,.85);
+  }
+
+  .fab { box-shadow: 0 10px 26px rgba(0,0,0,.6), 0 0 26px rgba(233,180,76,.28), 0 0 0 5px #050506, 0 0 0 6px rgba(233,180,76,.30); }
+
+  /* Folhas: o mesmo fio de luz no topo. */
+  .folha { background: linear-gradient(180deg, #15110B 0%, #07070A 32%); border-top: 1px solid transparent;
+    box-shadow: 0 -1px 0 rgba(233,180,76,.55), 0 -18px 40px rgba(0,0,0,.6); }
+
+  /* Empreendedor: os módulos em quadros, dois a dois. */
+  .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .modulo-cartao { flex-direction: row; align-items: center; gap: 10px; padding: 16px 10px 16px 14px; min-height: 104px; border-radius: 20px; }
+  .modulo-cartao .modulo-arte { width: auto; height: auto; border: 0; background: none; box-shadow: none; border-radius: 0; color: var(--ouro); }
+  .modulo-cartao .modulo-arte svg { width: 34px; height: 34px; filter: drop-shadow(0 0 8px rgba(233,180,76,.30)); }
+  .modulo-cartao .modulo-arte-uber, .modulo-cartao .modulo-arte-doces { color: var(--ouro); }
+  .modulo-corpo-tile { flex: 1; min-width: 0; }
+  .modulo-cartao .modulo-titulo { font-size: 15.5px; font-weight: 600; line-height: 1.2; }
+  .modulo-cartao .modulo-linha { margin-top: 6px; }
+  .modulo-cartao .modulo-rotulo { font-size: 10px; letter-spacing: .04em; }
+  .modulo-cartao .modulo-valor { font-size: 14px; margin-top: 1px; }
+  .modulo-cartao .modulo-seta { font-size: 22px; align-self: center; }
+
+  .anel-jornada { box-shadow: 0 0 0 1px rgba(233,180,76,.12), 0 0 30px rgba(0,0,0,.6); }
+
+  /* Entrada suave dos cartões quando a tela abre. */
+  .tela.entrando > .cartao, .tela.entrando > .kpis, .tela.entrando > .modulos-lista { animation: subir .38s ease both; }
+  .tela.entrando > .kpis { animation-delay: .05s; }
+  .tela.entrando > .cartao ~ .cartao { animation-delay: .1s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cartao-heroi::after, .reflexo::after, .heroi-linha, .heroi-ponta,
+    .tela.entrando > .cartao, .tela.entrando > .kpis, .tela.entrando > .modulos-lista { animation: none !important; }
+    .heroi-linha { stroke-dashoffset: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1986,7 +2194,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.30.0';
+  var VERSAO = '5.31.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1995,6 +2203,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.31.0',
+      data: '2026-11-01',
+      itens: [
+        'Visual novo, mais limpo: preto profundo, bordas douradas finas que acendem nos cantos, números grandes em branco e o dourado só nos detalhes.',
+        'Início: a marca à esquerda com o sino (análise do mês, com um ponto quando algo pede atenção) e a engrenagem (preferências). O patrimônio ganhou o gráfico acendendo no canto e a variação numa pílula.',
+        'Receitas, Despesas, Investido e Análises viraram quadros dois a dois; tocando, cada um leva para o detalhe.',
+        'Empreendedor: os módulos no mesmo estilo de quadros, com o painel geral junto.',
+        'Botões de ação em pílula dourada, a aba ativa da barra de baixo com um fio de luz, e um reflexo discreto que passa de vez em quando nos cartões principais.'
+      ]
+    },
     {
       versao: '5.30.0',
       data: '2026-11-01',
@@ -6967,9 +7186,16 @@
     return l;
   }
 
-  function topoDeCartao(titulo, textoAcao, aoClicar) {
+  function topoDeCartao(titulo, textoAcao, aoClicar, iconeNome) {
     var topo = no('div', 'cartao-topo');
-    topo.appendChild(no('div', 'cartao-titulo', titulo));
+    var t = no('div', 'cartao-titulo');
+    if (iconeNome) {
+      var ic = no('span', 'titulo-icone');
+      ic.appendChild(icone(iconeNome));
+      t.appendChild(ic);
+    }
+    t.appendChild(document.createTextNode(titulo));
+    topo.appendChild(t);
     if (textoAcao) {
       var rotuloAcao = /^Ver /.test(textoAcao) ? textoAcao + ' ›' : textoAcao;
       topo.appendChild(botao('cartao-acao', rotuloAcao, aoClicar));
@@ -7103,6 +7329,15 @@
     bomba: 'M5 20.5V5a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 1 14 5v15.5M3.5 20.5h12M5 10h9M14 9l2.6 1.6V16a1.4 1.4 0 0 0 2.8 0V9.2L17 6.5',
     pacote: 'M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4zM3.5 7.5 12 11.5l8.5-4M12 11.5v9',
     relogio: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+    sino: 'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2H4.4zM10 20.5a2 2 0 0 0 4 0',
+    engrenagem: 'M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5zM10.3 3.5h3.4l.5 2.3 1.6.9 2.2-.8 1.7 2.9-1.7 1.6v1.9l1.7 1.6-1.7 2.9-2.2-.8-1.6.9-.5 2.3h-3.4l-.5-2.3-1.6-.9-2.2.8-1.7-2.9 1.7-1.6v-1.9L4.6 9.6l1.7-2.9 2.2.8 1.6-.9z',
+    grafico: 'M4 20v-5M9 20v-8M14 20v-6M19 20V9M4 10.5l5-4 5 3 6-5.5M16.5 4H20v3.5',
+    receber: 'M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14',
+    pagar: 'M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14',
+    moedas: 'M12 9c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3zM4 6v4c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 10v4c0 1.7 3.6 3 8 3s8-1.3 8-3v-4M4 14v4c0 1.7 3.6 3 8 3s8-1.3 8-3v-4',
+    trocar: 'M4.5 8.5h14M15 5l3.5 3.5L15 12M19.5 15.5h-14M9 12l-3.5 3.5L9 19',
+    carteira: 'M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5zM16 13.5h.01',
+    fatias: 'M11 4a8 8 0 1 0 9 9h-9zM14 3.2A8 8 0 0 1 20.8 10H14z',
     cartao: 'M4 6h16a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 18H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 6zM2.5 10h19M6 14.5h4',
     saindo: 'M15 12H3.5M7 8l-4 4 4 4M13 3.5h5.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H13',
     extrato: 'M6 3.5h9L19.5 8v12.5a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1zM14.5 3.5V8h5M8.5 12.5h7M8.5 16h4',
@@ -7173,10 +7408,30 @@
   }
 
   function marcaBarra() {
-    var barra = no('div', 'marca-barra');
-    barra.appendChild(imagemDaMarca('selo.webp', 'marca-selo', 256, 200, ''));
-    barra.appendChild(no('div', 'marca-nome', 'FINANZ'));
-    barra.appendChild(no('div', 'marca-sub', 'Inteligência financeira'));
+    var barra = no('div', 'marca-topo');
+    var esq = no('div', 'marca-esquerda');
+    esq.appendChild(imagemDaMarca('selo.webp', 'marca-selo', 256, 200, ''));
+    juntar(esq, juntar(no('div', 'marca-letras'),
+      no('div', 'marca-nome', 'FINANZ'), no('div', 'marca-sub', 'Inteligência financeira')));
+    var sino = botao('marca-botao marca-sino', null, function () { abrirAnaliseCompleta(mesAtivo.ano, mesAtivo.mes); });
+    sino.setAttribute('aria-label', 'Avisos e análise do mês');
+    sino.appendChild(icone('sino'));
+    var engrenagem = botao('marca-botao', null, function () { abrirFolhaPreferencias(); });
+    engrenagem.setAttribute('aria-label', 'Preferências');
+    engrenagem.appendChild(icone('engrenagem'));
+    juntar(barra, esq, juntar(no('div', 'marca-botoes'), sino, engrenagem));
+    // O ponto no sino sai da análise do mês, que pesa: fica para depois de
+    // a tela aparecer, e só acende quando há algo pedindo atenção.
+    setTimeout(function () {
+      if (!document.body.contains(sino)) return;
+      try {
+        var an = analiseDoMes(mesAtivo.ano, mesAtivo.mes);
+        if (an && an.principais && an.principais.some(function (a) { return a.prioridade <= 1; })) {
+          sino.appendChild(no('span', 'ponto-aviso'));
+          sino.setAttribute('aria-label', 'Avisos e análise do mês: tem algo pedindo atenção');
+        }
+      } catch (e) { /* sem ponto, sem problema */ }
+    }, 250);
     return barra;
   }
 
@@ -8166,12 +8421,20 @@
     montarEntrada();
   }
 
+  var tempoEntrando = null;
   function mostrarTela(id) {
     telaAtiva = id;
     ['inicio', 'transacoes', 'investimentos', 'planejamento', 'mais'].forEach(function (t) {
       var el = $('tela' + t.charAt(0).toUpperCase() + t.slice(1));
       el.classList.toggle('ativa', t === id);
+      // A animação de chegada só na chegada: o app redesenha a tela a cada
+      // mudança, e repetir o movimento a cada toque cansa.
+      el.classList.toggle('entrando', t === id);
     });
+    clearTimeout(tempoEntrando);
+    tempoEntrando = setTimeout(function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.tela.entrando'), function (el) { el.classList.remove('entrando'); });
+    }, 1600);
     window.scrollTo(0, 0);
     desenhar();
     ajustarFab();
@@ -8814,11 +9077,13 @@
     var diaTexto = DIAS_SEMANA[hoje.getDay()].replace('-feira', '');
     diaTexto = diaTexto.charAt(0).toUpperCase() + diaTexto.slice(1);
 
-    tela.appendChild(cabecalho(
+    var cabInicio = cabecalho(
       saudacao() + (nome ? ', ' + nome : ''),
       diaTexto + ', ' + hoje.getDate() + ' de ' + MESES[hoje.getMonth()],
       'periodo'
-    ));
+    );
+    cabInicio.classList.add('cabecalho-grande');
+    tela.appendChild(cabInicio);
 
     tela.appendChild(segmentos([
       { valor: 'geral', rotulo: 'Visão geral' },
@@ -8836,14 +9101,18 @@
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
     // Patrimônio
-    var cPat = cartao();
-    cPat.appendChild(no('div', 'rotulo', 'Patrimônio líquido'));
-    cPat.appendChild(no('div', 'valorao num', emReais(patrimonio(null))));
+    var cPat = cartao('cartao-destaque cartao-heroi');
+    var topoPat = no('div', 'heroi-topo');
+    var icPat = no('span', 'titulo-icone');
+    icPat.appendChild(icone('grafico'));
+    juntar(topoPat, icPat, no('span', null, 'Patrimônio líquido'));
+    cPat.appendChild(topoPat);
+    cPat.appendChild(graficoHeroi(seriePatrimonio(30)));
+    cPat.appendChild(no('div', 'heroi-valor valorao num', emReais(patrimonio(null))));
 
     var fimMesPassado = ultimoDiaDoMes(mesAnteriorAo(hoje.getFullYear(), hoje.getMonth()).ano,
                                        mesAnteriorAo(hoje.getFullYear(), hoje.getMonth()).mes);
-    cPat.appendChild(variacao(patrimonio(null), patrimonio(fimMesPassado)));
-    cPat.appendChild(blocoGrafico(seriePatrimonio(30), '#E9B44C'));
+    cPat.appendChild(pilulaVariacao(patrimonio(null), patrimonio(fimMesPassado)));
     tela.appendChild(cPat);
 
     // Números do período escolhido
@@ -8863,9 +9132,22 @@
       var pctKpi = (lucroKpi / aplicadoKpi) * 100;
       rentKpi = 'Rentabilidade: ' + (pctKpi >= 0 ? '+' : '') + pctKpi.toFixed(1).replace('.', ',') + '%';
     }
-    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde', estimR));
-    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho', estimD));
-    kpis.appendChild(blocoKpi('Investido', investidoKpi, totalInvestido(faixaAnterior().ate), 'ouro', rentKpi));
+    kpis.classList.add('kpis-grade');
+    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde', estimR,
+      { icone: 'receber', aoTocar: function () { irParaTransacoes('entrada', '', faixa.de, faixa.ate); } }));
+    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho', estimD,
+      { icone: 'pagar', aoTocar: function () { irParaTransacoes('saida', '', faixa.de, faixa.ate); } }));
+    kpis.appendChild(blocoKpi('Investido', investidoKpi, totalInvestido(faixaAnterior().ate), '', rentKpi,
+      { icone: 'moedas', aoTocar: function () { irPara('investimentos'); } }));
+    var analises = botao('kpi kpi-tile kpi-analises', null, function () { abrirAnaliseCompleta(mesAtivo.ano, mesAtivo.mes); });
+    var icAn = no('span', 'titulo-icone');
+    icAn.appendChild(icone('painel'));
+    juntar(analises,
+      juntar(no('div', 'kpi-cabeca'), icAn, no('div', 'rotulo', 'Análises')),
+      no('div', 'n num', MESES[mesAtivo.mes].charAt(0).toUpperCase() + MESES[mesAtivo.mes].slice(1)),
+      no('div', 'variacao', 'Ver detalhes'),
+      no('span', 'kpi-seta', '›'));
+    kpis.appendChild(analises);
     tela.appendChild(kpis);
 
     // Só aparece quando há algo para conferir.
@@ -8874,7 +9156,7 @@
 
     // Fluxo de caixa
     var cFluxo = cartao();
-    cFluxo.appendChild(topoDeCartao('Fluxo de caixa', 'Ver todas', function () { irPara('transacoes'); }));
+    cFluxo.appendChild(topoDeCartao('Fluxo de caixa', 'Ver todas', function () { irPara('transacoes'); }, 'trocar'));
     // Este cartão é sobre dinheiro que entrou e saiu das contas. A fatura
     // paga conta aqui; a compra no cartão conta em Despesas. São perguntas
     // diferentes, e por isso os números podem não bater — está explicado.
@@ -8909,7 +9191,7 @@
     var cGastos = cartao();
     cGastos.appendChild(topoDeCartao(
       ehEntrada ? 'Distribuição de receitas' : 'Distribuição de gastos',
-      'Relatório', function () { abrirRelatorio('fluxo'); }));
+      'Relatório', function () { abrirRelatorio('fluxo'); }, 'fatias'));
 
     cGastos.appendChild(segmentos([
       { valor: 'saida', rotulo: 'Despesas' },
@@ -8946,7 +9228,7 @@
 
     // Contas
     var cContas = cartao('liso');
-    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); });
+    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira');
     topoContas.style.padding = '16px 16px 0';
     topoContas.style.marginBottom = '8px';
     cContas.appendChild(topoContas);
@@ -9092,20 +9374,70 @@
   }
 
   function cartaoDeTransferencias(pares) {
-    var c = cartao();
-    c.appendChild(topoDeCartao('Transferências entre contas', null));
+    var c = cartao('reflexo');
+    c.appendChild(topoDeCartao('Transferências entre contas', null, null, 'trocar'));
     var soma = pares.reduce(function (t, p) { return t + p.saida.valor; }, 0);
+    var b = botao('botao-pilula ver-transferencias', null, function () { abrirFolhaTransferencias(); });
+    juntar(b, document.createTextNode('Ver detalhes'), no('span', 'seta', '›'));
+    c.appendChild(juntar(no('div', 'transf-corpo'), no('div', 'valorao num', emReais(soma)), b));
     c.appendChild(no('div', 'linha-nota',
-      pares.length === 1
-        ? 'Achei 1 saída com o mesmo valor de uma entrada em outra conta, no mesmo dia ou a poucos dias.'
-        : 'Achei ' + pares.length + ' saídas com o mesmo valor de entradas em outras contas, no mesmo dia ou a poucos dias.'));
-    c.appendChild(no('div', 'valorao pequeno num azul', emReais(soma)));
-    c.appendChild(no('div', 'linha-nota',
-      'Enquanto não conferir, esse dinheiro conta como receita de um lado e despesa do outro.'));
-    var b = botao('btn btn-ouro', 'Conferir', function () { abrirFolhaTransferencias(); });
-    b.style.marginTop = '14px';
-    c.appendChild(b);
+      (pares.length === 1 ? 'Achei 1 saída com o mesmo valor de uma entrada em outra conta'
+                          : 'Achei ' + pares.length + ' saídas com o mesmo valor de entradas em outras contas') +
+      '. Até conferir, contam como receita de um lado e despesa do outro.'));
     return c;
+  }
+
+  // O gráfico do patrimônio: a linha dourada acendendo no canto do cartão,
+  // sem eixo — o número grande é que conta a história.
+  function graficoHeroi(pontos) {
+    var caixa = no('div', 'heroi-grafico');
+    caixa.setAttribute('aria-hidden', 'true');
+    if (pontos.length < 2) return caixa;
+    var L = 200, A = 100;
+    var valores = pontos.map(function (p) { return p.valor; });
+    var min = Math.min.apply(null, valores), max = Math.max.apply(null, valores);
+    if (max === min) { max = min + 1; min = min - 1; }
+    function x(i) { return (i / (pontos.length - 1)) * (L - 8); }
+    function y(v) { return A - 14 - ((v - min) / (max - min)) * (A - 34); }
+    var xs = pontos.map(function (p, i) { return x(i); });
+    var ys = pontos.map(function (p) { return y(p.valor); });
+    var d = 'M' + xs[0].toFixed(1) + ' ' + ys[0].toFixed(1);
+    for (var i = 1; i < xs.length; i++) {
+      var mx = (xs[i - 1] + xs[i]) / 2;
+      d += ' C' + mx.toFixed(1) + ' ' + ys[i - 1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + ys[i].toFixed(1) +
+           ' ' + xs[i].toFixed(1) + ' ' + ys[i].toFixed(1);
+    }
+    var svg = svgNo('svg', { viewBox: '0 0 ' + L + ' ' + A, preserveAspectRatio: 'none' });
+    var idG = idUnico();
+    var defs = svgNo('defs', {});
+    var grad = svgNo('linearGradient', { id: idG, x1: '0', y1: '0', x2: '0', y2: '1' });
+    grad.appendChild(svgNo('stop', { offset: '0%', 'stop-color': '#E9B44C', 'stop-opacity': '.28' }));
+    grad.appendChild(svgNo('stop', { offset: '100%', 'stop-color': '#E9B44C', 'stop-opacity': '0' }));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+    svg.appendChild(svgNo('path', { d: d + ' L' + L + ' ' + A + ' L0 ' + A + ' Z', fill: 'url(#' + idG + ')' }));
+    svg.appendChild(svgNo('path', {
+      d: d, fill: 'none', stroke: '#E9B44C', 'stroke-width': 2, 'stroke-linecap': 'round',
+      'vector-effect': 'non-scaling-stroke', pathLength: 1, 'class': 'heroi-linha'
+    }));
+    caixa.appendChild(svg);
+    var ponta = no('span', 'heroi-ponta');
+    ponta.style.left = (xs[xs.length - 1] / L * 100) + '%';
+    ponta.style.top = (ys[ys.length - 1] / A * 100) + '%';
+    caixa.appendChild(ponta);
+    return caixa;
+  }
+
+  function pilulaVariacao(atual, anterior) {
+    var el = no('div', 'pilula-variacao');
+    if (!anterior) { el.appendChild(no('span', 'resto', 'sem base de comparação')); return el; }
+    var dif = atual - anterior;
+    var p = (dif / Math.abs(anterior)) * 100;
+    el.classList.add(dif >= 0 ? 'sobe' : 'desce');
+    juntar(el,
+      no('span', 'pct', (dif >= 0 ? '↑ ' : '↓ ') + Math.abs(p).toFixed(1).replace('.', ',') + '%'),
+      no('span', 'resto', 'vs. mês anterior'));
+    return el;
   }
 
   function abrirFolhaTransferencias() {
@@ -9379,7 +9711,7 @@
 
   function cartaoDeCartoes() {
     var c = cartao('liso');
-    var topo = topoDeCartao('Cartões', '+ Novo', function () { abrirFolhaConta(null, true); });
+    var topo = topoDeCartao('Cartões', '+ Novo', function () { abrirFolhaConta(null, true); }, 'cartao');
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     c.appendChild(topo);
@@ -10021,14 +10353,15 @@
         : { rotulo: 'Lucro no mês', valor: emReais(n.uber.lucro), cor: n.uber.lucro < 0 ? 'vermelho' : 'verde' }));
     lista.appendChild(cartaoDeModulo('doces', 'Vendedores, entregas e prestação de contas',
       { rotulo: 'A receber', valor: emReais(n.doces.pendente), cor: n.doces.pendente > 0 ? 'ouro' : 'verde' }));
+    lista.appendChild(cartaoDeModulo('painel', 'Os três juntos, por mês, semana ou ano',
+      { rotulo: 'Lucro do mês', valor: emReais(n.lucro), cor: n.lucro < 0 ? 'vermelho' : 'verde' }));
     tela.appendChild(lista);
 
     var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
     var fAnt = faixaDoMes(ant.ano, ant.mes);
     var nAnt = numerosDoPeriodo(fAnt.de, fAnt.ate);
 
-    var c = botao('cartao cartao-resumo-emp', null, function () { abrirModulo('painel'); });
-    c.setAttribute('data-modulo', 'painel');
+    var c = botao('cartao cartao-resumo-emp reflexo', null, function () { abrirModulo('painel'); });
     var topo = no('div', 'cartao-topo');
     juntar(topo, no('div', 'cartao-titulo', 'Resumo de ' + MESES[mesAtivo.mes]), no('span', 'cartao-acao', 'Painel ›'));
     c.appendChild(topo);
@@ -10058,10 +10391,12 @@
     arte.appendChild(icone(MODULOS[id].icone));
     var valor = no('div', 'modulo-valor num ' + (destaque.cor || ''), destaque.valor);
     if (destaque.relogio) valor.setAttribute('data-relogio', '1');
+    b.setAttribute('aria-label', MODULOS[id].titulo + ': ' + sub);
     juntar(b,
       arte,
-      juntar(no('div', 'modulo-texto'), no('div', 'modulo-titulo', MODULOS[id].titulo), no('div', 'modulo-sub', sub)),
-      juntar(no('div', 'modulo-fim'), no('div', 'modulo-rotulo', destaque.rotulo), valor),
+      juntar(no('div', 'modulo-corpo-tile'),
+        no('div', 'modulo-titulo', id === 'painel' ? 'Painel geral' : MODULOS[id].titulo),
+        juntar(no('div', 'modulo-linha'), no('div', 'modulo-rotulo', destaque.rotulo), valor)),
       no('span', 'modulo-seta', '›'));
     return b;
   }
@@ -15126,9 +15461,16 @@
     });
   }
 
-  function blocoKpi(rotulo, valor, anterior, classeCor, extra) {
-    var k = no('div', 'kpi');
-    k.appendChild(no('div', 'rotulo', rotulo));
+  function blocoKpi(rotulo, valor, anterior, classeCor, extra, opcoes) {
+    opcoes = opcoes || {};
+    var k = opcoes.aoTocar ? botao('kpi kpi-tile', null, opcoes.aoTocar) : no('div', 'kpi');
+    if (opcoes.icone) {
+      var ic = no('span', 'titulo-icone');
+      ic.appendChild(icone(opcoes.icone));
+      juntar(k, juntar(no('div', 'kpi-cabeca'), ic, no('div', 'rotulo', rotulo)));
+    } else {
+      k.appendChild(no('div', 'rotulo', rotulo));
+    }
     k.appendChild(no('div', 'n num ' + classeCor, emReais(valor)));
     if (anterior) {
       var dif = valor - anterior;
@@ -15144,6 +15486,7 @@
       k.appendChild(juntar(no('div', 'kpi-extra'),
         no('div', 'r', partes[0]), no('div', 'v', partes.slice(1).join(': '))));
     }
+    if (opcoes.aoTocar) k.appendChild(no('span', 'kpi-seta', '›'));
     return k;
   }
 

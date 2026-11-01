@@ -62,7 +62,7 @@ console.log('   trecho:', (await tela()).match(/Transferências entre contas.{0,
 const kpi = (await tela()).match(/ReceitasR\$ [\d.,]+/)?.[0] + ' | ' + (await tela()).match(/DespesasR\$ [\d.,]+/)?.[0];
 console.log('2. antes de juntar:', kpi);
 await page.screenshot({ path: dir+'/q01-cartao.png', fullPage:true });
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .btn-ouro'); await page.waitForTimeout(1200);
+await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias'); await page.waitForTimeout(1200);
 console.log('3. folha:', await page.textContent('#folhaTitulo'));
 const linhas = await page.$$eval('#folha .item-extrato', ns=>ns.map(x=>x.textContent.replace(/\s+/g,' ')));
 console.log('   pares:', linhas.length);

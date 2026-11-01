@@ -72,7 +72,7 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 
 const tela = async () => limpo(await page.textContent('#telaInicio'));
 conferir('1. o cartão de transferências apareceu', /Transferências entre contas/.test(await tela()));
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .btn-ouro');
+await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias');
 await page.waitForTimeout(1500);
 
 const linhas = await page.$$eval('#folha .item-extrato', ns => ns.map(x => x.textContent.replace(/\s+/g,' ')));

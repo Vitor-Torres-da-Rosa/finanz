@@ -129,7 +129,7 @@ conferir('2. antes de juntar, o extrato do Inter tem a linha do banco',
 
 // ---- junta o par ----
 await irParaInicio();
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .btn-ouro');
+await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias');
 await page.waitForTimeout(1500);
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1200);
 await page.locator('#dialogoAcoes button').nth(0).click(); await page.waitForTimeout(3500);
