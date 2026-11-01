@@ -139,8 +139,16 @@ await page.evaluate(() => new Promise(res => {
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
 await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(1500);
-const recados = await page.$$eval('#telaInicio .cartao.recado', ns => ns.map(n => n.textContent.replace(/\s+/g,' ').trim()));
+// Os recados moram atrás do "i" do cartão de resumo, não soltos na tela.
+conferir('9a. nenhum recado solto na tela principal',
+  (await page.$$('#telaInicio .cartao.recado')).length === 0);
+conferir('9b. o "i" mostra quantos recados tem',
+  (await page.textContent('#telaInicio .botao-info .selo-num').catch(() => '')) === '2');
+await page.click('#telaInicio .botao-info'); await page.waitForTimeout(900);
+const recados = await page.$$eval('#folha .cartao.recado', ns => ns.map(n => n.textContent.replace(/\s+/g,' ').trim()));
 console.log('recados:', recados);
+await page.screenshot({ path: dir+'/u11-recados-no-i.png' });
+await page.goBack(); await page.waitForTimeout(900);
 conferir('10. avisa o Pix que cai hoje',
   recados.some(t => /Hoje tem Pix caindo na conta: R\$ 300,00 de Gustavo/.test(t)));
 conferir('11. sugere oferecer serviço novo na última parcela',

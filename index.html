@@ -1623,6 +1623,29 @@
   .etiqueta.fora { background: rgba(255,255,255,.05); color: var(--fraco);
                    border: 1px solid var(--borda); display: inline-block; }
   .cartao.recado { padding: 14px 16px; }
+  .cabeca-resumo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .botao-info {
+    position: relative; flex: 0 0 auto; width: 34px; height: 34px; margin: -8px -6px -8px 0;
+    display: grid; place-items: center; border-radius: 50%;
+    background: var(--cartao-2); border: 1px solid var(--borda); color: var(--ouro);
+  }
+  .botao-info svg { width: 20px; height: 20px; }
+  .botao-info:active { background: rgba(233,180,76,.16); }
+  .botao-info .selo-num {
+    position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px; background: var(--ouro); color: #1A1408;
+    font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+  }
+  .previsto-mes {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    width: 100%; margin: 14px 0 8px; padding: 12px 14px; border-radius: 12px; text-align: left;
+    background: rgba(233,180,76,.06); border: 1px solid var(--borda); color: inherit;
+  }
+  .previsto-mes:active { background: rgba(233,180,76,.12); }
+  .previsto-texto { min-width: 0; }
+  .previsto-rotulo { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); }
+  .previsto-sub { font-size: 12px; color: var(--suave); margin-top: 3px; line-height: 1.35; }
+  .previsto-valor { font-size: 18px; font-weight: 700; white-space: nowrap; }
   .recado-topo { display: flex; align-items: flex-start; gap: 9px; }
   .recado-icone { font-size: 16px; line-height: 1.35; }
   .recado-texto { font-size: 13.5px; color: var(--suave); line-height: 1.45; }
@@ -1706,7 +1729,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.27.2';
+  var VERSAO = '5.28.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1715,6 +1738,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.28.0',
+      data: '2026-11-01',
+      itens: [
+        'Empreendedor: no resumo "A receber de todos os clientes" tem agora o "Previsto para o mês" — o que já entrou no mês mais as parcelas em aberto que vencem até o fim dele. Tocando, aparece a lista dessas parcelas, cliente por cliente.',
+        'Os recados dos clientes (Pix que cai hoje, cliente perto de quitar) saíram da tela e foram para o "i" no canto do resumo. O número em cima do "i" diz quantos tem.'
+      ]
+    },
     {
       versao: '5.27.2',
       data: '2026-11-01',
@@ -6623,6 +6654,7 @@
     rota: 'M21 3 3 10.5l7.5 3 3 7.5z',
     calendario: 'M4.5 6.5h15a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1zM8 3.5v5M16 3.5v5M3.5 11h17',
     alerta: 'M12 8.5v5M12 17h.01M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3.1L13.7 3.9a2 2 0 0 0-3.4 0z',
+    info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.8h.01',
     saindo: 'M15 12H3.5M7 8l-4 4 4 4M13 3.5h5.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H13',
     extrato: 'M6 3.5h9L19.5 8v12.5a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1zM14.5 3.5V8h5M8.5 12.5h7M8.5 16h4',
     lixo: 'M5 7h14M10 7V5.5A1.5 1.5 0 0 1 11.5 4h1A1.5 1.5 0 0 1 14 5.5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4L17.5 7'
@@ -8177,6 +8209,89 @@
     return fora.sort(function (a, b) { return a.ordem - b.ordem; });
   }
 
+  function abrirRecadosDosClientes() {
+    abrirFolha('Recados dos clientes', function (folha) {
+      var lista = recadosDosClientes();
+      if (!lista.length) {
+        var vazio = cartao('liso');
+        vazio.appendChild(estadoVazio('Nenhum recado agora',
+          'Aqui aparecem o Pix que cai hoje e os clientes perto de quitar, com o que dá para fazer.'));
+        folha.appendChild(vazio);
+        return;
+      }
+      lista.forEach(function (r) {
+        var cr = cartao('recado tom-' + r.recado.tom);
+        cr.appendChild(juntar(no('div', 'recado-topo'),
+          no('span', 'recado-icone', r.recado.icone),
+          no('span', 'recado-texto', r.recado.texto)));
+        cr.appendChild(botao('btn-acao', (r.ordem === 0 ? 'Ver ' : 'Abrir ') + r.cliente.nome + ' ›', function () {
+          empilhar({ tipo: 'aba', voltar: function () { abrirRecadosDosClientes(); } });
+          abrirFichaCliente(r.cliente.id);
+        }));
+        folha.appendChild(cr);
+      });
+    });
+  }
+
+  // O que entra no mês pelos vencimentos, de todos os clientes. Cliente
+  // apagado não conta: a parcela dele não vai pagar ninguém.
+  function previstoDosClientes(ano, mes) {
+    var prefixo = prefixoMes(ano, mes);
+    var existe = {};
+    estado.clientes.forEach(function (c) { existe[c.id] = true; });
+    var parcelas = estado.parcelas.filter(function (p) {
+      return existe[p.clienteId] && (p.vencimento || '').slice(0, 7) === prefixo && !parcelaPaga(p);
+    }).sort(function (a, b) {
+      return a.vencimento < b.vencimento ? -1 : a.vencimento > b.vencimento ? 1 : 0;
+    });
+    var aVencer = parcelas.reduce(function (s, p) { return s + faltaNaParcela(p); }, 0);
+    var recebido = estado.pagamentos.reduce(function (s, g) {
+      return existe[g.clienteId] && (g.data || '').slice(0, 7) === prefixo ? s + g.valor : s;
+    }, 0);
+    return { parcelas: parcelas, aVencer: aVencer, recebido: recebido, total: aVencer + recebido };
+  }
+
+  function abrirPrevistoDoMes(ano, mes) {
+    abrirFolha('Previsto para ' + MESES[mes], function (folha) {
+      var prev = previstoDosClientes(ano, mes);
+      var topo = cartao();
+      topo.appendChild(no('div', 'rotulo', 'Entrada prevista em ' + MESES[mes] + ' de ' + ano));
+      topo.appendChild(no('div', 'valorao num ouro', emReais(prev.total)));
+      topo.appendChild(no('div', 'linha-nota',
+        emReais(prev.recebido) + ' já recebido no mês · ' + emReais(prev.aVencer) + ' a receber pelos vencimentos.'));
+      folha.appendChild(topo);
+
+      var lista = cartao('liso');
+      var cab = topoDeCartao('Parcelas a vencer', null);
+      cab.style.padding = '16px 16px 0';
+      cab.style.marginBottom = '8px';
+      lista.appendChild(cab);
+      if (!prev.parcelas.length) {
+        lista.appendChild(estadoVazio('Nada em aberto', 'Nenhuma parcela em aberto vence em ' + MESES[mes] + '.'));
+      }
+      var hoje = hojeTexto();
+      prev.parcelas.forEach(function (p) {
+        var c = achar(estado.clientes, p.clienteId);
+        var sv = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
+        var vencida = p.vencimento < hoje;
+        var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
+          empilhar({ tipo: 'aba', voltar: function () { abrirPrevistoDoMes(ano, mes); } });
+          abrirFichaCliente(p.clienteId);
+        });
+        juntar(linha,
+          selo(vencida ? '#FF6B6B' : '#E9B44C', c.nome.charAt(0).toUpperCase()),
+          juntar(no('div', 'linha-texto'),
+            no('div', 'linha-titulo', c.nome),
+            no('div', 'linha-sub', (vencida ? 'Venceu em ' : 'Vence em ') + dataBr(p.vencimento) +
+              ' · parcela ' + p.numero + ' de ' + p.total + (sv ? ' · ' + sv.nome : ''))),
+          juntar(no('div', 'linha-fim'),
+            no('div', 'linha-valor num ' + (vencida ? 'vermelho' : 'ouro'), emReais(faltaNaParcela(p)))));
+        lista.appendChild(linha);
+      });
+      folha.appendChild(lista);
+    });
+  }
+
   function proximoPagamentoGeral() {
     var datas = estado.clientes.filter(function (c) {
       return resumoCliente(c.id).restante > 0;
@@ -9153,7 +9268,15 @@
     var geral = resumoGeralClientes();
 
     var cResumo = cartao();
-    cResumo.appendChild(no('div', 'rotulo', 'A receber de todos os clientes'));
+    // Os recados moram atrás do "i": a tela principal fica com os números
+    // e a lista, e o número no "i" avisa que tem coisa para ver.
+    var recados = recadosDosClientes();
+    var info = botao('botao-info', null, function () { abrirRecadosDosClientes(); });
+    info.setAttribute('aria-label', recados.length ? recados.length + ' recado(s) dos clientes' : 'Recados dos clientes');
+    info.appendChild(icone('info'));
+    if (recados.length) info.appendChild(no('span', 'selo-num', String(recados.length)));
+    cResumo.appendChild(juntar(no('div', 'cabeca-resumo'),
+      no('div', 'rotulo', 'A receber de todos os clientes'), info));
     cResumo.appendChild(no('div', 'valorao num ' + (geral.restante > 0 ? 'ouro' : 'verde'), emReais(geral.restante)));
 
     var barra = no('div', 'barra-dupla');
@@ -9176,6 +9299,21 @@
     });
     cResumo.appendChild(grade);
 
+    // O que entra no mês pelos vencimentos: o já recebido mais as
+    // parcelas em aberto que vencem até o fim dele.
+    var mesPrev = periodo.tipo === 'mes' ? mesAtivo : { ano: new Date().getFullYear(), mes: new Date().getMonth() };
+    var prev = previstoDosClientes(mesPrev.ano, mesPrev.mes);
+    var bPrev = botao('previsto-mes', null, function () { abrirPrevistoDoMes(mesPrev.ano, mesPrev.mes); });
+    var partesPrev = [];
+    if (prev.recebido) partesPrev.push(emReais(prev.recebido) + ' já recebido');
+    if (prev.parcelas.length) partesPrev.push(emReais(prev.aVencer) + ' em ' + prev.parcelas.length + ' parcela(s) a vencer');
+    juntar(bPrev,
+      juntar(no('div', 'previsto-texto'),
+        no('div', 'previsto-rotulo', 'Previsto para ' + MESES[mesPrev.mes]),
+        no('div', 'previsto-sub', partesPrev.length ? partesPrev.join(' · ') : 'Nenhuma parcela vence neste mês')),
+      no('div', 'previsto-valor num ' + (prev.total ? 'ouro' : ''), emReais(prev.total)));
+    cResumo.appendChild(bPrev);
+
     var proxima = proximoPagamentoGeral();
     if (proxima) {
       cResumo.appendChild(no('div', 'linha-nota', 'Próximo pagamento previsto para ' + dataBr(proxima) + '.'));
@@ -9186,19 +9324,6 @@
       cResumo.appendChild(alerta);
     }
     tela.appendChild(cResumo);
-
-    // Os recados vêm antes da lista: são coisas para fazer hoje.
-    recadosDosClientes().slice(0, 4).forEach(function (r) {
-      var cr = cartao('recado tom-' + r.recado.tom);
-      var topo = no('div', 'recado-topo');
-      topo.appendChild(no('span', 'recado-icone', r.recado.icone));
-      topo.appendChild(no('span', 'recado-texto', r.recado.texto));
-      cr.appendChild(topo);
-      var b = botao('btn-acao', (r.ordem === 0 ? 'Ver ' : 'Abrir ') + r.cliente.nome + ' ›',
-        function () { abrirFichaCliente(r.cliente.id); });
-      cr.appendChild(b);
-      tela.appendChild(cr);
-    });
 
     var cClientes = cartao('liso');
     var topo = topoDeCartao('Clientes', '+ Novo', function () { abrirFolhaCliente(null); });
