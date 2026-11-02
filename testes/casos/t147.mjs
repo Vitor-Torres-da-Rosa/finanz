@@ -1,0 +1,136 @@
+// Uber simplificado: fechar o dia com o que o app da Uber mostra.
+//
+// Pedido do Vitor em 03/11/2026: o cronômetro conta o tempo (e dá para
+// corrigir ou excluir), e no fim do dia ele passa ganhos, viagens e tempo
+// online, mais km rodados, média por litro e o preço do litro do dia. O
+// combustível do Uber é km ÷ média × preço; o que abasteceu além disso
+// foi para outra coisa e não entra no lucro.
+import { chromium, dir, ENDERECO } from '../comum.mjs';
+const browser = await chromium.launch();
+const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
+page.on('pageerror', e => console.log('PAGEERROR:', e.message));
+
+let falhas = 0;
+const conferir = (rotulo, ok, achado) => {
+  if (!ok) falhas++;
+  console.log((ok ? 'ok   ' : 'FALHA') + ' · ' + rotulo + (achado === undefined ? '' : ' · ' + achado));
+};
+const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
+const folha = () => page.locator('#folha');
+const tela = async () => limpo(await page.textContent('#telaInicio'));
+const dinheiro = async (loc, digitos) => {
+  await loc.click(); for (let i = 0; i < 12; i++) await loc.press('Backspace');
+  await loc.type(digitos); await page.waitForTimeout(150);
+};
+
+// Relógio parado às 15h de hoje: o dia tem horas de sobra para a jornada,
+// rode o teste a que hora for.
+const agora = new Date(); agora.setHours(15, 0, 0, 0);
+await page.clock.setFixedTime(agora);
+
+await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
+await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
+await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
+await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
+const c = page.locator('.ent-campo input');
+await c.nth(0).fill('Vitor'); await c.nth(1).fill('t147-' + Math.random().toString(36).slice(2) + '-' + process.pid + '@exemplo.com'); await c.nth(3).fill('senha123');
+await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(400);
+await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeout(400);
+await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
+
+// Uma jornada de 2 horas, encerrada agora.
+await page.evaluate(() => new Promise(res => {
+  const sufixo = Math.random().toString(36).slice(2);
+  const fim = Date.now();
+  const dados = { contas: [{ id: 'cc-t147-' + sufixo, nome: 'Banco Inter', tipo: 'Conta corrente', saldoInicial: 0 }],
+                  lancamentos: [],
+                  uberJornadas: [{ id: 'j-t147-' + sufixo, inicio: fim - 2 * 3600 * 1000, fim: fim, pausadoMs: 0, pausaDesde: 0 }] };
+  const f = new File([JSON.stringify({ app: 'finanz', dados })], 'b.json', { type: 'application/json' });
+  const inp = document.getElementById('arquivoRestaurar');
+  const dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files;
+  inp.dispatchEvent(new Event('change'));
+  setTimeout(() => res(true), 900);
+}));
+await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
+await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(900);
+await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
+await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
+
+conferir('1. o cronômetro somou o tempo de hoje', /Tempo de hoje: 2h · editar/.test(await tela()), (await tela()).slice(0, 160));
+
+// ---- corrigir o tempo: 5:04, como no app da Uber ----
+await page.click('#telaInicio .tempo-do-dia'); await page.waitForTimeout(800);
+await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(800);
+const campoTempo = folha().getByLabel('Tempo trabalhado (horas:minutos)');
+await campoTempo.fill('5:04');
+await page.click('#folha .btn-ouro:has-text("Salvar tempo")'); await page.waitForTimeout(900);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+conferir('2. dá para corrigir o tempo trabalhado', /Tempo de hoje: 5h 4min/.test(await tela()), (await tela()).match(/Tempo de hoje[^·]*/)?.[0]);
+
+// ---- fechar o dia pelo "+" ----
+await page.click('#fab'); await page.waitForTimeout(900);
+conferir('3. o "+" abre o fechamento, com o tempo do cronômetro já preenchido',
+  /Fechar o dia/.test(await page.textContent('#folhaTitulo')) &&
+  (await folha().getByLabel('Tempo online (horas:minutos)').inputValue()) === '5:04');
+await dinheiro(folha().locator('.valor-grande'), '25033');
+await folha().locator('.contador-campo').fill('14');
+await folha().getByLabel('Km rodados').fill('120');
+await folha().getByLabel('Média (km/l)').fill('12');
+await dinheiro(folha().getByLabel('Preço do litro hoje'), '600');
+await dinheiro(folha().getByLabel('Abastecido hoje'), '10000');
+const prev = limpo(await folha().locator('.fechamento-resumo').textContent());
+conferir('4. o combustível do Uber sai dos km: 120 ÷ 12 × R$ 6,00 = R$ 60,00',
+  /Combustível do Uber\s*− R\$ 60,00 \(10,0 L\)/.test(prev) && /Lucro do dia\s*R\$ 190,33/.test(prev), prev);
+conferir('5. o que abasteceu além disso não entra no lucro',
+  /R\$ 40,00 do abastecimento foram para outros usos/.test(prev));
+await page.screenshot({ path: dir + '/z44-fechar-o-dia.png', fullPage: true });
+await page.click('#folha .btn-ouro:has-text("Salvar o dia")'); await page.waitForTimeout(1200);
+
+let hoje = await tela();
+conferir('6. Hoje mostra o dia fechado',
+  /Corridas\s*14/.test(hoje) && /Distância\s*120,0 km/.test(hoje) && /Faturamento\s*R\$ 250,33/.test(hoje) &&
+  /Gastos\s*R\$ 60,00/.test(hoje) && /Lucro líquido\s*R\$ 190,33/.test(hoje), hoje.slice(0, 400));
+conferir('7. ganho por hora usa o tempo online (R$ 250,33 em 5h04)', /Ganho por hora\s*R\$ 49,41/.test(hoje),
+  (hoje.match(/Ganho por hora\s*\S+ \S+/) || [''])[0]);
+conferir('8. o botão vira "Editar o fechamento de hoje"', /Editar o fechamento de hoje/.test(hoje));
+await page.screenshot({ path: dir + '/z45-uber-dia-fechado.png', fullPage: true });
+
+// ---- abastecimento lançado no dia fechado não vira gasto ----
+await page.click('#telaInicio .abas-modulo button:has-text("Gastos")'); await page.waitForTimeout(800);
+await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
+await folha().getByLabel('Litros').fill('20');
+await dinheiro(folha().getByLabel('Preço por litro'), '500');
+await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(800);
+hoje = await tela();
+conferir('9. abastecer R$ 100,00 no dia fechado não muda o gasto', /Gastos\s*R\$ 60,00/.test(hoje), (hoje.match(/Gastos\s*\S+ \S+/) || [''])[0]);
+
+// ---- o histórico guarda o dia com o preço do litro ----
+await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .linha >> nth=0'); await page.waitForTimeout(900);
+const reg = limpo(await folha().textContent());
+conferir('10. no histórico o dia aparece com viagens, tempo, km e o preço do litro',
+  /14 viagens/.test(reg) && /5:04 online · 120,0 km · litro R\$ 6,00/.test(reg), reg.slice(0, 200));
+
+// ---- recarregar mantém tudo ----
+await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3500);
+await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {}); await page.waitForTimeout(800);
+if (!(await page.locator('#telaInicio .modulo-cabecalho').count())) { await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900); }
+await page.click('#telaInicio .abas-modulo button:has-text("Hoje")').catch(() => {}); await page.waitForTimeout(800);
+hoje = await tela();
+conferir('11. recarregando, o fechamento continua', /Faturamento\s*R\$ 250,33/.test(hoje) && /Lucro líquido\s*R\$ 190,33/.test(hoje));
+
+// ---- excluir a jornada ----
+await page.click('#telaInicio .tempo-do-dia'); await page.waitForTimeout(800);
+await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(800);
+await page.click('#folha .btn-perigo:has-text("Excluir a jornada")'); await page.waitForTimeout(600);
+await page.click('#dialogoAcoes button:has-text("Excluir")'); await page.waitForTimeout(1000);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+hoje = await tela();
+conferir('12. dá para excluir a jornada; o dia fechado continua com o tempo dele',
+  !/Tempo de hoje/.test(hoje) && /Ganho por hora\s*R\$ 49,41/.test(hoje), (hoje.match(/Ganho por hora\s*\S+ \S+/) || [''])[0]);
+
+await browser.close();
+if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
+console.log('\ntudo certo: fechar o dia do Uber');

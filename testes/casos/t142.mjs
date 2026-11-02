@@ -64,23 +64,30 @@ conferir('3. pausado, o relógio para', /Jornada pausada/.test(await tela()) && 
 await page.click('#telaInicio button:has-text("Retomar")'); await page.waitForTimeout(500);
 
 // ---- duas corridas: R$ 50 em 12 km e R$ 40 em 8 km (o "+" do módulo) ----
+// Desde a 5.37.0 o "+" do Uber fecha o dia; a corrida avulsa tem botão.
 await page.click('#fab'); await page.waitForTimeout(900);
-conferir('4. o "+" do Uber abre a corrida', /Nova corrida/.test(await page.textContent('#folhaTitulo')));
+const tituloFab = await page.textContent('#folhaTitulo');
+await page.goBack(); await page.waitForTimeout(700);
+await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
+conferir('4. o "+" fecha o dia e "Corrida avulsa" abre a corrida',
+  /Fechar o dia/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
 await dinheiro(folha().locator('.valor-grande'), '5000');
 await folha().getByLabel('Distância (km)').fill('12');
 await page.click('#folha .btn-ouro:has-text("Salvar corrida")'); await page.waitForTimeout(900);
-await page.click('#telaInicio button:has-text("+ Corrida")'); await page.waitForTimeout(900);
+await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
 await dinheiro(folha().locator('.valor-grande'), '4000');
 await folha().getByLabel('Distância (km)').fill('8');
 await page.click('#folha .chip:has-text("99")'); await page.waitForTimeout(150);
 await page.click('#folha .btn-ouro:has-text("Salvar corrida")'); await page.waitForTimeout(900);
 
 // ---- abastecimento: 10 L a R$ 5,00 ----
-await page.click('#telaInicio button:has-text("Abastecimento")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Gastos")'); await page.waitForTimeout(800);
+await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
 await folha().getByLabel('Litros').fill('10');
 await dinheiro(folha().getByLabel('Preço por litro'), '500');
 conferir('5. o abastecimento calcula o total', /Total do abastecimento\s*R\$ 50,00/.test(limpo(await folha().textContent())));
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(800);
 
 // ---- lavagem: R$ 15 ----
 await page.click('#telaInicio button:has-text("Outras despesas")'); await page.waitForTimeout(900);

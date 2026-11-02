@@ -40,7 +40,7 @@ await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); awai
 await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
 
 // ---- corrida do aplicativo: nada de data de pagamento ----
-await page.click('#fab'); await page.waitForTimeout(900);
+await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
 conferir('1. corrida de aplicativo não pede data de pagamento',
   !(await folha().getByLabel('Data do pagamento').isVisible()));
 await page.click('#folha .chip:has-text("Particular")'); await page.waitForTimeout(200);
@@ -82,7 +82,7 @@ await page.screenshot({ path: dir + '/z39-cobranca-criada.png', fullPage: true }
 for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
 await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
-await page.click('#fab'); await page.waitForTimeout(900);
+await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
 conferir('7. a próxima corrida já vem em Particular', (await page.$eval('#folha .chip[aria-pressed="true"], #folha .chip.ativo', b => b.textContent).catch(() => '')).includes('Particular'));
 await dinheiro(folha().locator('.valor-grande'), '3000');
 await folha().getByLabel('Data do pagamento').fill(depois);
