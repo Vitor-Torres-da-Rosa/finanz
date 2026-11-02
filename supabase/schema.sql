@@ -233,6 +233,8 @@ create table if not exists public.servicos (
   valor         bigint      not null check (valor > 0),
   data          date        not null,
   obs           text        not null default '',
+  -- O que saiu do bolso para este registro: lista de {nome, valor}.
+  despesas      jsonb       not null default '[]' check (jsonb_typeof(despesas) = 'array'),
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   excluido_em   timestamptz

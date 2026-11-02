@@ -2091,6 +2091,18 @@
   .kpi.kpi-tile .kpi-extra { border-top-color: rgba(233,180,76,.16); }
   .kpi-analises .variacao { color: var(--suave); font-weight: 500; }
 
+  /* Despesas do registro */
+  .cartao-despesas .cartao-topo { margin-bottom: 8px; }
+  .despesa-linha { display: grid; grid-template-columns: 1fr 118px 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .despesa-linha .entrada { padding-left: 12px; padding-right: 10px; min-width: 0; }
+  .despesa-tirar { width: 36px; height: 36px; border-radius: 50%; color: var(--vermelho); font-size: 15px;
+    background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.25); }
+  .botao-despesa { margin-top: 4px; }
+  .resumo-lucro { margin: 12px 0 0; }
+  .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
+  .despesa-lucro .r { font-size: 11px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .despesa-lucro .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
   /* Transferências: título, valor e a pílula. */
   .transf-corpo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
   .transf-corpo .valorao { margin: 0; }
@@ -2194,7 +2206,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.31.0';
+  var VERSAO = '5.32.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2203,6 +2215,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.32.0',
+      data: '2026-11-02',
+      itens: [
+        'Venda ou serviço agora tem a parte de Despesas: o custo do produto, peças, material, frete. Dá para pôr quantas quiser, e o app mostra o lucro enquanto você digita.',
+        'O lucro aparece em cada registro (na ficha do cliente e nas listas), no resumo de Serviços e Vendas e no painel do Empreendedor, que agora desconta essas despesas.',
+        'Orçamento aceito que vira registro já leva o material e os outros custos como despesas.'
+      ]
+    },
     {
       versao: '5.31.0',
       data: '2026-11-01',
@@ -4090,6 +4111,7 @@
           valor: inteiro(s.valor),
           data: soData(s.data),
           obs: texto(s.obs).slice(0, 200),
+          despesas: limparDespesas(s.despesas),
           criadoEm: inteiro(s.criadoEm) || Date.now()
         };
       });
@@ -4259,6 +4281,19 @@
     limparModulos(bruto, limpo);
     arrumarCategorias(limpo);
     return limpo;
+  }
+
+  // O que saiu do bolso para fazer uma venda ou um serviço.
+  function limparDespesas(lista) {
+    return (Array.isArray(lista) ? lista : []).filter(function (d) {
+      return d && typeof d === 'object' && inteiro(d.valor) > 0;
+    }).map(function (d) {
+      return { nome: texto(d.nome).slice(0, 40) || 'Despesa', valor: inteiro(d.valor) };
+    }).slice(0, 30);
+  }
+
+  function custoDoRegistro(s) {
+    return (s.despesas || []).reduce(function (t, d) { return t + (d.valor || 0); }, 0);
   }
 
   // Uber e Doces. Cada lista guarda só os campos conhecidos, com os tipos
@@ -5170,7 +5205,8 @@
         return vivo({
           id: s.id, user_id: uid, cliente_id: s.clienteId, nome: s.nome,
           tipo: s.tipo || 'Serviço',
-          valor: s.valor, data: s.data, obs: s.obs
+          valor: s.valor, data: s.data, obs: s.obs,
+          despesas: s.despesas || []
         });
       }),
       parcelas: estado.parcelas.map(function (p) {
@@ -5336,6 +5372,7 @@
   // trás. O envio tenta de novo sem elas e segue a vida.
   var COLUNAS_OPCIONAIS = {
     lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
+    servicos: ['despesas'],
     contas: ['limite']
   };
 
@@ -5653,6 +5690,12 @@
                limite: c.limite || 0 };
     });
 
+    // Campo novo que o servidor ainda não tem (a migração não rodou) não
+    // vem na linha: aí vale o que está no aparelho, em vez de sumir.
+    var lancLocal = {}, servLocal = {};
+    (estado.lancamentos || []).forEach(function (l) { lancLocal[l.id] = l; });
+    (estado.servicos || []).forEach(function (x) { servLocal[x.id] = x; });
+
     novo.lancamentos = (r.lancamentos || []).map(function (l) {
       return {
         id: l.id, tipo: l.tipo, valor: l.valor, descricao: l.descricao || '',
@@ -5660,7 +5703,7 @@
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
         dataDestino: l.data_destino || '',
         parTransferencia: l.par_transferencia || '',
-        grupo: l.grupo || '',
+        grupo: 'grupo' in l ? (l.grupo || '') : ((lancLocal[l.id] || {}).grupo || ''),
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
       };
@@ -5700,6 +5743,7 @@
       return {
         id: s.id, clienteId: s.cliente_id, nome: s.nome, tipo: s.tipo || 'Serviço',
         valor: s.valor, data: s.data, obs: s.obs || '',
+        despesas: 'despesas' in s ? (s.despesas || []) : ((servLocal[s.id] || {}).despesas || []),
         criadoEm: Date.parse(s.criado_em) || Date.now()
       };
     });
@@ -10314,6 +10358,7 @@
     estado.servicos.forEach(function (s) {
       if (s.data < de || s.data > ate) return;
       r.faturamento += s.valor;
+      r.despesas += custoDoRegistro(s);
       if (ehAcrescimoDeParcelamento(s)) return;
       if (s.tipo === 'Venda') { r.vendas += s.valor; r.nVendas += 1; } else r.nServicos += 1;
     });
@@ -10519,6 +10564,11 @@
     c.appendChild(no('div', 'rotulo', 'Faturamento de ' + MESES[mesAtivo.mes]));
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
     c.appendChild(variacao(n.faturamento, nAnt.faturamento));
+    var dl = no('div', 'despesa-lucro');
+    juntar(dl,
+      juntar(no('div'), no('div', 'r', 'Despesas'), no('div', 'v num vermelho', emReais(n.despesas))),
+      juntar(no('div'), no('div', 'r', 'Lucro'), no('div', 'v num ' + (n.lucro < 0 ? 'vermelho' : 'verde'), emReais(n.lucro))));
+    c.appendChild(dl);
     var serie = serieDeFaturamento(janelaServicos);
     var g = graficoArea(serie, '#E9B44C');
     g.classList.add('grafico-animado');
@@ -10612,12 +10662,13 @@
     var cliente = achar(estado.clientes, s.clienteId);
     var pago = pagoNoRegistro(s) >= s.valor;
     var tipo = s.tipo || 'Serviço';
+    var custo = custoDoRegistro(s);
     return linhaSimples({
       titulo: s.nome,
       sub: (cliente ? cliente.nome + ' · ' : '') + dataBr(s.data) + ' · ' + tipo,
       valor: emReais(s.valor),
-      nota: pago ? '✓ pago' : '',
-      corNota: 'verde',
+      nota: [pago ? '✓ pago' : '', custo ? 'lucro ' + emReais(s.valor - custo) : ''].filter(Boolean).join(' · '),
+      corNota: custo && s.valor - custo < 0 ? 'vermelho' : 'verde',
       selo: seloIcone(tipo === 'Venda' ? 'pacote' : 'ferramenta', tipo === 'Venda' ? '#60A5FA' : '#E9B44C'),
       aoTocar: function () { abrirFolhaServico(s.clienteId, s.id); }
     });
@@ -12641,6 +12692,8 @@
             var total = s.valor + (extra ? extra.valor : 0);
             var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
             if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
+            var custoS = custoDoRegistro(s);
+            if (custoS) sub += ' · lucro ' + emReais(total - custoS);
 
             var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
             juntar(linha,
@@ -14214,7 +14267,10 @@
             var servico = {
               id: novoId(), clienteId: p.clienteId, nome: p.titulo, tipo: 'Serviço',
               valor: t.total, data: hojeTexto(),
-              obs: 'Do orçamento nº ' + ('000' + p.numero).slice(-4), criadoEm: Date.now()
+              obs: 'Do orçamento nº ' + ('000' + p.numero).slice(-4), criadoEm: Date.now(),
+              // O material e os outros custos do orçamento são o que vai sair
+              // do bolso: entram como despesas do registro.
+              despesas: limparDespesas((p.materiais || []).concat(p.outros || []))
             };
             estado.servicos.push(servico);
             p.servicoId = servico.id;
@@ -14272,9 +14328,11 @@
       tipo: existente ? (existente.tipo || TIPO_PADRAO) : TIPO_PADRAO,
       nome: existente ? existente.nome : '',
       data: existente ? existente.data : hojeTexto(),
-      obs: existente ? existente.obs : ''
+      obs: existente ? existente.obs : '',
+      despesas: existente ? (existente.despesas || []) : []
     };
     var tipoEscolhido = base.tipo;
+    var despesas = (base.despesas || []).map(function (d) { return { nome: d.nome, valor: d.valor }; });
 
     abrirFolha(existente ? 'Editar registro' : 'Nova venda ou serviço', function (folha) {
       var forma = no('div');
@@ -14319,7 +14377,8 @@
           tipo: tipoEscolhido,
           nome: campoNome.value,
           data: campoData.value,
-          obs: campoObs.value
+          obs: campoObs.value,
+          despesas: despesas
         };
         abrirGerenciarTipos(function (novo) {
           guardado.tipo = novo || guardado.tipo;
@@ -14345,6 +14404,54 @@
       ficha.appendChild(linhaDeCartao('Realizado em', campoData));
       ficha.appendChild(linhaDeCartao('Observação', campoObs));
 
+      // ---- despesas: o que saiu do bolso para este registro ----
+      var cDesp = cartao('cartao-despesas');
+      forma.appendChild(cDesp);
+      var resumoLucro = null;
+      function pintarLucro() {
+        if (!resumoLucro) return;
+        var total = despesas.reduce(function (t, d) { return t + (d.valor || 0); }, 0);
+        var recebe = digitosParaCentavos(campoValorEl.value) + (extra ? extra.valor : 0);
+        resumoLucro.textContent = '';
+        juntar(resumoLucro,
+          juntar(no('div', 'resumo-linha'), no('span', null, 'Total de despesas'), no('strong', 'num vermelho', emReais(total))),
+          juntar(no('div', 'resumo-linha resumo-total'), no('span', null, 'Lucro'),
+            no('strong', 'num ' + (recebe - total < 0 ? 'vermelho' : 'verde'), emReais(recebe - total))));
+      }
+      function pintarDespesas(focarUltima) {
+        cDesp.textContent = '';
+        cDesp.appendChild(topoDeCartao('Despesas', null, null, 'pagar'));
+        if (!despesas.length) {
+          cDesp.appendChild(no('p', 'ajuda',
+            'O que saiu do seu bolso para esta venda ou serviço: o custo do produto, peças, material, frete. O app desconta do lucro.'));
+        }
+        var ultimoNome = null;
+        despesas.forEach(function (d, i) {
+          var linha = no('div', 'despesa-linha');
+          var nome = entradaTexto(d.nome, 'Ex.: Custo do aparelho', 40);
+          nome.setAttribute('aria-label', 'Despesa ' + (i + 1));
+          nome.addEventListener('input', function () { d.nome = nome.value; });
+          var val = entradaValor(d.valor, false);
+          val.setAttribute('aria-label', 'Valor da despesa ' + (i + 1));
+          val.addEventListener('input', function () { d.valor = digitosParaCentavos(val.value); pintarLucro(); });
+          var tirar = botao('despesa-tirar', '✕', function () { despesas.splice(i, 1); pintarDespesas(); });
+          tirar.setAttribute('aria-label', 'Tirar esta despesa');
+          juntar(linha, nome, val, tirar);
+          cDesp.appendChild(linha);
+          ultimoNome = nome;
+        });
+        cDesp.appendChild(botao('btn btn-fantasma botao-despesa', '+ Adicionar despesa', function () {
+          despesas.push({ nome: '', valor: 0 });
+          pintarDespesas(true);
+        }));
+        resumoLucro = no('div', 'resumo-entrega resumo-lucro');
+        cDesp.appendChild(resumoLucro);
+        pintarLucro();
+        if (focarUltima && ultimoNome) setTimeout(function () { ultimoNome.focus(); }, 50);
+      }
+      pintarDespesas();
+      campoValorEl.addEventListener('input', pintarLucro);
+
       if (extra) {
         ficha.appendChild(no('div', 'linha-nota ouro',
           'O acréscimo veio do parcelamento. Para mexer nele, refaça o combinado das parcelas.'));
@@ -14366,16 +14473,21 @@
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
 
         var novoServicoId = existente ? existente.id : novoId();
+        var despesasLimpas = limparDespesas(despesas.map(function (d) {
+          return { nome: String(d.nome || '').trim(), valor: d.valor };
+        }));
         if (existente) {
           existente.nome = nome;
           existente.tipo = tipoEscolhido;
           existente.valor = valor;
           existente.data = campoData.value;
           existente.obs = campoObs.value.trim();
+          existente.despesas = despesasLimpas;
         } else {
           estado.servicos.push({
             id: novoServicoId, clienteId: clienteId, nome: nome, tipo: tipoEscolhido,
-            valor: valor, data: campoData.value, obs: campoObs.value.trim(), criadoEm: Date.now()
+            valor: valor, data: campoData.value, obs: campoObs.value.trim(),
+            despesas: despesasLimpas, criadoEm: Date.now()
           });
         }
         salvar();

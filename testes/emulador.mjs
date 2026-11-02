@@ -248,7 +248,7 @@ const servidor = http.createServer(async (req, res) => {
             const sql = `insert into public."${tabela}" (${cols}) values (${marc})` +
               (set ? ` on conflict (${alvo}) do update set ${set}` : ` on conflict (${alvo}) do nothing`);
             // Colunas jsonb querem o JSON como texto; text[] vai como array mesmo.
-            const JSONB = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados'];
+            const JSONB = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados'];
             await c.query(sql, colunas.map((k) => {
               const v = reg[k];
               return (JSONB.includes(k) && v && typeof v === 'object') ? JSON.stringify(v) : v;
