@@ -2111,6 +2111,7 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .sub-produtos { margin-bottom: 14px; }
   .item-entrega { font-size: 12.5px; color: var(--suave); margin: -2px 0 6px; }
   /* Contas do mês (radar). */
   .contas-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 10px; }
@@ -2271,7 +2272,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.39.0';
+  var VERSAO = '5.40.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2280,6 +2281,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.40.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: Fornecedor, dentro da aba Produtos. Registre cada compra (doce, quantidade, quanto pagou e de quem) e veja o custo de cada unidade, o gasto do mês e o seu estoque: o que comprou, menos o que está com os vendedores, mais o que eles devolveram.',
+        'A compra pode atualizar o valor de compra do produto, e é com ele que o app calcula o seu lucro em cada doce vendido.'
+      ]
+    },
     {
       versao: '5.39.0',
       data: '2026-11-03',
@@ -3820,6 +3829,7 @@
       doceEntregas: [],
       doceAcertos: [],
       docePagamentos: [],
+      doceCompras: [],
       excluidos: []
     };
   }
@@ -4543,6 +4553,14 @@
                valor: positivo(g.valor), acertoId: texto(g.acertoId),
                obs: texto(g.obs).slice(0, 200), criadoEm: marca(g.criadoEm) || Date.now() };
     }).filter(function (g) { return g.vendedorId && g.valor > 0; });
+
+    // Compras do fornecedor: a entrada no seu estoque e quanto custou.
+    limpo.doceCompras = lista('doceCompras').map(function (x) {
+      return { id: x.id, produtoId: texto(x.produtoId), quantidade: positivo(x.quantidade),
+               valor: positivo(x.valor), fornecedor: texto(x.fornecedor).slice(0, 60),
+               data: soData(x.data) || hojeTexto(), obs: texto(x.obs).slice(0, 200),
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.produtoId && x.quantidade > 0; });
   }
 
   // Passa os dados da lista antiga de categorias para os dois andares.
@@ -5297,7 +5315,7 @@
   var MODULOS_NA_NUVEM = {
     uber_jornada: 'uberJornadas', uber_registro: 'uberRegistros',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
-    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos'
+    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -9422,7 +9440,7 @@
   function desenharInicio() {
     var tela = $('telaInicio');
     marcarRedesenho(tela, [abaInicio, moduloEmp, abaServicos, janelaServicos, filtroRegistros,
-      abaUber, abaGastosUber, abaDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
+      abaUber, abaGastosUber, abaDoces, abaProdutosDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
     tela.textContent = '';
 
     // O extrato das contas fica pronto só enquanto a Visão geral está
@@ -12283,7 +12301,16 @@
     corpo.appendChild(hist);
   }
 
+  // Produtos e Fornecedor dividem a aba: as quatro de cima já ocupam a
+  // linha inteira, e a compra é do mesmo assunto que o produto.
+  var abaProdutosDoces = 'produtos';
+
   function desenharProdutosDoces(corpo) {
+    var sub = segmentos([{ valor: 'produtos', rotulo: 'Produtos' }, { valor: 'fornecedor', rotulo: 'Fornecedor' }],
+      abaProdutosDoces, function (v) { if (v === abaProdutosDoces) return; abaProdutosDoces = v; desenharInicio(); });
+    sub.classList.add('segmentos-pequenos', 'sub-produtos');
+    corpo.appendChild(sub);
+    if (abaProdutosDoces === 'fornecedor') { desenharFornecedorDoces(corpo); return; }
     var acoes = no('div', 'acoes acoes-topo');
     acoes.appendChild(botao('btn btn-ouro', '+ Novo produto', function () { abrirFolhaProduto(null); }));
     corpo.appendChild(acoes);
@@ -12301,6 +12328,165 @@
       }));
     });
     corpo.appendChild(lista);
+  }
+
+  // ---------- Fornecedor: compras e o seu estoque ----------
+
+  // O que está com você: o que comprou, menos o que entregou aos
+  // vendedores, mais o que eles devolveram.
+  function meuEstoqueDoce(produtoId) {
+    var t = 0;
+    estado.doceCompras.forEach(function (x) { if (x.produtoId === produtoId) t += x.quantidade; });
+    estado.doceEntregas.forEach(function (e) { if (e.produtoId === produtoId) t -= e.quantidade; });
+    estado.doceAcertos.forEach(function (a) {
+      a.itens.forEach(function (i) { if (i.produtoId === produtoId) t += i.devolvidos; });
+    });
+    return t;
+  }
+
+  function desenharFornecedorDoces(corpo) {
+    var acoes = no('div', 'acoes acoes-topo');
+    acoes.appendChild(botao('btn btn-ouro', '+ Nova compra', function () { abrirFolhaCompraDoce(null); }));
+    corpo.appendChild(acoes);
+
+    var f = faixaDoMesAtivo();
+    var doMes = estado.doceCompras.filter(function (x) { return x.data >= f.de && x.data <= f.ate; });
+    var gasto = doMes.reduce(function (t, x) { return t + x.valor; }, 0);
+    var un = doMes.reduce(function (t, x) { return t + x.quantidade; }, 0);
+    var cm = cartao();
+    cm.appendChild(topoDeCartao('Compras de ' + MESES[mesAtivo.mes], null));
+    cm.appendChild(gradeDeTiles([
+      tile('Gasto em compras', emReais(gasto), 'vermelho'),
+      tile('Unidades', String(un), '')
+    ], 2));
+    cm.appendChild(no('div', 'linha-nota', 'O lucro dos doces já desconta o valor de compra de cada unidade vendida, então a compra não entra de novo como despesa.'));
+    corpo.appendChild(cm);
+
+    var comCompra = {};
+    estado.doceCompras.forEach(function (x) { comCompra[x.produtoId] = true; });
+    var ids = Object.keys(comCompra);
+    if (ids.length) {
+      var ce = cartao('liso');
+      var t1 = topoDeCartao('Seu estoque', null);
+      t1.style.padding = '16px 16px 0'; t1.style.marginBottom = '8px';
+      ce.appendChild(t1);
+      ids.forEach(function (pid) {
+        var q = meuEstoqueDoce(pid);
+        ce.appendChild(linhaSimples({
+          titulo: nomeDoProduto(pid),
+          sub: 'com você agora',
+          valor: q + ' un.', cor: q < 0 ? 'vermelho' : '',
+          selo: seloIcone('pacote', '#E9B44C')
+        }));
+      });
+      corpo.appendChild(ce);
+    }
+
+    var lista = cartao('liso');
+    var t2 = topoDeCartao('Compras', null);
+    t2.style.padding = '16px 16px 0'; t2.style.marginBottom = '8px';
+    lista.appendChild(t2);
+    var todas = estado.doceCompras.slice().sort(function (a, b) {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return b.criadoEm - a.criadoEm;
+    });
+    if (!todas.length) lista.appendChild(estadoVazio('Nenhuma compra ainda', 'Registre cada compra do fornecedor: o doce, a quantidade e quanto pagou.'));
+    todas.slice(0, 200).forEach(function (x) {
+      lista.appendChild(linhaSimples({
+        titulo: nomeDoProduto(x.produtoId) + ' · ' + x.quantidade + ' un.',
+        sub: dataBr(x.data) + (x.fornecedor ? ' · ' + x.fornecedor : '') + ' · ' + emReais(Math.round(x.valor / x.quantidade)) + ' cada',
+        valor: '− ' + emReais(x.valor), cor: 'vermelho',
+        selo: seloIcone('pacote', '#FF6B6B'),
+        aoTocar: function () { abrirFolhaCompraDoce(x.id); }
+      }));
+    });
+    corpo.appendChild(lista);
+  }
+
+  var ultimoFornecedor = '';
+
+  function abrirFolhaCompraDoce(id) {
+    var x = id ? achar(estado.doceCompras, id) : null;
+    var produtos = estado.doceProdutos.filter(function (p) { return p.ativo || (x && p.id === x.produtoId); });
+    if (!produtos.length) {
+      avisarCaixa('Cadastre o doce primeiro', 'A compra é de um produto: cadastre ele em Produtos e volte aqui.', function () {});
+      return;
+    }
+    var d = { produtoId: x ? x.produtoId : produtos[0].id, quantidade: x ? x.quantidade : 0 };
+    abrirFolha(x ? 'Editar compra' : 'Nova compra', function (folha) {
+      var forma = no('div', 'forma');
+      var valor = entradaValor(x ? x.valor : 0, true);
+      forma.appendChild(campo('Valor pago', valor));
+      var selP = entradaSelecao(produtos.map(function (p) {
+        return { valor: p.id, rotulo: p.nome, detalhe: p.custo ? 'compra ' + emReais(p.custo) + ' cada' : '' };
+      }), d.produtoId, 'Doce');
+      selP.aoMudar = function (v) { d.produtoId = v; pintar(); };
+      forma.appendChild(campo('Doce', selP));
+      var qtd = contadorDigitavel(d.quantidade, function (v) { d.quantidade = v; pintar(); });
+      forma.appendChild(campo('Quantidade comprada', qtd));
+      var forn = entradaTexto(x ? x.fornecedor : ultimoFornecedor, 'Ex.: Atacadão', 60);
+      forma.appendChild(campo('Fornecedor (opcional)', forn));
+      var data = entradaData(x ? x.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var obs = entradaTexto(x ? x.obs : '', 'Ex.: nota 1234', 200);
+      forma.appendChild(campo('Observação (opcional)', obs));
+
+      var atualizar = true;
+      var resumo = no('div', 'total-calculado');
+      forma.appendChild(resumo);
+      var marcar = botao('lembrar', null, function () {
+        atualizar = !atualizar;
+        marcar.setAttribute('aria-pressed', atualizar ? 'true' : 'false');
+        marcar.querySelector('.caixinha').textContent = atualizar ? '✓' : '';
+      });
+      marcar.setAttribute('aria-pressed', 'true');
+      marcar.appendChild(no('span', 'caixinha', '✓'));
+      var textoMarcar = no('span', null, '');
+      marcar.appendChild(textoMarcar);
+      forma.appendChild(marcar);
+
+      function pintar() {
+        var v = digitosParaCentavos(valor.value), q = d.quantidade;
+        var cada = q ? Math.round(v / q) : 0;
+        resumo.textContent = '';
+        juntar(resumo, no('span', null, 'Custo de cada unidade'), no('strong', 'num', q ? emReais(cada) : '—'));
+        var p = achar(estado.doceProdutos, d.produtoId);
+        textoMarcar.textContent = 'Usar ' + (q ? emReais(cada) : 'esse valor') + ' como valor de compra de ' + (p ? p.nome : 'o doce');
+      }
+      valor.addEventListener('input', pintar);
+      pintar();
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', x ? 'Salvar compra' : 'Registrar compra', function () {
+        var v = digitosParaCentavos(valor.value);
+        if (v <= 0) { mostrarErro(forma, 'Informe quanto pagou.'); return; }
+        if (d.quantidade <= 0) { mostrarErro(forma, 'Informe quantas unidades comprou.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        var reg = x || { id: novoId(), criadoEm: Date.now() };
+        reg.produtoId = d.produtoId; reg.quantidade = d.quantidade; reg.valor = v;
+        reg.fornecedor = forn.value.trim().slice(0, 60); reg.data = data.value; reg.obs = obs.value.trim().slice(0, 200);
+        if (!x) estado.doceCompras.push(reg);
+        ultimoFornecedor = reg.fornecedor;
+        var p = achar(estado.doceProdutos, reg.produtoId);
+        if (atualizar && p) p.custo = Math.round(v / d.quantidade);
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar(x ? 'Compra atualizada.' : 'Compra registrada: ' + reg.quantidade + ' un. de ' + nomeDoProduto(reg.produtoId) + '.');
+      }));
+      if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
+        perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + x.quantidade + ' un.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', x.id);
+          estado.doceCompras = estado.doceCompras.filter(function (y) { return y.id !== x.id; });
+          salvar();
+          fecharFolha();
+          desenhar();
+          avisar('Compra excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
   }
 
   // Entregas, acertos e pagamentos numa linha do tempo só.
