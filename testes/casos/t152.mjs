@@ -110,6 +110,27 @@ await irParaProdutos(esposa);
 telaE = limpo(await esposa.textContent('#telaInicio'));
 conferir('6. o que ele cadastra aparece para ela', /Cocada do Vitor/.test(telaE));
 
+// ---- ajuste de estoque precisa do sócio ----
+await esposa.click('#telaInicio .linha:has-text("Cocada do Vitor")'); await esposa.waitForTimeout(800);
+await esposa.click('#folha button:has-text("Ajustar estoque")'); await esposa.waitForTimeout(800);
+await esposa.locator('#folha .contador-campo').fill('10');
+await esposa.locator('#folha input[placeholder^="Ex.: contagem"]').fill('contei em casa');
+await esposa.click('#folha .btn-ouro:has-text("Pedir confirmação")'); await esposa.waitForTimeout(1000);
+for (let i = 0; i < 3 && await esposa.locator('#folha.aberta').count(); i++) { await esposa.goBack(); await esposa.waitForTimeout(600); }
+telaE = limpo(await esposa.textContent('#telaInicio'));
+conferir('6a. o pedido dela fica esperando, sem mudar o estoque',
+  /Ajustes de estoque para confirmar.*Cocada do Vitor · \+10 un\..*você pediu.*esperando/.test(telaE) && /Cocada do Vitor\s*Estoque 0 un\./.test(telaE), telaE.slice(0, 260));
+await sincronizar(esposa);
+await reabrir(vitor);
+await irParaProdutos(vitor);
+let tv = limpo(await vitor.textContent('#telaInicio'));
+conferir('6b. ele vê o pedido dela para confirmar', /Cocada do Vitor · \+10 un\..*Daniela pediu · contei em casa\s*confirmar/.test(tv), tv.slice(0, 260));
+await vitor.click('#telaInicio .cartao-ajustes .linha:has-text("Cocada do Vitor")'); await vitor.waitForTimeout(700);
+await vitor.click('#escolhaLista .escolha-item:has-text("Confirmar")'); await vitor.waitForTimeout(1000);
+tv = limpo(await vitor.textContent('#telaInicio'));
+conferir('6c. confirmado, entra no estoque', !/Ajustes de estoque para confirmar/.test(tv) && /Cocada do Vitor\s*Estoque 10 un\./.test(tv), tv.slice(0, 200));
+await sincronizar(vitor);
+
 // ---- ela sai: o dela volta, o dele fica com ele ----
 await esposa.click('#navegacao button:has-text("Mais")'); await esposa.waitForTimeout(900);
 await esposa.click('#telaMais .linha:has-text("Compartilhar")'); await esposa.waitForTimeout(1500);

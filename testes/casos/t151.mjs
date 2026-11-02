@@ -64,7 +64,7 @@ await page.screenshot({ path: dir + '/z49-fornecedor.png', fullPage: true });
 
 // O valor de compra do produto passou a ser R$ 1,50.
 await page.click('#telaInicio .sub-produtos button:has-text("Produtos")'); await page.waitForTimeout(600);
-conferir('5. o produto ganhou o valor de compra da compra', /Compra R\$ 1,50/.test(await tela()));
+conferir('5. o produto ganhou o valor de compra da compra', /compra R\$ 1,50/i.test(await tela()));
 
 // Entrega de 30 para a Daniela: o seu estoque cai para 70.
 await page.click('#fab'); await page.waitForTimeout(900);
@@ -73,6 +73,33 @@ await page.click('#folha .btn-ouro:has-text("Registrar entrega")'); await page.w
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
 await page.click('#telaInicio .sub-produtos button:has-text("Fornecedor")'); await page.waitForTimeout(700);
 conferir('6. entregando 30, ficam 70 com você', /Seu estoque.*Pote de vidro.*70 un\./.test(await tela()));
+
+// ---- Entregas: uma linha por vendedor (03/11/2026) ----
+await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
+t = await tela();
+conferir('7. Entregas mostra uma linha por vendedor', /Daniela\s*1 entrega · 30 un\./.test(t), t.slice(0, 200));
+await page.click('#telaInicio .linha:has-text("Daniela")'); await page.waitForTimeout(800);
+conferir('8. tocando, aparecem os doces entregues a ela', /Entregas · Daniela/.test(await page.textContent('#folhaTitulo')) &&
+  /Daniela · 30 un\..*Pote de vidro/.test(limpo(await folha().textContent())));
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+
+// ---- Prestação: estimativa no lugar de "em dia" ----
+await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(700);
+t = await tela();
+conferir('9. quem tem conta para prestar mostra a estimativa (30 × R$ 6,00)', /Daniela.*R\$ 180,00\s*estimativa/.test(t), (t.match(/Daniela.{0,90}/) || [''])[0]);
+
+// ---- ajuste de estoque sem sócio: vale na hora ----
+await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
+await page.click('#telaInicio .sub-produtos button:has-text("Produtos")'); await page.waitForTimeout(600);
+await page.click('#telaInicio .linha:has-text("Pote de vidro")'); await page.waitForTimeout(800);
+conferir('10. o produto mostra o estoque com você', /Estoque com você\s*70 un\./.test(limpo(await folha().textContent())));
+await page.click('#folha button:has-text("Ajustar estoque")'); await page.waitForTimeout(800);
+await page.click('#folha button:has-text("Diminuir")'); await page.waitForTimeout(200);
+await folha().locator('.contador-campo').fill('5');
+await folha().locator('input[placeholder^="Ex.: contagem"]').fill('quebraram na viagem');
+await page.click('#folha .btn-ouro:has-text("Ajustar")'); await page.waitForTimeout(1000);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+conferir('11. sem sócio, o ajuste entra na hora: 65 un.', /Pote de vidro\s*Estoque 65 un\./.test(await tela()), (await tela()).slice(0, 200));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }

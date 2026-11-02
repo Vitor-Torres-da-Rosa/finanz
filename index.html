@@ -2111,6 +2111,9 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .estoque-produto { margin-top: 14px; }
+  .estoque-produto .btn { margin-top: 10px; }
+  .cartao-ajustes { margin-bottom: 12px; }
   .modulo-de-quem { display: block; font-size: 12px; font-weight: 600; color: var(--azul, #38BDF8); margin-top: 2px; }
   .sub-produtos { margin-bottom: 14px; }
   .item-entrega { font-size: 12.5px; color: var(--suave); margin: -2px 0 6px; }
@@ -2273,7 +2276,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.41.0';
+  var VERSAO = '5.42.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2282,6 +2285,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.42.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces, Entregas: uma linha por vendedor, com quantas entregas e unidades. Tocando no nome, abrem os doces que foram para ele.',
+        'Estoque de cada produto, em Produtos: tocando no produto, "Ajustar estoque" aumenta ou diminui com um motivo. Com a Venda de Doces compartilhada, o ajuste só entra no estoque depois que o sócio confirma. Os pedidos aparecem no topo de Produtos para confirmar ou recusar.',
+        'Quem tem conta para prestar e Vendedores: no lugar de "em dia", a estimativa do que os doces com cada vendedor devem render para você (o repasse de cada um: custo mais a sua comissão).',
+        'Os quadros do total do mês dizem só "Repasses" e "Recebido". O mês já está no título, e o nome inteiro cabe.'
+      ]
+    },
     {
       versao: '5.41.0',
       data: '2026-11-03',
@@ -3841,6 +3854,7 @@
       doceAcertos: [],
       docePagamentos: [],
       doceCompras: [],
+      doceAjustes: [],
       excluidos: []
     };
   }
@@ -4566,6 +4580,17 @@
     }).filter(function (g) { return g.vendedorId && g.valor > 0; });
 
     // Compras do fornecedor: a entrada no seu estoque e quanto custou.
+    // Ajuste de estoque: entra na conta só depois de confirmado pelo sócio.
+    limpo.doceAjustes = lista('doceAjustes').map(function (x) {
+      var q = Math.round(Number(x.quantidade) || 0);
+      return { id: x.id, produtoId: texto(x.produtoId), quantidade: Math.max(-99999, Math.min(99999, q)),
+               motivo: texto(x.motivo).slice(0, 120), data: soData(x.data) || hojeTexto(),
+               criadoPor: texto(x.criadoPor), criadoPorNome: texto(x.criadoPorNome).slice(0, 60),
+               situacao: ['pendente', 'aprovado', 'recusado'].indexOf(x.situacao) >= 0 ? x.situacao : 'pendente',
+               decididoPorNome: texto(x.decididoPorNome).slice(0, 60),
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.produtoId && x.quantidade !== 0; });
+
     limpo.doceCompras = lista('doceCompras').map(function (x) {
       return { id: x.id, produtoId: texto(x.produtoId), quantidade: positivo(x.quantidade),
                valor: positivo(x.valor), fornecedor: texto(x.fornecedor).slice(0, 60),
@@ -5326,7 +5351,7 @@
   var MODULOS_NA_NUVEM = {
     uber_jornada: 'uberJornadas', uber_registro: 'uberRegistros',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
-    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras'
+    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -12436,8 +12461,9 @@
       var l = linhaSimples({
         titulo: v.nome + (v.ativo ? '' : ' (inativo)'),
         sub: c.vendidosPeriodo + ' un. vendidas em ' + MESES[mesAtivo.mes] + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
-        valor: c.pendente > 0 ? emReais(c.pendente) : 'em dia',
-        cor: c.pendente > 0 ? 'ouro' : 'verde',
+        // Sem nada devido, o que os doces com ele devem render (estimativa).
+        valor: c.pendente > 0 ? emReais(c.pendente) : estimativaDoVendedor(c) ? '~' + emReais(estimativaDoVendedor(c)) : 'em dia',
+        cor: c.pendente > 0 || estimativaDoVendedor(c) ? 'ouro' : 'verde',
         nota: 'lucro ' + emReais(c.lucroPeriodo), corNota: 'verde',
         selo: selo(v.ativo ? '#E9B44C' : '#7C7362', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirVendedorDoce(v.id); }
@@ -12455,8 +12481,8 @@
     if (n.recebido + n.pendente > 0) linhaTotal.appendChild(rosca(seg, n.recebido + n.pendente, 'Repasses'));
     t.appendChild(linhaTotal);
     t.appendChild(gradeDeTiles([
-      tile('Repasse do mês', emReais(n.faturamento), 'ouro'),
-      tile('Recebido no mês', emReais(n.recebido), 'verde'),
+      tile('Repasses', emReais(n.faturamento), 'ouro'),
+      tile('Recebido', emReais(n.recebido), 'verde'),
       tile('A receber', emReais(n.pendente), 'ouro')
     ], 3));
     t.appendChild(gradeDeTiles([
@@ -12478,8 +12504,47 @@
       return b.criadoEm - a.criadoEm;
     });
     if (!entregas.length) lista.appendChild(estadoVazio('Nenhuma entrega ainda', 'Cada vez que você deixa doces com um vendedor, registre aqui.'));
-    entregas.slice(0, 200).forEach(function (e) { lista.appendChild(linhaDeEntrega(e)); });
+    // Uma linha por vendedor (pedido de 03/11/2026); tocando, abrem os
+    // doces que foram para ele.
+    var porVendedor = {}, ordem = [];
+    entregas.forEach(function (e) {
+      if (!porVendedor[e.vendedorId]) { porVendedor[e.vendedorId] = []; ordem.push(e.vendedorId); }
+      porVendedor[e.vendedorId].push(e);
+    });
+    ordem.forEach(function (vid) {
+      var dele = porVendedor[vid];
+      var un = dele.reduce(function (t, e) { return t + e.quantidade; }, 0);
+      var repasse = dele.reduce(function (t, e) { return t + e.quantidade * e.repasse; }, 0);
+      var venda = dele.reduce(function (t, e) { return t + e.quantidade * e.preco; }, 0);
+      var nome = nomeDoVendedor(vid);
+      lista.appendChild(linhaSimples({
+        titulo: nome,
+        sub: dele.length + (dele.length === 1 ? ' entrega' : ' entregas') + ' · ' + un + ' un. · última ' + dataCurta(dele[0].data),
+        valor: emReais(repasse), cor: 'ouro',
+        nota: 'venda ' + emReais(venda),
+        selo: selo('#E9B44C', nome.charAt(0).toUpperCase()),
+        aoTocar: function () { abrirEntregasDoVendedor(vid); }
+      }));
+    });
     corpo.appendChild(lista);
+  }
+
+  function abrirEntregasDoVendedor(vid) {
+    var dele = estado.doceEntregas.filter(function (e) { return e.vendedorId === vid; }).sort(function (a, b) {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return b.criadoEm - a.criadoEm;
+    });
+    abrirFolha('Entregas · ' + nomeDoVendedor(vid), function (folha) {
+      var lista = cartao('liso');
+      if (!dele.length) lista.appendChild(estadoVazio('Nenhuma entrega', 'As entregas deste vendedor aparecem aqui.'));
+      dele.forEach(function (e) { lista.appendChild(linhaDeEntrega(e, function () { abrirEntregasDoVendedor(vid); })); });
+      folha.appendChild(lista);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', '+ Nova entrega para ' + nomeDoVendedor(vid), function () {
+        porCima(function () { abrirEntregasDoVendedor(vid); }, function () { abrirFolhaEntrega(null, vid, true); });
+      }));
+      folha.appendChild(acoes);
+    });
   }
 
   function linhaDeEntrega(e, reabrir) {
@@ -12494,6 +12559,12 @@
         else abrirFolhaEntrega(e.id, '');
       }
     });
+  }
+
+  // Quanto os doces que estão com o vendedor rendem para você vendidos:
+  // estoque de cada um vezes o repasse (o custo mais a sua comissão).
+  function estimativaDoVendedor(c) {
+    return c.produtos.reduce(function (t, x) { return t + Math.max(x.estoque, 0) * x.repasse; }, 0);
   }
 
   // As entregas deste doce feitas depois da última prestação de contas.
@@ -12546,8 +12617,10 @@
       lista.appendChild(linhaSimples({
         titulo: v.nome,
         sub: Math.max(c.estoque, 0) + ' doce(s) em estoque' + (quando ? ' · ' + quando : ''),
-        valor: c.pendente > 0 ? emReais(c.pendente) : 'em dia', cor: c.pendente > 0 ? 'ouro' : 'verde',
-        nota: 'Prestar contas ›', corNota: 'ouro',
+        // O que esses doces devem render para você se forem vendidos: o
+        // repasse de cada um (custo + a sua comissão). Já devendo, soma.
+        valor: emReais(estimativaDoVendedor(c) + Math.max(c.pendente, 0)), cor: 'ouro',
+        nota: (c.pendente > 0 ? emReais(c.pendente) + ' já devido · ' : 'estimativa · ') + 'prestar ›', corNota: 'ouro',
         selo: selo('#E9B44C', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirPrestacaoDeContas(v.id); }
       }));
@@ -12579,13 +12652,15 @@
     var acoes = no('div', 'acoes acoes-topo');
     acoes.appendChild(botao('btn btn-ouro', '+ Novo produto', function () { abrirFolhaProduto(null); }));
     corpo.appendChild(acoes);
+    var pendentes = cartaoDeAjustesPendentes();
+    if (pendentes) corpo.appendChild(pendentes);
     var lista = cartao('liso');
     if (!estado.doceProdutos.length) lista.appendChild(estadoVazio('Nenhum produto ainda', 'Cadastre cada doce com o valor de repasse e o preço de venda.'));
     estado.doceProdutos.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome); }).forEach(function (p) {
+      var est = meuEstoqueDoce(p.id);
       lista.appendChild(linhaSimples({
         titulo: p.nome + (p.ativo ? '' : ' (inativo)'),
-        sub: (p.custo ? 'Compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco) +
-          ' · revendedor ' + emReais(Math.max(p.preco - p.repasse, 0)) + ' · para mim ' + emReais(p.repasse),
+        sub: 'Estoque ' + est + ' un. · ' + (p.custo ? 'compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco),
         valor: emReais(p.preco - p.repasse), cor: 'verde',
         nota: 'lucro do vendedor',
         selo: seloIcone('doce', '#F472B6'),
@@ -12606,7 +12681,95 @@
     estado.doceAcertos.forEach(function (a) {
       a.itens.forEach(function (i) { if (i.produtoId === produtoId) t += i.devolvidos; });
     });
+    estado.doceAjustes.forEach(function (x) { if (x.produtoId === produtoId && x.situacao === 'aprovado') t += x.quantidade; });
     return t;
+  }
+
+  // Há sócio nesta Venda de Doces? (Compartilhada comigo, ou compartilhada
+  // por mim com alguém que aceitou.) Sem sócio, ajuste vale na hora.
+  function temSocioNosDoces() {
+    if (donoDaArea('doces')) return true;
+    return meusConvites.some(function (l) {
+      return l.situacao === 'aceito' && Array.isArray(l.areas) && l.areas.indexOf('doces') >= 0;
+    });
+  }
+
+  function meuIdNaNuvem() { return (sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || 'aqui'; }
+
+  function abrirAjusteDeEstoque(produtoId, reabrir) {
+    var sinal = 1, quantidade = 0;
+    abrirFolha('Ajustar estoque · ' + nomeDoProduto(produtoId), function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'ajuda', 'Com você agora: ' + meuEstoqueDoce(produtoId) + ' un.'));
+      forma.appendChild(campo('O que fazer', segmentosLocais([{ valor: 1, rotulo: 'Aumentar' }, { valor: -1, rotulo: 'Diminuir' }], 1,
+        function (v) { sinal = v; })));
+      forma.appendChild(campo('Quantidade', contadorDigitavel(0, function (v) { quantidade = v; })));
+      var motivo = entradaTexto('', 'Ex.: contagem do estoque, doce estragou', 120);
+      forma.appendChild(campo('Motivo', motivo));
+      var socio = temSocioNosDoces();
+      forma.appendChild(no('p', 'ajuda', socio
+        ? 'Como a Venda de Doces é compartilhada, o ajuste só entra no estoque depois que o seu sócio confirmar.'
+        : 'Sem sócio nesta Venda de Doces: o ajuste entra no estoque na hora.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', socio ? 'Pedir confirmação' : 'Ajustar', function () {
+        if (quantidade <= 0) { mostrarErro(forma, 'Informe a quantidade.'); return; }
+        if (!motivo.value.trim()) { mostrarErro(forma, 'Escreva o motivo: é ele que o sócio vai ver.'); return; }
+        estado.doceAjustes.push({ id: novoId(), produtoId: produtoId, quantidade: sinal * quantidade, motivo: motivo.value.trim().slice(0, 120),
+          data: hojeTexto(), criadoPor: meuIdNaNuvem(), criadoPorNome: String(estado.perfil.nome || '').slice(0, 60),
+          situacao: socio ? 'pendente' : 'aprovado', decididoPorNome: '', criadoEm: Date.now() });
+        salvar();
+        fecharOuVoltar(!!reabrir);
+        desenhar();
+        avisar(socio ? 'Pedido enviado. Entra no estoque quando o sócio confirmar.' : 'Estoque ajustado.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function decidirAjuste(x, aprovar) {
+    x.situacao = aprovar ? 'aprovado' : 'recusado';
+    x.decididoPorNome = String(estado.perfil.nome || '').slice(0, 60);
+    salvar();
+    desenhar();
+    avisar(aprovar ? 'Ajuste confirmado: entrou no estoque.' : 'Ajuste recusado.');
+  }
+
+  // Os ajustes esperando confirmação, no topo de Produtos. Quem pediu vê
+  // "esperando o sócio"; o outro sócio vê Confirmar e Recusar.
+  function cartaoDeAjustesPendentes() {
+    var pend = estado.doceAjustes.filter(function (x) { return x.situacao === 'pendente'; });
+    if (!pend.length) return null;
+    var c = cartao('liso cartao-ajustes');
+    var t = topoDeCartao('Ajustes de estoque para confirmar', null);
+    t.style.padding = '16px 16px 0'; t.style.marginBottom = '8px';
+    c.appendChild(t);
+    pend.forEach(function (x) {
+      var meu = x.criadoPor === meuIdNaNuvem();
+      c.appendChild(linhaSimples({
+        titulo: nomeDoProduto(x.produtoId) + ' · ' + (x.quantidade > 0 ? '+' : '−') + Math.abs(x.quantidade) + ' un.',
+        sub: (meu ? 'você pediu' : (x.criadoPorNome || 'o sócio') + ' pediu') + ' · ' + x.motivo,
+        valor: meu ? 'esperando' : 'confirmar', cor: meu ? '' : 'ouro',
+        selo: selo(meu ? '#38BDF8' : '#E9B44C', '±'),
+        aoTocar: function () {
+          if (meu) {
+            perguntar({ titulo: 'Cancelar o pedido?', texto: 'O ajuste ainda não entrou no estoque. Cancelando, ele some.', ok: 'Cancelar pedido', cancelar: 'Manter', tom: 'perigo' }, function () {
+              marcarExcluido('empreendedor_registros', x.id);
+              estado.doceAjustes = estado.doceAjustes.filter(function (y) { return y.id !== x.id; });
+              salvar(); desenhar(); avisar('Pedido cancelado.');
+            });
+            return;
+          }
+          abrirEscolha({ titulo: (x.criadoPorNome || 'O sócio') + ' pediu ' + (x.quantidade > 0 ? '+' : '−') + Math.abs(x.quantidade) + ' un. de ' + nomeDoProduto(x.produtoId),
+            opcoes: [{ valor: 'sim', rotulo: 'Confirmar', detalhe: 'entra no estoque agora' },
+                     { valor: 'nao', rotulo: 'Recusar', detalhe: 'o estoque fica como está' }] }, function (v) {
+            if (!v) return;
+            decidirAjuste(x, v === 'sim');
+          });
+        }
+      }));
+    });
+    return c;
   }
 
   function desenharFornecedorDoces(corpo) {
@@ -12629,6 +12792,7 @@
 
     var comCompra = {};
     estado.doceCompras.forEach(function (x) { comCompra[x.produtoId] = true; });
+    estado.doceAjustes.forEach(function (x) { if (x.situacao === 'aprovado') comCompra[x.produtoId] = true; });
     var ids = Object.keys(comCompra);
     if (ids.length) {
       var ce = cartao('liso');
@@ -12988,6 +13152,15 @@
       custo.addEventListener('input', pintar);
       pintar();
       forma.appendChild(campo('Situação', segmentosLocais([{ valor: true, rotulo: 'Ativo' }, { valor: false, rotulo: 'Inativo' }], ativo, function (x) { ativo = x; })));
+      if (p) {
+        var cEst = cartao('estoque-produto');
+        juntar(cEst, juntar(no('div', 'resumo-linha'), no('span', null, 'Estoque com você'),
+          no('strong', 'num', meuEstoqueDoce(p.id) + ' un.')));
+        cEst.appendChild(botao('btn btn-fantasma', 'Ajustar estoque', function () {
+          porCima(function () { abrirFolhaProduto(p.id, deCima, aoCriar); }, function () { abrirAjusteDeEstoque(p.id, true); });
+        }));
+        forma.appendChild(cEst);
+      }
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar produto', function () {
         var n = nome.value.trim();

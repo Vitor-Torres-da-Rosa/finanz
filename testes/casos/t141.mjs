@@ -147,7 +147,7 @@ const linhaMariana = limpo(await page.textContent('#telaInicio .linha-vendedor')
 conferir('13. na lista, R$ 20,00 a receber e o lucro dela', /R\$ 20,00/.test(linhaMariana) && /lucro R\$ 70,00/.test(linhaMariana), linhaMariana);
 const totalMes = limpo(await page.textContent('#telaInicio .cartao-destaque'));
 conferir('14. o total do mês separa recebido de a receber',
-  /Repasse do mês\s*R\$ 70,00/.test(totalMes) && /Recebido no mês\s*R\$ 50,00/.test(totalMes) && /A receber\s*R\$ 20,00/.test(totalMes));
+  /Repasses\s*R\$ 70,00/.test(totalMes) && /Recebido\s*R\$ 50,00/.test(totalMes) && /A receber\s*R\$ 20,00/.test(totalMes));
 conferir('15. e o seu lucro desconta o custo de produção (35 × R$ 1,00)', /Seu lucro\s*R\$ 35,00/.test(totalMes), totalMes.slice(0, 200));
 
 // ---- a ficha da vendedora ----
