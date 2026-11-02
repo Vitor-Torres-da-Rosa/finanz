@@ -102,10 +102,19 @@ conferir('7. a entrega calcula venda, repasse e lucro do vendedor',
 // 03/11/2026: "coloque tbm somente o preço de custo caso eu queira saber".
 conferir('8b. a entrega mostra o preço de custo (50 × R$ 1,00)',
   /Preço de custo \(50 × R\$ 1,00\)\s*R\$ 50,00/.test(prevEntrega), (prevEntrega.match(/Preço de custo.{0,30}/) || [''])[0]);
+// 03/11/2026: a entrega tem a data do acerto, uma semana depois por padrão.
+const dEntrega = await folha().getByLabel('Data da entrega').inputValue();
+const dAcerto = await folha().getByLabel('Data do acerto').inputValue();
+const semana = new Date(dEntrega + 'T12:00:00'); semana.setDate(semana.getDate() + 7);
+const esperado = semana.getFullYear() + '-' + String(semana.getMonth() + 1).padStart(2, '0') + '-' + String(semana.getDate()).padStart(2, '0');
+conferir('8c. a entrega tem a data do acerto, uma semana depois', dAcerto === esperado, dEntrega + ' → ' + dAcerto);
 await page.click('#folha .btn-ouro:has-text("Registrar entrega")'); await page.waitForTimeout(900);
 
 // ---- prestação de contas: vendeu 35, devolveu 10 ----
 await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(600);
+const quem = limpo(await page.textContent('#telaInicio'));
+conferir('8d. "Quem tem conta para prestar" mostra o dia do acerto',
+  new RegExp('Mariana\\s*50 doce\\(s\\) em estoque · acerto em ' + esperado.slice(8, 10) + ' ').test(quem), (quem.match(/Mariana.{0,60}/) || [''])[0]);
 await page.click('#telaInicio .linha:has-text("Mariana")'); await page.waitForTimeout(900);
 await folha().locator('[data-campo="vendidos"] .contador-campo').fill('35');
 await folha().locator('[data-campo="devolvidos"] .contador-campo').fill('10');

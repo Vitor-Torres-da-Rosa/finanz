@@ -2261,7 +2261,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.37.1';
+  var VERSAO = '5.38.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2270,6 +2270,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.38.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: a entrega agora tem a data da entrega e a data do acerto. O acerto já vem para uma semana depois e acompanha a data da entrega até você mudar.',
+        '"Quem tem conta para prestar" mostra o dia do acerto de cada vendedor (ou "atrasado desde") e põe primeiro quem acerta antes.'
+      ]
+    },
     {
       versao: '5.37.1',
       data: '2026-11-03',
@@ -4489,6 +4497,7 @@
       return { id: e.id, vendedorId: texto(e.vendedorId), produtoId: texto(e.produtoId),
                data: soData(e.data) || hojeTexto(), quantidade: positivo(e.quantidade),
                repasse: positivo(e.repasse), preco: positivo(e.preco),
+               acertoEm: soData(e.acertoEm) || '',
                obs: texto(e.obs).slice(0, 200), criadoEm: marca(e.criadoEm) || Date.now() };
     }).filter(function (e) { return e.vendedorId && e.produtoId && e.quantidade > 0; });
 
@@ -12059,7 +12068,7 @@
   function linhaDeEntrega(e, reabrir) {
     return linhaSimples({
       titulo: nomeDoVendedor(e.vendedorId) + ' · ' + e.quantidade + ' un.',
-      sub: dataBr(e.data) + ' · ' + nomeDoProduto(e.produtoId),
+      sub: dataBr(e.data) + ' · ' + nomeDoProduto(e.produtoId) + (e.acertoEm ? ' · acerto ' + dataCurta(e.acertoEm) : ''),
       valor: emReais(e.quantidade * e.repasse), cor: 'ouro',
       nota: 'venda ' + emReais(e.quantidade * e.preco),
       selo: seloIcone('pacote', '#E9B44C'),
@@ -12070,6 +12079,20 @@
     });
   }
 
+  // O próximo acerto do vendedor: a data de acerto mais cedo entre as
+  // entregas feitas depois da última prestação de contas dele.
+  function proximoAcerto(vendedorId) {
+    var ultimo = '';
+    estado.doceAcertos.forEach(function (a) { if (a.vendedorId === vendedorId && a.data > ultimo) ultimo = a.data; });
+    var prox = '';
+    estado.doceEntregas.forEach(function (e) {
+      if (e.vendedorId !== vendedorId || !e.acertoEm) return;
+      if (ultimo && e.data <= ultimo && e.acertoEm <= ultimo) return;
+      if (!prox || e.acertoEm < prox) prox = e.acertoEm;
+    });
+    return prox;
+  }
+
   function desenharPrestacaoDoces(corpo) {
     var lista = cartao('liso');
     var topo = topoDeCartao('Quem tem conta para prestar', null);
@@ -12077,13 +12100,26 @@
     topo.style.marginBottom = '8px';
     lista.appendChild(topo);
     var algum = false;
-    estado.doceVendedores.forEach(function (v) {
+    var hojeD = hojeTexto();
+    // Quem tem acerto marcado vem primeiro, do mais próximo (ou atrasado)
+    // para o mais longe.
+    estado.doceVendedores.map(function (v) { return { v: v, acerto: proximoAcerto(v.id) }; })
+      .sort(function (a, b) {
+        if (!a.acerto !== !b.acerto) return a.acerto ? -1 : 1;
+        return a.acerto < b.acerto ? -1 : a.acerto > b.acerto ? 1 : 0;
+      })
+      .forEach(function (item) {
+      var v = item.v;
       var c = contaDoVendedor(v.id);
       if (c.estoque <= 0 && c.pendente <= 0) return;
       algum = true;
+      var quando = item.acerto
+        ? (item.acerto < hojeD ? 'acerto atrasado desde ' + dataCurta(item.acerto)
+           : item.acerto === hojeD ? 'acerto hoje' : 'acerto em ' + dataCurta(item.acerto))
+        : '';
       lista.appendChild(linhaSimples({
         titulo: v.nome,
-        sub: Math.max(c.estoque, 0) + ' doce(s) em estoque',
+        sub: Math.max(c.estoque, 0) + ' doce(s) em estoque' + (quando ? ' · ' + quando : ''),
         valor: c.pendente > 0 ? emReais(c.pendente) : 'em dia', cor: c.pendente > 0 ? 'ouro' : 'verde',
         nota: 'Prestar contas ›', corNota: 'ouro',
         selo: selo('#E9B44C', v.nome.charAt(0).toUpperCase()),
@@ -12412,6 +12448,7 @@
       repasse: e ? e.repasse : (produtos[0] ? produtos[0].repasse : 0),
       preco: e ? e.preco : (produtos[0] ? produtos[0].preco : 0),
       data: e ? e.data : hojeTexto(),
+      acertoEm: e ? (e.acertoEm || '') : somaDias(hojeTexto(), 7),
       obs: e ? e.obs : ''
     };
 
@@ -12485,15 +12522,24 @@
       }
       pintar();
 
+      // Quando a entrega é feita e quando o vendedor acerta as contas. O
+      // acerto acompanha a data da entrega (uma semana depois) até a
+      // pessoa mexer nele.
       var data = entradaData(d.data);
-      forma.appendChild(campo('Data', data));
+      var acerto = entradaData(d.acertoEm || somaDias(d.data, 7));
+      var acertoMexido = !!(e && e.acertoEm);
+      var linhaDatas = no('div', 'duas');
+      juntar(linhaDatas, campo('Data da entrega', data), campo('Data do acerto', acerto));
+      forma.appendChild(linhaDatas);
+      data.addEventListener('change', function () { if (!acertoMexido && ehData(data.value)) acerto.value = somaDias(data.value, 7); });
+      acerto.addEventListener('change', function () { acertoMexido = true; });
       var obs = entradaTexto(d.obs, 'Ex.: entrega realizada na feira', 200);
       forma.appendChild(campo('Observação (opcional)', obs));
 
       function coletar() {
         return { vendedorId: d.vendedorId, produtoId: d.produtoId, quantidade: d.quantidade,
                  repasse: digitosParaCentavos(repasse.value), preco: digitosParaCentavos(preco.value),
-                 data: data.value, obs: obs.value };
+                 data: data.value, acertoEm: acerto.value, obs: obs.value };
       }
 
       var acoes = no('div', 'acoes');
@@ -12504,7 +12550,9 @@
         if (r.quantidade <= 0) { mostrarErro(forma, 'Informe quantos doces entregou.'); return; }
         if (r.repasse <= 0) { mostrarErro(forma, 'Informe o valor de repasse.'); return; }
         if (!ehData(r.data)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        if (ehData(r.acertoEm) && r.acertoEm < r.data) { mostrarErro(forma, 'O acerto não pode ser antes da entrega.'); return; }
         var reg = e || { id: novoId(), criadoEm: Date.now() };
+        reg.acertoEm = ehData(r.acertoEm) ? r.acertoEm : '';
         reg.vendedorId = r.vendedorId; reg.produtoId = r.produtoId; reg.quantidade = r.quantidade;
         reg.repasse = r.repasse; reg.preco = r.preco; reg.data = r.data; reg.obs = r.obs.trim().slice(0, 200);
         if (!e) estado.doceEntregas.push(reg);
