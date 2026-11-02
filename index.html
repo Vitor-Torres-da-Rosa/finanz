@@ -2242,7 +2242,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.34.1';
+  var VERSAO = '5.35.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2251,6 +2251,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.35.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: o produto agora tem os quatro valores: valor de compra do produto, valor de venda ao cliente final, repasse para o revendedor e repasse para mim.',
+        'As duas partes do repasse fecham com o preço de venda: mexendo numa, a outra se ajusta sozinha. Embaixo aparecem o lucro do revendedor e o seu por unidade.'
+      ]
+    },
     {
       versao: '5.34.1',
       data: '2026-11-03',
@@ -11697,7 +11705,7 @@
       tile('Seu lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde'),
       tile('Lucro dos vendedores', emReais(n.lucroVendedores), '')
     ], 2));
-    if (n.semCusto) t.appendChild(no('div', 'linha-nota', 'Informe o custo de produção de cada doce em Produtos para o seu lucro sair certo.'));
+    if (n.semCusto) t.appendChild(no('div', 'linha-nota', 'Informe o valor de compra de cada doce em Produtos para o seu lucro sair certo.'));
     if (n.estoque) t.appendChild(no('div', 'linha-nota', n.estoque + ' doce(s) ainda com os vendedores.'));
     corpo.appendChild(t);
   }
@@ -11773,7 +11781,8 @@
     estado.doceProdutos.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome); }).forEach(function (p) {
       lista.appendChild(linhaSimples({
         titulo: p.nome + (p.ativo ? '' : ' (inativo)'),
-        sub: 'Repasse ' + emReais(p.repasse) + ' · venda ' + emReais(p.preco) + (p.custo ? ' · custo ' + emReais(p.custo) : ''),
+        sub: (p.custo ? 'Compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco) +
+          ' · revendedor ' + emReais(Math.max(p.preco - p.repasse, 0)) + ' · para mim ' + emReais(p.repasse),
         valor: emReais(p.preco - p.repasse), cor: 'verde',
         nota: 'lucro do vendedor',
         selo: seloIcone('doce', '#F472B6'),
@@ -11973,24 +11982,47 @@
       var forma = no('div', 'forma');
       var nome = entradaTexto(p ? p.nome : '', 'Ex.: Brigadeiro gourmet', 60);
       forma.appendChild(campo('Nome do doce', nome));
-      var repasse = entradaValor(p ? p.repasse : 0, false);
-      forma.appendChild(campo('Repasse por unidade', repasse));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o vendedor te paga por doce vendido.'));
-      var preco = entradaValor(p ? p.preco : 0, false);
-      forma.appendChild(campo('Preço de venda', preco));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto o vendedor cobra do cliente. A diferença é o lucro dele.'));
+      // Os quatro valores de cada doce, na ordem do dinheiro: quanto você
+      // paga, quanto o cliente final paga, e como esse preço se divide
+      // entre o revendedor e você. As duas partes andam juntas: mexendo
+      // numa, a outra fecha a conta com o preço de venda.
       var custo = entradaValor(p ? p.custo : 0, false);
-      forma.appendChild(campo('Seu custo de produção (opcional)', custo));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto cada doce custa para você fazer. É com ele que o app calcula o seu lucro.'));
+      forma.appendChild(campo('Valor de compra do produto', custo));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto cada unidade custa para você.'));
+      var preco = entradaValor(p ? p.preco : 0, false);
+      forma.appendChild(campo('Valor de venda ao cliente final', preco));
+      var revendedor = entradaValor(p ? Math.max(p.preco - p.repasse, 0) : 0, false);
+      forma.appendChild(campo('Repasse para o revendedor', revendedor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que fica com o revendedor por unidade vendida.'));
+      var repasse = entradaValor(p ? p.repasse : 0, false);
+      forma.appendChild(campo('Repasse para mim', repasse));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o revendedor te passa por unidade vendida.'));
       var resumo = no('div', 'total-calculado');
       forma.appendChild(resumo);
       function pintar() {
         var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value), c = digitosParaCentavos(custo.value);
         resumo.textContent = '';
-        juntar(resumo, no('span', null, 'Lucro do vendedor por doce'), no('strong', 'num ' + (v - r < 0 ? 'vermelho' : 'verde'), emReais(v - r)));
-        if (c) juntar(resumo, no('span', null, 'Seu lucro por doce'), no('strong', 'num ' + (r - c < 0 ? 'vermelho' : 'verde'), emReais(r - c)));
+        juntar(resumo, no('span', null, 'Lucro do revendedor por unidade'), no('strong', 'num ' + (v - r < 0 ? 'vermelho' : 'verde'), emReais(v - r)));
+        juntar(resumo, no('span', null, 'Seu lucro por unidade'), no('strong', 'num ' + (r - c < 0 ? 'vermelho' : 'verde'), emReais(r - c)));
       }
-      [repasse, preco, custo].forEach(function (i) { i.addEventListener('input', pintar); });
+      preco.addEventListener('input', function () {
+        // Mudou o preço: a sua parte fica, a do revendedor acompanha.
+        var v = digitosParaCentavos(preco.value), r = digitosParaCentavos(repasse.value);
+        if (r) revendedor.value = emReais(Math.max(v - r, 0));
+        else if (digitosParaCentavos(revendedor.value)) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
+        pintar();
+      });
+      revendedor.addEventListener('input', function () {
+        var v = digitosParaCentavos(preco.value);
+        if (v) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
+        pintar();
+      });
+      repasse.addEventListener('input', function () {
+        var v = digitosParaCentavos(preco.value);
+        if (v) revendedor.value = emReais(Math.max(v - digitosParaCentavos(repasse.value), 0));
+        pintar();
+      });
+      custo.addEventListener('input', pintar);
       pintar();
       forma.appendChild(campo('Situação', segmentosLocais([{ valor: true, rotulo: 'Ativo' }, { valor: false, rotulo: 'Inativo' }], ativo, function (x) { ativo = x; })));
       var acoes = no('div', 'acoes');
@@ -11998,8 +12030,9 @@
         var n = nome.value.trim();
         var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value);
         if (!n) { mostrarErro(forma, 'Informe o nome do doce.'); return; }
-        if (r <= 0) { mostrarErro(forma, 'Informe o valor de repasse.'); return; }
-        if (v <= 0) { mostrarErro(forma, 'Informe o preço de venda.'); return; }
+        if (v <= 0) { mostrarErro(forma, 'Informe o valor de venda ao cliente final.'); return; }
+        if (r <= 0) { mostrarErro(forma, 'Informe o repasse para você.'); return; }
+        if (r > v) { mostrarErro(forma, 'O repasse para você não pode passar do valor de venda.'); return; }
         var reg = p || { id: novoId(), criadoEm: Date.now() };
         reg.nome = n.slice(0, 60);
         reg.repasse = r;

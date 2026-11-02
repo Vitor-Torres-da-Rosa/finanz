@@ -73,12 +73,22 @@ await page.click('#folha .btn-ouro:has-text("Salvar vendedor")'); await page.wai
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
 await page.click('#telaInicio button:has-text("+ Novo produto")'); await page.waitForTimeout(800);
 await folha().getByLabel('Nome do doce').fill('Brigadeiro');
-await dinheiro('Repasse por unidade', '200');
-await dinheiro('Preço de venda', '400');
-await dinheiro('Seu custo de produção (opcional)', '100');
+// Desde 03/11/2026 o produto tem os quatro valores que o Vitor pediu:
+// compra, venda ao cliente final, repasse para o revendedor e para mim.
+// As duas partes do repasse fecham com o preço de venda.
+await dinheiro('Valor de compra do produto', '100');
+await dinheiro('Valor de venda ao cliente final', '400');
+await dinheiro('Repasse para o revendedor', '200');
+const paraMim = await folha().getByLabel('Repasse para mim', { exact: true }).inputValue();
+conferir('5a. repasse para o revendedor de R$ 2,00 deixa R$ 2,00 para mim', /2,00/.test(paraMim), paraMim);
+await dinheiro('Repasse para mim', '250');
+const paraRev = await folha().getByLabel('Repasse para o revendedor').inputValue();
+conferir('5b. e mexendo na minha parte, a do revendedor acompanha', /1,50/.test(paraRev), paraRev);
+await dinheiro('Repasse para mim', '200');
 const prevProduto = limpo(await folha().textContent());
-conferir('5. o produto mostra o lucro do vendedor e o seu por doce',
-  /Lucro do vendedor por doce\s*R\$ 2,00/.test(prevProduto) && /Seu lucro por doce\s*R\$ 1,00/.test(prevProduto));
+conferir('5. o produto mostra o lucro do revendedor e o seu por unidade',
+  /Lucro do revendedor por unidade\s*R\$ 2,00/.test(prevProduto) && /Seu lucro por unidade\s*R\$ 1,00/.test(prevProduto));
+await page.screenshot({ path: dir + '/z42-produto.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.waitForTimeout(900);
 
 // ---- entrega de 50 pelo "+" do módulo ----
