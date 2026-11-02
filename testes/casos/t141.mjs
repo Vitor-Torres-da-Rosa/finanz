@@ -50,14 +50,20 @@ await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitF
 // ---- a entrada do Empreendedor ----
 await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); await page.waitForTimeout(900);
 const modulos = await page.$$eval('#telaInicio .modulo-cartao .modulo-titulo', ns => ns.map(n => n.textContent));
-conferir('1. o Empreendedor mostra os três módulos e o painel',
-  modulos.join('|') === 'Serviços e Vendas|Uber e Corridas|Distribuição de Doces|Painel geral', modulos.join(' | '));
-conferir('2. e o resumo do mês, que abre o painel', await page.locator('#telaInicio [data-modulo="painel"]').count() === 1);
+// Pedido de 02/11/2026: o quadro "Painel geral" saiu (repetia o resumo), o
+// resumo é a primeira coisa da tela e Distribuição virou Venda de Doces.
+conferir('1. o Empreendedor mostra os três módulos, sem o quadro do painel',
+  modulos.join('|') === 'Serviços e Vendas|Uber e Corridas|Venda de Doces', modulos.join(' | '));
+conferir('2. e o resumo do mês vem primeiro, antes dos módulos', await page.evaluate(() => {
+  const r = document.querySelector('#telaInicio .cartao-resumo-emp');
+  const l = document.querySelector('#telaInicio .modulos-lista');
+  return !!r && !!l && !!(r.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING);
+}));
 conferir('3. na entrada o "+" some (cada módulo tem o seu)',
   await page.$eval('#fab', b => b.classList.contains('fab-oculto')));
 
 await page.click('#telaInicio [data-modulo="doces"]'); await page.waitForTimeout(900);
-conferir('4. abre o módulo com a seta de voltar', /Distribuição de Doces/.test(await page.textContent('#telaInicio .modulo-cabecalho')));
+conferir('4. abre o módulo com a seta de voltar', /Venda de Doces/.test(await page.textContent('#telaInicio .modulo-cabecalho')));
 
 // ---- vendedor e produto ----
 await page.click('#telaInicio button:has-text("+ Novo vendedor")'); await page.waitForTimeout(800);
@@ -138,7 +144,7 @@ conferir('20. vendedor, produto, entrega, prestação e pagamentos sobem',
 
 // ---- o painel ----
 await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(800);
-await page.click('#telaInicio [data-modulo="painel"]'); await page.waitForTimeout(900);
+await page.click('#telaInicio .cartao-resumo-emp'); await page.waitForTimeout(900);
 const painel = limpo(await page.textContent('#telaInicio'));
 conferir('21. o painel soma o recebido sem misturar com o a receber',
   /Recebido no período\s*R\$ 70,00/.test(painel) && /A receber hoje\s*R\$ 0,00/.test(painel), painel.slice(0, 300));

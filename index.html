@@ -2147,6 +2147,10 @@
 
   /* Empreendedor: os módulos em quadros, dois a dois. */
   .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
+  .modulos-lista .modulo-cartao[data-modulo="servicos"] { grid-column: 1 / -1; }
+  .aviso-cobranca { margin: 0 0 14px; }
+  .cartao-resumo-emp { margin-bottom: 12px; }
   .modulo-cartao { flex-direction: row; align-items: center; gap: 10px; padding: 16px 10px 16px 14px; min-height: 104px; border-radius: 20px; }
   .modulo-cartao .modulo-arte { width: auto; height: auto; border: 0; background: none; box-shadow: none; border-radius: 0; color: var(--ouro); }
   .modulo-cartao .modulo-arte svg { width: 34px; height: 34px; filter: drop-shadow(0 0 8px rgba(233,180,76,.30)); }
@@ -2225,7 +2229,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.33.0';
+  var VERSAO = '5.34.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2234,6 +2238,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.34.0',
+      data: '2026-11-02',
+      itens: [
+        'Empreendedor: o resumo do mês é a primeira coisa da tela e continua abrindo o painel. O quadro "Painel geral" saiu, porque repetia o resumo.',
+        'Serviços e Vendas ocupa a linha inteira, com Uber e Corridas e Venda de Doces lado a lado. Distribuição de Doces passou a se chamar Venda de Doces.',
+        'Os valores pendentes agora dizem "Total a receber", nos quadros e no resumo.',
+        'Corrida Particular ganhou a data do pagamento. Se a pessoa vai pagar depois, ao salvar o app pede quem vai pagar (nome, celular e endereço opcional), já com a observação da corrida preenchida, ou deixa escolher quem já é cliente.',
+        'A corrida vira um valor a receber em Serviços e Vendas, com vencimento no dia combinado, e a ficha do cliente abre na hora para controlar o pagamento. O faturamento conta uma vez só, no Uber.'
+      ]
+    },
     {
       versao: '5.33.0',
       data: '2026-11-02',
@@ -4368,6 +4383,11 @@
         plataforma: texto(r.plataforma).slice(0, 20),
         descricao: texto(r.descricao).slice(0, 80),
         jornadaId: texto(r.jornadaId),
+        // Corrida particular paga depois: quando, e o cliente e o registro
+        // que o app criou em Serviços e Vendas para cobrar.
+        pagarEm: soData(r.pagarEm) || '',
+        clienteId: texto(r.clienteId),
+        servicoId: texto(r.servicoId),
         criadoEm: marca(r.criadoEm) || Date.now()
       };
     });
@@ -10201,7 +10221,7 @@
   var MODULOS = {
     servicos: { titulo: 'Serviços e Vendas', icone: 'ferramenta' },
     uber: { titulo: 'Uber e Corridas', icone: 'carro' },
-    doces: { titulo: 'Distribuição de Doces', icone: 'doce' },
+    doces: { titulo: 'Venda de Doces', icone: 'doce' },
     painel: { titulo: 'Resumo do Empreendedor', icone: 'painel' }
   };
 
@@ -10436,6 +10456,8 @@
     var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0 };
     estado.servicos.forEach(function (s) {
       if (s.data < de || s.data > ate) return;
+      // A corrida particular cobrada aqui já conta no faturamento do Uber.
+      if (s.tipo === TIPO_CORRIDA) return;
       r.faturamento += s.valor;
       r.despesas += custoDoRegistro(s);
       if (ehAcrescimoDeParcelamento(s)) return;
@@ -10469,17 +10491,16 @@
 
     var lista = no('div', 'modulos-lista');
     lista.appendChild(cartaoDeModulo('servicos', 'Clientes, serviços, vendas e recebimentos',
-      { rotulo: 'A receber', valor: emReais(Math.max(geral.restante, 0)), cor: geral.restante > 0 ? 'ouro' : 'verde' }));
+      { rotulo: 'Total a receber', valor: emReais(Math.max(geral.restante, 0)), cor: geral.restante > 0 ? 'ouro' : 'verde' }));
     lista.appendChild(cartaoDeModulo('uber', 'Jornada, corridas, combustível e lucro',
       aberta
         ? { rotulo: aberta.pausaDesde ? 'Jornada pausada' : 'Em jornada', valor: formatarRelogio(duracaoJornada(aberta)),
             cor: aberta.pausaDesde ? 'ouro' : 'verde', relogio: !aberta.pausaDesde }
         : { rotulo: 'Lucro no mês', valor: emReais(n.uber.lucro), cor: n.uber.lucro < 0 ? 'vermelho' : 'verde' }));
     lista.appendChild(cartaoDeModulo('doces', 'Vendedores, entregas e prestação de contas',
-      { rotulo: 'A receber', valor: emReais(n.doces.pendente), cor: n.doces.pendente > 0 ? 'ouro' : 'verde' }));
-    lista.appendChild(cartaoDeModulo('painel', 'Os três juntos, por mês, semana ou ano',
-      { rotulo: 'Lucro do mês', valor: emReais(n.lucro), cor: n.lucro < 0 ? 'vermelho' : 'verde' }));
-    tela.appendChild(lista);
+      { rotulo: 'Total a receber', valor: emReais(n.doces.pendente), cor: n.doces.pendente > 0 ? 'ouro' : 'verde' }));
+    // O quarto quadro (Painel geral) saiu: ele repetia o resumo, que agora
+    // é a primeira coisa da tela e continua abrindo o painel.
 
     var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
     var fAnt = faixaDoMes(ant.ano, ant.mes);
@@ -10501,9 +10522,10 @@
     juntar(pe,
       juntar(no('div'), no('div', 'r', 'Lucro líquido'), no('div', 'v num ' + (n.lucro < 0 ? 'vermelho' : 'verde'), emReais(n.lucro))),
       juntar(no('div'), no('div', 'r', 'Recebido'), no('div', 'v num verde', emReais(n.recebido))),
-      juntar(no('div'), no('div', 'r', 'A receber'), no('div', 'v num ouro', emReais(n.pendente))));
+      juntar(no('div'), no('div', 'r', 'Total a receber'), no('div', 'v num ouro', emReais(n.pendente))));
     c.appendChild(pe);
     tela.appendChild(c);
+    tela.appendChild(lista);
 
     if (aberta && !aberta.pausaDesde) ligarRelogio();
   }
@@ -10596,7 +10618,7 @@
     var seg = [
       { nome: 'Serviços e Vendas', valor: n.servicos.faturamento, cor: '#E9B44C' },
       { nome: 'Uber e Corridas', valor: n.uber.faturamento, cor: '#60A5FA' },
-      { nome: 'Distribuição de Doces', valor: n.doces.faturamento, cor: '#F472B6' }
+      { nome: 'Venda de Doces', valor: n.doces.faturamento, cor: '#F472B6' }
     ];
     if (n.faturamento > 0) {
       c3.appendChild(rosca(seg, n.faturamento, 'Faturamento'));
@@ -10615,7 +10637,7 @@
           juntar(no('div'), no('div', 'r', 'Lucro'), no('div', 'v num ' + (m.lucro < 0 ? 'vermelho' : 'verde'), emReais(m.lucro)))),
         juntar(no('div', 'painel-numeros painel-dinheiro'),
           juntar(no('div'), no('div', 'r', 'Recebido'), no('div', 'v num verde', emReais(m.recebido))),
-          juntar(no('div'), no('div', 'r', 'A receber'), no('div', 'v num ouro', emReais(m.pendente))))
+          juntar(no('div'), no('div', 'r', 'Total a receber'), no('div', 'v num ouro', emReais(m.pendente))))
       );
       c3.appendChild(l);
     });
@@ -10870,7 +10892,15 @@
     r.despesas = r.combustivel + r.extras;
     r.lucro = r.faturamento - r.despesas;
     // Corrida é paga pelo aplicativo: o que foi faturado conta como recebido.
-    r.recebido = r.faturamento;
+    // A particular paga depois fica de fora: ela vira um valor a receber em
+    // Serviços e Vendas, e é lá que o dinheiro entra quando o cliente paga.
+    r.aReceberDepois = 0;
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo !== 'corrida' || !x.servicoId) return;
+      if (soDaJornada ? x.jornadaId !== soDaJornada.id : (x.data < de || x.data > ate)) return;
+      r.aReceberDepois += x.valor;
+    });
+    r.recebido = r.faturamento - r.aReceberDepois;
     r.pendente = 0;
     r.horas = r.ms / 3600000;
     r.porKm = r.km > 0 ? Math.round(r.faturamento / r.km) : 0;
@@ -11071,7 +11101,8 @@
       forma.appendChild(campo('Valor da corrida', valor));
       var km = entradaDecimal(existente ? existente.km : 0, 1, 'Ex.: 12,8');
       forma.appendChild(campo('Distância (km)', km));
-      forma.appendChild(campo('Aplicativo', grupoChips(PLATAFORMAS, plataforma, function (p) { plataforma = p; })));
+      var pintarPagamento = function () {};
+      forma.appendChild(campo('Aplicativo', grupoChips(PLATAFORMAS, plataforma, function (p) { plataforma = p; pintarPagamento(); })));
       var data = entradaData(existente ? existente.data : hojeTexto());
       var hora = no('input', 'entrada');
       hora.type = 'time';
@@ -11079,6 +11110,32 @@
       var linha = no('div', 'duas');
       juntar(linha, campo('Data', data), campo('Hora', hora));
       forma.appendChild(linha);
+      // Particular pode pagar depois. Com a data do pagamento depois do dia
+      // da corrida, o app cria o cliente em Serviços e Vendas para cobrar.
+      var pagamento = entradaData(existente && existente.pagarEm ? existente.pagarEm : data.value);
+      var pagamentoMexido = !!(existente && existente.pagarEm && existente.pagarEm !== existente.data);
+      var blocoPagamento = no('div', 'bloco-pagar-depois');
+      blocoPagamento.appendChild(campo('Data do pagamento', pagamento));
+      var notaPagamento = no('p', 'ajuda');
+      blocoPagamento.appendChild(notaPagamento);
+      forma.appendChild(blocoPagamento);
+      pintarPagamento = function () {
+        blocoPagamento.style.display = plataforma === 'Particular' ? '' : 'none';
+        var depois = ehData(pagamento.value) && ehData(data.value) && pagamento.value > data.value;
+        notaPagamento.textContent = existente && existente.servicoId
+          ? 'Esta corrida já está sendo cobrada em Serviços e Vendas.'
+          : depois
+            ? 'Vai pagar depois: ao salvar, o app cadastra quem vai pagar em Serviços e Vendas, com o valor a receber em ' + dataBr(pagamento.value) + '.'
+            : 'Pago na hora. Escolha uma data depois da corrida se a pessoa vai pagar mais tarde.';
+      };
+      data.addEventListener('change', function () {
+        if (!pagamentoMexido) pagamento.value = data.value;
+        pintarPagamento();
+      });
+      pagamento.addEventListener('change', function () { pagamentoMexido = true; pintarPagamento(); });
+      pagamento.addEventListener('input', function () { pagamentoMexido = true; pintarPagamento(); });
+      pintarPagamento();
+
       var obs = entradaTexto(existente ? existente.descricao : '', 'Ex.: aeroporto, gorjeta', 80);
       forma.appendChild(campo('Observação (opcional)', obs));
       if (!existente && j) forma.appendChild(no('p', 'ajuda', 'Entra na jornada em andamento.'));
@@ -11096,10 +11153,21 @@
         reg.hora = /^\d{2}:\d{2}$/.test(hora.value) ? hora.value : '';
         reg.descricao = obs.value.trim();
         reg.litros = 0; reg.precoLitro = 0; reg.combustivel = ''; reg.categoria = '';
+        var particular = plataforma === 'Particular';
+        if (particular && !ehData(pagamento.value)) { mostrarErro(forma, 'Escolha a data do pagamento.'); return; }
+        reg.pagarEm = particular && pagamento.value > reg.data ? pagamento.value : '';
+        reg.clienteId = reg.clienteId || '';
+        reg.servicoId = reg.servicoId || '';
         if (!existente) estado.uberRegistros.push(reg);
         ultimaPlataforma = plataforma;
+        // Já cobrada: o registro e a parcela acompanham o que mudou aqui.
+        if (reg.servicoId) acompanharCobrancaDaCorrida(reg);
         salvar();
         fecharOuVoltar(deCima);
+        if (reg.pagarEm && !reg.servicoId) {
+          setTimeout(function () { abrirCobrancaDaCorrida(reg); }, 320);
+          return;
+        }
         avisar(existente ? 'Corrida atualizada.' : 'Corrida registrada: ' + emReais(v) + '.');
       }));
       if (existente) acoes.appendChild(botao('btn btn-perigo', 'Excluir corrida', function () { excluirRegistroUber(existente, deCima); }));
@@ -11109,6 +11177,83 @@
     });
   }
   var ultimaPlataforma = '';
+
+  // ---------- Corrida particular paga depois ----------
+  //
+  // Vira cobrança em Serviços e Vendas: o cliente (novo ou um que já
+  // existe), um registro com o valor da corrida e uma parcela que vence no
+  // dia combinado. O faturamento continua sendo do Uber; em Serviços o
+  // registro entra só no que falta receber, para nada contar duas vezes.
+  var TIPO_CORRIDA = 'Corrida particular';
+
+  function nomeDoRegistroDaCorrida(reg) {
+    return 'Corrida ' + dataCurta(reg.data) + (reg.descricao ? ' — ' + reg.descricao : '');
+  }
+
+  function abrirCobrancaDaCorrida(reg) {
+    // O que der para aproveitar já vem preenchido: um cliente com o nome
+    // que está na observação, ou só a observação como anotação.
+    var palpite = null;
+    var obsMin = String(reg.descricao || '').toLowerCase();
+    if (obsMin) {
+      estado.clientes.forEach(function (c) {
+        if (!palpite && obsMin.indexOf(String(c.nome || '').toLowerCase()) >= 0) palpite = c;
+      });
+    }
+    abrirFolhaCliente(palpite ? palpite.id : null, {
+      titulo: 'Quem vai pagar a corrida?',
+      aviso: 'Corrida de ' + emReais(reg.valor) + ' em ' + dataBr(reg.data) +
+        ', para pagar em ' + dataBr(reg.pagarEm) + '. Ela entra a receber em Serviços e Vendas.',
+      obs: palpite ? null : (reg.descricao ? 'Corrida: ' + reg.descricao : ''),
+      escolherExistente: !palpite,
+      rotuloSalvar: 'Salvar e cobrar',
+      aoSalvar: function (cliente) { criarCobrancaDaCorrida(reg, cliente); }
+    });
+  }
+
+  function criarCobrancaDaCorrida(reg, cliente) {
+    var servicoId = novoId();
+    estado.servicos.push({
+      id: servicoId, clienteId: cliente.id, nome: nomeDoRegistroDaCorrida(reg).slice(0, 60),
+      tipo: TIPO_CORRIDA, valor: reg.valor, data: reg.data,
+      obs: reg.hora ? 'Corrida às ' + reg.hora : '', despesas: [], criadoEm: Date.now()
+    });
+    estado.parcelas.push({
+      id: novoId(), clienteId: cliente.id, servicoId: servicoId,
+      numero: 1, total: 1, valor: reg.valor, vencimento: reg.pagarEm,
+      minimo: 0, jurosAtraso: 0, quitadaEm: '', pagamentoId: '', criadoEm: Date.now()
+    });
+    reg.clienteId = cliente.id;
+    reg.servicoId = servicoId;
+    salvar();
+    // Abre a outra parte do app, onde o pagamento é controlado.
+    moduloEmp = 'servicos';
+    abaServicos = 'clientes';
+    window.scrollTo(0, 0);
+    desenharInicio();
+    setTimeout(function () {
+      abrirFichaCliente(cliente.id);
+      abaFicha = 'parcelas';
+      filtroParcelaServico = servicoId;
+      montarFichaCliente(cliente.id);
+      avisar('Corrida a receber de ' + cliente.nome + ' em ' + dataBr(reg.pagarEm) + '.');
+    }, 320);
+  }
+
+  // Corrida já cobrada que foi editada: o registro e a parcela em aberto
+  // acompanham o valor, a data e o vencimento.
+  function acompanharCobrancaDaCorrida(reg) {
+    var sv = achar(estado.servicos, reg.servicoId);
+    if (!sv) { reg.servicoId = ''; reg.clienteId = ''; return; }
+    sv.valor = reg.valor;
+    sv.data = reg.data;
+    sv.nome = nomeDoRegistroDaCorrida(reg).slice(0, 60);
+    estado.parcelas.forEach(function (p) {
+      if (p.servicoId !== sv.id || parcelaPaga(p)) return;
+      p.valor = reg.valor;
+      if (reg.pagarEm) p.vencimento = reg.pagarEm;
+    });
+  }
 
   function abrirFolhaAbastecimento(id, deCima) {
     var existente = id ? achar(estado.uberRegistros, id) : null;
@@ -12418,12 +12563,33 @@
 
   // ---------- Empreendedor: folhas ----------
 
-  function abrirFolhaCliente(id) {
+  // `opcoes` serve a quem chega de outro lugar do app (a corrida paga
+  // depois): título, um recado no topo, anotação já escrita, a lista dos
+  // clientes que já existem e o que fazer depois de salvar.
+  function abrirFolhaCliente(id, opcoes) {
+    opcoes = opcoes || {};
     var existente = id ? achar(estado.clientes, id) : null;
     if (id && !existente) return;
 
-    abrirFolha(existente ? 'Editar cliente' : 'Novo cliente', function (folha) {
+    abrirFolha(opcoes.titulo || (existente ? 'Editar cliente' : 'Novo cliente'), function (folha) {
       var forma = no('div');
+      if (opcoes.aviso) forma.appendChild(no('div', 'linha-nota ouro aviso-cobranca', opcoes.aviso));
+
+      if (opcoes.escolherExistente && estado.clientes.length) {
+        var jaSao = estado.clientes.slice().sort(function (a, b) {
+          return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+        }).slice(0, 12);
+        var chipsCli = no('div', 'chips');
+        jaSao.forEach(function (c) {
+          chipsCli.appendChild(botao('chip', c.nome, function () {
+            fecharFolha();
+            desenhar();
+            setTimeout(function () { opcoes.aoSalvar(c); }, 300);
+          }));
+        });
+        forma.appendChild(campo('Já é cliente? Toque no nome', chipsCli));
+        forma.appendChild(no('div', 'rotulo-secao', 'Ou cadastre quem vai pagar'));
+      }
 
       var campoNome = entradaTexto(existente ? existente.nome : '', 'Nome do cliente', 60);
       forma.appendChild(campo('Nome', campoNome));
@@ -12568,13 +12734,14 @@
       notaEnd.style.marginTop = '-8px';
       forma.appendChild(notaEnd);
 
-      var campoObs = entradaTexto(existente ? existente.obs : '', 'Anotação (opcional)', 200);
+      var campoObs = entradaTexto(existente ? existente.obs : (opcoes.obs || ''), 'Anotação (opcional)', 200);
       forma.appendChild(campo('Observação', campoObs));
 
       var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+      acoes.appendChild(botao('btn btn-ouro', opcoes.rotuloSalvar || 'Salvar', function () {
         var nome = campoNome.value.trim();
         if (!nome) { mostrarErro(forma, 'Escreva o nome do cliente.'); return; }
+        var salvo = existente;
 
         var lista = numeros.filter(function (t) { return soDigitos(t.numero); })
           .map(function (t) { return { numero: soDigitos(t.numero), whats: !!t.whats, rotulo: '' }; });
@@ -12588,7 +12755,7 @@
           existente.endereco = campoEndereco.value.trim();
           existente.obs = campoObs.value.trim();
         } else {
-          estado.clientes.push({
+          estado.clientes.push(salvo = {
             id: novoId(), nome: nome,
             telefones: lista,
             telefone: principal.numero,
@@ -12602,10 +12769,11 @@
         salvar();
         fecharFolha();
         desenhar();
+        if (opcoes.aoSalvar) { setTimeout(function () { opcoes.aoSalvar(salvo); }, 300); return; }
         avisar(existente ? 'Cliente atualizado.' : 'Cliente cadastrado.');
       }));
 
-      if (existente) {
+      if (existente && !opcoes.aoSalvar) {
         acoes.appendChild(botao('btn btn-perigo', 'Excluir cliente', function () {
           var quantos = servicosDoCliente(existente.id).length + pagamentosDoCliente(existente.id).length +
             estado.parcelas.filter(function (p) { return p.clienteId === existente.id; }).length;

@@ -78,7 +78,7 @@ conferir('6. o resumo de Serviços mostra despesas e lucro',
   /Despesas\s*R\$ 1\.500,00/.test(resumo) && /Lucro\s*R\$ 300,00/.test(resumo), (resumo.match(/Despesas.{0,40}/) || [''])[0]);
 conferir('7. e o registro na lista também', /Poco f5.*lucro R\$ 300,00/.test(resumo));
 await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
-await page.click('#telaInicio [data-modulo="painel"]'); await page.waitForTimeout(900);
+await page.click('#telaInicio .cartao-resumo-emp'); await page.waitForTimeout(900);
 const painel = limpo(await page.textContent('#telaInicio .painel-modulo'));
 conferir('8. o painel desconta as despesas de Serviços',
   /Faturamento\s*R\$ 1\.800,00/.test(painel) && /Despesas\s*R\$ 1\.500,00/.test(painel) && /Lucro\s*R\$ 300,00/.test(painel), painel.slice(0, 160));
