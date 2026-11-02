@@ -68,6 +68,7 @@ function condicoes(params) {
     const COMPARA = { eq: '=', neq: '<>', lt: '<', lte: '<=', gt: '>', gte: '>=' };
     if (COMPARA[op]) { valores.push(alvo); onde.push(`"${chave}" ${COMPARA[op]} $${valores.length}`); }
     else if (op === 'is') { onde.push(`"${chave}" IS ${alvo.toUpperCase() === 'NULL' ? 'NULL' : 'NOT NULL'}`); }
+    else if (op === 'not' && /^is\.null$/i.test(alvo)) { onde.push(`"${chave}" IS NOT NULL`); }
   }
   return { onde: onde.length ? 'WHERE ' + onde.join(' AND ') : '', valores };
 }
@@ -208,7 +209,11 @@ const servidor = http.createServer(async (req, res) => {
       if (!/^[a-z_]+$/.test(nome)) return json(res, 400, { message: 'função inválida' });
       const uid = uidDoPedido(req);
       if (!uid) return json(res, 401, { message: 'sem token' });
-      const r = await comoUsuario(uid, (c) => c.query(`select public."${nome}"() as v`));
+      // Argumentos nomeados, como o PostgREST: {"p_id": "x"} vira p_id => $1.
+      const args = corpo && typeof corpo === 'object' && !Array.isArray(corpo) ? Object.keys(corpo) : [];
+      if (args.some((a) => !/^[a-z_]+$/.test(a))) return json(res, 400, { message: 'argumento inválido' });
+      const lista = args.map((a, i) => `${a} => $${i + 1}`).join(', ');
+      const r = await comoUsuario(uid, (c) => c.query(`select public."${nome}"(${lista}) as v`, args.map((a) => corpo[a])));
       return json(res, 200, r.rows[0] ? r.rows[0].v : null);
     }
 
@@ -248,7 +253,7 @@ const servidor = http.createServer(async (req, res) => {
             const sql = `insert into public."${tabela}" (${cols}) values (${marc})` +
               (set ? ` on conflict (${alvo}) do update set ${set}` : ` on conflict (${alvo}) do nothing`);
             // Colunas jsonb querem o JSON como texto; text[] vai como array mesmo.
-            const JSONB = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados'];
+            const JSONB = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados', 'areas'];
             await c.query(sql, colunas.map((k) => {
               const v = reg[k];
               return (JSONB.includes(k) && v && typeof v === 'object') ? JSON.stringify(v) : v;

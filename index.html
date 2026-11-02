@@ -2111,6 +2111,7 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .modulo-de-quem { display: block; font-size: 12px; font-weight: 600; color: var(--azul, #38BDF8); margin-top: 2px; }
   .sub-produtos { margin-bottom: 14px; }
   .item-entrega { font-size: 12.5px; color: var(--suave); margin: -2px 0 6px; }
   /* Contas do mês (radar). */
@@ -2272,7 +2273,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.40.0';
+  var VERSAO = '5.41.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2281,6 +2282,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.41.0',
+      data: '2026-11-03',
+      itens: [
+        'Compartilhar, em Mais: escolha o que dividir com outra pessoa (Venda de Doces e/ou Uber e Corridas) e convide pelo e-mail da conta dela no Finanz.',
+        'Ela recebe o convite dentro do app. Aceitando, aquela parte passa a ser a mesma para os dois: o que um cadastra ou muda aparece para o outro, e fica tudo salvo na nuvem.',
+        'O resto da sua conta continua só seu, e o servidor garante isso: ela vê apenas as partes que você escolheu, e só enquanto o convite valer. Você pode trocar as partes ou parar de compartilhar quando quiser.',
+        'Se ela sair, a parte que ela tinha antes volta para a tela dela, e os registros compartilhados continuam com você.'
+      ]
+    },
     {
       versao: '5.40.0',
       data: '2026-11-03',
@@ -5332,13 +5343,254 @@
   function linhasDosModulos(uid) {
     var fora = [];
     Object.keys(MODULOS_NA_NUVEM).forEach(function (tipo) {
+      // Área compartilhada comigo: as linhas são do dono e voltam para ele.
+      var dono = donoDaArea(areaDoTipo(tipo)) || uid;
       (estado[MODULOS_NA_NUVEM[tipo]] || []).forEach(function (r) {
         var dados = {};
         Object.keys(r).forEach(function (k) { if (k !== 'id') dados[k] = r[k]; });
-        fora.push({ id: r.id, user_id: uid, tipo: tipo, dados: dados, excluido_em: null });
+        fora.push({ id: r.id, user_id: dono, tipo: tipo, dados: dados, excluido_em: null });
       });
     });
     return fora;
+  }
+
+  // ---------- Compartilhar partes do Empreendedor ----------
+  //
+  // O dono convida pelo e-mail da conta da outra pessoa e escolhe as áreas
+  // (Venda de Doces, Uber e Corridas). Aceitando, a área dela no app passa
+  // a ser a dele: os dois veem e mexem nos mesmos registros, que continuam
+  // sendo do dono no servidor. O que ela tinha antes naquela área fica
+  // guardado na conta dela e volta se ela sair.
+  var AREAS_COMPARTILHAVEIS = [
+    { id: 'doces', nome: 'Venda de Doces' },
+    { id: 'uber', nome: 'Uber e Corridas' }
+  ];
+
+  function areaDoTipo(tipo) {
+    if (String(tipo).indexOf('doce_') === 0) return 'doces';
+    if (String(tipo).indexOf('uber_') === 0) return 'uber';
+    return '';
+  }
+
+  function nomeDaArea(id) {
+    for (var i = 0; i < AREAS_COMPARTILHAVEIS.length; i++) if (AREAS_COMPARTILHAVEIS[i].id === id) return AREAS_COMPARTILHAVEIS[i].nome;
+    return id;
+  }
+
+  // Os convites que esta conta aceitou, guardados no aparelho para valer
+  // também sem internet. Chave por conta: outra pessoa no mesmo celular
+  // não herda o compartilhamento.
+  function chaveComigo() { return 'finanz.comigo.v1:' + ((sessaoNuvem && sessaoNuvem.usuario.id) || ''); }
+
+  function compartilhadosComigo() {
+    try { return JSON.parse(localStorage.getItem(chaveComigo()) || '[]') || []; } catch (e) { return []; }
+  }
+
+  function donoDaArea(area) {
+    if (!area) return '';
+    var lista = compartilhadosComigo();
+    for (var i = 0; i < lista.length; i++) if (lista[i].areas.indexOf(area) >= 0) return lista[i].donoId;
+    return '';
+  }
+
+  function quemCompartilhou(area) {
+    var lista = compartilhadosComigo();
+    for (var i = 0; i < lista.length; i++) if (lista[i].areas.indexOf(area) >= 0) return lista[i].donoNome || 'outra conta';
+    return '';
+  }
+
+  var meusConvites = [];
+  var convitesParaMim = [];
+  var convitesJaPerguntados = {};
+
+  // Lê os convites (os que fiz e os que recebi). Mudou o que está
+  // compartilhado comigo? Limpo aqui as listas daquelas áreas e peço o
+  // download inteiro: as listas passam a ser as do dono (ou voltam a ser
+  // as minhas, quando saio).
+  function carregarCompartilhamentos() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve();
+    if (faltaNoBanco['tabela:compartilhamentos']) return Promise.resolve();
+    var uid = sessaoNuvem.usuario.id;
+    return pedirNuvem('/rest/v1/compartilhamentos?select=*', {}).then(function (linhas) {
+      linhas = linhas || [];
+      meusConvites = linhas.filter(function (l) { return l.dono_id === uid; });
+      var aceitos = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'aceito' && l.convidado_id === uid; })
+        .map(function (l) { return { id: l.id, donoId: l.dono_id, donoNome: l.dono_nome || '', areas: Array.isArray(l.areas) ? l.areas : [] }; });
+      var antes = compartilhadosComigo();
+      var assinatura = function (lista) {
+        return lista.map(function (x) { return x.donoId + ':' + x.areas.slice().sort().join(','); }).sort().join('|');
+      };
+      if (assinatura(antes) !== assinatura(aceitos)) {
+        var mexidas = {};
+        antes.concat(aceitos).forEach(function (x) { x.areas.forEach(function (a) { mexidas[a] = true; }); });
+        try { localStorage.setItem(chaveComigo(), JSON.stringify(aceitos)); } catch (e) { /* segue */ }
+        Object.keys(MODULOS_NA_NUVEM).forEach(function (tipo) {
+          if (mexidas[areaDoTipo(tipo)]) estado[MODULOS_NA_NUVEM[tipo]] = [];
+        });
+        // Força o download na próxima conta do carimbo.
+        estado.carimbo = '';
+        estado.pendente = false;
+      }
+      convitesParaMim = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'pendente'; });
+      var pendentes = convitesParaMim.filter(function (l) { return !convitesJaPerguntados[l.id]; });
+      if (pendentes.length) setTimeout(function () { perguntarConvite(pendentes[0]); }, 600);
+    }).catch(function (e) {
+      if (ehTabelaQueFalta(e)) faltaNoBanco['tabela:compartilhamentos'] = true;
+    });
+  }
+
+  function perguntarConvite(l) {
+    convitesJaPerguntados[l.id] = true;
+    var areas = (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e ');
+    perguntar({
+      titulo: (l.dono_nome || 'Alguém') + ' quer compartilhar com você',
+      texto: areas + '.\n\nAceitando, ' + areas + ' deste app passa a ser a de ' + (l.dono_nome || 'quem convidou') +
+        ': vocês dois veem e mexem nos mesmos registros, e o que um muda aparece para o outro. ' +
+        'O que você já tinha nessa parte fica guardado na sua conta e volta se você sair do compartilhamento.',
+      // "Agora não" não recusa: o convite continua em Mais > Compartilhar.
+      // Voltar com o botão do celular também cai aqui, e recusar por um
+      // toque sem querer seria ruim.
+      ok: 'Aceitar', cancelar: 'Agora não', icone: 'alvo'
+    }, function () { responderConvite(l, true); });
+  }
+
+  function responderConvite(l, aceitar) {
+    return pedirNuvem('/rest/v1/rpc/responder_convite', { metodo: 'POST', corpo: { p_id: l.id, p_aceitar: aceitar } })
+      .then(function () {
+        avisar(aceitar ? 'Compartilhamento aceito. Trazendo os dados…' : 'Convite recusado.');
+        return carregarCompartilhamentos();
+      }).then(function () { return sincronizar(true); })
+      .then(function () { desenhar(); })
+      .catch(function () { avisar('Não deu para responder agora. Tente de novo com internet.'); });
+  }
+
+  function abrirCompartilhar() {
+    abrirFolha('Compartilhar', function (folha) {
+      folha.appendChild(no('p', 'ajuda', 'Escolha o que compartilhar e o e-mail da conta da outra pessoa no Finanz. Ela recebe o convite dentro do app e, aceitando, vocês dois veem e mexem nos mesmos registros daquela parte. O resto da sua conta continua só seu.'));
+      var lista = cartao('liso');
+      var t1 = topoDeCartao('Que você compartilhou', null);
+      t1.style.padding = '16px 16px 0'; t1.style.marginBottom = '8px';
+      lista.appendChild(t1);
+      if (!meusConvites.length) lista.appendChild(estadoVazio('Nada compartilhado', 'Toque em "+ Convidar" para escolher o que compartilhar.'));
+      meusConvites.forEach(function (l) {
+        var sit = l.situacao === 'aceito' ? 'aceitou' : l.situacao === 'recusado' ? 'recusou' : 'ainda não respondeu';
+        lista.appendChild(linhaSimples({
+          titulo: l.convidado_email,
+          sub: (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e ') + ' · ' + sit,
+          valor: '', selo: selo(l.situacao === 'aceito' ? '#3DDC84' : l.situacao === 'recusado' ? '#FF6B6B' : '#E9B44C', '@'),
+          aoTocar: function () { abrirConvite(l); }
+        }));
+      });
+      folha.appendChild(lista);
+      if (convitesParaMim.length) {
+        var lp = cartao('liso');
+        var t0 = topoDeCartao('Convites para você', null);
+        t0.style.padding = '16px 16px 0'; t0.style.marginBottom = '8px';
+        lp.appendChild(t0);
+        convitesParaMim.forEach(function (l) {
+          lp.appendChild(linhaSimples({
+            titulo: (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e '),
+            sub: 'de ' + (l.dono_nome || 'outra conta') + ' · aceitar ou recusar',
+            valor: '', selo: selo('#E9B44C', '✉'),
+            aoTocar: function () {
+              abrirEscolha({ titulo: 'Convite de ' + (l.dono_nome || 'outra conta'), opcoes: [
+                { valor: 'sim', rotulo: 'Aceitar', detalhe: 'vocês dois passam a ver e mexer nos mesmos registros' },
+                { valor: 'nao', rotulo: 'Recusar', detalhe: 'o convite some' }
+              ] }, function (v) {
+                if (!v) return;
+                fecharFolha();
+                responderConvite(l, v === 'sim');
+              });
+            }
+          }));
+        });
+        folha.appendChild(lp);
+      }
+      var comigo = compartilhadosComigo();
+      if (comigo.length) {
+        var lc = cartao('liso');
+        var t2 = topoDeCartao('Compartilhado com você', null);
+        t2.style.padding = '16px 16px 0'; t2.style.marginBottom = '8px';
+        lc.appendChild(t2);
+        comigo.forEach(function (x) {
+          lc.appendChild(linhaSimples({
+            titulo: x.areas.map(nomeDaArea).join(' e '),
+            sub: 'de ' + (x.donoNome || 'outra conta') + ' · toque para sair',
+            valor: '', selo: selo('#38BDF8', '⇄'),
+            aoTocar: function () {
+              perguntar({ titulo: 'Sair do compartilhamento?', texto: 'Você deixa de ver ' + x.areas.map(nomeDaArea).join(' e ') +
+                ' de ' + (x.donoNome || 'outra conta') + '. O que era seu nessa parte volta para a tela.', ok: 'Sair', tom: 'perigo' },
+                function () { fecharFolha(); responderConvite({ id: x.id }, false); });
+            }
+          }));
+        });
+        folha.appendChild(lc);
+      }
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', '+ Convidar', function () { abrirConvite(null); }));
+      folha.appendChild(acoes);
+    });
+    carregarCompartilhamentos();
+  }
+
+  function abrirConvite(l) {
+    var areas = l && Array.isArray(l.areas) ? l.areas.slice() : ['doces'];
+    abrirFolha(l ? 'Compartilhamento' : 'Convidar', function (folha) {
+      var forma = no('div', 'forma');
+      var email = entradaTexto(l ? l.convidado_email : '', 'email@da-outra-conta.com', 200);
+      email.type = 'email'; email.autocapitalize = 'off'; email.inputMode = 'email';
+      if (l) email.disabled = true;
+      forma.appendChild(campo('E-mail da conta dela no Finanz', email));
+      var chips = no('div', 'chips');
+      AREAS_COMPARTILHAVEIS.forEach(function (a) {
+        var b = botao('chip', a.nome, function () {
+          var i = areas.indexOf(a.id);
+          if (i >= 0) areas.splice(i, 1); else areas.push(a.id);
+          b.classList.toggle('ativo', areas.indexOf(a.id) >= 0);
+          b.setAttribute('aria-pressed', areas.indexOf(a.id) >= 0 ? 'true' : 'false');
+        });
+        b.classList.toggle('ativo', areas.indexOf(a.id) >= 0);
+        b.setAttribute('aria-pressed', areas.indexOf(a.id) >= 0 ? 'true' : 'false');
+        chips.appendChild(b);
+      });
+      forma.appendChild(campo('O que compartilhar', chips));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', l ? 'Salvar' : 'Enviar convite', function () {
+        var em = String(email.value || '').trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { mostrarErro(forma, 'Escreva o e-mail da conta dela.'); return; }
+        if (sessaoNuvem && sessaoNuvem.usuario.email && em === String(sessaoNuvem.usuario.email).toLowerCase()) {
+          mostrarErro(forma, 'Esse é o seu próprio e-mail.'); return;
+        }
+        if (!areas.length) { mostrarErro(forma, 'Escolha pelo menos uma parte.'); return; }
+        var pedido = l
+          // Recusado e salvo de novo: o convite volta a valer.
+          ? pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH',
+              corpo: { areas: areas, situacao: l.situacao === 'recusado' ? 'pendente' : l.situacao }, cabecalhos: { 'Prefer': 'return=minimal' } })
+          : pedirNuvem('/rest/v1/compartilhamentos', { metodo: 'POST', cabecalhos: { 'Prefer': 'return=minimal' },
+              corpo: [{ id: novoId(), dono_id: sessaoNuvem.usuario.id, dono_nome: String(estado.perfil.nome || '').slice(0, 80),
+                        convidado_email: em, areas: areas, situacao: 'pendente' }] });
+        pedido.then(function () {
+          fecharFolha();
+          avisar(l ? 'Compartilhamento atualizado.' : 'Convite enviado. Ela vê quando abrir o app.');
+          carregarCompartilhamentos();
+        }).catch(function (e) {
+          mostrarErro(forma, /duplicate|unique|23505/i.test(String((e && (e.message || e.codigo)) || ''))
+            ? 'Você já convidou esse e-mail. Abra o convite na lista para mudar.'
+            : 'Não deu para enviar agora. Confira a internet e tente de novo.');
+        });
+      }));
+      if (l) acoes.appendChild(botao('btn btn-perigo', 'Parar de compartilhar', function () {
+        perguntar({ titulo: 'Parar de compartilhar?', texto: l.convidado_email + ' deixa de ver o que você compartilhou. Os registros continuam seus.', ok: 'Parar', tom: 'perigo' }, function () {
+          pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'DELETE' }).then(function () {
+            fecharFolha();
+            avisar('Compartilhamento desfeito.');
+            carregarCompartilhamentos();
+          }).catch(function () { avisar('Não deu agora. Tente de novo com internet.'); });
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
   }
 
   function linhasDoEstado(uid) {
@@ -5973,9 +6225,15 @@
       });
     } else {
       var laVivos = {};
+      var euMesmo = sessaoNuvem && sessaoNuvem.usuario.id;
       r.empreendedor_registros.forEach(function (l) {
         var chave = MODULOS_NA_NUVEM[l.tipo];
         if (!chave) return;
+        // Cada área vem de um dono só: o meu, ou o de quem compartilhou
+        // comigo. As minhas linhas de uma área compartilhada ficam
+        // guardadas lá, fora da tela, até eu sair.
+        var donoEsperado = donoDaArea(areaDoTipo(l.tipo)) || euMesmo;
+        if (l.user_id && donoEsperado && l.user_id !== donoEsperado) return;
         var item = {};
         var dados = l.dados && typeof l.dados === 'object' ? l.dados : {};
         Object.keys(dados).forEach(function (k) { item[k] = dados[k]; });
@@ -6220,7 +6478,8 @@
     try { if (localStorage.getItem(CHAVE_RECUPERACAO)) return Promise.resolve(0); } catch (e) { return Promise.resolve(0); }
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(0);
     if (faltaNoBanco['tabela:empreendedor_registros']) return Promise.resolve(0);
-    var chaves = Object.keys(MODULOS_NA_NUVEM).map(function (t) { return MODULOS_NA_NUVEM[t]; });
+    var chaves = Object.keys(MODULOS_NA_NUVEM).filter(function (t) { return !donoDaArea(areaDoTipo(t)); })
+      .map(function (t) { return MODULOS_NA_NUVEM[t]; });
     var melhor = null, melhorTotal = 0;
     var naNuvem = {};
     return comTokenValido().then(function () {
@@ -6275,6 +6534,8 @@
     var tinhaFalha = !!falhaDaSincronia;
 
     return comTokenValido().then(function () {
+      return carregarCompartilhamentos();
+    }).then(function () {
       return carimboDaConta();
     }).then(function (carimbo) {
       // Sem carimbo (banco antigo) o app não sabe, então assume que mudou
@@ -10530,7 +10791,11 @@
     var rotuloEl = no('div', 'rotulo', rotulo.charAt(0).toUpperCase() + rotulo.slice(1));
     rotuloEl.setAttribute('aria-label', MESES[mesAtivo.mes] + ' de ' + mesAtivo.ano);
     juntar(sel, antes, rotuloEl, depois);
-    juntar(c, voltar, no('h1', null, titulo), sel);
+    var tituloEl = no('h1', null, titulo);
+    var areaAqui = moduloEmp === 'doces' ? 'doces' : moduloEmp === 'uber' ? 'uber' : '';
+    var deQuem = areaAqui ? quemCompartilhou(areaAqui) : '';
+    if (deQuem) tituloEl.appendChild(no('span', 'modulo-de-quem', 'de ' + deQuem));
+    juntar(c, voltar, tituloEl, sel);
     return c;
   }
 
@@ -19803,6 +20068,11 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
+      ['⇄', 'Compartilhar', 'Venda de Doces ou Uber com outra conta, os dois mexendo',
+        function () {
+          if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Precisa da conta na nuvem', 'Compartilhar depende da conta ligada: os dados ficam no servidor para os dois.', function () {}); return; }
+          abrirCompartilhar();
+        }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
@@ -26279,12 +26549,20 @@
         // apagar olhando só as primeiras mil linhas: o resto ficava de pé
         // no servidor e voltava no download seguinte. Era por isso que
         // restaurar um backup parecia valer e depois desvalia.
-        return baixarTudo(t, 'select=id&excluido_em=is.null').catch(function (e) {
+        // Só as minhas linhas, e nunca as de uma área compartilhada comigo:
+        // restaurar um backup aqui não pode apagar nada de quem
+        // compartilhou, nem o que é meu e está guardado fora da tela.
+        var uidAqui = sessaoNuvem.usuario.id;
+        var filtro = t === 'empreendedor_registros'
+          ? 'select=id,tipo&excluido_em=is.null&user_id=eq.' + uidAqui
+          : 'select=id&excluido_em=is.null';
+        return baixarTudo(t, filtro).catch(function (e) {
           if (TABELAS_OPCIONAIS.indexOf(t) >= 0 && ehTabelaQueFalta(e)) return [];
           throw e;
         });
       }).then(function (r) {
         (r || []).forEach(function (linha) {
+          if (t === 'empreendedor_registros' && donoDaArea(areaDoTipo(linha.tipo))) return;
           var id = String(linha.id);
           if (!meus[t][id]) estado.excluidos.push({ t: t, id: id });
         });
