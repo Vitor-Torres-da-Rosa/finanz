@@ -2111,6 +2111,25 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .tempo-do-dia { display: block; margin: 8px auto 0; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--ouro); }
+  .fechamento-resumo { row-gap: 8px; }
+  .fechamento-resumo strong { text-align: right; font-size: 14.5px; }
+  .fechamento-nota { grid-column: 1 / -1; margin-top: 4px; }
+  /* Folha do vendedor de doces: os botões não colam no cartão de baixo. */
+  .folha .acoes + .cartao, .folha .acoes + .cartao-liso { margin-top: 18px; }
+  .historico-toggle {
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
+    padding: 14px 16px; border-top: 1px solid rgba(198,158,78,.14);
+    font-size: 13.5px; font-weight: 700; color: var(--ouro); text-align: left;
+  }
+  .historico-seta { color: var(--fraco); }
+  /* Registro 100% pago: selo verde e fim da lista. */
+  .selo-pago {
+    display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; color: var(--verde);
+    background: rgba(61,220,132,.12); border: 1px solid rgba(61,220,132,.35);
+  }
+  .linha.registro-pago .linha-titulo { color: var(--suave); }
   /* Finalizados: a lista dos quitados e a volta para ela. */
   .voltar-finalizados {
     display: inline-flex; align-items: center; gap: 4px;
@@ -2149,6 +2168,19 @@
   .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
   .modulos-lista .modulo-cartao[data-modulo="servicos"] { grid-column: 1 / -1; }
+  /* Chips de filtro soltos no módulo (Registros, Gastos): respiro antes do cartão. */
+  .modulo-corpo > .chips { margin-bottom: 16px; }
+  /* Redesenho da mesma tela (sincronizou, salvou, o relógio andou): nada de
+     entrar de novo. Os cartões subindo e o gráfico se revelando a cada
+     sincronização eram as piscadas na tela. Entrada só quando a pessoa
+     muda de tela, de aba, de mês ou de filtro. */
+  .tela.sem-entrada .modulo-cabecalho, .tela.sem-entrada .modulo-corpo,
+  .tela.sem-entrada .modulo-cartao, .tela.sem-entrada .cartao-resumo-emp,
+  .tela.sem-entrada .grafico-animado, .tela.sem-entrada .barra,
+  .tela.sem-entrada .conteudo-aba, .tela.sem-entrada .cartao.achado,
+  .tela.sem-entrada > .cartao, .tela.sem-entrada > .kpis, .tela.sem-entrada > .modulos-lista,
+  .tela.sem-entrada .heroi-linha { animation: none !important; }
+  .tela.sem-entrada .heroi-linha { stroke-dashoffset: 0 !important; }
   .aviso-cobranca { margin: 0 0 14px; }
   .cartao-resumo-emp { margin-bottom: 12px; }
   .modulo-cartao { flex-direction: row; align-items: center; gap: 10px; padding: 16px 10px 16px 14px; min-height: 104px; border-radius: 20px; }
@@ -2229,7 +2261,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.34.0';
+  var VERSAO = '5.37.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2238,6 +2270,50 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.37.1',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: a entrega mostra também o preço de custo (quantidade × valor de compra), para saber quanto saiu do bolso.',
+        'Os campos da entrega usam os mesmos nomes do produto: Repasse para mim e Venda ao cliente final.'
+      ]
+    },
+    {
+      versao: '5.37.0',
+      data: '2026-11-03',
+      itens: [
+        'Uber mais simples: no fim do dia, toque em "Fechar o dia" (ou no "+") e passe o que o app da Uber mostrou: ganhos, viagens e tempo online. O tempo já vem do cronômetro, e dá para corrigir se der diferença.',
+        'Combustível pela conta certa: km rodados, média do carro (km/l) e preço do litro do dia. O app calcula só o que o Uber gastou, e o que você abasteceu além disso (mercado, passeio) não entra no lucro. A média e o preço do último dia já vêm preenchidos, e cada dia fica no histórico com o preço do litro.',
+        'Tempo de hoje: tocando nele, aparecem as jornadas do dia para corrigir o tempo trabalhado ou excluir uma que ficou ligada sem querer.',
+        'A corrida avulsa (particular) ganhou botão próprio, e o abastecimento ficou na aba Gastos.'
+      ]
+    },
+    {
+      versao: '5.36.0',
+      data: '2026-11-03',
+      itens: [
+        'Ficha do cliente: a aba Pagos saiu, porque as parcelas pagas já mostram cada pagamento. O botão "+ Registrar pagamento" foi para a aba Parcelas, e o histórico completo fica lá embaixo, fechado, em "Histórico de pagamentos".',
+        'Registros: a venda ou serviço 100% pago aparece com o selo "pago" em verde e vai para o fim da lista, na ficha do cliente e na aba Registros.',
+        'Venda de Doces: os botões da ficha do vendedor ganharam espaço antes de "Doces em estoque".'
+      ]
+    },
+    {
+      versao: '5.35.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: o produto agora tem os quatro valores: valor de compra do produto, valor de venda ao cliente final, repasse para o revendedor e repasse para mim.',
+        'As duas partes do repasse fecham com o preço de venda: mexendo numa, a outra se ajusta sozinha. Embaixo aparecem o lucro do revendedor e o seu por unidade.'
+      ]
+    },
+    {
+      versao: '5.34.1',
+      data: '2026-11-03',
+      itens: [
+        'Corrida particular paga depois agora soma no faturamento de Serviços e Vendas, junto com o que tem a receber. No resumo do Empreendedor ela continua contando uma vez só.',
+        'Sem piscadas: a tela só anima quando você troca de tela, de aba, de mês ou de filtro. Antes os cartões e o gráfico entravam de novo a cada sincronização ou salvamento.',
+        'Registros: os filtros Todos, Vendas e Serviços ganharam espaço antes da lista.'
+      ]
+    },
     {
       versao: '5.34.0',
       data: '2026-11-02',
@@ -4371,7 +4447,7 @@
     limpo.uberRegistros = lista('uberRegistros').map(function (r) {
       return {
         id: r.id,
-        tipo: ['corrida', 'abastecimento', 'despesa'].indexOf(r.tipo) >= 0 ? r.tipo : 'despesa',
+        tipo: ['corrida', 'abastecimento', 'despesa', 'dia'].indexOf(r.tipo) >= 0 ? r.tipo : 'despesa',
         data: soData(r.data) || hojeTexto(),
         hora: /^\d{2}:\d{2}$/.test(r.hora || '') ? r.hora : '',
         valor: positivo(r.valor),
@@ -4386,6 +4462,11 @@
         // Corrida particular paga depois: quando, e o cliente e o registro
         // que o app criou em Serviços e Vendas para cobrar.
         pagarEm: soData(r.pagarEm) || '',
+        // Fechamento do dia: viagens, tempo online, km/l e o abastecido.
+        viagens: Math.max(0, Math.min(9999, Math.round(Number(r.viagens) || 0))),
+        minutos: Math.max(0, Math.min(1440, Math.round(Number(r.minutos) || 0))),
+        kmPorLitro: decimal(r.kmPorLitro, 1),
+        abastecido: positivo(r.abastecido),
         clienteId: texto(r.clienteId),
         servicoId: texto(r.servicoId),
         criadoEm: marca(r.criadoEm) || Date.now()
@@ -8428,7 +8509,7 @@
     // de cada módulo o "+" faz o que aquele módulo mais faz.
     b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel'));
     b.setAttribute('aria-label', !emp ? 'Novo lançamento'
-      : moduloEmp === 'uber' ? 'Nova corrida'
+      : moduloEmp === 'uber' ? 'Fechar o dia'
       : moduloEmp === 'doces' ? 'Nova entrega' : 'Novo cliente');
   }
 
@@ -8524,6 +8605,7 @@
   var tempoEntrando = null;
   function mostrarTela(id) {
     telaAtiva = id;
+    chavesDeTela = {};
     ['inicio', 'transacoes', 'investimentos', 'planejamento', 'mais'].forEach(function (t) {
       var el = $('tela' + t.charAt(0).toUpperCase() + t.slice(1));
       el.classList.toggle('ativa', t === id);
@@ -9197,8 +9279,18 @@
 
   // ---------- Tela: Início ----------
 
+  // A última "posição" desenhada em cada tela. Mesma posição = só os dados
+  // mudaram, e a tela é refeita parada, sem a animação de entrada.
+  var chavesDeTela = {};
+  function marcarRedesenho(el, chave) {
+    el.classList.toggle('sem-entrada', chavesDeTela[el.id] === chave);
+    chavesDeTela[el.id] = chave;
+  }
+
   function desenharInicio() {
     var tela = $('telaInicio');
+    marcarRedesenho(tela, [abaInicio, moduloEmp, abaServicos, janelaServicos, filtroRegistros,
+      abaUber, abaGastosUber, abaDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
     tela.textContent = '';
 
     // O extrato das contas fica pronto só enquanto a Visão geral está
@@ -10248,7 +10340,7 @@
   }
 
   function acaoDoFabNoEmpreendedor() {
-    if (moduloEmp === 'uber') abrirFolhaCorrida(null);
+    if (moduloEmp === 'uber') abrirFechamentoDoDia(hojeTexto());
     else if (moduloEmp === 'doces') abrirFolhaEntrega(null, '');
     else if (moduloEmp === 'servicos') abrirFolhaCliente(null);
   }
@@ -10453,11 +10545,13 @@
   // ---------- os números de cada módulo, num intervalo de datas ----------
 
   function numerosDeServicos(de, ate) {
-    var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0 };
+    var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0, corridas: 0 };
     estado.servicos.forEach(function (s) {
       if (s.data < de || s.data > ate) return;
-      // A corrida particular cobrada aqui já conta no faturamento do Uber.
-      if (s.tipo === TIPO_CORRIDA) return;
+      // A corrida particular cobrada aqui conta no faturamento de Serviços
+      // e Vendas, que é onde o Vitor olha para ver o que tem a receber.
+      // Ela também está no Uber; quem soma os dois tira a repetição.
+      if (s.tipo === TIPO_CORRIDA) r.corridas += s.valor;
       r.faturamento += s.valor;
       r.despesas += custoDoRegistro(s);
       if (ehAcrescimoDeParcelamento(s)) return;
@@ -10471,11 +10565,15 @@
 
   function numerosDoPeriodo(de, ate) {
     var s = numerosDeServicos(de, ate), u = numerosDoUber(de, ate), d = numerosDosDoces(de, ate);
+    // Corrida particular cobrada em Serviços e Vendas aparece nos dois
+    // módulos. Na soma ela entra uma vez só.
+    var repetida = s.corridas;
     return {
-      servicos: s, uber: u, doces: d,
-      faturamento: s.faturamento + u.faturamento + d.faturamento,
+      servicos: s, uber: u, doces: d, repetida: repetida,
+      uberSemRepetir: u.faturamento - repetida,
+      faturamento: s.faturamento + u.faturamento + d.faturamento - repetida,
       despesas: s.despesas + u.despesas + d.despesas,
-      lucro: s.lucro + u.lucro + d.lucro,
+      lucro: s.lucro + u.lucro + d.lucro - repetida,
       recebido: s.recebido + u.recebido + d.recebido,
       pendente: s.pendente + u.pendente + d.pendente
     };
@@ -10514,7 +10612,7 @@
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
     c.appendChild(variacao(n.faturamento, nAnt.faturamento));
     var cols = no('div', 'resumo-grade resumo-emp-grade');
-    [['Serviços', n.servicos.faturamento], ['Uber', n.uber.faturamento], ['Doces', n.doces.faturamento]].forEach(function (x) {
+    [['Serviços', n.servicos.faturamento], ['Uber', n.uberSemRepetir], ['Doces', n.doces.faturamento]].forEach(function (x) {
       juntar(cols, juntar(no('div'), no('div', 'r', x[0]), no('div', 'v num', emReais(x[1]))));
     });
     c.appendChild(cols);
@@ -10617,7 +10715,7 @@
     c3.appendChild(topoDeCartao('Por módulo', null));
     var seg = [
       { nome: 'Serviços e Vendas', valor: n.servicos.faturamento, cor: '#E9B44C' },
-      { nome: 'Uber e Corridas', valor: n.uber.faturamento, cor: '#60A5FA' },
+      { nome: 'Uber e Corridas', valor: n.uberSemRepetir, cor: '#60A5FA' },
       { nome: 'Venda de Doces', valor: n.doces.faturamento, cor: '#F472B6' }
     ];
     if (n.faturamento > 0) {
@@ -10753,15 +10851,33 @@
     return pontos;
   }
 
+  // Quanto já entrou para este registro: pagamentos apontados para ele,
+  // para uma parcela dele, ou para o acréscimo que nasceu dele.
   function pagoNoRegistro(s) {
+    var acr = acrescimosPorRegistro(s.clienteId)[s.id];
     var t = 0;
-    estado.pagamentos.forEach(function (p) { if (p.servicoId === s.id) t += p.valor; });
+    estado.pagamentos.forEach(function (p) {
+      if (p.clienteId !== s.clienteId) return;
+      var dele = p.servicoId === s.id || (acr && p.servicoId === acr.id);
+      if (!dele && !p.servicoId && p.parcelaId) {
+        var par = achar(estado.parcelas, p.parcelaId);
+        dele = !!(par && par.servicoId === s.id);
+      }
+      if (dele) t += p.valor;
+    });
     return t;
+  }
+
+  // Registro 100% pago: o valor dele mais o acréscimo do parcelamento.
+  function registroQuitado(s) {
+    var acr = acrescimosPorRegistro(s.clienteId)[s.id];
+    var total = s.valor + (acr ? acr.valor : 0);
+    return total > 0 && pagoNoRegistro(s) >= total;
   }
 
   function linhaDeRegistro(s) {
     var cliente = achar(estado.clientes, s.clienteId);
-    var pago = pagoNoRegistro(s) >= s.valor;
+    var pago = registroQuitado(s);
     var tipo = s.tipo || 'Serviço';
     var custo = custoDoRegistro(s);
     return linhaSimples({
@@ -10785,6 +10901,9 @@
       if (filtroRegistros === 'Venda') return s.tipo === 'Venda';
       return s.tipo !== 'Venda';
     }).sort(ordemDeRegistro);
+    // Os 100% pagos vão para o fim; a ordem de data vale dentro de cada parte.
+    lista = lista.filter(function (s) { return !registroQuitado(s); })
+      .concat(lista.filter(registroQuitado));
     var c = cartao('liso');
     if (!lista.length) c.appendChild(estadoVazio('Nada por aqui', 'Registre uma venda ou um serviço para um cliente.'));
     lista.slice(0, 200).forEach(function (s) { c.appendChild(linhaDeRegistro(s)); });
@@ -10869,13 +10988,45 @@
     }, 1000);
   }
 
+  // O combustível que o Uber gastou de verdade: os km rodados nas viagens
+  // pela média do carro, ao preço do litro daquele dia. O que se abasteceu
+  // além disso foi para outra coisa (mercado, passeio) e não entra na conta.
+  function combustivelDoDia(x) {
+    if (!x.km || !x.kmPorLitro || !x.precoLitro) return 0;
+    return Math.round(x.km / x.kmPorLitro * x.precoLitro);
+  }
+
+  function fechamentoDoDia(data) {
+    for (var i = 0; i < estado.uberRegistros.length; i++) {
+      var x = estado.uberRegistros[i];
+      if (x.tipo === 'dia' && x.data === data) return x;
+    }
+    return null;
+  }
+
   function numerosDoUber(de, ate, soDaJornada) {
-    var r = { faturamento: 0, combustivel: 0, extras: 0, km: 0, corridas: 0, litros: 0, ms: 0, jornadas: 0 };
+    var r = { faturamento: 0, combustivel: 0, extras: 0, km: 0, corridas: 0, litros: 0, ms: 0, jornadas: 0,
+              dias: 0, abastecidoFora: 0 };
+    var fechados = {};
+    if (!soDaJornada) estado.uberRegistros.forEach(function (x) {
+      if (x.tipo === 'dia' && x.data >= de && x.data <= ate) fechados[x.data] = x;
+    });
     estado.uberRegistros.forEach(function (x) {
       if (soDaJornada) { if (x.jornadaId !== soDaJornada.id) return; }
       else if (x.data < de || x.data > ate) return;
-      if (x.tipo === 'corrida') { r.faturamento += x.valor; r.km += x.km; r.corridas += 1; }
-      else if (x.tipo === 'abastecimento') { r.combustivel += x.valor; r.litros += x.litros; }
+      if (x.tipo === 'dia') {
+        var comb = combustivelDoDia(x);
+        r.faturamento += x.valor; r.km += x.km; r.corridas += x.viagens;
+        r.combustivel += comb; r.dias += 1;
+        if (x.kmPorLitro) r.litros += x.km / x.kmPorLitro;
+        if (x.abastecido > comb) r.abastecidoFora += x.abastecido - comb;
+      }
+      else if (x.tipo === 'corrida') { r.faturamento += x.valor; r.km += x.km; r.corridas += 1; }
+      else if (x.tipo === 'abastecimento') {
+        // Dia fechado: o combustível já saiu pela conta dos km.
+        if (fechados[x.data]) return;
+        r.combustivel += x.valor; r.litros += x.litros;
+      }
       else r.extras += x.valor;
     });
     if (soDaJornada) { r.ms = duracaoJornada(soDaJornada); r.jornadas = 1; }
@@ -10883,9 +11034,12 @@
       estado.uberJornadas.forEach(function (j) {
         var d = dataDeMarca(j.inicio);
         if (d < de || d > ate) return;
-        r.ms += duracaoJornada(j);
         r.jornadas += 1;
+        // Dia fechado: o tempo que vale é o do fechamento.
+        if (fechados[d] && fechados[d].minutos) return;
+        r.ms += duracaoJornada(j);
       });
+      Object.keys(fechados).forEach(function (d) { r.ms += (fechados[d].minutos || 0) * 60000; });
     }
     r.km = Math.round(r.km * 10) / 10;
     r.litros = Math.round(r.litros * 100) / 100;
@@ -10948,8 +11102,15 @@
     c.appendChild(botoes);
     corpo.appendChild(c);
 
-    var n = j ? numerosDoUber(null, null, j) : numerosDoUber(hoje, hoje);
-    corpo.appendChild(no('div', 'secao-rotulo', j ? 'Nesta jornada' : 'Hoje'));
+    // Tempo de hoje, somado pelo cronômetro, com o lápis para corrigir.
+    var msHoje = msDoDia(hoje);
+    if (msHoje || estado.uberJornadas.some(function (x) { return dataDeMarca(x.inicio) === hoje; })) {
+      c.appendChild(botao('tempo-do-dia', 'Tempo de hoje: ' + formatarHoras(msHoje) + ' · editar', function () { abrirTempoDoDia(hoje); }));
+    }
+
+    var fechado = fechamentoDoDia(hoje);
+    var n = j && !fechado ? numerosDoUber(null, null, j) : numerosDoUber(hoje, hoje);
+    corpo.appendChild(no('div', 'secao-rotulo', j && !fechado ? 'Nesta jornada' : 'Hoje'));
     corpo.appendChild(gradeDeTiles([
       tile('Corridas', String(n.corridas), ''),
       tile('Distância', decimalBr(n.km) + ' km', ''),
@@ -10964,23 +11125,26 @@
       tile('Ganho por hora', n.porHora ? emReais(n.porHora) : '—', '')
     ], 2));
 
+    // O dia se resume no fechamento: o que o app da Uber mostrou e os km.
+    // Corrida avulsa fica para a particular; abastecimento, na aba Gastos.
     var acoes = no('div', 'acoes-uber');
-    acoes.appendChild(botao('btn btn-ouro', '+ Corrida', function () { abrirFolhaCorrida(null); }));
+    acoes.appendChild(botao('btn btn-ouro', fechado ? 'Editar o fechamento de hoje' : 'Fechar o dia',
+      function () { abrirFechamentoDoDia(hoje); }));
     var linha = no('div', 'duas');
-    linha.appendChild(botao('btn btn-fantasma', 'Abastecimento', function () { abrirFolhaAbastecimento(null); }));
+    linha.appendChild(botao('btn btn-fantasma', 'Corrida avulsa', function () { abrirFolhaCorrida(null); }));
     linha.appendChild(botao('btn btn-fantasma', 'Outras despesas', function () { abrirFolhaGastoUber(null); }));
     acoes.appendChild(linha);
     corpo.appendChild(acoes);
 
     var corridas = estado.uberRegistros.filter(function (x) {
-      return x.tipo === 'corrida' && (j ? x.jornadaId === j.id : x.data === hoje);
+      return (x.tipo === 'corrida' || x.tipo === 'dia') && (j && !fechado ? x.jornadaId === j.id : x.data === hoje);
     }).sort(ordemUber);
     var cl = cartao('liso');
-    var topo = topoDeCartao('Últimas corridas', 'Ver histórico', function () { abaUber = 'historico'; desenharInicio(); });
+    var topo = topoDeCartao('Registros de hoje', 'Ver histórico', function () { abaUber = 'historico'; desenharInicio(); });
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     cl.appendChild(topo);
-    if (!corridas.length) cl.appendChild(estadoVazio('Nenhuma corrida ' + (j ? 'nesta jornada' : 'hoje'), 'Toque em "+ Corrida" a cada viagem, com o valor e os quilômetros.'));
+    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado ' + (j ? 'nesta jornada' : 'hoje'), 'No fim do dia, toque em "Fechar o dia" e passe o que o app da Uber mostrou.'));
     corridas.slice(0, 10).forEach(function (x) { cl.appendChild(linhaUber(x)); });
     corpo.appendChild(cl);
 
@@ -11016,6 +11180,21 @@
         else f(x.id);
       };
     }
+    if (x.tipo === 'dia') {
+      var comb = combustivelDoDia(x);
+      return linhaSimples({
+        titulo: 'Dia ' + dataCurta(x.data) + ' · ' + x.viagens + ' viagen' + (x.viagens === 1 ? 'm' : 's'),
+        sub: (x.minutos ? textoHoras(x.minutos) + ' online · ' : '') + decimalBr(x.km) + ' km' +
+          (x.precoLitro ? ' · litro ' + emReais(x.precoLitro) : ''),
+        valor: emReais(x.valor), cor: 'verde',
+        nota: 'lucro ' + emReais(x.valor - comb),
+        selo: seloIcone('relogio', '#E9B44C'),
+        aoTocar: function () {
+          if (reabrir) porCima(reabrir, function () { abrirFechamentoDoDia(x.data, true); });
+          else abrirFechamentoDoDia(x.data);
+        }
+      });
+    }
     if (x.tipo === 'corrida') {
       return linhaSimples({
         titulo: decimalBr(x.km) + ' km' + (x.plataforma ? ' · ' + x.plataforma : ''),
@@ -11041,6 +11220,206 @@
       valor: '− ' + emReais(x.valor), cor: 'vermelho',
       selo: seloIcone('ferramenta', '#FF6B6B'),
       aoTocar: abrir(abrirFolhaGastoUber)
+    });
+  }
+
+  // ---------- Fechamento do dia e tempo trabalhado ----------
+
+  function msDoDia(data) {
+    var t = 0;
+    estado.uberJornadas.forEach(function (j) { if (dataDeMarca(j.inicio) === data) t += duracaoJornada(j); });
+    return t;
+  }
+
+  function textoHoras(min) {
+    min = Math.max(0, Math.round(min || 0));
+    var m = min % 60;
+    return Math.floor(min / 60) + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  // "5:04", "5h04", "5h 4m", "5,5" ou "304min" viram minutos.
+  function lerHoras(txt) {
+    var t = String(txt || '').trim().toLowerCase().replace(/\s+/g, '');
+    if (!t) return 0;
+    var m = t.match(/^(\d{1,2})[:h](\d{1,2})?(m|min)?$/);
+    if (m) return parseInt(m[1], 10) * 60 + (m[2] ? parseInt(m[2], 10) : 0);
+    m = t.match(/^(\d{1,4})(m|min)$/);
+    if (m) return parseInt(m[1], 10);
+    var h = lerDecimal(t);
+    return h ? Math.round(h * 60) : 0;
+  }
+
+  function ultimoFechamento() {
+    var u = null;
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo === 'dia' && (!u || x.data > u.data)) u = x;
+    });
+    return u;
+  }
+
+  // No fim do dia: o que o app da Uber mostrou (ganhos, viagens, tempo
+  // online) e o que o carro rodou. O tempo já vem do cronômetro; os km/l e
+  // o preço do litro vêm do último dia. O lucro sai na hora.
+  function abrirFechamentoDoDia(data, deCima) {
+    var x = fechamentoDoDia(data);
+    var ultimo = ultimoFechamento();
+    abrirFolha(x ? 'Fechamento de ' + dataBr(data) : 'Fechar o dia', function (folha) {
+      var forma = no('div', 'forma');
+      var valor = entradaValor(x ? x.valor : 0, true);
+      forma.appendChild(campo('Ganhos do dia', valor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O total que o app da Uber mostra para o dia.'));
+      var campoData = entradaData(data);
+      var viagens = x ? x.viagens : 0;
+      var cont = contadorDigitavel(viagens, function (v) { viagens = v; pintar(); });
+      var linha1 = no('div', 'duas');
+      juntar(linha1, campo('Viagens', cont), campo('Data', campoData));
+      forma.appendChild(linha1);
+
+      var cronometro = Math.round(msDoDia(data) / 60000);
+      var tempo = entradaTexto(x && x.minutos ? textoHoras(x.minutos) : (cronometro ? textoHoras(cronometro) : ''), 'Ex.: 5:04', 6);
+      tempo.inputMode = 'numeric';
+      forma.appendChild(campo('Tempo online (horas:minutos)', tempo));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', cronometro
+        ? 'O cronômetro contou ' + textoHoras(cronometro) + '. Se der diferença do app da Uber, corrija aqui.'
+        : 'Sem cronômetro neste dia: escreva o tempo online do app da Uber.'));
+
+      forma.appendChild(no('div', 'rotulo-secao', 'Combustível'));
+      var km = entradaDecimal(x ? x.km : 0, 1, 'Ex.: 120,5');
+      var media = entradaDecimal(x ? x.kmPorLitro : (ultimo ? ultimo.kmPorLitro : 0), 1, 'Ex.: 11,5');
+      var linha2 = no('div', 'duas');
+      juntar(linha2, campo('Km rodados', km), campo('Média (km/l)', media));
+      forma.appendChild(linha2);
+      var preco = entradaValor(x ? x.precoLitro : (ultimo ? ultimo.precoLitro : 0), false);
+      var abastecido = entradaValor(x ? x.abastecido : 0, false);
+      var linha3 = no('div', 'duas');
+      juntar(linha3, campo('Preço do litro hoje', preco), campo('Abastecido hoje', abastecido));
+      forma.appendChild(linha3);
+
+      var resumo = no('div', 'total-calculado fechamento-resumo');
+      forma.appendChild(resumo);
+      function pintar() {
+        var v = digitosParaCentavos(valor.value), k = lerDecimal(km.value), md = lerDecimal(media.value);
+        var pr = digitosParaCentavos(preco.value), ab = digitosParaCentavos(abastecido.value);
+        var mins = lerHoras(tempo.value);
+        var comb = combustivelDoDia({ km: k, kmPorLitro: md, precoLitro: pr });
+        var outras = 0;
+        estado.uberRegistros.forEach(function (r) {
+          if (r.tipo === 'despesa' && r.data === campoData.value) outras += r.valor;
+        });
+        var lucro = v - comb - outras;
+        resumo.textContent = '';
+        function par(rot, txt, cor) { juntar(resumo, no('span', null, rot), no('strong', 'num ' + (cor || ''), txt)); }
+        par('Combustível do Uber', md && pr && k ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)' : 'preencha km, média e preço', 'vermelho');
+        if (outras) par('Outras despesas do dia', '− ' + emReais(outras), 'vermelho');
+        par('Lucro do dia', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde');
+        if (k) par('Ganho por km', emReais(Math.round(v / k)) + ' · lucro ' + emReais(Math.round(lucro / k)), '');
+        if (mins) par('Ganho por hora', emReais(Math.round(v / (mins / 60))) + ' · lucro ' + emReais(Math.round(lucro / (mins / 60))), '');
+        if (ab > comb && comb) {
+          resumo.appendChild(no('div', 'linha-nota fechamento-nota',
+            emReais(ab - comb) + ' do abastecimento foram para outros usos e não entram no lucro.'));
+        }
+      }
+      [valor, km, media, preco, abastecido, tempo].forEach(function (i) { i.addEventListener('input', pintar); });
+      campoData.addEventListener('change', pintar);
+      pintar();
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar o dia', function () {
+        var v = digitosParaCentavos(valor.value);
+        if (v <= 0) { mostrarErro(forma, 'Informe os ganhos do dia.'); return; }
+        if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        var outro = fechamentoDoDia(campoData.value);
+        if (outro && outro !== x) { mostrarErro(forma, 'Esse dia já foi fechado. Abra o fechamento dele no histórico.'); return; }
+        var reg = x || { id: novoId(), tipo: 'dia', criadoEm: Date.now(), jornadaId: '', plataforma: 'Uber' };
+        reg.data = campoData.value;
+        reg.valor = v;
+        reg.viagens = viagens;
+        reg.minutos = lerHoras(tempo.value);
+        reg.km = Math.round(lerDecimal(km.value) * 10) / 10;
+        reg.kmPorLitro = Math.round(lerDecimal(media.value) * 10) / 10;
+        reg.precoLitro = digitosParaCentavos(preco.value);
+        reg.abastecido = digitosParaCentavos(abastecido.value);
+        reg.hora = reg.hora || horaAgora();
+        reg.descricao = ''; reg.litros = 0; reg.combustivel = ''; reg.categoria = '';
+        if (!x) estado.uberRegistros.push(reg);
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Dia fechado: ' + emReais(reg.valor - combustivelDoDia(reg)) + ' de lucro.');
+      }));
+      if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir o fechamento', function () { excluirRegistroUber(x, deCima); }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // As jornadas do dia, para corrigir o tempo ou apagar uma que ficou
+  // ligada sem querer.
+  function abrirTempoDoDia(data, deCima) {
+    var doDia = estado.uberJornadas.filter(function (j) { return dataDeMarca(j.inicio) === data; })
+      .sort(function (a, b) { return a.inicio - b.inicio; });
+    abrirFolha('Tempo de ' + (data === hojeTexto() ? 'hoje' : dataBr(data)), function (folha) {
+      var total = doDia.reduce(function (t, j) { return t + duracaoJornada(j); }, 0);
+      folha.appendChild(no('div', 'linha-nota centro', 'Total: ' + formatarHoras(total) + ' em ' + doDia.length + ' jornada(s).'));
+      var lista = cartao('liso');
+      if (!doDia.length) lista.appendChild(estadoVazio('Nenhuma jornada', 'Inicie a jornada para o cronômetro contar o tempo.'));
+      doDia.forEach(function (j) {
+        var hIni = new Date(j.inicio).toTimeString().slice(0, 5);
+        var hFim = j.fim ? new Date(j.fim).toTimeString().slice(0, 5) : 'agora';
+        lista.appendChild(linhaSimples({
+          titulo: hIni + ' – ' + hFim,
+          sub: j.fim ? 'Encerrada' : (j.pausaDesde ? 'Pausada' : 'Em andamento'),
+          valor: textoHoras(Math.round(duracaoJornada(j) / 60000)), cor: '',
+          selo: seloIcone('relogio', '#E9B44C'),
+          aoTocar: function () { porCima(function () { abrirTempoDoDia(data, deCima); }, function () { abrirFolhaJornada(j.id, true); }); }
+        }));
+      });
+      folha.appendChild(lista);
+    });
+  }
+
+  function abrirFolhaJornada(id, deCima) {
+    var j = achar(estado.uberJornadas, id);
+    if (!j) return;
+    abrirFolha('Editar jornada', function (folha) {
+      var forma = no('div', 'forma');
+      var tempo = entradaTexto(textoHoras(Math.round(duracaoJornada(j) / 60000)), 'Ex.: 5:04', 6);
+      tempo.inputMode = 'numeric';
+      forma.appendChild(campo('Tempo trabalhado (horas:minutos)', tempo));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Começou às ' + new Date(j.inicio).toTimeString().slice(0, 5) +
+        (j.fim ? ' e terminou às ' + new Date(j.fim).toTimeString().slice(0, 5) : ' e ainda está aberta') + '.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar tempo', function () {
+        var min = lerHoras(tempo.value);
+        if (min <= 0) { mostrarErro(forma, 'Escreva o tempo, por exemplo 5:04.'); return; }
+        var alvo = min * 60000;
+        var agora = Date.now();
+        if (j.fim) {
+          // O fim fica; o tempo parado se ajusta. Mais tempo que o
+          // intervalo inteiro empurra o fim.
+          var intervalo = j.fim - j.inicio;
+          if (alvo <= intervalo) j.pausadoMs = intervalo - alvo;
+          else { j.fim = j.inicio + alvo; j.pausadoMs = 0; }
+        } else {
+          var pausaAgora = j.pausaDesde ? agora - j.pausaDesde : 0;
+          j.inicio = agora - alvo - j.pausadoMs - pausaAgora;
+        }
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Tempo da jornada: ' + textoHoras(min) + '.');
+      }));
+      acoes.appendChild(botao('btn btn-perigo', 'Excluir a jornada', function () {
+        perguntar({ titulo: 'Excluir esta jornada?', texto: 'O tempo dela sai da conta. As corridas e o fechamento do dia continuam.',
+                    ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', j.id);
+          estado.uberJornadas = estado.uberJornadas.filter(function (x) { return x.id !== j.id; });
+          estado.uberRegistros.forEach(function (r) { if (r.jornadaId === j.id) r.jornadaId = ''; });
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Jornada excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
     });
   }
 
@@ -11658,7 +12037,7 @@
       tile('Seu lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde'),
       tile('Lucro dos vendedores', emReais(n.lucroVendedores), '')
     ], 2));
-    if (n.semCusto) t.appendChild(no('div', 'linha-nota', 'Informe o custo de produção de cada doce em Produtos para o seu lucro sair certo.'));
+    if (n.semCusto) t.appendChild(no('div', 'linha-nota', 'Informe o valor de compra de cada doce em Produtos para o seu lucro sair certo.'));
     if (n.estoque) t.appendChild(no('div', 'linha-nota', n.estoque + ' doce(s) ainda com os vendedores.'));
     corpo.appendChild(t);
   }
@@ -11734,7 +12113,8 @@
     estado.doceProdutos.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome); }).forEach(function (p) {
       lista.appendChild(linhaSimples({
         titulo: p.nome + (p.ativo ? '' : ' (inativo)'),
-        sub: 'Repasse ' + emReais(p.repasse) + ' · venda ' + emReais(p.preco) + (p.custo ? ' · custo ' + emReais(p.custo) : ''),
+        sub: (p.custo ? 'Compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco) +
+          ' · revendedor ' + emReais(Math.max(p.preco - p.repasse, 0)) + ' · para mim ' + emReais(p.repasse),
         valor: emReais(p.preco - p.repasse), cor: 'verde',
         nota: 'lucro do vendedor',
         selo: seloIcone('doce', '#F472B6'),
@@ -11934,24 +12314,47 @@
       var forma = no('div', 'forma');
       var nome = entradaTexto(p ? p.nome : '', 'Ex.: Brigadeiro gourmet', 60);
       forma.appendChild(campo('Nome do doce', nome));
-      var repasse = entradaValor(p ? p.repasse : 0, false);
-      forma.appendChild(campo('Repasse por unidade', repasse));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o vendedor te paga por doce vendido.'));
-      var preco = entradaValor(p ? p.preco : 0, false);
-      forma.appendChild(campo('Preço de venda', preco));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto o vendedor cobra do cliente. A diferença é o lucro dele.'));
+      // Os quatro valores de cada doce, na ordem do dinheiro: quanto você
+      // paga, quanto o cliente final paga, e como esse preço se divide
+      // entre o revendedor e você. As duas partes andam juntas: mexendo
+      // numa, a outra fecha a conta com o preço de venda.
       var custo = entradaValor(p ? p.custo : 0, false);
-      forma.appendChild(campo('Seu custo de produção (opcional)', custo));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto cada doce custa para você fazer. É com ele que o app calcula o seu lucro.'));
+      forma.appendChild(campo('Valor de compra do produto', custo));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto cada unidade custa para você.'));
+      var preco = entradaValor(p ? p.preco : 0, false);
+      forma.appendChild(campo('Valor de venda ao cliente final', preco));
+      var revendedor = entradaValor(p ? Math.max(p.preco - p.repasse, 0) : 0, false);
+      forma.appendChild(campo('Repasse para o revendedor', revendedor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que fica com o revendedor por unidade vendida.'));
+      var repasse = entradaValor(p ? p.repasse : 0, false);
+      forma.appendChild(campo('Repasse para mim', repasse));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o revendedor te passa por unidade vendida.'));
       var resumo = no('div', 'total-calculado');
       forma.appendChild(resumo);
       function pintar() {
         var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value), c = digitosParaCentavos(custo.value);
         resumo.textContent = '';
-        juntar(resumo, no('span', null, 'Lucro do vendedor por doce'), no('strong', 'num ' + (v - r < 0 ? 'vermelho' : 'verde'), emReais(v - r)));
-        if (c) juntar(resumo, no('span', null, 'Seu lucro por doce'), no('strong', 'num ' + (r - c < 0 ? 'vermelho' : 'verde'), emReais(r - c)));
+        juntar(resumo, no('span', null, 'Lucro do revendedor por unidade'), no('strong', 'num ' + (v - r < 0 ? 'vermelho' : 'verde'), emReais(v - r)));
+        juntar(resumo, no('span', null, 'Seu lucro por unidade'), no('strong', 'num ' + (r - c < 0 ? 'vermelho' : 'verde'), emReais(r - c)));
       }
-      [repasse, preco, custo].forEach(function (i) { i.addEventListener('input', pintar); });
+      preco.addEventListener('input', function () {
+        // Mudou o preço: a sua parte fica, a do revendedor acompanha.
+        var v = digitosParaCentavos(preco.value), r = digitosParaCentavos(repasse.value);
+        if (r) revendedor.value = emReais(Math.max(v - r, 0));
+        else if (digitosParaCentavos(revendedor.value)) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
+        pintar();
+      });
+      revendedor.addEventListener('input', function () {
+        var v = digitosParaCentavos(preco.value);
+        if (v) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
+        pintar();
+      });
+      repasse.addEventListener('input', function () {
+        var v = digitosParaCentavos(preco.value);
+        if (v) revendedor.value = emReais(Math.max(v - digitosParaCentavos(repasse.value), 0));
+        pintar();
+      });
+      custo.addEventListener('input', pintar);
       pintar();
       forma.appendChild(campo('Situação', segmentosLocais([{ valor: true, rotulo: 'Ativo' }, { valor: false, rotulo: 'Inativo' }], ativo, function (x) { ativo = x; })));
       var acoes = no('div', 'acoes');
@@ -11959,8 +12362,9 @@
         var n = nome.value.trim();
         var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value);
         if (!n) { mostrarErro(forma, 'Informe o nome do doce.'); return; }
-        if (r <= 0) { mostrarErro(forma, 'Informe o valor de repasse.'); return; }
-        if (v <= 0) { mostrarErro(forma, 'Informe o preço de venda.'); return; }
+        if (v <= 0) { mostrarErro(forma, 'Informe o valor de venda ao cliente final.'); return; }
+        if (r <= 0) { mostrarErro(forma, 'Informe o repasse para você.'); return; }
+        if (r > v) { mostrarErro(forma, 'O repasse para você não pode passar do valor de venda.'); return; }
         var reg = p || { id: novoId(), criadoEm: Date.now() };
         reg.nome = n.slice(0, 60);
         reg.repasse = r;
@@ -12058,7 +12462,7 @@
       var repasse = entradaValor(d.repasse, false);
       var preco = entradaValor(d.preco, false);
       var linha = no('div', 'duas');
-      juntar(linha, campo('Repasse por unidade', repasse), campo('Preço de venda', preco));
+      juntar(linha, campo('Repasse para mim', repasse), campo('Venda ao cliente final', preco));
       forma.appendChild(linha);
       repasse.addEventListener('input', pintar);
       preco.addEventListener('input', pintar);
@@ -12071,7 +12475,13 @@
         [['Total de venda', q * v, ''], ['Repasse para você', q * r, 'ouro'], ['Lucro estimado do vendedor', q * (v - r), q * (v - r) < 0 ? 'vermelho' : 'verde']]
           .forEach(function (x) { juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, x[0]), no('strong', 'num ' + x[2], emReais(x[1])))); });
         var p = achar(estado.doceProdutos, d.produtoId);
-        if (p && p.custo) juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Seu lucro se ele vender tudo'), no('strong', 'num verde', emReais(q * (r - p.custo)))));
+        // O preço de custo, só para saber quanto saiu do bolso nesta entrega.
+        if (p && p.custo) {
+          juntar(resumo, juntar(no('div', 'resumo-linha'),
+            no('span', null, 'Preço de custo (' + q + ' × ' + emReais(p.custo) + ')'),
+            no('strong', 'num vermelho', emReais(q * p.custo))));
+          juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Seu lucro se ele vender tudo'), no('strong', 'num verde', emReais(q * (r - p.custo)))));
+        }
       }
       pintar();
 
@@ -12807,6 +13217,7 @@
 
   var abaFicha = 'servicos';
   var filtroParcelaServico = '';
+  var historicoAberto = false;
   var fichaClienteAberta = '';
 
   // Os registros com parcela, um grupo por registro. Grupo com parcela em
@@ -12882,6 +13293,7 @@
     abaFicha = 'servicos';
     filtroParcelaServico = '';
     finalizadoAberto = '';
+    historicoAberto = false;
     fichaClienteAberta = '';
     montarFichaCliente(id);
   }
@@ -12896,7 +13308,7 @@
       var folhaEl = $('folha');
       var abasEl = folhaEl.querySelector('.aba-cliente');
       if (abasEl) {
-        ['servicos', 'parcelas', 'pagamentos', 'orcamentos'].forEach(function (n, i) {
+        ['servicos', 'parcelas', 'orcamentos'].forEach(function (n, i) {
           if (abasEl.children[i]) abasEl.children[i].setAttribute('aria-selected', abaFicha === n ? 'true' : 'false');
         });
         while (abasEl.nextSibling) folhaEl.removeChild(abasEl.nextSibling);
@@ -12970,7 +13382,10 @@
       folha.appendChild(cResumo);
 
       var abas = no('div', 'aba-cliente');
-      [['servicos', 'Registros'], ['parcelas', 'Parcelas'], ['pagamentos', 'Pagos'],
+      // A aba Pagos saiu (03/11/2026): as parcelas pagas já mostram o
+      // pagamento, e o histórico completo mora dentro de Parcelas.
+      if (abaFicha === 'pagamentos') abaFicha = 'parcelas';
+      [['servicos', 'Registros'], ['parcelas', 'Parcelas'],
        ['orcamentos', 'Orçamentos']].forEach(function (a) {
         var b = botao(null, a[1], function () {
           if (abaFicha === a[0]) return;
@@ -13001,22 +13416,28 @@
           var jaMostrado = {};
           Object.keys(acrescimos).forEach(function (k) { jaMostrado[acrescimos[k].id] = true; });
 
+          // Os 100% pagos vão para o fim da lista, marcados em verde.
+          servicos = servicos.filter(function (s) { return !registroQuitado(s); })
+            .concat(servicos.filter(registroQuitado));
           servicos.forEach(function (s) {
             if (jaMostrado[s.id]) return;
             var extra = acrescimos[s.id] || null;
+            var quitado = registroQuitado(s);
             var total = s.valor + (extra ? extra.valor : 0);
             var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
             if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
             var custoS = custoDoRegistro(s);
             if (custoS) sub += ' · lucro ' + emReais(total - custoS);
 
-            var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
+            var linha = botao('linha' + (quitado ? ' registro-pago' : ''), null, function () { abrirFolhaServico(id, s.id); });
+            var fimR = juntar(no('div', 'linha-fim'), no('div', 'linha-valor num' + (quitado ? ' verde' : ''), emReais(total)));
+            if (quitado) fimR.appendChild(no('div', 'selo-pago', 'pago'));
             juntar(linha,
-              selo(corDeCategoria(s.tipo || 'Serviço'), (s.tipo || 'S').charAt(0).toUpperCase()),
+              selo(quitado ? '#3DDC84' : corDeCategoria(s.tipo || 'Serviço'), quitado ? '✓' : (s.tipo || 'S').charAt(0).toUpperCase()),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', s.nome),
                 no('div', 'linha-sub', sub)),
-              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(total)))
+              fimR
             );
             lista.appendChild(linha);
           });
@@ -13187,14 +13608,28 @@
             lista.appendChild(linha);
           });
         }
-      } else {
+      }
+      // Histórico de pagamentos: todos os recebimentos do cliente, fechado
+      // por padrão (as parcelas pagas já aparecem na lista de cima). Sem
+      // parcela nenhuma, ele é o conteúdo da aba e já vem aberto.
+      if (abaFicha === 'parcelas') {
         var pagamentos = pagamentosDoCliente(id);
-        if (!pagamentos.length) {
-          lista.appendChild(estadoVazio('Nenhum pagamento', 'Registre cada valor recebido com a data.'));
-        } else {
-          pagamentos.forEach(function (p) {
+        var semParcelas = !parcelasDoCliente(id).length;
+        if (pagamentos.length) {
+          var aberto = historicoAberto || semParcelas;
+          if (!semParcelas) {
+            var tg = botao('historico-toggle', null, function () {
+              historicoAberto = !historicoAberto;
+              montarFichaCliente(id);
+            });
+            tg.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+            juntar(tg, no('span', null, 'Histórico de pagamentos (' + pagamentos.length + ')'),
+              no('span', 'historico-seta', aberto ? '▴' : '▾'));
+            lista.appendChild(tg);
+          }
+          if (aberto) pagamentos.forEach(function (p) {
             var servico = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
-            var linha = botao('linha', null, function () { abrirFolhaPagamento(id, p.id); });
+            var linha = botao('linha linha-pagamento', null, function () { abrirFolhaPagamento(id, p.id); });
             juntar(linha,
               selo('#34D399', '✓'),
               juntar(no('div', 'linha-texto'),
@@ -13218,7 +13653,8 @@
       } else if (abaFicha === 'servicos') {
         acoes.appendChild(botao('btn btn-ouro', '+ Nova venda ou serviço', function () { abrirFolhaServico(id, null); }));
       } else if (abaFicha === 'parcelas') {
-        acoes.appendChild(botao('btn btn-ouro', '+ Combinar parcelas', function () { abrirFolhaParcelamento(id, ''); }));
+        acoes.appendChild(botao('btn btn-ouro', '+ Registrar pagamento', function () { abrirFolhaPagamento(id, null); }));
+        acoes.appendChild(botao('btn btn-fantasma', '+ Combinar parcelas', function () { abrirFolhaParcelamento(id, ''); }));
 
         // Se a soma das parcelas em aberto não bate com o que falta receber,
         // oferece o acerto em vez de deixar a conta torta em silêncio.
@@ -18869,6 +19305,11 @@
     limparCacheDeFatura();
     if (telaAtiva !== 'inicio') soltarExtratos();
     desenharNavegacao();
+    if (telaAtiva !== 'inicio') {
+      var elTela = $('tela' + telaAtiva.charAt(0).toUpperCase() + telaAtiva.slice(1));
+      if (elTela) marcarRedesenho(elTela, [filtroTransacoes, abaInvestimentos, abaDistribuicao,
+        mesAtivo.ano, mesAtivo.mes].join('|'));
+    }
     if (telaAtiva === 'inicio') desenharInicio();
     else if (telaAtiva === 'transacoes') desenharTransacoes();
     else if (telaAtiva === 'investimentos') desenharInvestimentos();
