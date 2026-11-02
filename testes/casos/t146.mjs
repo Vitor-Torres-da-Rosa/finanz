@@ -101,7 +101,36 @@ conferir('9. Serviços e Vendas mostra o total a receber das corridas',
 const resumo = limpo(await page.textContent('#telaInicio .cartao-resumo-emp'));
 conferir('10. o faturamento conta as corridas uma vez só, e nada como recebido',
   /Faturamento dos três\s*R\$ 80,00/.test(resumo) && /Recebido\s*R\$ 0,00/.test(resumo) && /Total a receber\s*R\$ 80,00/.test(resumo), resumo);
+conferir('11. no resumo, as corridas aparecem em Serviços e não repetem no Uber',
+  /Serviços\s*R\$ 80,00\s*Uber\s*R\$ 0,00/.test(resumo), resumo);
 await page.screenshot({ path: dir + '/z40-hub.png', fullPage: true });
+
+// Pedido de 03/11/2026: "puxou pro serviços e vendas e não somou ao
+// faturamento". O faturamento de Serviços e Vendas soma a corrida cobrada.
+await page.click('#telaInicio [data-modulo="servicos"]'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(900);
+const serv = limpo(await page.textContent('#telaInicio'));
+conferir('12. o faturamento de Serviços e Vendas soma as corridas cobradas',
+  /Faturamento de \S+\s*R\$ 80,00/.test(serv), (serv.match(/Faturamento de.{0,30}/) || [''])[0]);
+await page.screenshot({ path: dir + '/z41-servicos-faturamento.png', fullPage: true });
+
+// ---- "a tela fica dando umas piscada" (03/11/2026) ----
+// Mudar de aba anima a entrada; redesenhar a mesma tela (o que acontece a
+// cada sincronização ou salvamento) não pode animar de novo.
+const animacao = (sel) => page.$eval(sel, el => getComputedStyle(el).animationName).catch(() => '?');
+await page.click('#telaInicio .abas-modulo button:has-text("Registros")'); await page.waitForTimeout(100);
+const naTroca = await animacao('#telaInicio .modulo-corpo');
+await page.waitForTimeout(800);
+const margem = await page.$eval('#telaInicio .modulo-corpo > .chips', el => getComputedStyle(el).marginBottom).catch(() => '?');
+conferir('13. os filtros de Registros têm respiro antes da lista', margem === '16px', margem);
+// Tocar de novo no filtro que já está marcado refaz a tela sem mudar nada:
+// é o mesmo redesenho de quando a sincronização termina.
+await page.evaluate(() => { const m = document.querySelector('#telaInicio .modulo-corpo'); if (m) m.dataset.velho = '1'; });
+await page.click('#telaInicio .modulo-corpo > .chips .chip >> nth=0'); await page.waitForTimeout(100);
+const refeita = await page.$eval('#telaInicio .modulo-corpo', el => !el.dataset.velho).catch(() => false);
+const noRedesenho = await animacao('#telaInicio .modulo-corpo');
+conferir('14. trocar de aba anima; redesenhar a mesma aba não pisca',
+  refeita && naTroca !== 'none' && noRedesenho === 'none', naTroca + ' → ' + noRedesenho + (refeita ? '' : ' (não redesenhou)'));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }

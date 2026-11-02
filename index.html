@@ -2149,6 +2149,19 @@
   .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
   .modulos-lista .modulo-cartao[data-modulo="servicos"] { grid-column: 1 / -1; }
+  /* Chips de filtro soltos no módulo (Registros, Gastos): respiro antes do cartão. */
+  .modulo-corpo > .chips { margin-bottom: 16px; }
+  /* Redesenho da mesma tela (sincronizou, salvou, o relógio andou): nada de
+     entrar de novo. Os cartões subindo e o gráfico se revelando a cada
+     sincronização eram as piscadas na tela. Entrada só quando a pessoa
+     muda de tela, de aba, de mês ou de filtro. */
+  .tela.sem-entrada .modulo-cabecalho, .tela.sem-entrada .modulo-corpo,
+  .tela.sem-entrada .modulo-cartao, .tela.sem-entrada .cartao-resumo-emp,
+  .tela.sem-entrada .grafico-animado, .tela.sem-entrada .barra,
+  .tela.sem-entrada .conteudo-aba, .tela.sem-entrada .cartao.achado,
+  .tela.sem-entrada > .cartao, .tela.sem-entrada > .kpis, .tela.sem-entrada > .modulos-lista,
+  .tela.sem-entrada .heroi-linha { animation: none !important; }
+  .tela.sem-entrada .heroi-linha { stroke-dashoffset: 0 !important; }
   .aviso-cobranca { margin: 0 0 14px; }
   .cartao-resumo-emp { margin-bottom: 12px; }
   .modulo-cartao { flex-direction: row; align-items: center; gap: 10px; padding: 16px 10px 16px 14px; min-height: 104px; border-radius: 20px; }
@@ -2229,7 +2242,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.34.0';
+  var VERSAO = '5.34.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2238,6 +2251,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.34.1',
+      data: '2026-11-03',
+      itens: [
+        'Corrida particular paga depois agora soma no faturamento de Serviços e Vendas, junto com o que tem a receber. No resumo do Empreendedor ela continua contando uma vez só.',
+        'Sem piscadas: a tela só anima quando você troca de tela, de aba, de mês ou de filtro. Antes os cartões e o gráfico entravam de novo a cada sincronização ou salvamento.',
+        'Registros: os filtros Todos, Vendas e Serviços ganharam espaço antes da lista.'
+      ]
+    },
     {
       versao: '5.34.0',
       data: '2026-11-02',
@@ -8524,6 +8546,7 @@
   var tempoEntrando = null;
   function mostrarTela(id) {
     telaAtiva = id;
+    chavesDeTela = {};
     ['inicio', 'transacoes', 'investimentos', 'planejamento', 'mais'].forEach(function (t) {
       var el = $('tela' + t.charAt(0).toUpperCase() + t.slice(1));
       el.classList.toggle('ativa', t === id);
@@ -9197,8 +9220,18 @@
 
   // ---------- Tela: Início ----------
 
+  // A última "posição" desenhada em cada tela. Mesma posição = só os dados
+  // mudaram, e a tela é refeita parada, sem a animação de entrada.
+  var chavesDeTela = {};
+  function marcarRedesenho(el, chave) {
+    el.classList.toggle('sem-entrada', chavesDeTela[el.id] === chave);
+    chavesDeTela[el.id] = chave;
+  }
+
   function desenharInicio() {
     var tela = $('telaInicio');
+    marcarRedesenho(tela, [abaInicio, moduloEmp, abaServicos, janelaServicos, filtroRegistros,
+      abaUber, abaGastosUber, abaDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
     tela.textContent = '';
 
     // O extrato das contas fica pronto só enquanto a Visão geral está
@@ -10453,11 +10486,13 @@
   // ---------- os números de cada módulo, num intervalo de datas ----------
 
   function numerosDeServicos(de, ate) {
-    var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0 };
+    var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0, corridas: 0 };
     estado.servicos.forEach(function (s) {
       if (s.data < de || s.data > ate) return;
-      // A corrida particular cobrada aqui já conta no faturamento do Uber.
-      if (s.tipo === TIPO_CORRIDA) return;
+      // A corrida particular cobrada aqui conta no faturamento de Serviços
+      // e Vendas, que é onde o Vitor olha para ver o que tem a receber.
+      // Ela também está no Uber; quem soma os dois tira a repetição.
+      if (s.tipo === TIPO_CORRIDA) r.corridas += s.valor;
       r.faturamento += s.valor;
       r.despesas += custoDoRegistro(s);
       if (ehAcrescimoDeParcelamento(s)) return;
@@ -10471,11 +10506,15 @@
 
   function numerosDoPeriodo(de, ate) {
     var s = numerosDeServicos(de, ate), u = numerosDoUber(de, ate), d = numerosDosDoces(de, ate);
+    // Corrida particular cobrada em Serviços e Vendas aparece nos dois
+    // módulos. Na soma ela entra uma vez só.
+    var repetida = s.corridas;
     return {
-      servicos: s, uber: u, doces: d,
-      faturamento: s.faturamento + u.faturamento + d.faturamento,
+      servicos: s, uber: u, doces: d, repetida: repetida,
+      uberSemRepetir: u.faturamento - repetida,
+      faturamento: s.faturamento + u.faturamento + d.faturamento - repetida,
       despesas: s.despesas + u.despesas + d.despesas,
-      lucro: s.lucro + u.lucro + d.lucro,
+      lucro: s.lucro + u.lucro + d.lucro - repetida,
       recebido: s.recebido + u.recebido + d.recebido,
       pendente: s.pendente + u.pendente + d.pendente
     };
@@ -10514,7 +10553,7 @@
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
     c.appendChild(variacao(n.faturamento, nAnt.faturamento));
     var cols = no('div', 'resumo-grade resumo-emp-grade');
-    [['Serviços', n.servicos.faturamento], ['Uber', n.uber.faturamento], ['Doces', n.doces.faturamento]].forEach(function (x) {
+    [['Serviços', n.servicos.faturamento], ['Uber', n.uberSemRepetir], ['Doces', n.doces.faturamento]].forEach(function (x) {
       juntar(cols, juntar(no('div'), no('div', 'r', x[0]), no('div', 'v num', emReais(x[1]))));
     });
     c.appendChild(cols);
@@ -10617,7 +10656,7 @@
     c3.appendChild(topoDeCartao('Por módulo', null));
     var seg = [
       { nome: 'Serviços e Vendas', valor: n.servicos.faturamento, cor: '#E9B44C' },
-      { nome: 'Uber e Corridas', valor: n.uber.faturamento, cor: '#60A5FA' },
+      { nome: 'Uber e Corridas', valor: n.uberSemRepetir, cor: '#60A5FA' },
       { nome: 'Venda de Doces', valor: n.doces.faturamento, cor: '#F472B6' }
     ];
     if (n.faturamento > 0) {
@@ -18869,6 +18908,11 @@
     limparCacheDeFatura();
     if (telaAtiva !== 'inicio') soltarExtratos();
     desenharNavegacao();
+    if (telaAtiva !== 'inicio') {
+      var elTela = $('tela' + telaAtiva.charAt(0).toUpperCase() + telaAtiva.slice(1));
+      if (elTela) marcarRedesenho(elTela, [filtroTransacoes, abaInvestimentos, abaDistribuicao,
+        mesAtivo.ano, mesAtivo.mes].join('|'));
+    }
     if (telaAtiva === 'inicio') desenharInicio();
     else if (telaAtiva === 'transacoes') desenharTransacoes();
     else if (telaAtiva === 'investimentos') desenharInvestimentos();
