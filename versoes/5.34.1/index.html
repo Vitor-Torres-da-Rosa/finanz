@@ -1023,6 +1023,16 @@
     width: 11px; height: 11px; padding: 0; margin-left: 6px;
     opacity: .55; filter: invert(1);
   }
+  /* No Android o valor da data mora num pseudo-elemento que ignora o
+     text-align do campo, e a data ficava colada no rótulo, à esquerda,
+     enquanto o resto da coluna ia para a direita. Lá também não aparece o
+     ícone do calendário: os 17px do fim de linha vêm do padding. */
+  .parcela-linha.edita .v input[type="date"]::-webkit-date-and-time-value { text-align: right; }
+  .parcela-linha.edita .v input[type="date"]::-webkit-datetime-edit { text-align: right; }
+  @media (hover: none) and (pointer: coarse) {
+    .parcela-linha.edita .v input[type="date"] { padding-right: 17px; }
+    .parcela-linha.edita .v input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+  }
   .parcela-linha.edita .v input[type="text"] { padding-right: 17px; }
   .parcela-linha .v.sem-icone { padding-right: 17px; }
   /* Campo vazio: a dica em negrito parecia resposta preenchida. */
@@ -1931,6 +1941,252 @@
     .tela, .rel-folha { max-width: 620px; margin-left: auto; margin-right: auto; }
     nav { max-width: 620px; left: 50%; transform: translateX(-50%); border-radius: 18px 18px 0 0; border-left: 1px solid var(--borda); border-right: 1px solid var(--borda); }
   }
+
+  /* =====================================================================
+     Tema premium (5.31.0): preto profundo, borda dourada fina que acende
+     nos cantos, números grandes em branco, dourado só como acento. Fica
+     no fim da folha de estilo de propósito: ganha das regras de cima sem
+     mexer nelas.
+     ===================================================================== */
+  :root {
+    --borda-luz: linear-gradient(135deg, rgba(247,226,168,.80) 0%, rgba(233,180,76,.24) 18%,
+                 rgba(233,180,76,.07) 46%, rgba(233,180,76,.10) 64%, rgba(233,180,76,.30) 84%, rgba(247,226,168,.62) 100%);
+    --fundo-cartao: linear-gradient(158deg, rgba(27,21,12,.90) 0%, rgba(11,10,9,.94) 46%, rgba(6,6,7,.96) 100%);
+    --brilho: 0 18px 34px rgba(0,0,0,.55), 0 0 26px rgba(233,180,76,.05);
+  }
+
+  .cartao, .kpi, .tile, .modulo-cartao, .linha-verTudo, .item-prestacao {
+    border: 1px solid transparent;
+    background: var(--fundo-cartao) padding-box, var(--borda-luz) border-box;
+    box-shadow: var(--brilho);
+  }
+  .cartao { border-radius: 22px; }
+  .cartao.recado { background: var(--fundo-cartao) padding-box, var(--borda-luz) border-box; }
+  .cartao-destaque {
+    background: radial-gradient(130% 120% at 100% 100%, rgba(233,180,76,.10), rgba(233,180,76,0) 55%), var(--fundo-cartao) padding-box,
+                linear-gradient(135deg, rgba(247,226,168,.95) 0%, rgba(233,180,76,.30) 20%, rgba(233,180,76,.10) 50%, rgba(233,180,76,.35) 80%, rgba(247,226,168,.85) 100%) border-box;
+    box-shadow: 0 18px 34px rgba(0,0,0,.55), 0 0 30px rgba(233,180,76,.09);
+  }
+  .tile { border-radius: 16px; }
+  .kpi { border-radius: 18px; }
+
+  /* Títulos: branco, sem caixa-alta gritando; o dourado fica nos ícones. */
+  .cartao-titulo { font-size: 16px; font-weight: 600; letter-spacing: -.005em; display: inline-flex; align-items: center; gap: 9px; }
+  .titulo-icone { color: var(--ouro); display: inline-grid; }
+  .titulo-icone svg { width: 22px; height: 22px; }
+  .rotulo { color: #B9AE99; letter-spacing: .05em; }
+  .valorao { color: var(--texto); font-weight: 700; letter-spacing: -.025em; }
+  .valorao.ouro { color: var(--ouro-claro); }
+
+  /* Ações de cartão viram pílula de contorno dourado. */
+  .cartao-acao {
+    display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto;
+    padding: 6px 13px; border-radius: 999px; font-size: 12.5px; color: var(--texto);
+    border: 1px solid rgba(233,180,76,.55); background: rgba(233,180,76,.04);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .cartao-acao:active { background: rgba(233,180,76,.16); border-color: var(--ouro); }
+  .botao-pilula {
+    display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+    padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--texto);
+    border: 1px solid rgba(233,180,76,.70); background: rgba(233,180,76,.05);
+    box-shadow: 0 0 14px rgba(233,180,76,.08) inset;
+  }
+  .botao-pilula .seta { color: var(--ouro); font-size: 17px; line-height: 1; }
+  .botao-pilula:active { background: rgba(233,180,76,.16); }
+
+  .btn { border-radius: 16px; transition: transform .12s ease, filter .15s ease, background .15s ease; }
+  .btn:active { transform: scale(.985); }
+  .btn-ouro { box-shadow: 0 8px 22px rgba(233,180,76,.20), inset 0 1px 0 rgba(255,255,255,.35); }
+  .btn-fantasma { background: rgba(233,180,76,.03); border: 1px solid rgba(233,180,76,.45); color: var(--texto); }
+  .btn-fantasma:active { background: rgba(233,180,76,.12); }
+
+  .segmentos {
+    background: linear-gradient(rgba(5,5,6,.78), rgba(5,5,6,.78)) padding-box, var(--borda-luz) border-box;
+    border: 1px solid transparent;
+  }
+  .segmentos button { transition: background .2s ease, color .2s ease; }
+  .segmentos button[aria-selected="true"] {
+    box-shadow: 0 2px 14px rgba(233,180,76,.30), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .mes-seletor, .pilula-periodo {
+    background: linear-gradient(rgba(5,5,6,.78), rgba(5,5,6,.78)) padding-box, var(--borda-luz) border-box;
+    border: 1px solid transparent;
+  }
+  .chip { background: rgba(20,16,10,.85); border-color: rgba(233,180,76,.30); }
+
+  .linha { border-top-color: rgba(233,180,76,.14); }
+  .entrada, .valor-grande, .entrada.selecao, .busca {
+    border-color: rgba(233,180,76,.30);
+  }
+
+  /* Cabeçalho do Início: a marca à esquerda, sino e engrenagem à direita. */
+  .marca-topo {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(14px + var(--alto)) 0 4px;
+  }
+  .marca-esquerda { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .marca-topo .marca-selo { width: 54px; height: auto; margin: 0; filter: drop-shadow(0 4px 14px rgba(233,180,76,.25)); }
+  .marca-letras { min-width: 0; }
+  .marca-topo .marca-nome { font-size: 22px; letter-spacing: .34em; text-indent: 0; margin: 0; line-height: 1.1; }
+  .marca-topo .marca-sub { font-size: 9.5px; letter-spacing: .16em; margin-top: 5px; color: var(--ouro); text-align: left; }
+  .marca-topo .marca-sub::before, .marca-topo .marca-sub::after { display: none; }
+  .marca-botoes { display: flex; gap: 10px; flex: 0 0 auto; }
+  .marca-botao {
+    position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+    color: var(--ouro); border: 1px solid transparent;
+    background: radial-gradient(circle at 35% 30%, rgba(233,180,76,.16), rgba(0,0,0,0) 60%) padding-box,
+                linear-gradient(#0C0A07, #0C0A07) padding-box, var(--borda-luz) border-box;
+    box-shadow: 0 6px 16px rgba(0,0,0,.5);
+  }
+  .marca-botao svg { width: 22px; height: 22px; }
+  .marca-botao:active { transform: scale(.94); }
+  .marca-botao .ponto-aviso {
+    position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ouro); box-shadow: 0 0 8px rgba(233,180,76,.9);
+  }
+  .cabecalho.cabecalho-grande { padding-top: 12px; align-items: center; }
+  .cabecalho.cabecalho-grande h1 { font-size: 34px; letter-spacing: -.03em; line-height: 1.05; }
+  .cabecalho.cabecalho-grande .sub { font-size: 14.5px; margin-top: 6px; }
+
+  /* O patrimônio: número grande em branco, a pílula da variação e o
+     gráfico acendendo no canto. */
+  .cartao-heroi { position: relative; overflow: hidden; padding: 20px 20px 18px; min-height: 176px; }
+  .heroi-topo { display: flex; align-items: center; gap: 10px; font-size: 16.5px; font-weight: 600; position: relative; z-index: 1; }
+  .heroi-topo .titulo-icone svg { width: 26px; height: 26px; }
+  .heroi-valor { font-size: 36px; font-weight: 700; letter-spacing: -.03em; margin: 14px 0 12px; position: relative; z-index: 1;
+    text-shadow: 0 2px 18px rgba(0,0,0,.6); }
+  .pilula-variacao {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px;
+    padding: 7px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+    background: rgba(12,11,9,.86); border: 1px solid rgba(255,255,255,.07);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .pilula-variacao .resto { color: var(--suave); font-weight: 500; }
+  .pilula-variacao.sobe .pct { color: var(--verde); }
+  .pilula-variacao.desce .pct { color: var(--vermelho); }
+  .heroi-grafico { position: absolute; right: 0; bottom: 0; width: 62%; height: 72%; pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%); mask-image: linear-gradient(90deg, transparent 0%, #000 38%); }
+  .heroi-grafico svg { width: 100%; height: 100%; display: block; overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(233,180,76,.45)); }
+  .heroi-linha { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .entrando .heroi-linha { stroke-dashoffset: 1; animation: tracar 1.4s .15s ease forwards; }
+  .heroi-ponta {
+    position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+    background: #F7E2A8; box-shadow: 0 0 10px 3px rgba(233,180,76,.75);
+    animation: piscar 2.6s 1.4s ease-in-out infinite;
+  }
+  @keyframes tracar { to { stroke-dashoffset: 0; } }
+  @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  /* Um reflexo que atravessa o cartão de tempos em tempos, devagar. */
+  .cartao-heroi::after, .reflexo::after {
+    content: ''; position: absolute; top: -40%; bottom: -40%; left: -60%; width: 40%;
+    background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(247,226,168,.07) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-18deg); animation: reflexo 9s 1.2s ease-in-out infinite; pointer-events: none;
+  }
+  .reflexo { position: relative; overflow: hidden; }
+  @keyframes reflexo { 0% { left: -60%; } 22%, 100% { left: 130%; } }
+
+  /* Os números do período, dois a dois. */
+  .kpis.kpis-grade { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .kpi.kpi-tile { position: relative; padding: 14px 14px 13px; text-align: left; color: var(--texto); width: 100%;
+    display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
+  .kpi-cabeca { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+  .kpi-cabeca .titulo-icone svg { width: 24px; height: 24px; }
+  .kpi.kpi-tile .rotulo { font-size: 13.5px; text-transform: none; letter-spacing: 0; color: var(--texto); font-weight: 600; flex: 1; }
+  .kpi-seta { position: absolute; top: 15px; right: 13px; color: var(--ouro); font-size: 20px; line-height: 1; }
+  .kpi-cabeca { padding-right: 16px; }
+  .kpi.kpi-tile .n { font-size: 18px; margin: 2px 0 4px; }
+  .kpi.kpi-tile:active { transform: scale(.985); }
+  .kpi.kpi-tile .kpi-extra { border-top-color: rgba(233,180,76,.16); }
+  .kpi-analises .variacao { color: var(--suave); font-weight: 500; }
+
+  /* Despesas do registro */
+  .cartao-despesas .cartao-topo { margin-bottom: 8px; }
+  .despesa-linha { display: grid; grid-template-columns: 1fr 118px 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .despesa-linha .entrada { padding-left: 12px; padding-right: 10px; min-width: 0; }
+  .despesa-tirar { width: 36px; height: 36px; border-radius: 50%; color: var(--vermelho); font-size: 15px;
+    background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.25); }
+  .botao-despesa { margin-top: 4px; }
+  .resumo-lucro { margin: 12px 0 0; }
+  .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
+  .grupo-parcelas { padding: 2px 16px 10px; }
+  /* Finalizados: a lista dos quitados e a volta para ela. */
+  .voltar-finalizados {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 8px 16px 6px; font-size: 13.5px; font-weight: 700; color: var(--ouro);
+  }
+  .historico-finalizado { margin: 8px 16px 4px; padding-top: 14px; }
+  .linha-finalizado .linha-fim { display: flex; align-items: center; gap: 6px; }
+  .linha-seta { color: var(--fraco); font-size: 22px; line-height: 1; }
+  .despesa-lucro .r { font-size: 11px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .despesa-lucro .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+  /* Transferências: título, valor e a pílula. */
+  .transf-corpo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+  .transf-corpo .valorao { margin: 0; }
+
+  /* Navegação: o ativo acende em dourado, com um fio de luz embaixo. */
+  nav { background: rgba(4,4,5,.94); border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, rgba(233,180,76,0), rgba(233,180,76,.45), rgba(233,180,76,0)) 1; }
+  nav button { position: relative; transition: color .2s ease; color: #8E8576; }
+  nav button svg { transition: filter .2s ease, transform .2s ease; }
+  nav button[aria-selected="true"] { color: var(--ouro); }
+  nav button[aria-selected="true"] svg { filter: drop-shadow(0 0 6px rgba(233,180,76,.55)); transform: translateY(-1px); }
+  nav button[aria-selected="true"]::after {
+    content: ''; position: absolute; left: 22%; right: 22%; bottom: 4px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(233,180,76,0), #F7E2A8, rgba(233,180,76,0));
+    box-shadow: 0 0 12px rgba(233,180,76,.85);
+  }
+
+  .fab { box-shadow: 0 10px 26px rgba(0,0,0,.6), 0 0 26px rgba(233,180,76,.28), 0 0 0 5px #050506, 0 0 0 6px rgba(233,180,76,.30); }
+
+  /* Folhas: o mesmo fio de luz no topo. */
+  .folha { background: linear-gradient(180deg, #15110B 0%, #07070A 32%); border-top: 1px solid transparent;
+    box-shadow: 0 -1px 0 rgba(233,180,76,.55), 0 -18px 40px rgba(0,0,0,.6); }
+
+  /* Empreendedor: os módulos em quadros, dois a dois. */
+  .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
+  .modulos-lista .modulo-cartao[data-modulo="servicos"] { grid-column: 1 / -1; }
+  /* Chips de filtro soltos no módulo (Registros, Gastos): respiro antes do cartão. */
+  .modulo-corpo > .chips { margin-bottom: 16px; }
+  /* Redesenho da mesma tela (sincronizou, salvou, o relógio andou): nada de
+     entrar de novo. Os cartões subindo e o gráfico se revelando a cada
+     sincronização eram as piscadas na tela. Entrada só quando a pessoa
+     muda de tela, de aba, de mês ou de filtro. */
+  .tela.sem-entrada .modulo-cabecalho, .tela.sem-entrada .modulo-corpo,
+  .tela.sem-entrada .modulo-cartao, .tela.sem-entrada .cartao-resumo-emp,
+  .tela.sem-entrada .grafico-animado, .tela.sem-entrada .barra,
+  .tela.sem-entrada .conteudo-aba, .tela.sem-entrada .cartao.achado,
+  .tela.sem-entrada > .cartao, .tela.sem-entrada > .kpis, .tela.sem-entrada > .modulos-lista,
+  .tela.sem-entrada .heroi-linha { animation: none !important; }
+  .tela.sem-entrada .heroi-linha { stroke-dashoffset: 0 !important; }
+  .aviso-cobranca { margin: 0 0 14px; }
+  .cartao-resumo-emp { margin-bottom: 12px; }
+  .modulo-cartao { flex-direction: row; align-items: center; gap: 10px; padding: 16px 10px 16px 14px; min-height: 104px; border-radius: 20px; }
+  .modulo-cartao .modulo-arte { width: auto; height: auto; border: 0; background: none; box-shadow: none; border-radius: 0; color: var(--ouro); }
+  .modulo-cartao .modulo-arte svg { width: 34px; height: 34px; filter: drop-shadow(0 0 8px rgba(233,180,76,.30)); }
+  .modulo-cartao .modulo-arte-uber, .modulo-cartao .modulo-arte-doces { color: var(--ouro); }
+  .modulo-corpo-tile { flex: 1; min-width: 0; }
+  .modulo-cartao .modulo-titulo { font-size: 15.5px; font-weight: 600; line-height: 1.2; }
+  .modulo-cartao .modulo-linha { margin-top: 6px; }
+  .modulo-cartao .modulo-rotulo { font-size: 10px; letter-spacing: .04em; }
+  .modulo-cartao .modulo-valor { font-size: 14px; margin-top: 1px; }
+  .modulo-cartao .modulo-seta { font-size: 22px; align-self: center; }
+
+  .anel-jornada { box-shadow: 0 0 0 1px rgba(233,180,76,.12), 0 0 30px rgba(0,0,0,.6); }
+
+  /* Entrada suave dos cartões quando a tela abre. */
+  .tela.entrando > .cartao, .tela.entrando > .kpis, .tela.entrando > .modulos-lista { animation: subir .38s ease both; }
+  .tela.entrando > .kpis { animation-delay: .05s; }
+  .tela.entrando > .cartao ~ .cartao { animation-delay: .1s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cartao-heroi::after, .reflexo::after, .heroi-linha, .heroi-ponta,
+    .tela.entrando > .cartao, .tela.entrando > .kpis, .tela.entrando > .modulos-lista { animation: none !important; }
+    .heroi-linha { stroke-dashoffset: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1986,7 +2242,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.30.0';
+  var VERSAO = '5.34.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -1995,6 +2251,59 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.34.1',
+      data: '2026-11-03',
+      itens: [
+        'Corrida particular paga depois agora soma no faturamento de Serviços e Vendas, junto com o que tem a receber. No resumo do Empreendedor ela continua contando uma vez só.',
+        'Sem piscadas: a tela só anima quando você troca de tela, de aba, de mês ou de filtro. Antes os cartões e o gráfico entravam de novo a cada sincronização ou salvamento.',
+        'Registros: os filtros Todos, Vendas e Serviços ganharam espaço antes da lista.'
+      ]
+    },
+    {
+      versao: '5.34.0',
+      data: '2026-11-02',
+      itens: [
+        'Empreendedor: o resumo do mês é a primeira coisa da tela e continua abrindo o painel. O quadro "Painel geral" saiu, porque repetia o resumo.',
+        'Serviços e Vendas ocupa a linha inteira, com Uber e Corridas e Venda de Doces lado a lado. Distribuição de Doces passou a se chamar Venda de Doces.',
+        'Os valores pendentes agora dizem "Total a receber", nos quadros e no resumo.',
+        'Corrida Particular ganhou a data do pagamento. Se a pessoa vai pagar depois, ao salvar o app pede quem vai pagar (nome, celular e endereço opcional), já com a observação da corrida preenchida, ou deixa escolher quem já é cliente.',
+        'A corrida vira um valor a receber em Serviços e Vendas, com vencimento no dia combinado, e a ficha do cliente abre na hora para controlar o pagamento. O faturamento conta uma vez só, no Uber.'
+      ]
+    },
+    {
+      versao: '5.33.0',
+      data: '2026-11-02',
+      itens: [
+        'Parcelas do cliente: saiu o botão "Todos". Cada venda ou serviço com parcela em aberto tem o seu botão, e a lista mostra só as parcelas dele.',
+        'Novo botão Finalizados: a venda ou serviço com todas as parcelas pagas vai para lá sozinho. Tocando no nome, abrem as parcelas e os pagamentos recebidos, e cada parcela abre o pagamento dela.',
+        'Apagar parcelas mexe só na venda ou serviço escolhido, e só nas parcelas em aberto. As pagas ficam, com os pagamentos.',
+        'Consertado: com acréscimo no parcelamento, pagar uma parcela encolhia a última (4x de R$ 325,00 viravam três de R$ 325,00 e uma de R$ 25,00), e pagando mais ela sumia. Era a parcela que desaparecia da lista.',
+        'Consertado: pagamento registrado sem escolher a parcela não apaga mais a última. Ele fecha a próxima parcela em aberto daquela venda ou serviço.',
+        'Registrando pela aba Pagos, ao escolher a venda ou serviço a próxima parcela dele já vem marcada, com o valor.',
+        'A data no cartão do pagamento e da parcela fica alinhada à direita, como o resto.'
+      ]
+    },
+    {
+      versao: '5.32.0',
+      data: '2026-11-02',
+      itens: [
+        'Venda ou serviço agora tem a parte de Despesas: o custo do produto, peças, material, frete. Dá para pôr quantas quiser, e o app mostra o lucro enquanto você digita.',
+        'O lucro aparece em cada registro (na ficha do cliente e nas listas), no resumo de Serviços e Vendas e no painel do Empreendedor, que agora desconta essas despesas.',
+        'Orçamento aceito que vira registro já leva o material e os outros custos como despesas.'
+      ]
+    },
+    {
+      versao: '5.31.0',
+      data: '2026-11-01',
+      itens: [
+        'Visual novo, mais limpo: preto profundo, bordas douradas finas que acendem nos cantos, números grandes em branco e o dourado só nos detalhes.',
+        'Início: a marca à esquerda com o sino (análise do mês, com um ponto quando algo pede atenção) e a engrenagem (preferências). O patrimônio ganhou o gráfico acendendo no canto e a variação numa pílula.',
+        'Receitas, Despesas, Investido e Análises viraram quadros dois a dois; tocando, cada um leva para o detalhe.',
+        'Empreendedor: os módulos no mesmo estilo de quadros, com o painel geral junto.',
+        'Botões de ação em pílula dourada, a aba ativa da barra de baixo com um fio de luz, e um reflexo discreto que passa de vez em quando nos cartões principais.'
+      ]
+    },
     {
       versao: '5.30.0',
       data: '2026-11-01',
@@ -3871,6 +4180,10 @@
           valor: inteiro(s.valor),
           data: soData(s.data),
           obs: texto(s.obs).slice(0, 200),
+          despesas: limparDespesas(s.despesas),
+          // De qual registro este acréscimo é. Saía aqui a cada abertura do
+          // app, e o acréscimo voltava a ser achado no chute.
+          acrescimoDe: texto(s.acrescimoDe).slice(0, 80),
           criadoEm: inteiro(s.criadoEm) || Date.now()
         };
       });
@@ -4042,6 +4355,19 @@
     return limpo;
   }
 
+  // O que saiu do bolso para fazer uma venda ou um serviço.
+  function limparDespesas(lista) {
+    return (Array.isArray(lista) ? lista : []).filter(function (d) {
+      return d && typeof d === 'object' && inteiro(d.valor) > 0;
+    }).map(function (d) {
+      return { nome: texto(d.nome).slice(0, 40) || 'Despesa', valor: inteiro(d.valor) };
+    }).slice(0, 30);
+  }
+
+  function custoDoRegistro(s) {
+    return (s.despesas || []).reduce(function (t, d) { return t + (d.valor || 0); }, 0);
+  }
+
   // Uber e Doces. Cada lista guarda só os campos conhecidos, com os tipos
   // certos: o que vem de backup, de outra conta ou do servidor passa aqui.
   function limparModulos(bruto, limpo) {
@@ -4079,6 +4405,11 @@
         plataforma: texto(r.plataforma).slice(0, 20),
         descricao: texto(r.descricao).slice(0, 80),
         jornadaId: texto(r.jornadaId),
+        // Corrida particular paga depois: quando, e o cliente e o registro
+        // que o app criou em Serviços e Vendas para cobrar.
+        pagarEm: soData(r.pagarEm) || '',
+        clienteId: texto(r.clienteId),
+        servicoId: texto(r.servicoId),
         criadoEm: marca(r.criadoEm) || Date.now()
       };
     });
@@ -4951,7 +5282,8 @@
         return vivo({
           id: s.id, user_id: uid, cliente_id: s.clienteId, nome: s.nome,
           tipo: s.tipo || 'Serviço',
-          valor: s.valor, data: s.data, obs: s.obs
+          valor: s.valor, data: s.data, obs: s.obs,
+          despesas: s.despesas || []
         });
       }),
       parcelas: estado.parcelas.map(function (p) {
@@ -5117,6 +5449,7 @@
   // trás. O envio tenta de novo sem elas e segue a vida.
   var COLUNAS_OPCIONAIS = {
     lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
+    servicos: ['despesas'],
     contas: ['limite']
   };
 
@@ -5434,6 +5767,12 @@
                limite: c.limite || 0 };
     });
 
+    // Campo novo que o servidor ainda não tem (a migração não rodou) não
+    // vem na linha: aí vale o que está no aparelho, em vez de sumir.
+    var lancLocal = {}, servLocal = {};
+    (estado.lancamentos || []).forEach(function (l) { lancLocal[l.id] = l; });
+    (estado.servicos || []).forEach(function (x) { servLocal[x.id] = x; });
+
     novo.lancamentos = (r.lancamentos || []).map(function (l) {
       return {
         id: l.id, tipo: l.tipo, valor: l.valor, descricao: l.descricao || '',
@@ -5441,7 +5780,7 @@
         contaId: l.conta_id || '', contaDestinoId: l.conta_destino_id || '',
         dataDestino: l.data_destino || '',
         parTransferencia: l.par_transferencia || '',
-        grupo: l.grupo || '',
+        grupo: 'grupo' in l ? (l.grupo || '') : ((lancLocal[l.id] || {}).grupo || ''),
         importacaoId: l.importacao_id || '',
         criadoEm: Date.parse(l.criado_em) || Date.now()
       };
@@ -5481,6 +5820,8 @@
       return {
         id: s.id, clienteId: s.cliente_id, nome: s.nome, tipo: s.tipo || 'Serviço',
         valor: s.valor, data: s.data, obs: s.obs || '',
+        despesas: 'despesas' in s ? (s.despesas || []) : ((servLocal[s.id] || {}).despesas || []),
+        acrescimoDe: (servLocal[s.id] || {}).acrescimoDe || '',
         criadoEm: Date.parse(s.criado_em) || Date.now()
       };
     });
@@ -6967,9 +7308,16 @@
     return l;
   }
 
-  function topoDeCartao(titulo, textoAcao, aoClicar) {
+  function topoDeCartao(titulo, textoAcao, aoClicar, iconeNome) {
     var topo = no('div', 'cartao-topo');
-    topo.appendChild(no('div', 'cartao-titulo', titulo));
+    var t = no('div', 'cartao-titulo');
+    if (iconeNome) {
+      var ic = no('span', 'titulo-icone');
+      ic.appendChild(icone(iconeNome));
+      t.appendChild(ic);
+    }
+    t.appendChild(document.createTextNode(titulo));
+    topo.appendChild(t);
     if (textoAcao) {
       var rotuloAcao = /^Ver /.test(textoAcao) ? textoAcao + ' ›' : textoAcao;
       topo.appendChild(botao('cartao-acao', rotuloAcao, aoClicar));
@@ -7103,6 +7451,15 @@
     bomba: 'M5 20.5V5a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 1 14 5v15.5M3.5 20.5h12M5 10h9M14 9l2.6 1.6V16a1.4 1.4 0 0 0 2.8 0V9.2L17 6.5',
     pacote: 'M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4zM3.5 7.5 12 11.5l8.5-4M12 11.5v9',
     relogio: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+    sino: 'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2H4.4zM10 20.5a2 2 0 0 0 4 0',
+    engrenagem: 'M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5zM10.3 3.5h3.4l.5 2.3 1.6.9 2.2-.8 1.7 2.9-1.7 1.6v1.9l1.7 1.6-1.7 2.9-2.2-.8-1.6.9-.5 2.3h-3.4l-.5-2.3-1.6-.9-2.2.8-1.7-2.9 1.7-1.6v-1.9L4.6 9.6l1.7-2.9 2.2.8 1.6-.9z',
+    grafico: 'M4 20v-5M9 20v-8M14 20v-6M19 20V9M4 10.5l5-4 5 3 6-5.5M16.5 4H20v3.5',
+    receber: 'M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14',
+    pagar: 'M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14',
+    moedas: 'M12 9c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3zM4 6v4c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 10v4c0 1.7 3.6 3 8 3s8-1.3 8-3v-4M4 14v4c0 1.7 3.6 3 8 3s8-1.3 8-3v-4',
+    trocar: 'M4.5 8.5h14M15 5l3.5 3.5L15 12M19.5 15.5h-14M9 12l-3.5 3.5L9 19',
+    carteira: 'M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5zM16 13.5h.01',
+    fatias: 'M11 4a8 8 0 1 0 9 9h-9zM14 3.2A8 8 0 0 1 20.8 10H14z',
     cartao: 'M4 6h16a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 18H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 6zM2.5 10h19M6 14.5h4',
     saindo: 'M15 12H3.5M7 8l-4 4 4 4M13 3.5h5.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H13',
     extrato: 'M6 3.5h9L19.5 8v12.5a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1zM14.5 3.5V8h5M8.5 12.5h7M8.5 16h4',
@@ -7173,10 +7530,30 @@
   }
 
   function marcaBarra() {
-    var barra = no('div', 'marca-barra');
-    barra.appendChild(imagemDaMarca('selo.webp', 'marca-selo', 256, 200, ''));
-    barra.appendChild(no('div', 'marca-nome', 'FINANZ'));
-    barra.appendChild(no('div', 'marca-sub', 'Inteligência financeira'));
+    var barra = no('div', 'marca-topo');
+    var esq = no('div', 'marca-esquerda');
+    esq.appendChild(imagemDaMarca('selo.webp', 'marca-selo', 256, 200, ''));
+    juntar(esq, juntar(no('div', 'marca-letras'),
+      no('div', 'marca-nome', 'FINANZ'), no('div', 'marca-sub', 'Inteligência financeira')));
+    var sino = botao('marca-botao marca-sino', null, function () { abrirAnaliseCompleta(mesAtivo.ano, mesAtivo.mes); });
+    sino.setAttribute('aria-label', 'Avisos e análise do mês');
+    sino.appendChild(icone('sino'));
+    var engrenagem = botao('marca-botao', null, function () { abrirFolhaPreferencias(); });
+    engrenagem.setAttribute('aria-label', 'Preferências');
+    engrenagem.appendChild(icone('engrenagem'));
+    juntar(barra, esq, juntar(no('div', 'marca-botoes'), sino, engrenagem));
+    // O ponto no sino sai da análise do mês, que pesa: fica para depois de
+    // a tela aparecer, e só acende quando há algo pedindo atenção.
+    setTimeout(function () {
+      if (!document.body.contains(sino)) return;
+      try {
+        var an = analiseDoMes(mesAtivo.ano, mesAtivo.mes);
+        if (an && an.principais && an.principais.some(function (a) { return a.prioridade <= 1; })) {
+          sino.appendChild(no('span', 'ponto-aviso'));
+          sino.setAttribute('aria-label', 'Avisos e análise do mês: tem algo pedindo atenção');
+        }
+      } catch (e) { /* sem ponto, sem problema */ }
+    }, 250);
     return barra;
   }
 
@@ -8166,12 +8543,21 @@
     montarEntrada();
   }
 
+  var tempoEntrando = null;
   function mostrarTela(id) {
     telaAtiva = id;
+    chavesDeTela = {};
     ['inicio', 'transacoes', 'investimentos', 'planejamento', 'mais'].forEach(function (t) {
       var el = $('tela' + t.charAt(0).toUpperCase() + t.slice(1));
       el.classList.toggle('ativa', t === id);
+      // A animação de chegada só na chegada: o app redesenha a tela a cada
+      // mudança, e repetir o movimento a cada toque cansa.
+      el.classList.toggle('entrando', t === id);
     });
+    clearTimeout(tempoEntrando);
+    tempoEntrando = setTimeout(function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.tela.entrando'), function (el) { el.classList.remove('entrando'); });
+    }, 1600);
     window.scrollTo(0, 0);
     desenhar();
     ajustarFab();
@@ -8303,6 +8689,15 @@
     });
   }
 
+  // A próxima parcela em aberto de um registro. É para ela que vai o
+  // dinheiro que chega sem parcela escolhida.
+  function proximaAbertaDoRegistro(clienteId, servicoId) {
+    if (!servicoId) return null;
+    return parcelasDoCliente(clienteId).filter(function (p) {
+      return p.servicoId === servicoId && !parcelaPaga(p);
+    })[0] || null;
+  }
+
   // Nenhuma parcela nova passa da maior que já existe no combinado.
   function tetoDoPlano(plano) {
     var teto = 0;
@@ -8391,7 +8786,13 @@
   // `fixaId` é a parcela que acabou de ser mexida à mão: ela fica como está
   // e o resto do plano se ajusta em volta. Sem isso, acertar logo depois de
   // uma edição desfazia justamente a edição.
-  function acertarParcelas(clienteId, parcelaBase, fixaId) {
+  //
+  // Registro sem nenhuma parcela em aberto fica de fora, a não ser que seja
+  // dele o pagamento ou a parcela que acabou de mudar (`focoServicoId`).
+  // Sem isso, apagar as parcelas em aberto de uma venda já meio paga não
+  // durava: o próximo pagamento de qualquer outra venda do cliente
+  // refazia todas.
+  function acertarParcelas(clienteId, parcelaBase, fixaId, focoServicoId) {
     var todasDoCliente = parcelasDoCliente(clienteId);
     if (!todasDoCliente.length) return;
 
@@ -8417,17 +8818,45 @@
       return '';
     }
 
+    // O que o registro passou a custar além do valor dele: o acréscimo do
+    // parcelamento e os juros, multa e taxa lançados num pagamento. As
+    // parcelas foram montadas COM o acréscimo dentro, então a conta tem
+    // de levá-lo junto. Sem isso, um registro de R$ 1.000,00 parcelado em
+    // 4x de R$ 325,00 perdia a ponta: pagar a primeira deixava a última em
+    // R$ 25,00, e pagar mais uma apagava a última de vez.
+    var extrasDoRegistro = {};
+    var acrDoCliente = acrescimosPorRegistro(clienteId);
+    Object.keys(acrDoCliente).forEach(function (k) { extrasDoRegistro[k] = [acrDoCliente[k]]; });
+    estado.servicos.forEach(function (sv) {
+      if (sv.clienteId !== clienteId || !sv.acrescimoDe || ehAcrescimoDeParcelamento(sv)) return;
+      (extrasDoRegistro[sv.acrescimoDe] = extrasDoRegistro[sv.acrescimoDe] || []).push(sv);
+    });
+
+    var foco = {};
+    if (parcelaBase && parcelaBase.servicoId) foco[parcelaBase.servicoId] = true;
+    [].concat(focoServicoId || []).forEach(function (sid) { if (sid) foco[sid] = true; });
+    if (fixaId) {
+      var fixaParcela = achar(estado.parcelas, fixaId);
+      if (fixaParcela && fixaParcela.servicoId) foco[fixaParcela.servicoId] = true;
+    }
+
     Object.keys(porServico).forEach(function (servicoId) {
       var todas = porServico[servicoId];
       var abertas = todas.filter(function (p) { return !parcelaPaga(p); });
+      if (!abertas.length && !foco[servicoId]) return;
 
       var servico = servicoId ? achar(estado.servicos, servicoId) : null;
       if (!servicoId && !servico) return;
-      var totalServico = servico ? servico.valor : 0;
+      var extras = extrasDoRegistro[servicoId] || [];
+      var idsExtras = {};
+      extras.forEach(function (x) { idsExtras[x.id] = true; });
+      var totalServico = (servico ? servico.valor : 0) +
+        extras.reduce(function (t, x) { return t + x.valor; }, 0);
 
       var pagoServico = 0;
       estado.pagamentos.forEach(function (pg) {
-        if (pg.clienteId === clienteId && servicoDoPagamento(pg) === servicoId) pagoServico += pg.valor;
+        if (pg.clienteId !== clienteId) return;
+        if (servicoDoPagamento(pg) === servicoId || idsExtras[pg.servicoId]) pagoServico += pg.valor;
       });
       var restante = Math.max(totalServico - pagoServico, 0);
 
@@ -8791,8 +9220,18 @@
 
   // ---------- Tela: Início ----------
 
+  // A última "posição" desenhada em cada tela. Mesma posição = só os dados
+  // mudaram, e a tela é refeita parada, sem a animação de entrada.
+  var chavesDeTela = {};
+  function marcarRedesenho(el, chave) {
+    el.classList.toggle('sem-entrada', chavesDeTela[el.id] === chave);
+    chavesDeTela[el.id] = chave;
+  }
+
   function desenharInicio() {
     var tela = $('telaInicio');
+    marcarRedesenho(tela, [abaInicio, moduloEmp, abaServicos, janelaServicos, filtroRegistros,
+      abaUber, abaGastosUber, abaDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
     tela.textContent = '';
 
     // O extrato das contas fica pronto só enquanto a Visão geral está
@@ -8814,11 +9253,13 @@
     var diaTexto = DIAS_SEMANA[hoje.getDay()].replace('-feira', '');
     diaTexto = diaTexto.charAt(0).toUpperCase() + diaTexto.slice(1);
 
-    tela.appendChild(cabecalho(
+    var cabInicio = cabecalho(
       saudacao() + (nome ? ', ' + nome : ''),
       diaTexto + ', ' + hoje.getDate() + ' de ' + MESES[hoje.getMonth()],
       'periodo'
-    ));
+    );
+    cabInicio.classList.add('cabecalho-grande');
+    tela.appendChild(cabInicio);
 
     tela.appendChild(segmentos([
       { valor: 'geral', rotulo: 'Visão geral' },
@@ -8836,14 +9277,18 @@
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
     // Patrimônio
-    var cPat = cartao();
-    cPat.appendChild(no('div', 'rotulo', 'Patrimônio líquido'));
-    cPat.appendChild(no('div', 'valorao num', emReais(patrimonio(null))));
+    var cPat = cartao('cartao-destaque cartao-heroi');
+    var topoPat = no('div', 'heroi-topo');
+    var icPat = no('span', 'titulo-icone');
+    icPat.appendChild(icone('grafico'));
+    juntar(topoPat, icPat, no('span', null, 'Patrimônio líquido'));
+    cPat.appendChild(topoPat);
+    cPat.appendChild(graficoHeroi(seriePatrimonio(30)));
+    cPat.appendChild(no('div', 'heroi-valor valorao num', emReais(patrimonio(null))));
 
     var fimMesPassado = ultimoDiaDoMes(mesAnteriorAo(hoje.getFullYear(), hoje.getMonth()).ano,
                                        mesAnteriorAo(hoje.getFullYear(), hoje.getMonth()).mes);
-    cPat.appendChild(variacao(patrimonio(null), patrimonio(fimMesPassado)));
-    cPat.appendChild(blocoGrafico(seriePatrimonio(30), '#E9B44C'));
+    cPat.appendChild(pilulaVariacao(patrimonio(null), patrimonio(fimMesPassado)));
     tela.appendChild(cPat);
 
     // Números do período escolhido
@@ -8863,9 +9308,22 @@
       var pctKpi = (lucroKpi / aplicadoKpi) * 100;
       rentKpi = 'Rentabilidade: ' + (pctKpi >= 0 ? '+' : '') + pctKpi.toFixed(1).replace('.', ',') + '%';
     }
-    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde', estimR));
-    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho', estimD));
-    kpis.appendChild(blocoKpi('Investido', investidoKpi, totalInvestido(faixaAnterior().ate), 'ouro', rentKpi));
+    kpis.classList.add('kpis-grade');
+    kpis.appendChild(blocoKpi('Receitas', t.entradas, tAnt.entradas, 'verde', estimR,
+      { icone: 'receber', aoTocar: function () { irParaTransacoes('entrada', '', faixa.de, faixa.ate); } }));
+    kpis.appendChild(blocoKpi('Despesas', t.saidas, tAnt.saidas, 'vermelho', estimD,
+      { icone: 'pagar', aoTocar: function () { irParaTransacoes('saida', '', faixa.de, faixa.ate); } }));
+    kpis.appendChild(blocoKpi('Investido', investidoKpi, totalInvestido(faixaAnterior().ate), '', rentKpi,
+      { icone: 'moedas', aoTocar: function () { irPara('investimentos'); } }));
+    var analises = botao('kpi kpi-tile kpi-analises', null, function () { abrirAnaliseCompleta(mesAtivo.ano, mesAtivo.mes); });
+    var icAn = no('span', 'titulo-icone');
+    icAn.appendChild(icone('painel'));
+    juntar(analises,
+      juntar(no('div', 'kpi-cabeca'), icAn, no('div', 'rotulo', 'Análises')),
+      no('div', 'n num', MESES[mesAtivo.mes].charAt(0).toUpperCase() + MESES[mesAtivo.mes].slice(1)),
+      no('div', 'variacao', 'Ver detalhes'),
+      no('span', 'kpi-seta', '›'));
+    kpis.appendChild(analises);
     tela.appendChild(kpis);
 
     // Só aparece quando há algo para conferir.
@@ -8874,7 +9332,7 @@
 
     // Fluxo de caixa
     var cFluxo = cartao();
-    cFluxo.appendChild(topoDeCartao('Fluxo de caixa', 'Ver todas', function () { irPara('transacoes'); }));
+    cFluxo.appendChild(topoDeCartao('Fluxo de caixa', 'Ver todas', function () { irPara('transacoes'); }, 'trocar'));
     // Este cartão é sobre dinheiro que entrou e saiu das contas. A fatura
     // paga conta aqui; a compra no cartão conta em Despesas. São perguntas
     // diferentes, e por isso os números podem não bater — está explicado.
@@ -8909,7 +9367,7 @@
     var cGastos = cartao();
     cGastos.appendChild(topoDeCartao(
       ehEntrada ? 'Distribuição de receitas' : 'Distribuição de gastos',
-      'Relatório', function () { abrirRelatorio('fluxo'); }));
+      'Relatório', function () { abrirRelatorio('fluxo'); }, 'fatias'));
 
     cGastos.appendChild(segmentos([
       { valor: 'saida', rotulo: 'Despesas' },
@@ -8946,7 +9404,7 @@
 
     // Contas
     var cContas = cartao('liso');
-    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); });
+    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira');
     topoContas.style.padding = '16px 16px 0';
     topoContas.style.marginBottom = '8px';
     cContas.appendChild(topoContas);
@@ -9092,20 +9550,70 @@
   }
 
   function cartaoDeTransferencias(pares) {
-    var c = cartao();
-    c.appendChild(topoDeCartao('Transferências entre contas', null));
+    var c = cartao('reflexo');
+    c.appendChild(topoDeCartao('Transferências entre contas', null, null, 'trocar'));
     var soma = pares.reduce(function (t, p) { return t + p.saida.valor; }, 0);
+    var b = botao('botao-pilula ver-transferencias', null, function () { abrirFolhaTransferencias(); });
+    juntar(b, document.createTextNode('Ver detalhes'), no('span', 'seta', '›'));
+    c.appendChild(juntar(no('div', 'transf-corpo'), no('div', 'valorao num', emReais(soma)), b));
     c.appendChild(no('div', 'linha-nota',
-      pares.length === 1
-        ? 'Achei 1 saída com o mesmo valor de uma entrada em outra conta, no mesmo dia ou a poucos dias.'
-        : 'Achei ' + pares.length + ' saídas com o mesmo valor de entradas em outras contas, no mesmo dia ou a poucos dias.'));
-    c.appendChild(no('div', 'valorao pequeno num azul', emReais(soma)));
-    c.appendChild(no('div', 'linha-nota',
-      'Enquanto não conferir, esse dinheiro conta como receita de um lado e despesa do outro.'));
-    var b = botao('btn btn-ouro', 'Conferir', function () { abrirFolhaTransferencias(); });
-    b.style.marginTop = '14px';
-    c.appendChild(b);
+      (pares.length === 1 ? 'Achei 1 saída com o mesmo valor de uma entrada em outra conta'
+                          : 'Achei ' + pares.length + ' saídas com o mesmo valor de entradas em outras contas') +
+      '. Até conferir, contam como receita de um lado e despesa do outro.'));
     return c;
+  }
+
+  // O gráfico do patrimônio: a linha dourada acendendo no canto do cartão,
+  // sem eixo — o número grande é que conta a história.
+  function graficoHeroi(pontos) {
+    var caixa = no('div', 'heroi-grafico');
+    caixa.setAttribute('aria-hidden', 'true');
+    if (pontos.length < 2) return caixa;
+    var L = 200, A = 100;
+    var valores = pontos.map(function (p) { return p.valor; });
+    var min = Math.min.apply(null, valores), max = Math.max.apply(null, valores);
+    if (max === min) { max = min + 1; min = min - 1; }
+    function x(i) { return (i / (pontos.length - 1)) * (L - 8); }
+    function y(v) { return A - 14 - ((v - min) / (max - min)) * (A - 34); }
+    var xs = pontos.map(function (p, i) { return x(i); });
+    var ys = pontos.map(function (p) { return y(p.valor); });
+    var d = 'M' + xs[0].toFixed(1) + ' ' + ys[0].toFixed(1);
+    for (var i = 1; i < xs.length; i++) {
+      var mx = (xs[i - 1] + xs[i]) / 2;
+      d += ' C' + mx.toFixed(1) + ' ' + ys[i - 1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + ys[i].toFixed(1) +
+           ' ' + xs[i].toFixed(1) + ' ' + ys[i].toFixed(1);
+    }
+    var svg = svgNo('svg', { viewBox: '0 0 ' + L + ' ' + A, preserveAspectRatio: 'none' });
+    var idG = idUnico();
+    var defs = svgNo('defs', {});
+    var grad = svgNo('linearGradient', { id: idG, x1: '0', y1: '0', x2: '0', y2: '1' });
+    grad.appendChild(svgNo('stop', { offset: '0%', 'stop-color': '#E9B44C', 'stop-opacity': '.28' }));
+    grad.appendChild(svgNo('stop', { offset: '100%', 'stop-color': '#E9B44C', 'stop-opacity': '0' }));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+    svg.appendChild(svgNo('path', { d: d + ' L' + L + ' ' + A + ' L0 ' + A + ' Z', fill: 'url(#' + idG + ')' }));
+    svg.appendChild(svgNo('path', {
+      d: d, fill: 'none', stroke: '#E9B44C', 'stroke-width': 2, 'stroke-linecap': 'round',
+      'vector-effect': 'non-scaling-stroke', pathLength: 1, 'class': 'heroi-linha'
+    }));
+    caixa.appendChild(svg);
+    var ponta = no('span', 'heroi-ponta');
+    ponta.style.left = (xs[xs.length - 1] / L * 100) + '%';
+    ponta.style.top = (ys[ys.length - 1] / A * 100) + '%';
+    caixa.appendChild(ponta);
+    return caixa;
+  }
+
+  function pilulaVariacao(atual, anterior) {
+    var el = no('div', 'pilula-variacao');
+    if (!anterior) { el.appendChild(no('span', 'resto', 'sem base de comparação')); return el; }
+    var dif = atual - anterior;
+    var p = (dif / Math.abs(anterior)) * 100;
+    el.classList.add(dif >= 0 ? 'sobe' : 'desce');
+    juntar(el,
+      no('span', 'pct', (dif >= 0 ? '↑ ' : '↓ ') + Math.abs(p).toFixed(1).replace('.', ',') + '%'),
+      no('span', 'resto', 'vs. mês anterior'));
+    return el;
   }
 
   function abrirFolhaTransferencias() {
@@ -9379,7 +9887,7 @@
 
   function cartaoDeCartoes() {
     var c = cartao('liso');
-    var topo = topoDeCartao('Cartões', '+ Novo', function () { abrirFolhaConta(null, true); });
+    var topo = topoDeCartao('Cartões', '+ Novo', function () { abrirFolhaConta(null, true); }, 'cartao');
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     c.appendChild(topo);
@@ -9746,7 +10254,7 @@
   var MODULOS = {
     servicos: { titulo: 'Serviços e Vendas', icone: 'ferramenta' },
     uber: { titulo: 'Uber e Corridas', icone: 'carro' },
-    doces: { titulo: 'Distribuição de Doces', icone: 'doce' },
+    doces: { titulo: 'Venda de Doces', icone: 'doce' },
     painel: { titulo: 'Resumo do Empreendedor', icone: 'painel' }
   };
 
@@ -9978,10 +10486,15 @@
   // ---------- os números de cada módulo, num intervalo de datas ----------
 
   function numerosDeServicos(de, ate) {
-    var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0 };
+    var r = { faturamento: 0, despesas: 0, recebido: 0, vendas: 0, nServicos: 0, nVendas: 0, corridas: 0 };
     estado.servicos.forEach(function (s) {
       if (s.data < de || s.data > ate) return;
+      // A corrida particular cobrada aqui conta no faturamento de Serviços
+      // e Vendas, que é onde o Vitor olha para ver o que tem a receber.
+      // Ela também está no Uber; quem soma os dois tira a repetição.
+      if (s.tipo === TIPO_CORRIDA) r.corridas += s.valor;
       r.faturamento += s.valor;
+      r.despesas += custoDoRegistro(s);
       if (ehAcrescimoDeParcelamento(s)) return;
       if (s.tipo === 'Venda') { r.vendas += s.valor; r.nVendas += 1; } else r.nServicos += 1;
     });
@@ -9993,11 +10506,15 @@
 
   function numerosDoPeriodo(de, ate) {
     var s = numerosDeServicos(de, ate), u = numerosDoUber(de, ate), d = numerosDosDoces(de, ate);
+    // Corrida particular cobrada em Serviços e Vendas aparece nos dois
+    // módulos. Na soma ela entra uma vez só.
+    var repetida = s.corridas;
     return {
-      servicos: s, uber: u, doces: d,
-      faturamento: s.faturamento + u.faturamento + d.faturamento,
+      servicos: s, uber: u, doces: d, repetida: repetida,
+      uberSemRepetir: u.faturamento - repetida,
+      faturamento: s.faturamento + u.faturamento + d.faturamento - repetida,
       despesas: s.despesas + u.despesas + d.despesas,
-      lucro: s.lucro + u.lucro + d.lucro,
+      lucro: s.lucro + u.lucro + d.lucro - repetida,
       recebido: s.recebido + u.recebido + d.recebido,
       pendente: s.pendente + u.pendente + d.pendente
     };
@@ -10013,22 +10530,22 @@
 
     var lista = no('div', 'modulos-lista');
     lista.appendChild(cartaoDeModulo('servicos', 'Clientes, serviços, vendas e recebimentos',
-      { rotulo: 'A receber', valor: emReais(Math.max(geral.restante, 0)), cor: geral.restante > 0 ? 'ouro' : 'verde' }));
+      { rotulo: 'Total a receber', valor: emReais(Math.max(geral.restante, 0)), cor: geral.restante > 0 ? 'ouro' : 'verde' }));
     lista.appendChild(cartaoDeModulo('uber', 'Jornada, corridas, combustível e lucro',
       aberta
         ? { rotulo: aberta.pausaDesde ? 'Jornada pausada' : 'Em jornada', valor: formatarRelogio(duracaoJornada(aberta)),
             cor: aberta.pausaDesde ? 'ouro' : 'verde', relogio: !aberta.pausaDesde }
         : { rotulo: 'Lucro no mês', valor: emReais(n.uber.lucro), cor: n.uber.lucro < 0 ? 'vermelho' : 'verde' }));
     lista.appendChild(cartaoDeModulo('doces', 'Vendedores, entregas e prestação de contas',
-      { rotulo: 'A receber', valor: emReais(n.doces.pendente), cor: n.doces.pendente > 0 ? 'ouro' : 'verde' }));
-    tela.appendChild(lista);
+      { rotulo: 'Total a receber', valor: emReais(n.doces.pendente), cor: n.doces.pendente > 0 ? 'ouro' : 'verde' }));
+    // O quarto quadro (Painel geral) saiu: ele repetia o resumo, que agora
+    // é a primeira coisa da tela e continua abrindo o painel.
 
     var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
     var fAnt = faixaDoMes(ant.ano, ant.mes);
     var nAnt = numerosDoPeriodo(fAnt.de, fAnt.ate);
 
-    var c = botao('cartao cartao-resumo-emp', null, function () { abrirModulo('painel'); });
-    c.setAttribute('data-modulo', 'painel');
+    var c = botao('cartao cartao-resumo-emp reflexo', null, function () { abrirModulo('painel'); });
     var topo = no('div', 'cartao-topo');
     juntar(topo, no('div', 'cartao-titulo', 'Resumo de ' + MESES[mesAtivo.mes]), no('span', 'cartao-acao', 'Painel ›'));
     c.appendChild(topo);
@@ -10036,7 +10553,7 @@
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
     c.appendChild(variacao(n.faturamento, nAnt.faturamento));
     var cols = no('div', 'resumo-grade resumo-emp-grade');
-    [['Serviços', n.servicos.faturamento], ['Uber', n.uber.faturamento], ['Doces', n.doces.faturamento]].forEach(function (x) {
+    [['Serviços', n.servicos.faturamento], ['Uber', n.uberSemRepetir], ['Doces', n.doces.faturamento]].forEach(function (x) {
       juntar(cols, juntar(no('div'), no('div', 'r', x[0]), no('div', 'v num', emReais(x[1]))));
     });
     c.appendChild(cols);
@@ -10044,9 +10561,10 @@
     juntar(pe,
       juntar(no('div'), no('div', 'r', 'Lucro líquido'), no('div', 'v num ' + (n.lucro < 0 ? 'vermelho' : 'verde'), emReais(n.lucro))),
       juntar(no('div'), no('div', 'r', 'Recebido'), no('div', 'v num verde', emReais(n.recebido))),
-      juntar(no('div'), no('div', 'r', 'A receber'), no('div', 'v num ouro', emReais(n.pendente))));
+      juntar(no('div'), no('div', 'r', 'Total a receber'), no('div', 'v num ouro', emReais(n.pendente))));
     c.appendChild(pe);
     tela.appendChild(c);
+    tela.appendChild(lista);
 
     if (aberta && !aberta.pausaDesde) ligarRelogio();
   }
@@ -10058,10 +10576,12 @@
     arte.appendChild(icone(MODULOS[id].icone));
     var valor = no('div', 'modulo-valor num ' + (destaque.cor || ''), destaque.valor);
     if (destaque.relogio) valor.setAttribute('data-relogio', '1');
+    b.setAttribute('aria-label', MODULOS[id].titulo + ': ' + sub);
     juntar(b,
       arte,
-      juntar(no('div', 'modulo-texto'), no('div', 'modulo-titulo', MODULOS[id].titulo), no('div', 'modulo-sub', sub)),
-      juntar(no('div', 'modulo-fim'), no('div', 'modulo-rotulo', destaque.rotulo), valor),
+      juntar(no('div', 'modulo-corpo-tile'),
+        no('div', 'modulo-titulo', id === 'painel' ? 'Painel geral' : MODULOS[id].titulo),
+        juntar(no('div', 'modulo-linha'), no('div', 'modulo-rotulo', destaque.rotulo), valor)),
       no('span', 'modulo-seta', '›'));
     return b;
   }
@@ -10136,8 +10656,8 @@
     c3.appendChild(topoDeCartao('Por módulo', null));
     var seg = [
       { nome: 'Serviços e Vendas', valor: n.servicos.faturamento, cor: '#E9B44C' },
-      { nome: 'Uber e Corridas', valor: n.uber.faturamento, cor: '#60A5FA' },
-      { nome: 'Distribuição de Doces', valor: n.doces.faturamento, cor: '#F472B6' }
+      { nome: 'Uber e Corridas', valor: n.uberSemRepetir, cor: '#60A5FA' },
+      { nome: 'Venda de Doces', valor: n.doces.faturamento, cor: '#F472B6' }
     ];
     if (n.faturamento > 0) {
       c3.appendChild(rosca(seg, n.faturamento, 'Faturamento'));
@@ -10156,7 +10676,7 @@
           juntar(no('div'), no('div', 'r', 'Lucro'), no('div', 'v num ' + (m.lucro < 0 ? 'vermelho' : 'verde'), emReais(m.lucro)))),
         juntar(no('div', 'painel-numeros painel-dinheiro'),
           juntar(no('div'), no('div', 'r', 'Recebido'), no('div', 'v num verde', emReais(m.recebido))),
-          juntar(no('div'), no('div', 'r', 'A receber'), no('div', 'v num ouro', emReais(m.pendente))))
+          juntar(no('div'), no('div', 'r', 'Total a receber'), no('div', 'v num ouro', emReais(m.pendente))))
       );
       c3.appendChild(l);
     });
@@ -10184,6 +10704,11 @@
     c.appendChild(no('div', 'rotulo', 'Faturamento de ' + MESES[mesAtivo.mes]));
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
     c.appendChild(variacao(n.faturamento, nAnt.faturamento));
+    var dl = no('div', 'despesa-lucro');
+    juntar(dl,
+      juntar(no('div'), no('div', 'r', 'Despesas'), no('div', 'v num vermelho', emReais(n.despesas))),
+      juntar(no('div'), no('div', 'r', 'Lucro'), no('div', 'v num ' + (n.lucro < 0 ? 'vermelho' : 'verde'), emReais(n.lucro))));
+    c.appendChild(dl);
     var serie = serieDeFaturamento(janelaServicos);
     var g = graficoArea(serie, '#E9B44C');
     g.classList.add('grafico-animado');
@@ -10277,12 +10802,13 @@
     var cliente = achar(estado.clientes, s.clienteId);
     var pago = pagoNoRegistro(s) >= s.valor;
     var tipo = s.tipo || 'Serviço';
+    var custo = custoDoRegistro(s);
     return linhaSimples({
       titulo: s.nome,
       sub: (cliente ? cliente.nome + ' · ' : '') + dataBr(s.data) + ' · ' + tipo,
       valor: emReais(s.valor),
-      nota: pago ? '✓ pago' : '',
-      corNota: 'verde',
+      nota: [pago ? '✓ pago' : '', custo ? 'lucro ' + emReais(s.valor - custo) : ''].filter(Boolean).join(' · '),
+      corNota: custo && s.valor - custo < 0 ? 'vermelho' : 'verde',
       selo: seloIcone(tipo === 'Venda' ? 'pacote' : 'ferramenta', tipo === 'Venda' ? '#60A5FA' : '#E9B44C'),
       aoTocar: function () { abrirFolhaServico(s.clienteId, s.id); }
     });
@@ -10405,7 +10931,15 @@
     r.despesas = r.combustivel + r.extras;
     r.lucro = r.faturamento - r.despesas;
     // Corrida é paga pelo aplicativo: o que foi faturado conta como recebido.
-    r.recebido = r.faturamento;
+    // A particular paga depois fica de fora: ela vira um valor a receber em
+    // Serviços e Vendas, e é lá que o dinheiro entra quando o cliente paga.
+    r.aReceberDepois = 0;
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo !== 'corrida' || !x.servicoId) return;
+      if (soDaJornada ? x.jornadaId !== soDaJornada.id : (x.data < de || x.data > ate)) return;
+      r.aReceberDepois += x.valor;
+    });
+    r.recebido = r.faturamento - r.aReceberDepois;
     r.pendente = 0;
     r.horas = r.ms / 3600000;
     r.porKm = r.km > 0 ? Math.round(r.faturamento / r.km) : 0;
@@ -10606,7 +11140,8 @@
       forma.appendChild(campo('Valor da corrida', valor));
       var km = entradaDecimal(existente ? existente.km : 0, 1, 'Ex.: 12,8');
       forma.appendChild(campo('Distância (km)', km));
-      forma.appendChild(campo('Aplicativo', grupoChips(PLATAFORMAS, plataforma, function (p) { plataforma = p; })));
+      var pintarPagamento = function () {};
+      forma.appendChild(campo('Aplicativo', grupoChips(PLATAFORMAS, plataforma, function (p) { plataforma = p; pintarPagamento(); })));
       var data = entradaData(existente ? existente.data : hojeTexto());
       var hora = no('input', 'entrada');
       hora.type = 'time';
@@ -10614,6 +11149,32 @@
       var linha = no('div', 'duas');
       juntar(linha, campo('Data', data), campo('Hora', hora));
       forma.appendChild(linha);
+      // Particular pode pagar depois. Com a data do pagamento depois do dia
+      // da corrida, o app cria o cliente em Serviços e Vendas para cobrar.
+      var pagamento = entradaData(existente && existente.pagarEm ? existente.pagarEm : data.value);
+      var pagamentoMexido = !!(existente && existente.pagarEm && existente.pagarEm !== existente.data);
+      var blocoPagamento = no('div', 'bloco-pagar-depois');
+      blocoPagamento.appendChild(campo('Data do pagamento', pagamento));
+      var notaPagamento = no('p', 'ajuda');
+      blocoPagamento.appendChild(notaPagamento);
+      forma.appendChild(blocoPagamento);
+      pintarPagamento = function () {
+        blocoPagamento.style.display = plataforma === 'Particular' ? '' : 'none';
+        var depois = ehData(pagamento.value) && ehData(data.value) && pagamento.value > data.value;
+        notaPagamento.textContent = existente && existente.servicoId
+          ? 'Esta corrida já está sendo cobrada em Serviços e Vendas.'
+          : depois
+            ? 'Vai pagar depois: ao salvar, o app cadastra quem vai pagar em Serviços e Vendas, com o valor a receber em ' + dataBr(pagamento.value) + '.'
+            : 'Pago na hora. Escolha uma data depois da corrida se a pessoa vai pagar mais tarde.';
+      };
+      data.addEventListener('change', function () {
+        if (!pagamentoMexido) pagamento.value = data.value;
+        pintarPagamento();
+      });
+      pagamento.addEventListener('change', function () { pagamentoMexido = true; pintarPagamento(); });
+      pagamento.addEventListener('input', function () { pagamentoMexido = true; pintarPagamento(); });
+      pintarPagamento();
+
       var obs = entradaTexto(existente ? existente.descricao : '', 'Ex.: aeroporto, gorjeta', 80);
       forma.appendChild(campo('Observação (opcional)', obs));
       if (!existente && j) forma.appendChild(no('p', 'ajuda', 'Entra na jornada em andamento.'));
@@ -10631,10 +11192,21 @@
         reg.hora = /^\d{2}:\d{2}$/.test(hora.value) ? hora.value : '';
         reg.descricao = obs.value.trim();
         reg.litros = 0; reg.precoLitro = 0; reg.combustivel = ''; reg.categoria = '';
+        var particular = plataforma === 'Particular';
+        if (particular && !ehData(pagamento.value)) { mostrarErro(forma, 'Escolha a data do pagamento.'); return; }
+        reg.pagarEm = particular && pagamento.value > reg.data ? pagamento.value : '';
+        reg.clienteId = reg.clienteId || '';
+        reg.servicoId = reg.servicoId || '';
         if (!existente) estado.uberRegistros.push(reg);
         ultimaPlataforma = plataforma;
+        // Já cobrada: o registro e a parcela acompanham o que mudou aqui.
+        if (reg.servicoId) acompanharCobrancaDaCorrida(reg);
         salvar();
         fecharOuVoltar(deCima);
+        if (reg.pagarEm && !reg.servicoId) {
+          setTimeout(function () { abrirCobrancaDaCorrida(reg); }, 320);
+          return;
+        }
         avisar(existente ? 'Corrida atualizada.' : 'Corrida registrada: ' + emReais(v) + '.');
       }));
       if (existente) acoes.appendChild(botao('btn btn-perigo', 'Excluir corrida', function () { excluirRegistroUber(existente, deCima); }));
@@ -10644,6 +11216,83 @@
     });
   }
   var ultimaPlataforma = '';
+
+  // ---------- Corrida particular paga depois ----------
+  //
+  // Vira cobrança em Serviços e Vendas: o cliente (novo ou um que já
+  // existe), um registro com o valor da corrida e uma parcela que vence no
+  // dia combinado. O faturamento continua sendo do Uber; em Serviços o
+  // registro entra só no que falta receber, para nada contar duas vezes.
+  var TIPO_CORRIDA = 'Corrida particular';
+
+  function nomeDoRegistroDaCorrida(reg) {
+    return 'Corrida ' + dataCurta(reg.data) + (reg.descricao ? ' — ' + reg.descricao : '');
+  }
+
+  function abrirCobrancaDaCorrida(reg) {
+    // O que der para aproveitar já vem preenchido: um cliente com o nome
+    // que está na observação, ou só a observação como anotação.
+    var palpite = null;
+    var obsMin = String(reg.descricao || '').toLowerCase();
+    if (obsMin) {
+      estado.clientes.forEach(function (c) {
+        if (!palpite && obsMin.indexOf(String(c.nome || '').toLowerCase()) >= 0) palpite = c;
+      });
+    }
+    abrirFolhaCliente(palpite ? palpite.id : null, {
+      titulo: 'Quem vai pagar a corrida?',
+      aviso: 'Corrida de ' + emReais(reg.valor) + ' em ' + dataBr(reg.data) +
+        ', para pagar em ' + dataBr(reg.pagarEm) + '. Ela entra a receber em Serviços e Vendas.',
+      obs: palpite ? null : (reg.descricao ? 'Corrida: ' + reg.descricao : ''),
+      escolherExistente: !palpite,
+      rotuloSalvar: 'Salvar e cobrar',
+      aoSalvar: function (cliente) { criarCobrancaDaCorrida(reg, cliente); }
+    });
+  }
+
+  function criarCobrancaDaCorrida(reg, cliente) {
+    var servicoId = novoId();
+    estado.servicos.push({
+      id: servicoId, clienteId: cliente.id, nome: nomeDoRegistroDaCorrida(reg).slice(0, 60),
+      tipo: TIPO_CORRIDA, valor: reg.valor, data: reg.data,
+      obs: reg.hora ? 'Corrida às ' + reg.hora : '', despesas: [], criadoEm: Date.now()
+    });
+    estado.parcelas.push({
+      id: novoId(), clienteId: cliente.id, servicoId: servicoId,
+      numero: 1, total: 1, valor: reg.valor, vencimento: reg.pagarEm,
+      minimo: 0, jurosAtraso: 0, quitadaEm: '', pagamentoId: '', criadoEm: Date.now()
+    });
+    reg.clienteId = cliente.id;
+    reg.servicoId = servicoId;
+    salvar();
+    // Abre a outra parte do app, onde o pagamento é controlado.
+    moduloEmp = 'servicos';
+    abaServicos = 'clientes';
+    window.scrollTo(0, 0);
+    desenharInicio();
+    setTimeout(function () {
+      abrirFichaCliente(cliente.id);
+      abaFicha = 'parcelas';
+      filtroParcelaServico = servicoId;
+      montarFichaCliente(cliente.id);
+      avisar('Corrida a receber de ' + cliente.nome + ' em ' + dataBr(reg.pagarEm) + '.');
+    }, 320);
+  }
+
+  // Corrida já cobrada que foi editada: o registro e a parcela em aberto
+  // acompanham o valor, a data e o vencimento.
+  function acompanharCobrancaDaCorrida(reg) {
+    var sv = achar(estado.servicos, reg.servicoId);
+    if (!sv) { reg.servicoId = ''; reg.clienteId = ''; return; }
+    sv.valor = reg.valor;
+    sv.data = reg.data;
+    sv.nome = nomeDoRegistroDaCorrida(reg).slice(0, 60);
+    estado.parcelas.forEach(function (p) {
+      if (p.servicoId !== sv.id || parcelaPaga(p)) return;
+      p.valor = reg.valor;
+      if (reg.pagarEm) p.vencimento = reg.pagarEm;
+    });
+  }
 
   function abrirFolhaAbastecimento(id, deCima) {
     var existente = id ? achar(estado.uberRegistros, id) : null;
@@ -11953,12 +12602,33 @@
 
   // ---------- Empreendedor: folhas ----------
 
-  function abrirFolhaCliente(id) {
+  // `opcoes` serve a quem chega de outro lugar do app (a corrida paga
+  // depois): título, um recado no topo, anotação já escrita, a lista dos
+  // clientes que já existem e o que fazer depois de salvar.
+  function abrirFolhaCliente(id, opcoes) {
+    opcoes = opcoes || {};
     var existente = id ? achar(estado.clientes, id) : null;
     if (id && !existente) return;
 
-    abrirFolha(existente ? 'Editar cliente' : 'Novo cliente', function (folha) {
+    abrirFolha(opcoes.titulo || (existente ? 'Editar cliente' : 'Novo cliente'), function (folha) {
       var forma = no('div');
+      if (opcoes.aviso) forma.appendChild(no('div', 'linha-nota ouro aviso-cobranca', opcoes.aviso));
+
+      if (opcoes.escolherExistente && estado.clientes.length) {
+        var jaSao = estado.clientes.slice().sort(function (a, b) {
+          return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+        }).slice(0, 12);
+        var chipsCli = no('div', 'chips');
+        jaSao.forEach(function (c) {
+          chipsCli.appendChild(botao('chip', c.nome, function () {
+            fecharFolha();
+            desenhar();
+            setTimeout(function () { opcoes.aoSalvar(c); }, 300);
+          }));
+        });
+        forma.appendChild(campo('Já é cliente? Toque no nome', chipsCli));
+        forma.appendChild(no('div', 'rotulo-secao', 'Ou cadastre quem vai pagar'));
+      }
 
       var campoNome = entradaTexto(existente ? existente.nome : '', 'Nome do cliente', 60);
       forma.appendChild(campo('Nome', campoNome));
@@ -12103,13 +12773,14 @@
       notaEnd.style.marginTop = '-8px';
       forma.appendChild(notaEnd);
 
-      var campoObs = entradaTexto(existente ? existente.obs : '', 'Anotação (opcional)', 200);
+      var campoObs = entradaTexto(existente ? existente.obs : (opcoes.obs || ''), 'Anotação (opcional)', 200);
       forma.appendChild(campo('Observação', campoObs));
 
       var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+      acoes.appendChild(botao('btn btn-ouro', opcoes.rotuloSalvar || 'Salvar', function () {
         var nome = campoNome.value.trim();
         if (!nome) { mostrarErro(forma, 'Escreva o nome do cliente.'); return; }
+        var salvo = existente;
 
         var lista = numeros.filter(function (t) { return soDigitos(t.numero); })
           .map(function (t) { return { numero: soDigitos(t.numero), whats: !!t.whats, rotulo: '' }; });
@@ -12123,7 +12794,7 @@
           existente.endereco = campoEndereco.value.trim();
           existente.obs = campoObs.value.trim();
         } else {
-          estado.clientes.push({
+          estado.clientes.push(salvo = {
             id: novoId(), nome: nome,
             telefones: lista,
             telefone: principal.numero,
@@ -12137,10 +12808,11 @@
         salvar();
         fecharFolha();
         desenhar();
+        if (opcoes.aoSalvar) { setTimeout(function () { opcoes.aoSalvar(salvo); }, 300); return; }
         avisar(existente ? 'Cliente atualizado.' : 'Cliente cadastrado.');
       }));
 
-      if (existente) {
+      if (existente && !opcoes.aoSalvar) {
         acoes.appendChild(botao('btn btn-perigo', 'Excluir cliente', function () {
           var quantos = servicosDoCliente(existente.id).length + pagamentosDoCliente(existente.id).length +
             estado.parcelas.filter(function (p) { return p.clienteId === existente.id; }).length;
@@ -12176,11 +12848,79 @@
   var filtroParcelaServico = '';
   var fichaClienteAberta = '';
 
+  // Os registros com parcela, um grupo por registro. Grupo com parcela em
+  // aberto fica "em andamento" e ganha um botão próprio; o que já foi
+  // todo quitado vai para Finalizados, que é onde se olha o histórico.
+  var FINALIZADOS = '__finalizados';
+  var finalizadoAberto = '';
+
+  function gruposDeParcelas(clienteId) {
+    var porChave = {}, ordem = [];
+    parcelasDoCliente(clienteId).forEach(function (p) {
+      var chave = p.servicoId || '';
+      if (!porChave[chave]) { porChave[chave] = []; ordem.push(chave); }
+      porChave[chave].push(p);
+    });
+    return ordem.map(function (chave) {
+      var sv = chave ? achar(estado.servicos, chave) : null;
+      var parcelas = porChave[chave];
+      var aberto = parcelas.some(function (p) { return !parcelaPaga(p); });
+      var quitadoEm = '';
+      if (!aberto) {
+        parcelas.forEach(function (p) {
+          var d = dataDaParcelaPaga(p);
+          if (d > quitadoEm) quitadoEm = d;
+        });
+      }
+      // `id` é o que os botões usam. A chave vazia (parcela sem registro)
+      // ganha um nome próprio para não se confundir com "nada escolhido".
+      return { chave: chave, id: chave || '__sem', nome: sv ? sv.nome : (chave ? 'Registro apagado' : 'Sem registro'),
+               data: sv ? sv.data : '', parcelas: parcelas, aberto: aberto, quitadoEm: quitadoEm,
+               total: parcelas.reduce(function (t, p) { return t + p.valor; }, 0) };
+    }).sort(function (a, b) {
+      // O que ainda tem parcela em aberto vem antes; depois o mais recente.
+      if (a.aberto !== b.aberto) return a.aberto ? -1 : 1;
+      if (!a.aberto && a.quitadoEm !== b.quitadoEm) return a.quitadoEm < b.quitadoEm ? 1 : -1;
+      return a.data < b.data ? 1 : a.data > b.data ? -1 : 0;
+    });
+  }
+
+  // Qual botão fica marcado. O escolhido continua enquanto existir; um
+  // registro que acabou de ser quitado leva junto para Finalizados, já
+  // aberto, para a pessoa ver que ele foi para lá.
+  function grupoDeParcelasEscolhido(grupos) {
+    var ativos = grupos.filter(function (g) { return g.aberto; });
+    var temFinalizados = ativos.length < grupos.length;
+    if (filtroParcelaServico === FINALIZADOS && temFinalizados) return FINALIZADOS;
+    for (var i = 0; i < grupos.length; i++) {
+      if (grupos[i].id !== filtroParcelaServico) continue;
+      if (grupos[i].aberto) return grupos[i].id;
+      finalizadoAberto = grupos[i].id;
+      return FINALIZADOS;
+    }
+    if (ativos.length) return ativos[0].id;
+    return temFinalizados ? FINALIZADOS : '';
+  }
+
+  // A data em que a parcela foi paga de verdade. A parcela quitada pelo
+  // botão guarda a data; a que fechou só pela soma dos pagamentos não
+  // guardava nada, e a ficha mostrava o vencimento como se fosse o dia do
+  // pagamento.
+  function dataDaParcelaPaga(p) {
+    if (p.quitadaEm) return p.quitadaEm;
+    var ultima = '';
+    estado.pagamentos.forEach(function (g) {
+      if ((g.parcelaId === p.id || (p.pagamentoId && g.id === p.pagamentoId)) && g.data > ultima) ultima = g.data;
+    });
+    return ultima || p.vencimento;
+  }
+
   function abrirFichaCliente(id) {
     var cliente = achar(estado.clientes, id);
     if (!cliente) return;
     abaFicha = 'servicos';
     filtroParcelaServico = '';
+    finalizadoAberto = '';
     fichaClienteAberta = '';
     montarFichaCliente(id);
   }
@@ -12306,6 +13046,8 @@
             var total = s.valor + (extra ? extra.valor : 0);
             var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
             if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
+            var custoS = custoDoRegistro(s);
+            if (custoS) sub += ' · lucro ' + emReais(total - custoS);
 
             var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
             juntar(linha,
@@ -12324,47 +13066,48 @@
           lista.appendChild(estadoVazio('Sem parcelas combinadas',
             'Monte a previsão de pagamento para acompanhar o que vence e quando.'));
         } else {
-          var servicosIds = {};
-          parcelas.forEach(function (p) { if (p.servicoId) servicosIds[p.servicoId] = true; });
-          var servicosDistintos = Object.keys(servicosIds).map(function (sid) {
-            return achar(estado.servicos, sid);
-          }).filter(Boolean);
-          if (servicosDistintos.length > 1) {
-            if (filtroParcelaServico && !servicosIds[filtroParcelaServico]) filtroParcelaServico = '';
-            var opsServico = [{ valor: '', rotulo: 'Todos' }];
-            servicosDistintos.forEach(function (sv) {
-              var nome = sv.nome.length > 18 ? sv.nome.slice(0, 17) + '…' : sv.nome;
-              opsServico.push({ valor: sv.id, rotulo: nome });
-            });
-            lista.appendChild(segmentos(opsServico, filtroParcelaServico, function (v) {
+          // Um registro de cada vez: misturar as parcelas de dois serviços
+          // (ou de uma venda e um serviço) na mesma lista não ajuda a
+          // cobrar nenhum dos dois. Só ganha botão o que ainda tem parcela
+          // em aberto; o que foi todo quitado mora em Finalizados.
+          var grupos = gruposDeParcelas(id);
+          var ativos = grupos.filter(function (g) { return g.aberto; });
+          var finalizados = grupos.filter(function (g) { return !g.aberto; });
+          filtroParcelaServico = grupoDeParcelasEscolhido(grupos);
+          var opcoesGrupo = ativos.map(function (g) {
+            return { valor: g.id, rotulo: g.nome.length > 18 ? g.nome.slice(0, 17) + '…' : g.nome };
+          });
+          if (finalizados.length) opcoesGrupo.push({ valor: FINALIZADOS, rotulo: 'Finalizados' });
+          if (opcoesGrupo.length > 1) {
+            var seg = segmentos(opcoesGrupo, filtroParcelaServico, function (v) {
               filtroParcelaServico = v;
+              finalizadoAberto = '';
               montarFichaCliente(id);
-            }));
+            });
+            seg.classList.add('segmentos-grupos');
+            lista.appendChild(seg);
           }
-          var parcelasFiltradas = filtroParcelaServico
-            ? parcelas.filter(function (p) { return p.servicoId === filtroParcelaServico; })
-            : parcelas;
+
           var hojeP = hojeTexto();
-          parcelasFiltradas.forEach(function (p) {
+          var linhaDeParcela = function (p) {
             var paga = parcelaPaga(p);
             var vencida = !paga && p.vencimento < hojeP;
-            var servicoP = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
             var parcial = parcelaParcial(p);
             var jurosP = jurosDaParcela(p);
             var recebido = pagoNaParcela(p);
             var comDinheiro = paga && recebido > 0;
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
+            var pagaEm = paga ? dataDaParcelaPaga(p) : '';
 
             var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
-              dataBr(paga && p.quitadaEm ? p.quitadaEm : p.vencimento);
-            if (paga && p.quitadaEm && p.vencimento && p.quitadaEm !== p.vencimento) {
+              dataBr(paga ? pagaEm : p.vencimento);
+            if (paga && p.vencimento && pagaEm !== p.vencimento) {
               sub += ' · vencia ' + dataBr(p.vencimento);
             }
             if (parcial) sub = 'Faltam ' + emReais(faltaNaParcela(p)) + ' · ' + sub.toLowerCase();
             if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
             if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
             if (jurosP > 0) sub += ' · ' + emReais(jurosP) + ' de juros';
-            if (servicoP && !filtroParcelaServico) sub += ' · ' + servicoP.nome;
 
             var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
               if (!paga) { abrirFolhaParcela(id, p.id); return; }
@@ -12383,8 +13126,79 @@
                 no('div', 'linha-valor num' + (paga ? ' verde' : vencida ? ' vermelho' : ''),
                   emReais(mostrar)))
             );
-            lista.appendChild(linha);
-          });
+            return linha;
+          };
+
+          var notaDoGrupo = function (g) {
+            var faltaGrupo = g.parcelas.reduce(function (t, p) { return t + faltaNaParcela(p); }, 0);
+            var pagasGrupo = g.parcelas.filter(parcelaPaga).length;
+            return no('div', 'linha-nota grupo-parcelas',
+              g.nome + ' · ' + pagasGrupo + ' de ' + g.parcelas.length + ' paga(s)' +
+              (faltaGrupo > 0 ? ' · falta ' + emReais(faltaGrupo)
+                              : ' · quitado' + (g.quitadoEm ? ' em ' + dataBr(g.quitadoEm) : '')));
+          };
+
+          if (filtroParcelaServico === FINALIZADOS) {
+            var abertoF = finalizados.filter(function (g) { return g.id === finalizadoAberto; })[0];
+            if (abertoF) {
+              // As parcelas de um registro já quitado, com os recebimentos
+              // dele embaixo: tocar numa parcela abre o pagamento dela.
+              lista.appendChild(botao('voltar-finalizados', '‹ Finalizados', function () {
+                finalizadoAberto = '';
+                montarFichaCliente(id);
+              }));
+              lista.appendChild(notaDoGrupo(abertoF));
+              abertoF.parcelas.forEach(function (p) { lista.appendChild(linhaDeParcela(p)); });
+              var idsDoGrupo = {};
+              abertoF.parcelas.forEach(function (p) { idsDoGrupo[p.id] = true; });
+              var recebidos = pagamentosDoCliente(id).filter(function (g) {
+                return idsDoGrupo[g.parcelaId] || (abertoF.chave && g.servicoId === abertoF.chave);
+              });
+              if (recebidos.length) {
+                lista.appendChild(no('div', 'rotulo-secao historico-finalizado', 'Pagamentos recebidos'));
+                recebidos.forEach(function (g) {
+                  var lp = botao('linha', null, function () { abrirFolhaPagamento(id, g.id); });
+                  var daParcela = g.parcelaId ? achar(estado.parcelas, g.parcelaId) : null;
+                  var subP = daParcela ? 'Parcela ' + daParcela.numero + ' de ' + daParcela.total : 'Pagamento';
+                  if (g.lancamentoId) subP += ' · lançado no caixa';
+                  juntar(lp,
+                    selo('#34D399', '✓'),
+                    juntar(no('div', 'linha-texto'),
+                      no('div', 'linha-titulo', dataBr(g.data)),
+                      no('div', 'linha-sub', subP)),
+                    juntar(no('div', 'linha-fim'), no('div', 'linha-valor num verde', '+ ' + emReais(g.valor))));
+                  lista.appendChild(lp);
+                });
+              }
+            } else {
+              finalizadoAberto = '';
+              lista.appendChild(no('div', 'linha-nota grupo-parcelas',
+                finalizados.length === 1 ? '1 registro com todas as parcelas pagas.'
+                  : finalizados.length + ' registros com todas as parcelas pagas.'));
+              finalizados.forEach(function (g) {
+                var lf = botao('linha linha-finalizado', null, function () {
+                  finalizadoAberto = g.id;
+                  montarFichaCliente(id);
+                });
+                juntar(lf,
+                  selo('#3DDC84', '✓'),
+                  juntar(no('div', 'linha-texto'),
+                    no('div', 'linha-titulo', g.nome),
+                    no('div', 'linha-sub', g.parcelas.length + 'x' +
+                      (g.quitadoEm ? ' · quitado em ' + dataBr(g.quitadoEm) : ' · quitado'))),
+                  juntar(no('div', 'linha-fim'),
+                    no('div', 'linha-valor num verde', emReais(g.total)),
+                    no('div', 'linha-seta', '›')));
+                lista.appendChild(lf);
+              });
+            }
+          } else {
+            var grupoAtual = grupos.filter(function (g) { return g.id === filtroParcelaServico; })[0];
+            if (grupoAtual) {
+              lista.appendChild(notaDoGrupo(grupoAtual));
+              grupoAtual.parcelas.forEach(function (p) { lista.appendChild(linhaDeParcela(p)); });
+            }
+          }
         }
       } else if (abaFicha === 'orcamentos') {
         var propostas = propostasDoCliente(id);
@@ -12469,44 +13283,47 @@
           acoes.appendChild(bAcertar);
         }
 
-        var todasParcelas = parcelasDoCliente(id);
-        if (todasParcelas.length) {
-          var pagasAgora = todasParcelas.filter(parcelaPaga).length;
-          var acrescimos = estado.servicos.filter(function (sv) {
-            return sv.clienteId === id && ehAcrescimoDeParcelamento(sv);
-          });
-          var somaAcrescimos = acrescimos.reduce(function (soma, sv) { return soma + sv.valor; }, 0);
-          acoes.appendChild(botao('btn btn-perigo', 'Apagar as ' + todasParcelas.length + ' parcelas', function () {
+        // Apagar mexe só no registro que está na tela, e só no que ainda
+        // está em aberto: parcela paga é história, com recibo e tudo.
+        // O botão marcado já foi decidido ao montar a lista, logo acima.
+        var grupoSel = filtroParcelaServico === FINALIZADOS ? null
+          : gruposDeParcelas(id).filter(function (g) { return g.id === filtroParcelaServico; })[0];
+        var abertasSel = grupoSel ? grupoSel.parcelas.filter(function (p) { return !parcelaPaga(p); }) : [];
+        if (abertasSel.length) {
+          var temPagas = abertasSel.length < grupoSel.parcelas.length;
+          // O acréscimo só sai quando o parcelamento some inteiro; com parte
+          // já paga, ele continua sendo parte do que foi cobrado.
+          var acrescimoSel = !temPagas && grupoSel.chave ? (acrescimosPorRegistro(id)[grupoSel.chave] || null) : null;
+          var rotuloApagar = abertasSel.length === 1
+            ? (temPagas ? 'Apagar a parcela em aberto' : 'Apagar a parcela')
+            : 'Apagar as ' + abertasSel.length + ' parcelas' + (temPagas ? ' em aberto' : '');
+          acoes.appendChild(botao('btn btn-perigo', rotuloApagar, function () {
             perguntar({
-              titulo: 'Apagar o parcelamento inteiro?',
-              texto: 'Saem todas as ' + todasParcelas.length + ' parcelas' +
-                (pagasAgora ? (pagasAgora === 1 ? ', inclusive a que já foi paga'
-                                                : ', inclusive as ' + pagasAgora + ' já pagas') : '') +
-                (acrescimos.length
-                  ? ', e também o acréscimo do parcelamento, de ' + emReais(somaAcrescimos) +
+              titulo: temPagas ? 'Apagar o que está em aberto?' : 'Apagar este parcelamento?',
+              texto: 'Saem ' + (abertasSel.length === 1 ? 'a parcela em aberto' : 'as ' + abertasSel.length + ' parcelas em aberto') +
+                ' de "' + grupoSel.nome + '"' +
+                (temPagas ? '. As já pagas ficam, com os pagamentos' : '') +
+                (acrescimoSel
+                  ? ', e também o acréscimo do parcelamento, de ' + emReais(acrescimoSel.valor) +
                     ', que só existia por causa dele'
                   : '') +
-                '. Os seus registros e os pagamentos continuam como estão — só o parcelamento é desfeito.',
-              ok: 'Apagar tudo', tom: 'perigo',
-              copiaAntes: 'antes de desfazer o parcelamento de ' +
-                          ((achar(estado.clientes, id) || {}).nome || 'um cliente') +
-                          ', com ' + todasParcelas.length + ' parcela(s)'
+                '. Os outros registros do cliente não mudam.',
+              ok: temPagas ? 'Apagar as em aberto' : 'Apagar tudo', tom: 'perigo',
+              copiaAntes: 'antes de apagar ' + abertasSel.length + ' parcela(s) de ' + grupoSel.nome +
+                          ' (' + ((achar(estado.clientes, id) || {}).nome || 'um cliente') + ')'
             }, function () {
               var fora = {};
-              todasParcelas.forEach(function (p) { fora[p.id] = true; marcarExcluido('parcelas', p.id); });
+              abertasSel.forEach(function (p) { fora[p.id] = true; marcarExcluido('parcelas', p.id); });
               estado.parcelas = estado.parcelas.filter(function (p) { return !fora[p.id]; });
-              // O acréscimo só existia por causa do parcelamento: desfeito o
-              // parcelamento, ele sai junto, senão fica cobrando sozinho.
-              estado.servicos = estado.servicos.filter(function (sv) {
-                if (sv.clienteId !== id || !ehAcrescimoDeParcelamento(sv)) return true;
-                marcarExcluido('servicos', sv.id);
-                return false;
-              });
-              // Os pagamentos ficam, mas soltos: sem parcela para apontar.
+              if (acrescimoSel) {
+                marcarExcluido('servicos', acrescimoSel.id);
+                estado.servicos = estado.servicos.filter(function (sv) { return sv.id !== acrescimoSel.id; });
+              }
+              // Pagamento parcial de uma parcela que saiu fica, mas solto.
               estado.pagamentos.forEach(function (g) { if (fora[g.parcelaId]) g.parcelaId = ''; });
               salvar();
               montarFichaCliente(id);
-              avisar('Parcelamento apagado.');
+              avisar(abertasSel.length === 1 ? 'Parcela apagada.' : abertasSel.length + ' parcelas apagadas.');
             });
           }));
         }
@@ -13879,7 +14696,10 @@
             var servico = {
               id: novoId(), clienteId: p.clienteId, nome: p.titulo, tipo: 'Serviço',
               valor: t.total, data: hojeTexto(),
-              obs: 'Do orçamento nº ' + ('000' + p.numero).slice(-4), criadoEm: Date.now()
+              obs: 'Do orçamento nº ' + ('000' + p.numero).slice(-4), criadoEm: Date.now(),
+              // O material e os outros custos do orçamento são o que vai sair
+              // do bolso: entram como despesas do registro.
+              despesas: limparDespesas((p.materiais || []).concat(p.outros || []))
             };
             estado.servicos.push(servico);
             p.servicoId = servico.id;
@@ -13937,9 +14757,11 @@
       tipo: existente ? (existente.tipo || TIPO_PADRAO) : TIPO_PADRAO,
       nome: existente ? existente.nome : '',
       data: existente ? existente.data : hojeTexto(),
-      obs: existente ? existente.obs : ''
+      obs: existente ? existente.obs : '',
+      despesas: existente ? (existente.despesas || []) : []
     };
     var tipoEscolhido = base.tipo;
+    var despesas = (base.despesas || []).map(function (d) { return { nome: d.nome, valor: d.valor }; });
 
     abrirFolha(existente ? 'Editar registro' : 'Nova venda ou serviço', function (folha) {
       var forma = no('div');
@@ -13984,7 +14806,8 @@
           tipo: tipoEscolhido,
           nome: campoNome.value,
           data: campoData.value,
-          obs: campoObs.value
+          obs: campoObs.value,
+          despesas: despesas
         };
         abrirGerenciarTipos(function (novo) {
           guardado.tipo = novo || guardado.tipo;
@@ -14010,6 +14833,54 @@
       ficha.appendChild(linhaDeCartao('Realizado em', campoData));
       ficha.appendChild(linhaDeCartao('Observação', campoObs));
 
+      // ---- despesas: o que saiu do bolso para este registro ----
+      var cDesp = cartao('cartao-despesas');
+      forma.appendChild(cDesp);
+      var resumoLucro = null;
+      function pintarLucro() {
+        if (!resumoLucro) return;
+        var total = despesas.reduce(function (t, d) { return t + (d.valor || 0); }, 0);
+        var recebe = digitosParaCentavos(campoValorEl.value) + (extra ? extra.valor : 0);
+        resumoLucro.textContent = '';
+        juntar(resumoLucro,
+          juntar(no('div', 'resumo-linha'), no('span', null, 'Total de despesas'), no('strong', 'num vermelho', emReais(total))),
+          juntar(no('div', 'resumo-linha resumo-total'), no('span', null, 'Lucro'),
+            no('strong', 'num ' + (recebe - total < 0 ? 'vermelho' : 'verde'), emReais(recebe - total))));
+      }
+      function pintarDespesas(focarUltima) {
+        cDesp.textContent = '';
+        cDesp.appendChild(topoDeCartao('Despesas', null, null, 'pagar'));
+        if (!despesas.length) {
+          cDesp.appendChild(no('p', 'ajuda',
+            'O que saiu do seu bolso para esta venda ou serviço: o custo do produto, peças, material, frete. O app desconta do lucro.'));
+        }
+        var ultimoNome = null;
+        despesas.forEach(function (d, i) {
+          var linha = no('div', 'despesa-linha');
+          var nome = entradaTexto(d.nome, 'Ex.: Custo do aparelho', 40);
+          nome.setAttribute('aria-label', 'Despesa ' + (i + 1));
+          nome.addEventListener('input', function () { d.nome = nome.value; });
+          var val = entradaValor(d.valor, false);
+          val.setAttribute('aria-label', 'Valor da despesa ' + (i + 1));
+          val.addEventListener('input', function () { d.valor = digitosParaCentavos(val.value); pintarLucro(); });
+          var tirar = botao('despesa-tirar', '✕', function () { despesas.splice(i, 1); pintarDespesas(); });
+          tirar.setAttribute('aria-label', 'Tirar esta despesa');
+          juntar(linha, nome, val, tirar);
+          cDesp.appendChild(linha);
+          ultimoNome = nome;
+        });
+        cDesp.appendChild(botao('btn btn-fantasma botao-despesa', '+ Adicionar despesa', function () {
+          despesas.push({ nome: '', valor: 0 });
+          pintarDespesas(true);
+        }));
+        resumoLucro = no('div', 'resumo-entrega resumo-lucro');
+        cDesp.appendChild(resumoLucro);
+        pintarLucro();
+        if (focarUltima && ultimoNome) setTimeout(function () { ultimoNome.focus(); }, 50);
+      }
+      pintarDespesas();
+      campoValorEl.addEventListener('input', pintarLucro);
+
       if (extra) {
         ficha.appendChild(no('div', 'linha-nota ouro',
           'O acréscimo veio do parcelamento. Para mexer nele, refaça o combinado das parcelas.'));
@@ -14031,16 +14902,21 @@
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
 
         var novoServicoId = existente ? existente.id : novoId();
+        var despesasLimpas = limparDespesas(despesas.map(function (d) {
+          return { nome: String(d.nome || '').trim(), valor: d.valor };
+        }));
         if (existente) {
           existente.nome = nome;
           existente.tipo = tipoEscolhido;
           existente.valor = valor;
           existente.data = campoData.value;
           existente.obs = campoObs.value.trim();
+          existente.despesas = despesasLimpas;
         } else {
           estado.servicos.push({
             id: novoServicoId, clienteId: clienteId, nome: nome, tipo: tipoEscolhido,
-            valor: valor, data: campoData.value, obs: campoObs.value.trim(), criadoEm: Date.now()
+            valor: valor, data: campoData.value, obs: campoObs.value.trim(),
+            despesas: despesasLimpas, criadoEm: Date.now()
           });
         }
         salvar();
@@ -14532,6 +15408,10 @@
           }
           salvar();
           abaFicha = 'parcelas';
+          // A ficha abre no parcelamento que acabou de nascer, mesmo que a
+          // pessoa estivesse olhando os Finalizados.
+          filtroParcelaServico = campoServico.value || '__sem';
+          finalizadoAberto = '';
           voltarNavegacao();
           avisar('Parcelamento combinado.');
         });
@@ -14645,6 +15525,17 @@
     var existente = pagamentoId ? achar(estado.pagamentos, pagamentoId) : null;
     var parcela = parcelaId ? achar(estado.parcelas, parcelaId) : null;
     if (!parcela && existente && existente.parcelaId) parcela = achar(estado.parcelas, existente.parcelaId);
+    // Pagamento novo aberto pela aba Pagos: se um registro só tem parcela
+    // em aberto, o dinheiro é dele, e a próxima parcela já vem escolhida.
+    // Solto, o pagamento não fechava parcela nenhuma.
+    if (!existente && !parcela) {
+      var registrosEmAberto = {};
+      parcelasDoCliente(clienteId).forEach(function (p) {
+        if (p.servicoId && !parcelaPaga(p)) registrosEmAberto[p.servicoId] = true;
+      });
+      var soUm = Object.keys(registrosEmAberto);
+      if (soUm.length === 1) parcela = proximaAbertaDoRegistro(clienteId, soUm[0]);
+    }
     var r = resumoCliente(clienteId);
     var servicos = servicosDoCliente(clienteId);
     // Pagamento novo nasce desmarcado: quem importa o extrato do banco
@@ -14907,6 +15798,22 @@
           atualizar();
         };
       }
+      // Escolhendo o registro, a parcela acompanha: a próxima em aberto
+      // dele. O valor só é preenchido se ainda estiver zerado — quem já
+      // digitou quanto recebeu não perde o que escreveu.
+      if (campoParcela && !existente) {
+        campoServico.aoMudar = function (v) {
+          var atual = parcelaAtual();
+          if (atual && (atual.servicoId || '') === (v || '')) return;
+          var prox = proximaAbertaDoRegistro(clienteId, v);
+          campoParcela.value = prox ? prox.id : '';
+          if (prox) {
+            if (campoJuros) campoJuros.value = emReais(jurosDaParcela(prox));
+            if (!digitosParaCentavos(campoValorEl.value)) campoValorEl.value = emReais(devidoAgora(prox));
+          }
+          atualizar();
+        };
+      }
       if (campoJuros) {
         [campoJuros, campoMulta, campoTaxa].forEach(function (c) {
           c.addEventListener('input', atualizar);
@@ -14979,6 +15886,7 @@
 
         if (existente) {
           var antiga = existente.parcelaId ? achar(estado.parcelas, existente.parcelaId) : null;
+          var servicoAntes = existente.servicoId || (antiga ? antiga.servicoId : '');
           var nova = campoParcela ? achar(estado.parcelas, campoParcela.value) : antiga;
 
           if (antiga && (!nova || nova.id !== antiga.id)) antiga.quitadaEm = '';
@@ -15029,9 +15937,23 @@
             existente.lancamentoId = novoLanc;
           }
 
-          acertarParcelas(clienteId, nova);
+          acertarParcelas(clienteId, nova, null, [existente.servicoId, servicoAntes]);
         } else {
           var alvo = parcelaAtual();
+          // Sem parcela escolhida, mas com registro: o dinheiro fecha a
+          // próxima parcela em aberto dele. Antes ele entrava solto, o app
+          // via o registro pago e APAGAVA a última parcela em vez de
+          // marcá-la como paga — "Parcela 3 de 3" com quatro pagamentos.
+          // Só não fecha quando não cobre nem a parcela; aí o que entrou
+          // abate da ponta do combinado, como antes.
+          var semJuros = false;
+          if (!alvo && campoServico.value) {
+            var proxima = proximaAbertaDoRegistro(clienteId, campoServico.value);
+            if (proxima && valor >= Math.max(proxima.valor - pagoNaParcela(proxima), 0)) {
+              alvo = proxima;
+              semJuros = true;
+            }
+          }
           gravarVencimento(alvo);
           var extra = acrescimos();
           var lancamentoId = '';
@@ -15064,11 +15986,18 @@
               nome: partes.join(', ').replace(/^./, function (c) { return c.toUpperCase(); }) +
                 (alvo ? ' — parcela ' + alvo.numero + ' de ' + alvo.total : ''),
               tipo: TIPO_PADRAO, valor: extra,
+              // Amarrado ao registro: o pagamento que traz os juros cai na
+              // conta dele, e sem isso os juros "pagavam" a última parcela.
+              acrescimoDe: alvo ? (alvo.servicoId || '') : '',
               data: campoData.value, obs: '', criadoEm: Date.now()
             });
           }
 
-          var devido = alvo ? devidoAgora(alvo) : 0;
+          // Na parcela escolhida pelo app ninguém viu juros de atraso na
+          // tela, então eles não entram na conta do que faltou.
+          var devido = !alvo ? 0
+            : semJuros ? Math.max(alvo.valor - pagoNaParcela(alvo), 0) + extra
+            : devidoAgora(alvo);
           estado.pagamentos.push({
             id: novoId(), clienteId: clienteId, servicoId: campoServico.value,
             valor: valor, data: campoData.value,
@@ -15086,7 +16015,7 @@
             if (falta > 0) empurrarFalta(alvo, falta);
             else if (sobra > 0) abaterSobra(alvo, sobra, campoData.value);
           }
-          acertarParcelas(clienteId, alvo);
+          acertarParcelas(clienteId, alvo, null, campoServico.value);
         }
 
         salvar();
@@ -15113,7 +16042,9 @@
               if (p.pagamentoId === existente.id) p.pagamentoId = '';
               if (p.id === existente.parcelaId) p.quitadaEm = '';
             });
-            acertarParcelas(clienteId, null);
+            var reaberta = existente.parcelaId ? achar(estado.parcelas, existente.parcelaId) : null;
+            acertarParcelas(clienteId, null, null,
+              existente.servicoId || (reaberta ? reaberta.servicoId : ''));
             salvar();
             voltarNavegacao();
             avisar('Pagamento excluído.');
@@ -15126,9 +16057,16 @@
     });
   }
 
-  function blocoKpi(rotulo, valor, anterior, classeCor, extra) {
-    var k = no('div', 'kpi');
-    k.appendChild(no('div', 'rotulo', rotulo));
+  function blocoKpi(rotulo, valor, anterior, classeCor, extra, opcoes) {
+    opcoes = opcoes || {};
+    var k = opcoes.aoTocar ? botao('kpi kpi-tile', null, opcoes.aoTocar) : no('div', 'kpi');
+    if (opcoes.icone) {
+      var ic = no('span', 'titulo-icone');
+      ic.appendChild(icone(opcoes.icone));
+      juntar(k, juntar(no('div', 'kpi-cabeca'), ic, no('div', 'rotulo', rotulo)));
+    } else {
+      k.appendChild(no('div', 'rotulo', rotulo));
+    }
     k.appendChild(no('div', 'n num ' + classeCor, emReais(valor)));
     if (anterior) {
       var dif = valor - anterior;
@@ -15144,6 +16082,7 @@
       k.appendChild(juntar(no('div', 'kpi-extra'),
         no('div', 'r', partes[0]), no('div', 'v', partes.slice(1).join(': '))));
     }
+    if (opcoes.aoTocar) k.appendChild(no('span', 'kpi-seta', '›'));
     return k;
   }
 
@@ -17969,6 +18908,11 @@
     limparCacheDeFatura();
     if (telaAtiva !== 'inicio') soltarExtratos();
     desenharNavegacao();
+    if (telaAtiva !== 'inicio') {
+      var elTela = $('tela' + telaAtiva.charAt(0).toUpperCase() + telaAtiva.slice(1));
+      if (elTela) marcarRedesenho(elTela, [filtroTransacoes, abaInvestimentos, abaDistribuicao,
+        mesAtivo.ano, mesAtivo.mes].join('|'));
+    }
     if (telaAtiva === 'inicio') desenharInicio();
     else if (telaAtiva === 'transacoes') desenharTransacoes();
     else if (telaAtiva === 'investimentos') desenharInvestimentos();
