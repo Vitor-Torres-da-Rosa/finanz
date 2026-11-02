@@ -13,6 +13,7 @@
 // E 409 não derruba aquele registro: derruba o envio inteiro. Nada mais
 // sobe, por tentativa nenhuma, até alguém achar a referência.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 import { irParaClientes, irParaVisaoGeral } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -108,7 +109,7 @@ if (await page.locator('#dialogoFundo.aberta').count()) {
   const bs = page.locator('#dialogoAcoes button');
   await bs.nth((await bs.count()) - 1).click(); await page.waitForTimeout(1200);
 }
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(900);
 
 // A partir daqui o servidor some. É o detalhe que faz o defeito: o
 // lançamento nasce e morre sem nunca ter chegado lá. Apagar com a nuvem
@@ -126,7 +127,9 @@ const marcar = page.locator('#folha button:has-text("Lançar como entrada no cai
 if ((await marcar.getAttribute('aria-pressed')) !== 'true') await marcar.click();
 await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2000);
-await page.click('#cortina', { force: true }).catch(() => {}); await page.waitForTimeout(800);
+// A ficha cobre a cortina inteira desde que o histórico mora em Parcelas:
+// fecha pelo voltar, como no celular.
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(700); }
 
 const curto = (c) => c.pagamentos.length + ' pagamento(s), lancamento_id=' +
   (c.pagamentos[0] ? JSON.stringify(c.pagamentos[0].lancamento_id) : '-') +

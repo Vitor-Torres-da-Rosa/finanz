@@ -8,6 +8,7 @@
 // Pedido do Vitor em 20/10/2026. Agora ele é somado ao registro que o
 // gerou e some da escolha.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -80,7 +81,7 @@ conferir('3. e o valor da linha já é o total com acréscimo',
 await page.screenshot({ path: dir+'/r01-registros-juntos.png', fullPage: true });
 
 // --- "Referente a" não oferece o acréscimo ---
-await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(900);
 await page.click('#folha .btn-ouro:has-text("Registrar pagamento")'); await page.waitForTimeout(1200);
 const seletores = await page.$$('#folha .parcela-linha.edita .selecao');
 // o último é o "Referente a"

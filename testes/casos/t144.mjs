@@ -82,7 +82,7 @@ const botaoApagar = limpo(await page.textContent('#folha .acoes .btn-perigo').ca
 conferir('3. apagar fala só das parcelas em aberto deste registro', botaoApagar === 'Apagar as 3 parcelas em aberto', botaoApagar);
 
 // ---- 2ª pela aba Pagos: escolhendo o registro, a parcela acompanha ----
-await aba('Pagos');
+await aba('Parcelas');
 await page.click('#folha button:has-text("+ Registrar pagamento")'); await page.waitForTimeout(1100);
 await page.click('#folha .parcela-linha:has-text("Referente a") .selecao'); await page.waitForTimeout(600);
 await page.click('#escolhaLista .escolha-item:has-text("Venda de celular")'); await page.waitForTimeout(700);
@@ -166,6 +166,23 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 ch = await chips();
 conferir('15. pagar outra venda não refaz a parcela apagada da Capinha',
   !ch.includes('Capinha') && ch.includes('Película'), JSON.stringify(ch));
+
+// ---- 03/11/2026: sem a aba Pagos, e registro pago em verde no fim ----
+const abasFicha = await page.$$eval('#folha .aba-cliente button', ns => ns.map(n => n.textContent.trim()));
+conferir('16. a ficha não tem mais a aba Pagos', !abasFicha.includes('Pagos') && abasFicha.includes('Parcelas'), abasFicha.join('|'));
+const toggle = page.locator('#folha .historico-toggle');
+conferir('17. o histórico de pagamentos fica dentro de Parcelas, fechado',
+  (await toggle.count()) === 1 && (await toggle.getAttribute('aria-expanded')) === 'false' &&
+  !(await page.locator('#folha .linha-pagamento').count()));
+await toggle.click(); await page.waitForTimeout(600);
+conferir('18. abrindo, aparecem os pagamentos', (await page.locator('#folha .linha-pagamento').count()) >= 6,
+  String(await page.locator('#folha .linha-pagamento').count()));
+await aba('Registros');
+const regs = await page.$$eval('#folha .cartao.liso .linha', ns => ns.map(n => n.textContent.replace(/\s+/g, ' ').trim()));
+conferir('19. a venda de celular, 100% paga, fica por último e marcada como paga',
+  /^✓Venda de celular.*R\$ 1\.700,00pago$/.test(regs[regs.length - 1]) &&
+  regs.filter(t => /pago$/.test(t)).length === 1, JSON.stringify(regs));
+await page.screenshot({ path: dir + '/z43-registro-pago.png', fullPage: true });
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }

@@ -1,4 +1,5 @@
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -53,7 +54,7 @@ await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await p
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(1600);
 
 // paga 3.000 na parcela 1
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
+await abrirHistorico(page); await page.waitForTimeout(700);
 await page.click('#folha .btn-ouro:has-text("Registrar pagamento")'); await page.waitForTimeout(900);
 await page.click('#folha .selecao >> nth=0'); await page.waitForTimeout(600);
 await escolher('Parcela 1 de 12');
@@ -63,8 +64,8 @@ let e = await estado();
 console.log('1) pagou 3.000 →', e.quantas, 'parcelas |', e.primeira.slice(0,60), '| última:', e.ultima.slice(-14), '|', e.topo);
 
 // edita para 4.000
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 console.log('   folha de edição:', await page.textContent('#folhaTitulo'),
   '| parcela ligada:', await page.textContent('#folha .selecao >> nth=0'));
 await trocarValor('400000');
@@ -73,16 +74,16 @@ e = await estado();
 console.log('2) editou p/ 4.000 →', e.quantas, 'parcelas |', e.primeira.slice(0,60), '| última:', e.ultima.slice(-14), '|', e.topo);
 
 // edita para 1.000 (falta mais)
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 await trocarValor('100000');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1800);
 e = await estado();
 console.log('3) editou p/ 1.000 →', e.quantas, 'parcelas | última:', e.ultima.slice(-14), '|', e.topo);
 
 // edita para 9.000 (paga mais que a parcela)
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 await trocarValor('900000');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1800);
 e = await estado();
@@ -92,8 +93,8 @@ await page.waitForTimeout(300);
 await page.screenshot({ path: dir + '/x01-editado.png' });
 
 // exclui o pagamento
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 await page.click('#folha .btn-perigo:has-text("Excluir pagamento")'); await page.waitForTimeout(700);
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(2000);
 e = await estado();
@@ -126,7 +127,7 @@ await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.
 const depois = await page.$$eval('#folha .linha', ns => ns.map(x=>x.textContent.replace(/\s+/g,' ')));
 console.log('parcelas depois de apagar:', depois.length, depois.slice(0,3));
 // e não podem voltar sozinhas
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(800);
+await abrirHistorico(page); await page.waitForTimeout(800);
 const pagos = await page.$$eval('#folha .linha', ns => ns.map(x=>x.textContent.replace(/\s+/g,' ')));
 console.log('pagamentos continuam:', pagos.length);
 await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(900);
@@ -140,7 +141,7 @@ await page.click('#folha .selecao >> nth=1'); await page.waitForTimeout(500);
 await escolher('12x');
 await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await page.waitForTimeout(700);
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(1600);
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
+await abrirHistorico(page); await page.waitForTimeout(700);
 await page.click('#folha .btn-ouro:has-text("Registrar pagamento")'); await page.waitForTimeout(900);
 await page.click('#folha .selecao >> nth=0'); await page.waitForTimeout(600);
 await escolher('Parcela 1 de 12');
@@ -155,7 +156,7 @@ console.log('B) diálogo:', (await page.textContent('#dialogoTexto')).replace(/\
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(1800);
 await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(900);
 console.log('C) parcelas depois:', await page.$$eval('#folha .linha', ns=>ns.length));
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(800);
+await abrirHistorico(page); await page.waitForTimeout(800);
 console.log('   pagamentos:', (await page.textContent('#folha')).match(/R\$ 3\.000,00/) ? 'o de 3.000 continua' : 'sumiu');
 await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(900);
 console.log('D) não voltaram:', await page.$$eval('#folha .linha', ns=>ns.length), 'parcelas');
@@ -164,7 +165,7 @@ const est = await page.evaluate(() => {
   return t.slice(0, 300);
 });
 console.log('E) ficha:', est);
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(800);
+await abrirHistorico(page); await page.waitForTimeout(800);
 console.log('F) aba Pagos:', (await page.textContent('#folha')).replace(/\s+/g,' ').slice(0,260));
 await page.screenshot({ path: dir+'/j01-apagado.png', fullPage:true });
 await browser.close();

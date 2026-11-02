@@ -9,6 +9,7 @@
 // manter o registro no Empreendedor, que é onde o pagamento sempre foi o
 // registro de verdade.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -94,7 +95,7 @@ await page.click('#dialogoAcoes button >> nth=' + (iFechar >= 0 ? iFechar : bots
 await page.waitForTimeout(1600);
 
 // --- registra o pagamento ---
-await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(900);
 await page.click('#folha .btn-ouro:has-text("Registrar pagamento")'); await page.waitForTimeout(1100);
 conferir('1. a caixinha nasce DESMARCADA no pagamento novo',
   (await caixinha()) === 'false', 'aria-pressed=' + await caixinha());
@@ -117,8 +118,8 @@ conferir('3. marcada, a entrada aparece no extrato',
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
 await irParaClientes(page); await page.waitForTimeout(900);
 await page.click('#telaInicio .linha-alvo:has-text("Fabi do juliano")'); await page.waitForTimeout(1100);
-await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(1200);
+await abrirHistorico(page); await page.waitForTimeout(900);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(1200);
 
 conferir('4. editando, a caixinha existe e está MARCADA',
   (await caixinha()) === 'true', 'aria-pressed=' + await caixinha());
@@ -139,7 +140,7 @@ await page.screenshot({ path: dir+'/n01-saiu-do-extrato.png', fullPage: true });
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
 await irParaClientes(page); await page.waitForTimeout(900);
 await page.click('#telaInicio .linha-alvo:has-text("Fabi do juliano")'); await page.waitForTimeout(1100);
-await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(900);
 const ficha = limpo(await page.textContent('#folha'));
 console.log('pagos:', ficha.slice(0, 190));
 conferir('6. e o pagamento continua registrado no Empreendedor',

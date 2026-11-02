@@ -50,7 +50,7 @@ await page.waitForTimeout(1200);
 
 // --- um registro só na fila: já vem apontado ---
 await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(900);
-await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.waitForTimeout(1400);
+await page.click('#folha .btn:has-text("Combinar parcelas")'); await page.waitForTimeout(1400);
 const umSo = await referente();
 conferir('1. com um registro só, o "Referente a" já vem no Celular', /Celular/.test(umSo), umSo);
 await page.screenshot({ path: dir+'/z01-um-so.png', fullPage: true });
@@ -67,7 +67,7 @@ await page.waitForTimeout(1200);
 
 // --- dois na fila: o app não chuta ---
 await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(900);
-await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.waitForTimeout(1400);
+await page.click('#folha .btn:has-text("Combinar parcelas")'); await page.waitForTimeout(1400);
 const dois = await referente();
 conferir('2. com dois registros na fila, o "Referente a" fica vazio',
   /Sem registro específico/.test(dois), dois);
@@ -87,7 +87,7 @@ await page.click('#dialogoAcoes button:has-text("Confirmar")'); await page.waitF
 
 // --- o Celular saiu da fila: sobrou a TV, e ela vem apontada ---
 await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(900);
-await page.click('#folha .btn-ouro:has-text("Combinar parcelas")'); await page.waitForTimeout(1400);
+await page.click('#folha .btn:has-text("Combinar parcelas")'); await page.waitForTimeout(1400);
 const sobrou = await referente();
 conferir('3. parcelado o Celular, sobra a TV e ela já vem apontada',
   /^TV$/.test(sobrou), sobrou);

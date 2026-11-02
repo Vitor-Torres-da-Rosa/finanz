@@ -6,6 +6,7 @@
 // quando ele deveria ter entrado — e é a diferença entre as duas que
 // diz se o cliente paga em dia.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -81,7 +82,7 @@ await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await p
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(2200);
 
 // paga a parcela 1
-await page.click('#folha button:has-text("Pagos")'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(900);
 await page.click('#folha .btn-ouro:has-text("Registrar pagamento")'); await page.waitForTimeout(1200);
 // Igual ao t61: o primeiro seletor da folha é o da parcela.
 await page.click('#folha .selecao >> nth=0'); await page.waitForTimeout(700);

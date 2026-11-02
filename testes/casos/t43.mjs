@@ -1,4 +1,5 @@
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -53,7 +54,7 @@ await page.click('#folha .btn-ouro:has-text("Confirmar parcelamento")'); await p
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(1600);
 
 // paga 3.000 na parcela 1
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
+await abrirHistorico(page); await page.waitForTimeout(700);
 await page.click('#folha .btn-ouro:has-text("Registrar pagamento")'); await page.waitForTimeout(900);
 await page.click('#folha .selecao >> nth=0'); await page.waitForTimeout(600);
 await escolher('Parcela 1 de 10');
@@ -63,8 +64,8 @@ let e = await estado();
 console.log('1) pagou 3.000 →', e.quantas, 'parcelas |', e.primeira.slice(0,60), '| última:', e.ultima.slice(-14), '|', e.topo);
 
 // edita para 4.000
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 console.log('   folha de edição:', await page.textContent('#folhaTitulo'),
   '| parcela ligada:', await page.textContent('#folha .selecao >> nth=0'));
 await trocarValor('400000');
@@ -73,16 +74,16 @@ e = await estado();
 console.log('2) editou p/ 4.000 →', e.quantas, 'parcelas |', e.primeira.slice(0,60), '| última:', e.ultima.slice(-14), '|', e.topo);
 
 // edita para 1.000 (falta mais)
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 await trocarValor('100000');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1800);
 e = await estado();
 console.log('3) editou p/ 1.000 →', e.quantas, 'parcelas | última:', e.ultima.slice(-14), '|', e.topo);
 
 // edita para 9.000 (paga mais que a parcela)
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 await trocarValor('900000');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1800);
 e = await estado();
@@ -92,8 +93,8 @@ await page.waitForTimeout(300);
 await page.screenshot({ path: dir + '/x01-editado.png' });
 
 // exclui o pagamento
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(700);
-await page.click('#folha .linha >> nth=0'); await page.waitForTimeout(900);
+await abrirHistorico(page); await page.waitForTimeout(700);
+await page.click('#folha .linha-pagamento >> nth=0'); await page.waitForTimeout(900);
 await page.click('#folha .btn-perigo:has-text("Excluir pagamento")'); await page.waitForTimeout(700);
 await page.click('#dialogoAcoes button >> nth=0'); await page.waitForTimeout(2000);
 e = await estado();

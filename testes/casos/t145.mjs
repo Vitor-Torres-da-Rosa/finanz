@@ -7,6 +7,7 @@
 // pagar a 1ª deixava a 4ª em R$ 25,00, e lá pela 3ª a 4ª era apagada —
 // "Parcela 3 de 3" com o cliente tendo pago as quatro.
 import { chromium, dir, ENDERECO, irParaClientes } from '../comum.mjs';
+import { abrirHistorico } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -67,7 +68,7 @@ conferir('3. pagas três, a 4ª continua lá, inteira',
   ls.length === 4 && /^4Parcela 4 de 4.*R\$ 325,00/.test(ls[3]), JSON.stringify(ls));
 
 // A última pela aba Pagos, com o único registro: a parcela já vem marcada.
-await page.click('#folha .aba-cliente button:has-text("Pagos")'); await page.waitForTimeout(800);
+await abrirHistorico(page); await page.waitForTimeout(800);
 await page.click('#folha button:has-text("+ Registrar pagamento")'); await page.waitForTimeout(1100);
 const equivale = limpo(await page.textContent('#folha .parcela-linha:has-text("Equivale a")'));
 conferir('4. pela aba Pagos, a parcela 4 já vem escolhida com o valor dela',

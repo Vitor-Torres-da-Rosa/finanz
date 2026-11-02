@@ -61,3 +61,12 @@ export async function irParaVisaoGeral(page) {
   }
   await page.click('#telaInicio .segmentos button:has-text("Visão geral")'); await page.waitForTimeout(800);
 }
+
+// A aba Pagos da ficha do cliente saiu na 5.36.0: o histórico de
+// pagamentos mora dentro de Parcelas, fechado por padrão. Isto abre a aba
+// e o histórico, e o primeiro pagamento fica em '#folha .linha-pagamento'.
+export async function abrirHistorico(page) {
+  await page.click('#folha .aba-cliente button:has-text("Parcelas")'); await page.waitForTimeout(700);
+  const t = page.locator('#folha .historico-toggle[aria-expanded="false"]');
+  if (await t.count()) { await t.click(); await page.waitForTimeout(600); }
+}

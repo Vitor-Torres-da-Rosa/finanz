@@ -2111,6 +2111,21 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  /* Folha do vendedor de doces: os botões não colam no cartão de baixo. */
+  .folha .acoes + .cartao, .folha .acoes + .cartao-liso { margin-top: 18px; }
+  .historico-toggle {
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
+    padding: 14px 16px; border-top: 1px solid rgba(198,158,78,.14);
+    font-size: 13.5px; font-weight: 700; color: var(--ouro); text-align: left;
+  }
+  .historico-seta { color: var(--fraco); }
+  /* Registro 100% pago: selo verde e fim da lista. */
+  .selo-pago {
+    display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; color: var(--verde);
+    background: rgba(61,220,132,.12); border: 1px solid rgba(61,220,132,.35);
+  }
+  .linha.registro-pago .linha-titulo { color: var(--suave); }
   /* Finalizados: a lista dos quitados e a volta para ela. */
   .voltar-finalizados {
     display: inline-flex; align-items: center; gap: 4px;
@@ -2242,7 +2257,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.35.0';
+  var VERSAO = '5.36.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2251,6 +2266,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.36.0',
+      data: '2026-11-03',
+      itens: [
+        'Ficha do cliente: a aba Pagos saiu, porque as parcelas pagas já mostram cada pagamento. O botão "+ Registrar pagamento" foi para a aba Parcelas, e o histórico completo fica lá embaixo, fechado, em "Histórico de pagamentos".',
+        'Registros: a venda ou serviço 100% pago aparece com o selo "pago" em verde e vai para o fim da lista, na ficha do cliente e na aba Registros.',
+        'Venda de Doces: os botões da ficha do vendedor ganharam espaço antes de "Doces em estoque".'
+      ]
+    },
     {
       versao: '5.35.0',
       data: '2026-11-03',
@@ -10800,15 +10824,33 @@
     return pontos;
   }
 
+  // Quanto já entrou para este registro: pagamentos apontados para ele,
+  // para uma parcela dele, ou para o acréscimo que nasceu dele.
   function pagoNoRegistro(s) {
+    var acr = acrescimosPorRegistro(s.clienteId)[s.id];
     var t = 0;
-    estado.pagamentos.forEach(function (p) { if (p.servicoId === s.id) t += p.valor; });
+    estado.pagamentos.forEach(function (p) {
+      if (p.clienteId !== s.clienteId) return;
+      var dele = p.servicoId === s.id || (acr && p.servicoId === acr.id);
+      if (!dele && !p.servicoId && p.parcelaId) {
+        var par = achar(estado.parcelas, p.parcelaId);
+        dele = !!(par && par.servicoId === s.id);
+      }
+      if (dele) t += p.valor;
+    });
     return t;
+  }
+
+  // Registro 100% pago: o valor dele mais o acréscimo do parcelamento.
+  function registroQuitado(s) {
+    var acr = acrescimosPorRegistro(s.clienteId)[s.id];
+    var total = s.valor + (acr ? acr.valor : 0);
+    return total > 0 && pagoNoRegistro(s) >= total;
   }
 
   function linhaDeRegistro(s) {
     var cliente = achar(estado.clientes, s.clienteId);
-    var pago = pagoNoRegistro(s) >= s.valor;
+    var pago = registroQuitado(s);
     var tipo = s.tipo || 'Serviço';
     var custo = custoDoRegistro(s);
     return linhaSimples({
@@ -10832,6 +10874,9 @@
       if (filtroRegistros === 'Venda') return s.tipo === 'Venda';
       return s.tipo !== 'Venda';
     }).sort(ordemDeRegistro);
+    // Os 100% pagos vão para o fim; a ordem de data vale dentro de cada parte.
+    lista = lista.filter(function (s) { return !registroQuitado(s); })
+      .concat(lista.filter(registroQuitado));
     var c = cartao('liso');
     if (!lista.length) c.appendChild(estadoVazio('Nada por aqui', 'Registre uma venda ou um serviço para um cliente.'));
     lista.slice(0, 200).forEach(function (s) { c.appendChild(linhaDeRegistro(s)); });
@@ -12879,6 +12924,7 @@
 
   var abaFicha = 'servicos';
   var filtroParcelaServico = '';
+  var historicoAberto = false;
   var fichaClienteAberta = '';
 
   // Os registros com parcela, um grupo por registro. Grupo com parcela em
@@ -12954,6 +13000,7 @@
     abaFicha = 'servicos';
     filtroParcelaServico = '';
     finalizadoAberto = '';
+    historicoAberto = false;
     fichaClienteAberta = '';
     montarFichaCliente(id);
   }
@@ -12968,7 +13015,7 @@
       var folhaEl = $('folha');
       var abasEl = folhaEl.querySelector('.aba-cliente');
       if (abasEl) {
-        ['servicos', 'parcelas', 'pagamentos', 'orcamentos'].forEach(function (n, i) {
+        ['servicos', 'parcelas', 'orcamentos'].forEach(function (n, i) {
           if (abasEl.children[i]) abasEl.children[i].setAttribute('aria-selected', abaFicha === n ? 'true' : 'false');
         });
         while (abasEl.nextSibling) folhaEl.removeChild(abasEl.nextSibling);
@@ -13042,7 +13089,10 @@
       folha.appendChild(cResumo);
 
       var abas = no('div', 'aba-cliente');
-      [['servicos', 'Registros'], ['parcelas', 'Parcelas'], ['pagamentos', 'Pagos'],
+      // A aba Pagos saiu (03/11/2026): as parcelas pagas já mostram o
+      // pagamento, e o histórico completo mora dentro de Parcelas.
+      if (abaFicha === 'pagamentos') abaFicha = 'parcelas';
+      [['servicos', 'Registros'], ['parcelas', 'Parcelas'],
        ['orcamentos', 'Orçamentos']].forEach(function (a) {
         var b = botao(null, a[1], function () {
           if (abaFicha === a[0]) return;
@@ -13073,22 +13123,28 @@
           var jaMostrado = {};
           Object.keys(acrescimos).forEach(function (k) { jaMostrado[acrescimos[k].id] = true; });
 
+          // Os 100% pagos vão para o fim da lista, marcados em verde.
+          servicos = servicos.filter(function (s) { return !registroQuitado(s); })
+            .concat(servicos.filter(registroQuitado));
           servicos.forEach(function (s) {
             if (jaMostrado[s.id]) return;
             var extra = acrescimos[s.id] || null;
+            var quitado = registroQuitado(s);
             var total = s.valor + (extra ? extra.valor : 0);
             var sub = (s.tipo || 'Serviço') + ' · ' + dataBr(s.data) + (s.obs ? ' · ' + s.obs : '');
             if (extra) sub += ' · com ' + emReais(extra.valor) + ' de acréscimo';
             var custoS = custoDoRegistro(s);
             if (custoS) sub += ' · lucro ' + emReais(total - custoS);
 
-            var linha = botao('linha', null, function () { abrirFolhaServico(id, s.id); });
+            var linha = botao('linha' + (quitado ? ' registro-pago' : ''), null, function () { abrirFolhaServico(id, s.id); });
+            var fimR = juntar(no('div', 'linha-fim'), no('div', 'linha-valor num' + (quitado ? ' verde' : ''), emReais(total)));
+            if (quitado) fimR.appendChild(no('div', 'selo-pago', 'pago'));
             juntar(linha,
-              selo(corDeCategoria(s.tipo || 'Serviço'), (s.tipo || 'S').charAt(0).toUpperCase()),
+              selo(quitado ? '#3DDC84' : corDeCategoria(s.tipo || 'Serviço'), quitado ? '✓' : (s.tipo || 'S').charAt(0).toUpperCase()),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', s.nome),
                 no('div', 'linha-sub', sub)),
-              juntar(no('div', 'linha-fim'), no('div', 'linha-valor num', emReais(total)))
+              fimR
             );
             lista.appendChild(linha);
           });
@@ -13259,14 +13315,28 @@
             lista.appendChild(linha);
           });
         }
-      } else {
+      }
+      // Histórico de pagamentos: todos os recebimentos do cliente, fechado
+      // por padrão (as parcelas pagas já aparecem na lista de cima). Sem
+      // parcela nenhuma, ele é o conteúdo da aba e já vem aberto.
+      if (abaFicha === 'parcelas') {
         var pagamentos = pagamentosDoCliente(id);
-        if (!pagamentos.length) {
-          lista.appendChild(estadoVazio('Nenhum pagamento', 'Registre cada valor recebido com a data.'));
-        } else {
-          pagamentos.forEach(function (p) {
+        var semParcelas = !parcelasDoCliente(id).length;
+        if (pagamentos.length) {
+          var aberto = historicoAberto || semParcelas;
+          if (!semParcelas) {
+            var tg = botao('historico-toggle', null, function () {
+              historicoAberto = !historicoAberto;
+              montarFichaCliente(id);
+            });
+            tg.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+            juntar(tg, no('span', null, 'Histórico de pagamentos (' + pagamentos.length + ')'),
+              no('span', 'historico-seta', aberto ? '▴' : '▾'));
+            lista.appendChild(tg);
+          }
+          if (aberto) pagamentos.forEach(function (p) {
             var servico = p.servicoId ? achar(estado.servicos, p.servicoId) : null;
-            var linha = botao('linha', null, function () { abrirFolhaPagamento(id, p.id); });
+            var linha = botao('linha linha-pagamento', null, function () { abrirFolhaPagamento(id, p.id); });
             juntar(linha,
               selo('#34D399', '✓'),
               juntar(no('div', 'linha-texto'),
@@ -13290,7 +13360,8 @@
       } else if (abaFicha === 'servicos') {
         acoes.appendChild(botao('btn btn-ouro', '+ Nova venda ou serviço', function () { abrirFolhaServico(id, null); }));
       } else if (abaFicha === 'parcelas') {
-        acoes.appendChild(botao('btn btn-ouro', '+ Combinar parcelas', function () { abrirFolhaParcelamento(id, ''); }));
+        acoes.appendChild(botao('btn btn-ouro', '+ Registrar pagamento', function () { abrirFolhaPagamento(id, null); }));
+        acoes.appendChild(botao('btn btn-fantasma', '+ Combinar parcelas', function () { abrirFolhaParcelamento(id, ''); }));
 
         // Se a soma das parcelas em aberto não bate com o que falta receber,
         // oferece o acerto em vez de deixar a conta torta em silêncio.
