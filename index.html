@@ -2261,7 +2261,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.37.0';
+  var VERSAO = '5.37.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2270,6 +2270,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.37.1',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: a entrega mostra também o preço de custo (quantidade × valor de compra), para saber quanto saiu do bolso.',
+        'Os campos da entrega usam os mesmos nomes do produto: Repasse para mim e Venda ao cliente final.'
+      ]
+    },
     {
       versao: '5.37.0',
       data: '2026-11-03',
@@ -12454,7 +12462,7 @@
       var repasse = entradaValor(d.repasse, false);
       var preco = entradaValor(d.preco, false);
       var linha = no('div', 'duas');
-      juntar(linha, campo('Repasse por unidade', repasse), campo('Preço de venda', preco));
+      juntar(linha, campo('Repasse para mim', repasse), campo('Venda ao cliente final', preco));
       forma.appendChild(linha);
       repasse.addEventListener('input', pintar);
       preco.addEventListener('input', pintar);
@@ -12467,7 +12475,13 @@
         [['Total de venda', q * v, ''], ['Repasse para você', q * r, 'ouro'], ['Lucro estimado do vendedor', q * (v - r), q * (v - r) < 0 ? 'vermelho' : 'verde']]
           .forEach(function (x) { juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, x[0]), no('strong', 'num ' + x[2], emReais(x[1])))); });
         var p = achar(estado.doceProdutos, d.produtoId);
-        if (p && p.custo) juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Seu lucro se ele vender tudo'), no('strong', 'num verde', emReais(q * (r - p.custo)))));
+        // O preço de custo, só para saber quanto saiu do bolso nesta entrega.
+        if (p && p.custo) {
+          juntar(resumo, juntar(no('div', 'resumo-linha'),
+            no('span', null, 'Preço de custo (' + q + ' × ' + emReais(p.custo) + ')'),
+            no('strong', 'num vermelho', emReais(q * p.custo))));
+          juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Seu lucro se ele vender tudo'), no('strong', 'num verde', emReais(q * (r - p.custo)))));
+        }
       }
       pintar();
 

@@ -99,6 +99,9 @@ const prevEntrega = limpo(await folha().textContent());
 conferir('7. a entrega calcula venda, repasse e lucro do vendedor',
   /Total de venda\s*R\$ 200,00/.test(prevEntrega) && /Repasse para você\s*R\$ 100,00/.test(prevEntrega) &&
   /Lucro estimado do vendedor\s*R\$ 100,00/.test(prevEntrega));
+// 03/11/2026: "coloque tbm somente o preço de custo caso eu queira saber".
+conferir('8b. a entrega mostra o preço de custo (50 × R$ 1,00)',
+  /Preço de custo \(50 × R\$ 1,00\)\s*R\$ 50,00/.test(prevEntrega), (prevEntrega.match(/Preço de custo.{0,30}/) || [''])[0]);
 await page.click('#folha .btn-ouro:has-text("Registrar entrega")'); await page.waitForTimeout(900);
 
 // ---- prestação de contas: vendeu 35, devolveu 10 ----
