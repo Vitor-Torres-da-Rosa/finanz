@@ -62,7 +62,9 @@ await page.click('#navegacao button:has-text("Início")').catch(() => {}); await
 k = await kpis();
 console.log('com costume:', k);
 conferir('4. Receitas estima pelo costume, não pelo ritmo do dia', /Estimativa\s*R\$ 5\.000,00/.test(k[0] || ''), k[0]);
-conferir('5. Despesas estima pelo costume', /Estimativa\s*R\$ 3\.000,00/.test(k[1] || ''), k[1]);
+// Desde a 5.39.0 o aluguel (que sai todo dia 12) entra no radar de contas:
+// os R$ 500 já gastos mais os R$ 3.000 que ainda vão sair passam o costume.
+conferir('5. Despesas estima pelo costume e pelas contas que faltam', /Estimativa\s*R\$ 3\.500,00/.test(k[1] || ''), k[1]);
 conferir('6. rentabilidade do que foi aplicado', /Rentabilidade\s*\+10,0%/.test(k[2] || ''), k[2]);
 const direita = await page.$$eval('#telaInicio .kpi', ns => Math.max(...ns.map(n => n.getBoundingClientRect().right)));
 conferir('7. os três cartões cabem na tela', direita <= 390, Math.round(direita) + 'px');

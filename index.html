@@ -2111,6 +2111,16 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .item-entrega { font-size: 12.5px; color: var(--suave); margin: -2px 0 6px; }
+  /* Contas do mês (radar). */
+  .contas-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 10px; }
+  .contas-resumo .r { font-size: 10.5px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .contas-resumo .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .contas-lista { margin: 0 -16px; }
+  .contas-fora { display: block; width: 100%; text-align: center; margin-top: 10px; color: var(--ouro); }
+  .sobra-prevista { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(198,158,78,.18); font-size: 14px; color: var(--suave); }
+  .sobra-prevista strong { font-size: 16px; }
   .tempo-do-dia { display: block; margin: 8px auto 0; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--ouro); }
   .fechamento-resumo { row-gap: 8px; }
   .fechamento-resumo strong { text-align: right; font-size: 14.5px; }
@@ -2261,7 +2271,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.38.0';
+  var VERSAO = '5.39.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2270,6 +2280,20 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.39.0',
+      data: '2026-11-03',
+      itens: [
+        'Radar de contas: o app reconhece no seu histórico o que sai uma vez por mês, perto do mesmo dia (luz, água, internet, aluguel), mesmo quando o valor muda. Junto entram as faturas dos cartões que vencem no mês.',
+        'Contas do mês, em Planejar: cada conta com o valor de costume e o dia. Fica paga sozinha quando a saída aparece no extrato. Se passou do dia e não apareceu, ela fica em vermelho e entra nos avisos do sino.',
+        'No Início, embaixo dos números do mês: quanto falta pagar e a sobra prevista no fim do mês, que já desconta as contas que ainda vão vencer. A estimativa de despesas também passou a contar com elas.',
+        'Tocando numa conta você vê de onde saiu o valor esperado (os meses anteriores), os lançamentos dela, e pode tirá-la do radar. Dá para trazer de volta depois.',
+        'Celular do vendedor de doces e do cadastro no padrão (51) 99999-9999 enquanto você digita.',
+        'Consertado: o que estava só no aparelho no Uber e nos Doces sumia quando a nuvem trazia a versão dela. Foi o que apagou os produtos depois de a tabela nova entrar no servidor. Agora o que ainda não subiu fica e sobe na sincronização seguinte.',
+        'Recuperação automática, uma vez: o app procura nas cópias de segurança mais recentes os vendedores, produtos, entregas e corridas que sumiram e devolve. O que você apagou de propósito não volta.',
+        'Prestação de contas: cada doce mostra de que entrega veio (data e quantidade) e a data do acerto combinada.'
+      ]
+    },
     {
       versao: '5.38.0',
       data: '2026-11-03',
@@ -4148,7 +4172,7 @@
     if (bruto.revisados && typeof bruto.revisados === 'object') {
       Object.keys(bruto.revisados).slice(0, 400).forEach(function (k) {
         var v = bruto.revisados[k];
-        if (typeof k === 'string' && (v === 'manter' || v === 'revisar')) {
+        if (typeof k === 'string' && (v === 'manter' || v === 'revisar' || v === 'fora')) {
           limpo.revisados[k.slice(0, 80)] = v;
         }
       });
@@ -4724,6 +4748,7 @@
   // gastando bateria e internet de quem está usando o celular.
   function salvar(deOutraFonte) {
     marcaDoEstado++;
+    cacheRadar = {};
     if (!deOutraFonte) {
       // A marca da última mexida DA PESSOA. Serve para responder "o que
       // está na tela já está na nuvem?" antes de trocar de versão.
@@ -5775,6 +5800,15 @@
       }).then(function (r) { recolhido[t] = r === null ? null : (r || []); });
     });
 
+    // Uber e Doces: além das linhas vivas, os ids das que foram apagadas.
+    // É o que separa "apagado em outro aparelho" de "ainda não subiu".
+    tarefa = tarefa.then(function () {
+      if (recolhido.empreendedor_registros == null) return;
+      return baixarTudo('empreendedor_registros', 'select=id&excluido_em=not.is.null')
+        .then(function (r) { recolhido.empreendedorApagados = r || []; })
+        .catch(function () { recolhido.empreendedorApagados = null; });
+    });
+
     tarefa = tarefa.then(function () {
       return baixarTudoPorPulo('orcamentos', 'select=*', 'categoria.asc');
     }).then(function (r) { recolhido.orcamentos = r || []; })
@@ -5920,6 +5954,7 @@
         novo[chave] = (estado[chave] || []).slice();
       });
     } else {
+      var laVivos = {};
       r.empreendedor_registros.forEach(function (l) {
         var chave = MODULOS_NA_NUVEM[l.tipo];
         if (!chave) return;
@@ -5927,8 +5962,26 @@
         var dados = l.dados && typeof l.dados === 'object' ? l.dados : {};
         Object.keys(dados).forEach(function (k) { item[k] = dados[k]; });
         item.id = l.id;
+        laVivos[l.id] = true;
         novo[chave].push(item);
       });
+      // O que está só neste aparelho fica. Antes a lista do servidor
+      // entrava no lugar da daqui, e o que ainda não tinha subido sumia:
+      // foi o que apagou os doces e as corridas do Vitor em 02/11/2026,
+      // quando a tabela nova apareceu vazia no servidor. Sai daqui só o
+      // que o servidor diz que foi apagado.
+      var apagadosLa = {};
+      (r.empreendedorApagados || []).forEach(function (l) { apagadosLa[l.id] = true; });
+      var ficaram = 0;
+      Object.keys(MODULOS_NA_NUVEM).forEach(function (tipo) {
+        var chave = MODULOS_NA_NUVEM[tipo];
+        (estado[chave] || []).forEach(function (item) {
+          if (!item || !item.id || laVivos[item.id] || apagadosLa[item.id]) return;
+          novo[chave].push(item);
+          ficaram++;
+        });
+      });
+      if (ficaram) novo.pendente = true;
     }
 
     (r.orcamentos || []).forEach(function (o) { novo.orcamentos.categorias[o.categoria] = o.valor; });
@@ -6135,7 +6188,62 @@
   function copiaDoDiaUmaVez() {
     if (instantaneoTentado) return;
     instantaneoTentado = true;
-    guardarInstantaneoDoDia();
+    guardarInstantaneoDoDia().then(function () { recuperarModulosDasCopias(); });
+  }
+
+  // Conserto de uma vez só (02/11/2026): quando a tabela do Uber e dos
+  // Doces apareceu vazia no servidor, o que estava só no aparelho foi
+  // trocado por nada. As cópias automáticas guardam o app inteiro, então
+  // eu procuro nas mais recentes a que tinha mais registros desses
+  // módulos e devolvo o que falta — menos o que o servidor diz que foi
+  // apagado de propósito.
+  var CHAVE_RECUPERACAO = 'finanz.recuperouModulos.v1';
+  function recuperarModulosDasCopias() {
+    try { if (localStorage.getItem(CHAVE_RECUPERACAO)) return Promise.resolve(0); } catch (e) { return Promise.resolve(0); }
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(0);
+    if (faltaNoBanco['tabela:empreendedor_registros']) return Promise.resolve(0);
+    var chaves = Object.keys(MODULOS_NA_NUVEM).map(function (t) { return MODULOS_NA_NUVEM[t]; });
+    var melhor = null, melhorTotal = 0;
+    var naNuvem = {};
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?select=id,criado_em&order=criado_em.desc&limit=8', {});
+    }).then(function (lista) {
+      var corrente = Promise.resolve();
+      (lista || []).forEach(function (linha) {
+        corrente = corrente.then(function () {
+          return pedirNuvem('/rest/v1/instantaneos?select=dados&id=eq.' + encodeURIComponent(linha.id), {});
+        }).then(function (r) {
+          var b64 = r && r[0] && r[0].dados;
+          if (!b64) return;
+          return descomprimirTexto(b64, pareceZip(b64)).then(function (texto) {
+            var e = JSON.parse(texto);
+            var total = chaves.reduce(function (t, k) { return t + (Array.isArray(e[k]) ? e[k].length : 0); }, 0);
+            if (total > melhorTotal) { melhor = e; melhorTotal = total; }
+          });
+        }).catch(function () { /* uma cópia ruim não para as outras */ });
+      });
+      return corrente;
+    }).then(function () {
+      return baixarTudo('empreendedor_registros', 'select=id');
+    }).then(function (linhas) {
+      (linhas || []).forEach(function (l) { naNuvem[l.id] = true; });
+      var voltaram = 0;
+      if (melhor) chaves.forEach(function (k) {
+        (melhor[k] || []).forEach(function (item) {
+          if (!item || !item.id || naNuvem[item.id] || achar(estado[k] || [], item.id)) return;
+          estado[k].push(item);
+          voltaram++;
+        });
+      });
+      try { localStorage.setItem(CHAVE_RECUPERACAO, String(Date.now())); } catch (e) { /* segue */ }
+      if (!voltaram) return 0;
+      anotarNoHistorico('voltaram ' + voltaram + ' registro(s) de Uber e Doces de uma cópia', false);
+      return salvar().then(function () {
+        desenhar();
+        avisar('Recuperei ' + voltaram + ' registro(s) de Uber e Doces que tinham sumido.');
+        return voltaram;
+      });
+    }).catch(function () { return 0; });
   }
 
   function sincronizar(silenciosa) {
@@ -6221,6 +6329,9 @@
       // explicando as descidas. A ferramenta de diagnóstico se apagando a
       // cada diagnóstico.
       doServidor.historico = estado.historico;
+      // Ficou coisa que só existe aqui (Uber e Doces que ainda não
+      // subiram): depois de adotar a versão de lá, ela tem de subir.
+      var ficouSoAqui = !!doServidor.pendente;
       estado = doServidor;
       // A mudança que ninguém vê acontecer: o estado inteiro foi trocado
       // pelo que estava no servidor. É a primeira coisa que eu quero saber
@@ -6236,6 +6347,8 @@
         // Adotei o que estava lá: o que eu tinha por mandar, ou foi junto
         // no envio, ou era velho e acabou de ser substituído.
         return carimboDaConta().then(guardarCarimbo);
+      }).then(function () {
+        if (ficouSoAqui) return salvar().then(function () { agendarSincronia(); });
       }).then(function () {
         if (!silenciosa) avisar(souVelho
           ? 'Trouxe a versão mais nova da nuvem.'
@@ -7135,9 +7248,14 @@
       if (passados >= 10) return Math.round(feito / passados * diasMes);
       return feito;
     }
+    // As contas do radar que ainda vão vencer entram no piso das despesas:
+    // o que já saiu mais o que falta pagar é o mínimo que o mês vai custar.
+    var aPagar = contasDoRadar(ano, mes).aPagar;
+    var eNum = estimar(t.entradas, costume ? costume.entradas : null);
+    var sNum = Math.max(estimar(t.saidas, costume ? costume.saidas : null), t.saidas + aPagar);
     return { rotulo: 'Estimativa',
-             entradas: emReais(estimar(t.entradas, costume ? costume.entradas : null)),
-             saidas: emReais(estimar(t.saidas, costume ? costume.saidas : null)) };
+             entradas: emReais(eNum), saidas: emReais(sNum),
+             eNum: eNum, sNum: sNum, aPagar: aPagar };
   }
 
   function seriePatrimonio(dias) {
@@ -7755,7 +7873,12 @@
     input.placeholder = dica;
     input.value = valor || '';
     if (tipo === 'email') { input.autocapitalize = 'off'; input.autocorrect = 'off'; input.inputMode = 'email'; }
-    if (tipo === 'tel') input.inputMode = 'tel';
+    if (tipo === 'tel') {
+      // (51) 99999-9999 enquanto digita, igual aos outros campos de número.
+      input.inputMode = 'tel';
+      input.value = telefoneBonito(input.value);
+      input.addEventListener('input', function () { input.value = telefoneBonito(input.value); });
+    }
     caixa.appendChild(input);
 
     if (tipo === 'senha') {
@@ -9393,6 +9516,17 @@
       no('span', 'kpi-seta', '›'));
     kpis.appendChild(analises);
     tela.appendChild(kpis);
+
+    // Contas a pagar do mês e a sobra prevista, que já desconta o que
+    // ainda vai vencer. Só aparece quando o radar achou alguma conta.
+    if (periodo.tipo === 'mes' && est.sNum != null && contasDoRadar(mesAtivo.ano, mesAtivo.mes).itens.length) {
+      var cContas = cartaoContasDoMes(mesAtivo.ano, mesAtivo.mes, true);
+      var sobraPrev = est.eNum - est.sNum;
+      cContas.appendChild(juntar(no('div', 'sobra-prevista'),
+        no('span', null, 'Sobra prevista no fim do mês'),
+        no('strong', 'num ' + (sobraPrev < 0 ? 'vermelho' : 'verde'), (sobraPrev < 0 ? '− ' : '') + emReais(Math.abs(sobraPrev)))));
+      tela.appendChild(cContas);
+    }
 
     // Só aparece quando há algo para conferir.
     var pares = paresDeTransferencia();
@@ -12079,6 +12213,15 @@
     });
   }
 
+  // As entregas deste doce feitas depois da última prestação de contas.
+  function entregasDesdeOAcerto(vendedorId, produtoId) {
+    var ultimo = '';
+    estado.doceAcertos.forEach(function (a) { if (a.vendedorId === vendedorId && a.data > ultimo) ultimo = a.data; });
+    return estado.doceEntregas.filter(function (e) {
+      return e.vendedorId === vendedorId && e.produtoId === produtoId && (!ultimo || e.data > ultimo);
+    }).sort(function (a, b) { return a.data < b.data ? -1 : 1; });
+  }
+
   // O próximo acerto do vendedor: a data de acerto mais cedo entre as
   // entregas feitas depois da última prestação de contas dele.
   function proximoAcerto(vendedorId) {
@@ -12287,8 +12430,9 @@
       var forma = no('div', 'forma');
       var nome = entradaTexto(v ? v.nome : '', 'Ex.: Mariana', 60);
       forma.appendChild(campo('Nome', nome));
-      var tel = entradaTexto(v ? v.telefone : '', '(51) 99999-0000', 20);
-      tel.inputMode = 'tel';
+      // Mesmo campo do cliente: o número se arruma em (51) 99999-9999
+      // enquanto é digitado.
+      var tel = entradaTelefone(v ? v.telefone : '');
       forma.appendChild(campo('Telefone / WhatsApp (opcional)', tel));
       var obs = entradaTexto(v ? v.obs : '', 'Ex.: vende na escola', 200);
       forma.appendChild(campo('Observação (opcional)', obs));
@@ -12301,7 +12445,7 @@
         if (!n) { mostrarErro(forma, 'Informe o nome do vendedor.'); return; }
         var reg = v || { id: novoId(), criadoEm: Date.now() };
         reg.nome = n.slice(0, 60);
-        reg.telefone = tel.value.trim().slice(0, 20);
+        reg.telefone = soDigitos(tel.value).slice(0, 13);
         reg.obs = obs.value.trim().slice(0, 200);
         reg.ativo = ativo;
         if (!v) estado.doceVendedores.push(reg);
@@ -12608,6 +12752,13 @@
         juntar(bloco, juntar(no('div', 'item-cabeca'),
           no('strong', null, nomeDoProduto(it.produtoId)),
           no('span', 'item-com', 'Em estoque: ' + it.estoque)));
+        // De que entregas este estoque veio: a data de cada uma e o dia
+        // combinado para o acerto.
+        entregasDesdeOAcerto(vid, it.produtoId).forEach(function (e) {
+          bloco.appendChild(no('div', 'item-entrega',
+            'Entregue em ' + dataBr(e.data) + ' (' + e.quantidade + ' un.)' +
+            (e.acertoEm ? ' · acerto ' + (e.acertoEm < hojeTexto() ? 'era ' : 'em ') + dataBr(e.acertoEm) : '')));
+        });
         [['vendidos', 'Vendidos'], ['devolvidos', 'Devolvidos'], ['perdidos', 'Perdidos']].forEach(function (k) {
           var linha = no('div', 'config-linha');
           var cont = contadorDigitavel(it[k[0]], function (n) { it[k[0]] = n; pintar(); });
@@ -17892,6 +18043,9 @@
     tela.textContent = '';
     tela.appendChild(cabecalho('Planejamento', null, true));
 
+    // As contas do mês, do radar: o que costuma sair e ainda não saiu.
+    tela.appendChild(cartaoContasDoMes(mesAtivo.ano, mesAtivo.mes, false));
+
     var t = totaisDoMes(mesAtivo.ano, mesAtivo.mes);
     var gastos = gastosPorCategoria(mesAtivo.ano, mesAtivo.mes);
 
@@ -18270,6 +18424,249 @@
     });
   }
 
+  // ---- radar de contas -----------------------------------------------------
+  //
+  // As contas do mês sem DDA: o app olha o histórico e reconhece o que sai
+  // uma vez por mês, mais ou menos no mesmo dia — luz, água, internet,
+  // aluguel —, mesmo quando o valor muda de um mês para o outro. Com isso
+  // ele monta a lista do mês com o valor esperado (a mediana dos últimos
+  // meses) e o dia de costume, e vai marcando como paga quando a saída
+  // aparece. As faturas dos cartões entram também, pelo vencimento.
+  //
+  // O que a pessoa tira do radar fica em estado.revisados como 'fora',
+  // com a chave 'radar:' + nome — o mesmo lugar que já sobe para a nuvem.
+
+  var RADAR_MESES = 4;
+  // Pagamento de fatura feito pela conta: a fatura já entra pelo cartão.
+  var PAGAMENTO_DE_FATURA = /fatura|pagamento (de |do )?cartao|pgto (de )?cartao|pag fat/;
+
+  function mediana(lista) {
+    var o = lista.slice().sort(function (a, b) { return a - b; });
+    if (!o.length) return 0;
+    var m = Math.floor(o.length / 2);
+    return o.length % 2 ? o[m] : Math.round((o[m - 1] + o[m]) / 2);
+  }
+
+  function contaForaDoRadar(chave) {
+    return !!(estado.revisados && estado.revisados[chave] === 'fora');
+  }
+
+  // A conta do radar varre todos os lançamentos; a tela pede a mesma
+  // conta algumas vezes por desenho. Guardo até o próximo desenho/salvar.
+  var cacheRadar = {};
+  function contasDoRadar(ano, mes) {
+    var k = prefixoMes(ano, mes) + '|' + hojeTexto();
+    if (!cacheRadar[k]) cacheRadar[k] = calcularContasDoRadar(ano, mes);
+    return cacheRadar[k];
+  }
+
+  function calcularContasDoRadar(ano, mes) {
+    var alvo = prefixoMes(ano, mes);
+    var hoje = hojeTexto();
+    var historico = mesesAnteriores(ano, mes, RADAR_MESES).map(function (x) { return prefixoMes(x.ano, x.mes); });
+    var noHistorico = {};
+    historico.forEach(function (k) { noHistorico[k] = true; });
+    var recentes = {};
+    historico.slice(0, 2).forEach(function (k) { recentes[k] = true; });
+
+    var cartaoIds = {};
+    cartoes().forEach(function (c) { cartaoIds[c.id] = true; });
+    var emPar = {};
+    paresDeTransferencia().forEach(function (par) { emPar[par.saida.id] = true; emPar[par.entrada.id] = true; });
+
+    var grupos = {};
+    estado.lancamentos.forEach(function (l) {
+      if (l.tipo !== 'saida' || !l.valor || cartaoIds[l.contaId] || emPar[l.id]) return;
+      var mesL = l.data.slice(0, 7);
+      if (!noHistorico[mesL] && mesL !== alvo) return;
+      if (PAGAMENTO_DE_FATURA.test(paraBusca(l.descricao))) return;
+      var nome = nomeDeOrigem(l.descricao);
+      if (!nome || nome.length < 3) return;
+      var g = grupos[nome] = grupos[nome] || { nome: nome, meses: {}, noAlvo: [], categoria: l.categoria, descricao: l.descricao };
+      if (mesL === alvo) g.noAlvo.push(l);
+      else (g.meses[mesL] = g.meses[mesL] || []).push(l);
+    });
+
+    var itens = [];
+    Object.keys(grupos).forEach(function (nome) {
+      var g = grupos[nome];
+      var chave = 'radar:' + nome.slice(0, 70);
+      if (contaForaDoRadar(chave)) return;
+      var meses = Object.keys(g.meses);
+      // Duas vezes ou mais nos últimos meses, uma (no máximo duas) por mês,
+      // e ainda viva: apareceu em um dos dois últimos meses.
+      if (meses.length < 2) return;
+      if (!meses.some(function (k) { return recentes[k]; })) return;
+      if (meses.some(function (k) { return g.meses[k].length > 2; })) return;
+      var totais = meses.map(function (k) { return g.meses[k].reduce(function (t, l) { return t + l.valor; }, 0); });
+      var dias = meses.map(function (k) {
+        return Math.min.apply(null, g.meses[k].map(function (l) { return Number(l.data.slice(8, 10)); }));
+      });
+      // Conta tem dia: quem cai em qualquer ponto do mês é compra, não conta.
+      if (Math.max.apply(null, dias) - Math.min.apply(null, dias) > 10) return;
+      var esperado = mediana(totais);
+      if (esperado < 500) return;
+      var dia = Math.min(mediana(dias), ultimoDia(ano, mes));
+      var vence = comDia(ano, mes, dia);
+
+      var item = { chave: chave, nome: tituloDeConta(g.descricao, nome), categoria: g.categoria, esperado: esperado,
+                   dia: dia, vence: vence, origem: 'radar', historico: meses.sort().map(function (k, i) {
+                     return { mes: k, valor: g.meses[k].reduce(function (t, l) { return t + l.valor; }, 0) };
+                   }) };
+      var feitos = g.noAlvo.filter(function (l) { return l.data <= hoje; });
+      var futuros = g.noAlvo.filter(function (l) { return l.data > hoje; });
+      if (feitos.length) {
+        item.status = 'paga';
+        item.valor = feitos.reduce(function (t, l) { return t + l.valor; }, 0);
+        item.pagaEm = feitos.map(function (l) { return l.data; }).sort().pop();
+      } else if (futuros.length) {
+        item.status = 'agendada';
+        item.valor = futuros.reduce(function (t, l) { return t + l.valor; }, 0);
+        item.vence = futuros.map(function (l) { return l.data; }).sort()[0];
+      } else {
+        item.valor = esperado;
+        item.status = vence < hoje ? 'atrasada' : 'aberta';
+      }
+      itens.push(item);
+    });
+
+    // As faturas dos cartões que vencem neste mês.
+    cartoes().forEach(function (cart) {
+      faturasDoCartao(cart.id).forEach(function (f) {
+        if (!f.vence || f.vence.slice(0, 7) !== alvo || f.total <= 0) return;
+        var chave = 'radar:fatura ' + cart.id;
+        if (contaForaDoRadar(chave)) return;
+        var falta = Math.max(f.total - f.pago, 0);
+        itens.push({
+          chave: chave, nome: 'Fatura ' + cart.nome, categoria: 'Cartão', esperado: f.total, dia: Number(f.vence.slice(8, 10)),
+          vence: f.vence, origem: 'fatura', cartaoId: cart.id,
+          status: falta <= 100 ? 'paga' : (f.vence < hoje ? 'atrasada' : 'aberta'),
+          valor: falta <= 100 ? f.total : falta, pagaEm: ''
+        });
+      });
+    });
+
+    itens.sort(function (a, b) {
+      var oa = a.status === 'paga' ? 1 : 0, ob = b.status === 'paga' ? 1 : 0;
+      if (oa !== ob) return oa - ob;
+      return a.vence < b.vence ? -1 : a.vence > b.vence ? 1 : 0;
+    });
+    var aPagar = 0, pago = 0, abertas = 0;
+    itens.forEach(function (x) {
+      if (x.status === 'paga') pago += x.valor;
+      else if (x.status !== 'agendada') { aPagar += x.valor; abertas += 1; }
+    });
+    return { itens: itens, aPagar: aPagar, pago: pago, abertas: abertas,
+             atrasadas: itens.filter(function (x) { return x.status === 'atrasada'; }) };
+  }
+
+  // "PIX ENVIADO CEEE EQUATORIAL" vira "Ceee Equatorial": o nome sem o
+  // prefixo do banco, com cara de nome.
+  function tituloDeConta(descricao, nome) {
+    var base = (nome || nomeDeOrigem(descricao))
+      .replace(/^(PIX (ENVIADO|TRANSF\w*|PAGAMENTO)?|TED|DOC|PAGAMENTO( DE)?|PGTO|DEB(ITO)? AUT(OMATICO)?|BOLETO|COMPRA( NO)? DEBITO)\s+/i, '');
+    return base.toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }).slice(0, 40);
+  }
+
+  function textoDoStatus(x, ano, mes) {
+    var passado = prefixoMes(ano, mes) < hojeTexto().slice(0, 7);
+    if (x.status === 'paga') return x.pagaEm ? 'paga em ' + dataCurta(x.pagaEm) : 'paga';
+    if (x.status === 'agendada') return 'agendada para ' + dataCurta(x.vence);
+    if (x.status === 'atrasada') return passado ? 'não apareceu no mês' : 'costuma vencer dia ' + x.dia + ' · ainda não apareceu';
+    return 'vence dia ' + x.dia + (x.origem === 'radar' ? ' · valor de costume' : '');
+  }
+
+  function corDoStatus(x) {
+    return x.status === 'paga' ? '#3DDC84' : x.status === 'atrasada' ? '#FF6B6B' : x.status === 'agendada' ? '#38BDF8' : '#E9B44C';
+  }
+
+  function cartaoContasDoMes(ano, mes, resumido) {
+    var r = contasDoRadar(ano, mes);
+    var c = cartao('cartao-contas');
+    c.appendChild(topoDeCartao('Contas do mês', resumido ? 'Ver todas' : null,
+      resumido ? function () { irPara('planejamento'); } : null, 'calendario'));
+    if (!r.itens.length) {
+      c.appendChild(no('p', 'linha-sub', 'O app ainda não achou contas que se repetem. Elas aparecem aqui quando a mesma saída cai uma vez por mês, perto do mesmo dia, em pelo menos dois meses.'));
+      return c;
+    }
+    var topo = no('div', 'contas-resumo');
+    juntar(topo,
+      juntar(no('div'), no('div', 'r', 'Falta pagar'), no('div', 'v num ' + (r.aPagar ? 'ouro' : 'verde'), emReais(r.aPagar))),
+      juntar(no('div'), no('div', 'r', 'Já pago'), no('div', 'v num verde', emReais(r.pago))),
+      juntar(no('div'), no('div', 'r', 'Contas'), no('div', 'v num', r.abertas + ' de ' + r.itens.length)));
+    c.appendChild(topo);
+    var mostrar = resumido ? r.itens.filter(function (x) { return x.status !== 'paga'; }).slice(0, 3) : r.itens;
+    var lista = no('div', 'contas-lista');
+    mostrar.forEach(function (x) {
+      lista.appendChild(linhaSimples({
+        titulo: x.nome,
+        sub: textoDoStatus(x, ano, mes),
+        valor: (x.status === 'paga' ? '' : x.origem === 'radar' && x.status !== 'agendada' ? '~' : '') + emReais(x.valor),
+        cor: x.status === 'paga' ? 'verde' : x.status === 'atrasada' ? 'vermelho' : '',
+        selo: selo(corDoStatus(x), x.status === 'paga' ? '✓' : String(x.dia)),
+        aoTocar: function () { abrirContaDoRadar(x, ano, mes); }
+      }));
+    });
+    if (resumido && r.itens.length > mostrar.length) {
+      lista.appendChild(no('div', 'linha-nota', (r.itens.length - mostrar.length) + ' outra(s) em Planejar.'));
+    }
+    c.appendChild(lista);
+    if (!resumido) {
+      var fora = Object.keys(estado.revisados || {}).filter(function (k) { return k.indexOf('radar:') === 0 && estado.revisados[k] === 'fora'; });
+      if (fora.length) {
+        c.appendChild(botao('linha-nota contas-fora', fora.length + ' fora do radar · trazer de volta', function () {
+          abrirEscolha({
+            titulo: 'Fora do radar', opcoes: fora.map(function (k) {
+              return { valor: k, rotulo: k.indexOf('radar:fatura ') === 0
+                ? 'Fatura ' + ((achar(estado.contas, k.slice(13)) || {}).nome || 'de cartão') : tituloDeConta('', k.slice(6)),
+                detalhe: 'toque para voltar ao radar' };
+            })
+          }, function (k) {
+            if (!k) return;
+            delete estado.revisados[k];
+            salvar(); desenhar();
+            avisar('De volta ao radar.');
+          });
+        }));
+      }
+    }
+    return c;
+  }
+
+  function abrirContaDoRadar(x, ano, mes) {
+    abrirFolha(x.nome, function (folha) {
+      var c = cartao();
+      c.appendChild(linhaDeCartaoFixa('Situação', textoDoStatus(x, ano, mes)));
+      c.appendChild(linhaDeCartaoFixa(x.status === 'paga' ? 'Valor pago' : 'Valor esperado', emReais(x.valor)));
+      if (x.origem === 'radar') {
+        c.appendChild(linhaDeCartaoFixa('Costuma vencer', 'dia ' + x.dia));
+        (x.historico || []).forEach(function (h) {
+          var p = h.mes.split('-');
+          c.appendChild(linhaDeCartaoFixa(MESES[Number(p[1]) - 1].charAt(0).toUpperCase() + MESES[Number(p[1]) - 1].slice(1, 3) + '/' + p[0].slice(2), emReais(h.valor)));
+        });
+        c.appendChild(no('div', 'linha-nota', 'O valor esperado é o do meio dos últimos meses. Quando a saída aparecer no extrato, a conta fica paga sozinha.'));
+      } else {
+        c.appendChild(no('div', 'linha-nota', 'Fatura do cartão, pelo vencimento. Fica paga quando o pagamento entra no cartão.'));
+      }
+      folha.appendChild(c);
+      var acoes = no('div', 'acoes');
+      if (x.origem === 'radar') {
+        acoes.appendChild(botao('btn btn-fantasma', 'Ver os lançamentos', function () {
+          irParaTransacoes('saida', x.chave.slice(6).toLowerCase(), textoDeData(ano, mes, 1), fimDoMes(ano, mes));
+        }));
+      }
+      acoes.appendChild(botao('btn btn-perigo', 'Tirar do radar', function () {
+        if (!estado.revisados) estado.revisados = {};
+        estado.revisados[x.chave] = 'fora';
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar(x.nome + ' saiu do radar.');
+      }));
+      folha.appendChild(acoes);
+    });
+  }
+
   // ---- nota de saúde financeira -------------------------------------------
   // Cada parte só entra na conta quando existe dado para ela. Sem metas, sem
   // orçamento ou sem cartão, essas partes simplesmente não pesam — em vez de
@@ -18604,6 +19001,19 @@
         explicacao: 'Você planejou ' + emReais(estado.orcamentos.geral) + ' e gastou ' +
           emReais(base.total) + '.',
         acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
+      });
+    }
+
+    // 5b) Conta do radar que costuma já ter saído e ainda não apareceu.
+    if (noMesAtual) {
+      contasDoRadar(ano, mes).atrasadas.forEach(function (x) {
+        juntarAchado({
+          id: 'conta-' + x.chave, prioridade: 1, icone: '📅', tom: 'atencao',
+          titulo: x.nome + ' ainda não foi paga',
+          valor: '~' + emReais(x.valor), valorCor: 'var(--ouro)',
+          explicacao: 'Costuma vencer dia ' + x.dia + ' e ainda não apareceu no extrato.',
+          acao: { rotulo: 'Ver contas do mês', abrir: function () { fecharFolha(); setTimeout(function () { irPara('planejamento'); }, 160); } }
+        });
       });
     }
 
@@ -19351,6 +19761,7 @@
 
   function desenhar() {
     limparCacheDeFatura();
+    cacheRadar = {};
     if (telaAtiva !== 'inicio') soltarExtratos();
     desenharNavegacao();
     if (telaAtiva !== 'inicio') {

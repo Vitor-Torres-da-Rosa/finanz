@@ -116,6 +116,11 @@ const quem = limpo(await page.textContent('#telaInicio'));
 conferir('8d. "Quem tem conta para prestar" mostra o dia do acerto',
   new RegExp('Mariana\\s*50 doce\\(s\\) em estoque · acerto em ' + esperado.slice(8, 10) + ' ').test(quem), (quem.match(/Mariana.{0,60}/) || [''])[0]);
 await page.click('#telaInicio .linha:has-text("Mariana")'); await page.waitForTimeout(900);
+// 03/11/2026: cada doce mostra a data da entrega e a do acerto.
+const pc = (await page.textContent('#folha')).replace(/\s+/g, ' ');
+conferir('8e. na prestação, o doce mostra a entrega e o acerto',
+  new RegExp('Entregue em ' + dEntrega.split('-').reverse().join('/') + ' \\(50 un\\.\\) · acerto em ' + dAcerto.split('-').reverse().join('/')).test(pc),
+  (pc.match(/Entregue em.{0,50}/) || [''])[0]);
 await folha().locator('[data-campo="vendidos"] .contador-campo').fill('35');
 await folha().locator('[data-campo="devolvidos"] .contador-campo').fill('10');
 await page.waitForTimeout(300);
