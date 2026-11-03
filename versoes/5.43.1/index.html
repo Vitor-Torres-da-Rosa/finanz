@@ -2111,6 +2111,14 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .cartao-sem-parcela { margin-top: 12px; }
+  .jornada-antiga .btn { margin-top: 10px; }
+  .modulo-corpo > .tempo-do-dia { margin: 0 auto 10px; }
+  .estoque-produto { margin-top: 14px; }
+  .estoque-produto .btn { margin-top: 10px; }
+  .cartao-ajustes { margin-bottom: 12px; }
+  .modulo-de-quem { display: block; font-size: 12px; font-weight: 600; color: var(--azul, #38BDF8); margin-top: 2px; }
+  .sub-produtos { margin-bottom: 14px; }
   .item-entrega { font-size: 12.5px; color: var(--suave); margin: -2px 0 6px; }
   /* Contas do mês (radar). */
   .contas-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 10px; }
@@ -2271,7 +2279,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.39.0';
+  var VERSAO = '5.43.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2280,6 +2288,52 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.43.1',
+      data: '2026-11-03',
+      itens: [
+        'Parcelas: quando uma parcela foi paga com menos e a diferença não virou parcela nova, o app completa o combinado sozinho ao abrir a aba, com parcelas do mesmo tamanho no fim e a sobra na última.',
+        'O que o cliente deve e não tem parcela nenhuma aparece em "Sem parcelas combinadas", com o valor que falta. Tocando, você combina as parcelas daquele registro. Assim o "Falta" de cima bate com o que aparece embaixo. Se você apagou de propósito as parcelas em aberto de uma venda, o app não refaz elas: o que falta vai para esse mesmo cartão.'
+      ]
+    },
+    {
+      versao: '5.43.0',
+      data: '2026-11-03',
+      itens: [
+        'Uber e Corridas sem cronômetro: o tempo online entra à mão no "Fechar o dia", copiado do app da Uber, quando você for cadastrar.',
+        'Se ficou alguma jornada antiga ligada, aparece um aviso com o botão para desligar. O tempo dos dias antigos continua no histórico e dá para corrigir em "Tempo de hoje".',
+        'O "+" do Uber pergunta o que registrar: fechamento de hoje, abastecimento, outras despesas ou corrida avulsa.',
+        'Fechar o dia sem a média do carro: o que você abasteceu no dia entra como gasto de combustível. Pode ficar acima do real, mas o lucro deixa de aparecer sem combustível nenhum.'
+      ]
+    },
+    {
+      versao: '5.42.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces, Entregas: uma linha por vendedor, com quantas entregas e unidades. Tocando no nome, abrem os doces que foram para ele.',
+        'Estoque de cada produto, em Produtos: tocando no produto, "Ajustar estoque" aumenta ou diminui com um motivo. Com a Venda de Doces compartilhada, o ajuste só entra no estoque depois que o sócio confirma. Os pedidos aparecem no topo de Produtos para confirmar ou recusar.',
+        'Quem tem conta para prestar e Vendedores: no lugar de "em dia", a estimativa do que os doces com cada vendedor devem render para você (o repasse de cada um: custo mais a sua comissão).',
+        'Os quadros do total do mês dizem só "Repasses" e "Recebido". O mês já está no título, e o nome inteiro cabe.'
+      ]
+    },
+    {
+      versao: '5.41.0',
+      data: '2026-11-03',
+      itens: [
+        'Compartilhar, em Mais: escolha o que dividir com outra pessoa (Venda de Doces e/ou Uber e Corridas) e convide pelo e-mail da conta dela no Finanz.',
+        'Ela recebe o convite dentro do app. Aceitando, aquela parte passa a ser a mesma para os dois: o que um cadastra ou muda aparece para o outro, e fica tudo salvo na nuvem.',
+        'O resto da sua conta continua só seu, e o servidor garante isso: ela vê apenas as partes que você escolheu, e só enquanto o convite valer. Você pode trocar as partes ou parar de compartilhar quando quiser.',
+        'Se ela sair, a parte que ela tinha antes volta para a tela dela, e os registros compartilhados continuam com você.'
+      ]
+    },
+    {
+      versao: '5.40.0',
+      data: '2026-11-03',
+      itens: [
+        'Venda de Doces: Fornecedor, dentro da aba Produtos. Registre cada compra (doce, quantidade, quanto pagou e de quem) e veja o custo de cada unidade, o gasto do mês e o seu estoque: o que comprou, menos o que está com os vendedores, mais o que eles devolveram.',
+        'A compra pode atualizar o valor de compra do produto, e é com ele que o app calcula o seu lucro em cada doce vendido.'
+      ]
+    },
     {
       versao: '5.39.0',
       data: '2026-11-03',
@@ -3820,6 +3874,8 @@
       doceEntregas: [],
       doceAcertos: [],
       docePagamentos: [],
+      doceCompras: [],
+      doceAjustes: [],
       excluidos: []
     };
   }
@@ -4543,6 +4599,25 @@
                valor: positivo(g.valor), acertoId: texto(g.acertoId),
                obs: texto(g.obs).slice(0, 200), criadoEm: marca(g.criadoEm) || Date.now() };
     }).filter(function (g) { return g.vendedorId && g.valor > 0; });
+
+    // Compras do fornecedor: a entrada no seu estoque e quanto custou.
+    // Ajuste de estoque: entra na conta só depois de confirmado pelo sócio.
+    limpo.doceAjustes = lista('doceAjustes').map(function (x) {
+      var q = Math.round(Number(x.quantidade) || 0);
+      return { id: x.id, produtoId: texto(x.produtoId), quantidade: Math.max(-99999, Math.min(99999, q)),
+               motivo: texto(x.motivo).slice(0, 120), data: soData(x.data) || hojeTexto(),
+               criadoPor: texto(x.criadoPor), criadoPorNome: texto(x.criadoPorNome).slice(0, 60),
+               situacao: ['pendente', 'aprovado', 'recusado'].indexOf(x.situacao) >= 0 ? x.situacao : 'pendente',
+               decididoPorNome: texto(x.decididoPorNome).slice(0, 60),
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.produtoId && x.quantidade !== 0; });
+
+    limpo.doceCompras = lista('doceCompras').map(function (x) {
+      return { id: x.id, produtoId: texto(x.produtoId), quantidade: positivo(x.quantidade),
+               valor: positivo(x.valor), fornecedor: texto(x.fornecedor).slice(0, 60),
+               data: soData(x.data) || hojeTexto(), obs: texto(x.obs).slice(0, 200),
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.produtoId && x.quantidade > 0; });
   }
 
   // Passa os dados da lista antiga de categorias para os dois andares.
@@ -5297,7 +5372,7 @@
   var MODULOS_NA_NUVEM = {
     uber_jornada: 'uberJornadas', uber_registro: 'uberRegistros',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
-    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos'
+    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -5314,13 +5389,254 @@
   function linhasDosModulos(uid) {
     var fora = [];
     Object.keys(MODULOS_NA_NUVEM).forEach(function (tipo) {
+      // Área compartilhada comigo: as linhas são do dono e voltam para ele.
+      var dono = donoDaArea(areaDoTipo(tipo)) || uid;
       (estado[MODULOS_NA_NUVEM[tipo]] || []).forEach(function (r) {
         var dados = {};
         Object.keys(r).forEach(function (k) { if (k !== 'id') dados[k] = r[k]; });
-        fora.push({ id: r.id, user_id: uid, tipo: tipo, dados: dados, excluido_em: null });
+        fora.push({ id: r.id, user_id: dono, tipo: tipo, dados: dados, excluido_em: null });
       });
     });
     return fora;
+  }
+
+  // ---------- Compartilhar partes do Empreendedor ----------
+  //
+  // O dono convida pelo e-mail da conta da outra pessoa e escolhe as áreas
+  // (Venda de Doces, Uber e Corridas). Aceitando, a área dela no app passa
+  // a ser a dele: os dois veem e mexem nos mesmos registros, que continuam
+  // sendo do dono no servidor. O que ela tinha antes naquela área fica
+  // guardado na conta dela e volta se ela sair.
+  var AREAS_COMPARTILHAVEIS = [
+    { id: 'doces', nome: 'Venda de Doces' },
+    { id: 'uber', nome: 'Uber e Corridas' }
+  ];
+
+  function areaDoTipo(tipo) {
+    if (String(tipo).indexOf('doce_') === 0) return 'doces';
+    if (String(tipo).indexOf('uber_') === 0) return 'uber';
+    return '';
+  }
+
+  function nomeDaArea(id) {
+    for (var i = 0; i < AREAS_COMPARTILHAVEIS.length; i++) if (AREAS_COMPARTILHAVEIS[i].id === id) return AREAS_COMPARTILHAVEIS[i].nome;
+    return id;
+  }
+
+  // Os convites que esta conta aceitou, guardados no aparelho para valer
+  // também sem internet. Chave por conta: outra pessoa no mesmo celular
+  // não herda o compartilhamento.
+  function chaveComigo() { return 'finanz.comigo.v1:' + ((sessaoNuvem && sessaoNuvem.usuario.id) || ''); }
+
+  function compartilhadosComigo() {
+    try { return JSON.parse(localStorage.getItem(chaveComigo()) || '[]') || []; } catch (e) { return []; }
+  }
+
+  function donoDaArea(area) {
+    if (!area) return '';
+    var lista = compartilhadosComigo();
+    for (var i = 0; i < lista.length; i++) if (lista[i].areas.indexOf(area) >= 0) return lista[i].donoId;
+    return '';
+  }
+
+  function quemCompartilhou(area) {
+    var lista = compartilhadosComigo();
+    for (var i = 0; i < lista.length; i++) if (lista[i].areas.indexOf(area) >= 0) return lista[i].donoNome || 'outra conta';
+    return '';
+  }
+
+  var meusConvites = [];
+  var convitesParaMim = [];
+  var convitesJaPerguntados = {};
+
+  // Lê os convites (os que fiz e os que recebi). Mudou o que está
+  // compartilhado comigo? Limpo aqui as listas daquelas áreas e peço o
+  // download inteiro: as listas passam a ser as do dono (ou voltam a ser
+  // as minhas, quando saio).
+  function carregarCompartilhamentos() {
+    if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve();
+    if (faltaNoBanco['tabela:compartilhamentos']) return Promise.resolve();
+    var uid = sessaoNuvem.usuario.id;
+    return pedirNuvem('/rest/v1/compartilhamentos?select=*', {}).then(function (linhas) {
+      linhas = linhas || [];
+      meusConvites = linhas.filter(function (l) { return l.dono_id === uid; });
+      var aceitos = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'aceito' && l.convidado_id === uid; })
+        .map(function (l) { return { id: l.id, donoId: l.dono_id, donoNome: l.dono_nome || '', areas: Array.isArray(l.areas) ? l.areas : [] }; });
+      var antes = compartilhadosComigo();
+      var assinatura = function (lista) {
+        return lista.map(function (x) { return x.donoId + ':' + x.areas.slice().sort().join(','); }).sort().join('|');
+      };
+      if (assinatura(antes) !== assinatura(aceitos)) {
+        var mexidas = {};
+        antes.concat(aceitos).forEach(function (x) { x.areas.forEach(function (a) { mexidas[a] = true; }); });
+        try { localStorage.setItem(chaveComigo(), JSON.stringify(aceitos)); } catch (e) { /* segue */ }
+        Object.keys(MODULOS_NA_NUVEM).forEach(function (tipo) {
+          if (mexidas[areaDoTipo(tipo)]) estado[MODULOS_NA_NUVEM[tipo]] = [];
+        });
+        // Força o download na próxima conta do carimbo.
+        estado.carimbo = '';
+        estado.pendente = false;
+      }
+      convitesParaMim = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'pendente'; });
+      var pendentes = convitesParaMim.filter(function (l) { return !convitesJaPerguntados[l.id]; });
+      if (pendentes.length) setTimeout(function () { perguntarConvite(pendentes[0]); }, 600);
+    }).catch(function (e) {
+      if (ehTabelaQueFalta(e)) faltaNoBanco['tabela:compartilhamentos'] = true;
+    });
+  }
+
+  function perguntarConvite(l) {
+    convitesJaPerguntados[l.id] = true;
+    var areas = (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e ');
+    perguntar({
+      titulo: (l.dono_nome || 'Alguém') + ' quer compartilhar com você',
+      texto: areas + '.\n\nAceitando, ' + areas + ' deste app passa a ser a de ' + (l.dono_nome || 'quem convidou') +
+        ': vocês dois veem e mexem nos mesmos registros, e o que um muda aparece para o outro. ' +
+        'O que você já tinha nessa parte fica guardado na sua conta e volta se você sair do compartilhamento.',
+      // "Agora não" não recusa: o convite continua em Mais > Compartilhar.
+      // Voltar com o botão do celular também cai aqui, e recusar por um
+      // toque sem querer seria ruim.
+      ok: 'Aceitar', cancelar: 'Agora não', icone: 'alvo'
+    }, function () { responderConvite(l, true); });
+  }
+
+  function responderConvite(l, aceitar) {
+    return pedirNuvem('/rest/v1/rpc/responder_convite', { metodo: 'POST', corpo: { p_id: l.id, p_aceitar: aceitar } })
+      .then(function () {
+        avisar(aceitar ? 'Compartilhamento aceito. Trazendo os dados…' : 'Convite recusado.');
+        return carregarCompartilhamentos();
+      }).then(function () { return sincronizar(true); })
+      .then(function () { desenhar(); })
+      .catch(function () { avisar('Não deu para responder agora. Tente de novo com internet.'); });
+  }
+
+  function abrirCompartilhar() {
+    abrirFolha('Compartilhar', function (folha) {
+      folha.appendChild(no('p', 'ajuda', 'Escolha o que compartilhar e o e-mail da conta da outra pessoa no Finanz. Ela recebe o convite dentro do app e, aceitando, vocês dois veem e mexem nos mesmos registros daquela parte. O resto da sua conta continua só seu.'));
+      var lista = cartao('liso');
+      var t1 = topoDeCartao('Que você compartilhou', null);
+      t1.style.padding = '16px 16px 0'; t1.style.marginBottom = '8px';
+      lista.appendChild(t1);
+      if (!meusConvites.length) lista.appendChild(estadoVazio('Nada compartilhado', 'Toque em "+ Convidar" para escolher o que compartilhar.'));
+      meusConvites.forEach(function (l) {
+        var sit = l.situacao === 'aceito' ? 'aceitou' : l.situacao === 'recusado' ? 'recusou' : 'ainda não respondeu';
+        lista.appendChild(linhaSimples({
+          titulo: l.convidado_email,
+          sub: (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e ') + ' · ' + sit,
+          valor: '', selo: selo(l.situacao === 'aceito' ? '#3DDC84' : l.situacao === 'recusado' ? '#FF6B6B' : '#E9B44C', '@'),
+          aoTocar: function () { abrirConvite(l); }
+        }));
+      });
+      folha.appendChild(lista);
+      if (convitesParaMim.length) {
+        var lp = cartao('liso');
+        var t0 = topoDeCartao('Convites para você', null);
+        t0.style.padding = '16px 16px 0'; t0.style.marginBottom = '8px';
+        lp.appendChild(t0);
+        convitesParaMim.forEach(function (l) {
+          lp.appendChild(linhaSimples({
+            titulo: (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e '),
+            sub: 'de ' + (l.dono_nome || 'outra conta') + ' · aceitar ou recusar',
+            valor: '', selo: selo('#E9B44C', '✉'),
+            aoTocar: function () {
+              abrirEscolha({ titulo: 'Convite de ' + (l.dono_nome || 'outra conta'), opcoes: [
+                { valor: 'sim', rotulo: 'Aceitar', detalhe: 'vocês dois passam a ver e mexer nos mesmos registros' },
+                { valor: 'nao', rotulo: 'Recusar', detalhe: 'o convite some' }
+              ] }, function (v) {
+                if (!v) return;
+                fecharFolha();
+                responderConvite(l, v === 'sim');
+              });
+            }
+          }));
+        });
+        folha.appendChild(lp);
+      }
+      var comigo = compartilhadosComigo();
+      if (comigo.length) {
+        var lc = cartao('liso');
+        var t2 = topoDeCartao('Compartilhado com você', null);
+        t2.style.padding = '16px 16px 0'; t2.style.marginBottom = '8px';
+        lc.appendChild(t2);
+        comigo.forEach(function (x) {
+          lc.appendChild(linhaSimples({
+            titulo: x.areas.map(nomeDaArea).join(' e '),
+            sub: 'de ' + (x.donoNome || 'outra conta') + ' · toque para sair',
+            valor: '', selo: selo('#38BDF8', '⇄'),
+            aoTocar: function () {
+              perguntar({ titulo: 'Sair do compartilhamento?', texto: 'Você deixa de ver ' + x.areas.map(nomeDaArea).join(' e ') +
+                ' de ' + (x.donoNome || 'outra conta') + '. O que era seu nessa parte volta para a tela.', ok: 'Sair', tom: 'perigo' },
+                function () { fecharFolha(); responderConvite({ id: x.id }, false); });
+            }
+          }));
+        });
+        folha.appendChild(lc);
+      }
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', '+ Convidar', function () { abrirConvite(null); }));
+      folha.appendChild(acoes);
+    });
+    carregarCompartilhamentos();
+  }
+
+  function abrirConvite(l) {
+    var areas = l && Array.isArray(l.areas) ? l.areas.slice() : ['doces'];
+    abrirFolha(l ? 'Compartilhamento' : 'Convidar', function (folha) {
+      var forma = no('div', 'forma');
+      var email = entradaTexto(l ? l.convidado_email : '', 'email@da-outra-conta.com', 200);
+      email.type = 'email'; email.autocapitalize = 'off'; email.inputMode = 'email';
+      if (l) email.disabled = true;
+      forma.appendChild(campo('E-mail da conta dela no Finanz', email));
+      var chips = no('div', 'chips');
+      AREAS_COMPARTILHAVEIS.forEach(function (a) {
+        var b = botao('chip', a.nome, function () {
+          var i = areas.indexOf(a.id);
+          if (i >= 0) areas.splice(i, 1); else areas.push(a.id);
+          b.classList.toggle('ativo', areas.indexOf(a.id) >= 0);
+          b.setAttribute('aria-pressed', areas.indexOf(a.id) >= 0 ? 'true' : 'false');
+        });
+        b.classList.toggle('ativo', areas.indexOf(a.id) >= 0);
+        b.setAttribute('aria-pressed', areas.indexOf(a.id) >= 0 ? 'true' : 'false');
+        chips.appendChild(b);
+      });
+      forma.appendChild(campo('O que compartilhar', chips));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', l ? 'Salvar' : 'Enviar convite', function () {
+        var em = String(email.value || '').trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { mostrarErro(forma, 'Escreva o e-mail da conta dela.'); return; }
+        if (sessaoNuvem && sessaoNuvem.usuario.email && em === String(sessaoNuvem.usuario.email).toLowerCase()) {
+          mostrarErro(forma, 'Esse é o seu próprio e-mail.'); return;
+        }
+        if (!areas.length) { mostrarErro(forma, 'Escolha pelo menos uma parte.'); return; }
+        var pedido = l
+          // Recusado e salvo de novo: o convite volta a valer.
+          ? pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH',
+              corpo: { areas: areas, situacao: l.situacao === 'recusado' ? 'pendente' : l.situacao }, cabecalhos: { 'Prefer': 'return=minimal' } })
+          : pedirNuvem('/rest/v1/compartilhamentos', { metodo: 'POST', cabecalhos: { 'Prefer': 'return=minimal' },
+              corpo: [{ id: novoId(), dono_id: sessaoNuvem.usuario.id, dono_nome: String(estado.perfil.nome || '').slice(0, 80),
+                        convidado_email: em, areas: areas, situacao: 'pendente' }] });
+        pedido.then(function () {
+          fecharFolha();
+          avisar(l ? 'Compartilhamento atualizado.' : 'Convite enviado. Ela vê quando abrir o app.');
+          carregarCompartilhamentos();
+        }).catch(function (e) {
+          mostrarErro(forma, /duplicate|unique|23505/i.test(String((e && (e.message || e.codigo)) || ''))
+            ? 'Você já convidou esse e-mail. Abra o convite na lista para mudar.'
+            : 'Não deu para enviar agora. Confira a internet e tente de novo.');
+        });
+      }));
+      if (l) acoes.appendChild(botao('btn btn-perigo', 'Parar de compartilhar', function () {
+        perguntar({ titulo: 'Parar de compartilhar?', texto: l.convidado_email + ' deixa de ver o que você compartilhou. Os registros continuam seus.', ok: 'Parar', tom: 'perigo' }, function () {
+          pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'DELETE' }).then(function () {
+            fecharFolha();
+            avisar('Compartilhamento desfeito.');
+            carregarCompartilhamentos();
+          }).catch(function () { avisar('Não deu agora. Tente de novo com internet.'); });
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
   }
 
   function linhasDoEstado(uid) {
@@ -5955,9 +6271,15 @@
       });
     } else {
       var laVivos = {};
+      var euMesmo = sessaoNuvem && sessaoNuvem.usuario.id;
       r.empreendedor_registros.forEach(function (l) {
         var chave = MODULOS_NA_NUVEM[l.tipo];
         if (!chave) return;
+        // Cada área vem de um dono só: o meu, ou o de quem compartilhou
+        // comigo. As minhas linhas de uma área compartilhada ficam
+        // guardadas lá, fora da tela, até eu sair.
+        var donoEsperado = donoDaArea(areaDoTipo(l.tipo)) || euMesmo;
+        if (l.user_id && donoEsperado && l.user_id !== donoEsperado) return;
         var item = {};
         var dados = l.dados && typeof l.dados === 'object' ? l.dados : {};
         Object.keys(dados).forEach(function (k) { item[k] = dados[k]; });
@@ -6202,7 +6524,8 @@
     try { if (localStorage.getItem(CHAVE_RECUPERACAO)) return Promise.resolve(0); } catch (e) { return Promise.resolve(0); }
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(0);
     if (faltaNoBanco['tabela:empreendedor_registros']) return Promise.resolve(0);
-    var chaves = Object.keys(MODULOS_NA_NUVEM).map(function (t) { return MODULOS_NA_NUVEM[t]; });
+    var chaves = Object.keys(MODULOS_NA_NUVEM).filter(function (t) { return !donoDaArea(areaDoTipo(t)); })
+      .map(function (t) { return MODULOS_NA_NUVEM[t]; });
     var melhor = null, melhorTotal = 0;
     var naNuvem = {};
     return comTokenValido().then(function () {
@@ -6257,6 +6580,8 @@
     var tinhaFalha = !!falhaDaSincronia;
 
     return comTokenValido().then(function () {
+      return carregarCompartilhamentos();
+    }).then(function () {
       return carimboDaConta();
     }).then(function (carimbo) {
       // Sem carimbo (banco antigo) o app não sabe, então assume que mudou
@@ -8641,7 +8966,7 @@
     // de cada módulo o "+" faz o que aquele módulo mais faz.
     b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel'));
     b.setAttribute('aria-label', !emp ? 'Novo lançamento'
-      : moduloEmp === 'uber' ? 'Fechar o dia'
+      : moduloEmp === 'uber' ? 'Registrar no Uber'
       : moduloEmp === 'doces' ? 'Nova entrega' : 'Novo cliente');
   }
 
@@ -8983,6 +9308,81 @@
   // Sem isso, apagar as parcelas em aberto de uma venda já meio paga não
   // durava: o próximo pagamento de qualquer outra venda do cliente
   // refazia todas.
+  // O que falta receber de um registro: o valor dele mais os acréscimos
+  // que nasceram dele, menos o que entrou para ele (direto, por parcela
+  // ou pelo acréscimo). É a mesma conta do reencaixe abaixo.
+  function restanteDoRegistro(clienteId, servicoId) {
+    var sv = achar(estado.servicos, servicoId);
+    if (!sv) return 0;
+    var extras = [];
+    var acr = acrescimosPorRegistro(clienteId)[servicoId];
+    if (acr) extras.push(acr);
+    estado.servicos.forEach(function (x) {
+      if (x.clienteId === clienteId && x.acrescimoDe === servicoId && !ehAcrescimoDeParcelamento(x)) extras.push(x);
+    });
+    var ids = {};
+    extras.forEach(function (x) { ids[x.id] = true; });
+    var total = sv.valor + extras.reduce(function (t, x) { return t + x.valor; }, 0);
+    var pago = 0;
+    estado.pagamentos.forEach(function (pg) {
+      if (pg.clienteId !== clienteId) return;
+      var dele = pg.servicoId === servicoId || ids[pg.servicoId];
+      if (!dele && !pg.servicoId && pg.parcelaId) {
+        var par = achar(estado.parcelas, pg.parcelaId);
+        dele = !!(par && par.servicoId === servicoId);
+      }
+      if (dele) pago += pg.valor;
+    });
+    return Math.max(total - pago, 0);
+  }
+
+  // Registro cujas parcelas em aberto a pessoa apagou de propósito: o app
+  // não refaz o combinado dele. Fica em estado.revisados (sobe para a
+  // nuvem) como 'fora', na chave 'semparcela:' + id do registro.
+  function planoEncerrado(servicoId) {
+    return !!(estado.revisados && estado.revisados['semparcela:' + servicoId] === 'fora');
+  }
+
+  // O que as parcelas em aberto de um registro ainda cobram, sem juros.
+  function abertoNasParcelas(clienteId, servicoId) {
+    return estado.parcelas.reduce(function (t, p) {
+      if (p.clienteId !== clienteId || (p.servicoId || '') !== (servicoId || '') || parcelaPaga(p)) return t;
+      return t + Math.max(p.valor - pagoNaParcela(p), 0);
+    }, 0);
+  }
+
+  // Ao abrir a aba Parcelas: registro cujo combinado ficou curto (pagou
+  // menos numa parcela e a diferença não virou parcela nova) ganha as
+  // parcelas que faltam, do mesmo tamanho, no fim. Só cria até o que o
+  // cliente deve de fato e não está em parcela nenhuma: pagamento lançado
+  // sem registro não pode virar parcela a mais.
+  function completarParcelasDoCliente(clienteId) {
+    var r = resumoCliente(clienteId);
+    var emParcela = 0, semPlano = 0;
+    var registros = {};
+    estado.parcelas.forEach(function (p) { if (p.clienteId === clienteId && p.servicoId) registros[p.servicoId] = true; });
+    estado.parcelas.forEach(function (p) {
+      if (p.clienteId === clienteId && !parcelaPaga(p)) emParcela += Math.max(p.valor - pagoNaParcela(p), 0);
+    });
+    servicosDoCliente(clienteId).forEach(function (sv) {
+      if (ehAcrescimoDeParcelamento(sv) || sv.acrescimoDe) return;
+      if (!registros[sv.id]) semPlano += restanteDoRegistro(clienteId, sv.id);
+      else if (planoEncerrado(sv.id)) semPlano += Math.max(restanteDoRegistro(clienteId, sv.id) - abertoNasParcelas(clienteId, sv.id), 0);
+    });
+    var livre = Math.max(r.restante, 0) - emParcela - semPlano;
+    var criadas = 0;
+    Object.keys(registros).forEach(function (sid) {
+      if (!achar(estado.servicos, sid) || planoEncerrado(sid)) return;
+      var curto = restanteDoRegistro(clienteId, sid) - abertoNasParcelas(clienteId, sid);
+      if (curto <= 100 || curto > livre + 100) return;
+      var antes = estado.parcelas.length;
+      acertarParcelas(clienteId, null, null, sid);
+      criadas += Math.max(estado.parcelas.length - antes, 0);
+      livre -= curto;
+    });
+    return criadas;
+  }
+
   function acertarParcelas(clienteId, parcelaBase, fixaId, focoServicoId) {
     var todasDoCliente = parcelasDoCliente(clienteId);
     if (!todasDoCliente.length) return;
@@ -9422,7 +9822,7 @@
   function desenharInicio() {
     var tela = $('telaInicio');
     marcarRedesenho(tela, [abaInicio, moduloEmp, abaServicos, janelaServicos, filtroRegistros,
-      abaUber, abaGastosUber, abaDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
+      abaUber, abaGastosUber, abaDoces, abaProdutosDoces, mesAtivo.ano, mesAtivo.mes].join('|'));
     tela.textContent = '';
 
     // O extrato das contas fica pronto só enquanto a Visão geral está
@@ -10483,7 +10883,7 @@
   }
 
   function acaoDoFabNoEmpreendedor() {
-    if (moduloEmp === 'uber') abrirFechamentoDoDia(hojeTexto());
+    if (moduloEmp === 'uber') abrirMenuDoUber();
     else if (moduloEmp === 'doces') abrirFolhaEntrega(null, '');
     else if (moduloEmp === 'servicos') abrirFolhaCliente(null);
   }
@@ -10512,7 +10912,11 @@
     var rotuloEl = no('div', 'rotulo', rotulo.charAt(0).toUpperCase() + rotulo.slice(1));
     rotuloEl.setAttribute('aria-label', MESES[mesAtivo.mes] + ' de ' + mesAtivo.ano);
     juntar(sel, antes, rotuloEl, depois);
-    juntar(c, voltar, no('h1', null, titulo), sel);
+    var tituloEl = no('h1', null, titulo);
+    var areaAqui = moduloEmp === 'doces' ? 'doces' : moduloEmp === 'uber' ? 'uber' : '';
+    var deQuem = areaAqui ? quemCompartilhou(areaAqui) : '';
+    if (deQuem) tituloEl.appendChild(no('span', 'modulo-de-quem', 'de ' + deQuem));
+    juntar(c, voltar, tituloEl, sel);
     return c;
   }
 
@@ -11135,8 +11539,10 @@
   // pela média do carro, ao preço do litro daquele dia. O que se abasteceu
   // além disso foi para outra coisa (mercado, passeio) e não entra na conta.
   function combustivelDoDia(x) {
-    if (!x.km || !x.kmPorLitro || !x.precoLitro) return 0;
-    return Math.round(x.km / x.kmPorLitro * x.precoLitro);
+    if (x.km && x.kmPorLitro && x.precoLitro) return Math.round(x.km / x.kmPorLitro * x.precoLitro);
+    // Sem a média (esqueceu de olhar): o que abasteceu no dia vira o gasto.
+    // Pode passar do real, mas é melhor que lucro sem combustível nenhum.
+    return x.abastecido || 0;
   }
 
   function fechamentoDoDia(data) {
@@ -11220,40 +11626,26 @@
     var j = jornadaAberta();
     var hoje = hojeTexto();
 
-    var c = cartao('jornada-cartao');
-    var anel = no('div', 'anel-jornada' + (j ? (j.pausaDesde ? ' pausada' : ' ativa') : ''));
-    var dentro = no('div', 'anel-dentro');
-    var carro = no('div', 'anel-carro');
-    carro.appendChild(icone('carro'));
-    var tempo = no('div', 'anel-tempo num', formatarRelogio(j ? duracaoJornada(j) : 0));
-    if (j && !j.pausaDesde) tempo.setAttribute('data-relogio', '1');
-    juntar(dentro, carro, tempo);
-    anel.appendChild(dentro);
-    c.appendChild(anel);
-    c.appendChild(no('div', 'jornada-status ' + (j ? (j.pausaDesde ? 'ouro' : 'verde') : ''),
-      j ? (j.pausaDesde ? 'Jornada pausada' : 'Jornada em andamento') : 'Nenhuma jornada aberta'));
-    if (j) c.appendChild(no('div', 'linha-nota centro', 'Começou ' + (dataDeMarca(j.inicio) === hoje ? 'hoje' : 'em ' + dataBr(dataDeMarca(j.inicio))) +
-      ' às ' + new Date(j.inicio).toTimeString().slice(0, 5)));
-
-    var botoes = no('div', 'jornada-botoes');
-    if (!j) {
-      botoes.appendChild(botao('btn btn-ouro', 'Iniciar jornada', iniciarJornada));
-    } else {
-      botoes.appendChild(botao('btn btn-fantasma', j.pausaDesde ? 'Retomar' : 'Pausar', function () { pausarJornada(j); }));
-      botoes.appendChild(botao('btn btn-perigo', 'Encerrar jornada', function () { encerrarJornada(j); }));
+    // O cronômetro saiu (03/11/2026): o tempo online entra à mão no
+    // "Fechar o dia", copiado do app da Uber. Só aparece alguma coisa aqui
+    // se ficou uma jornada antiga ligada, ou se o dia tem jornadas para
+    // corrigir ou apagar.
+    if (j) {
+      var cj = cartao('jornada-antiga');
+      cj.appendChild(no('div', 'linha-nota', 'Ficou um cronômetro ligado desde ' +
+        (dataDeMarca(j.inicio) === hoje ? 'hoje' : dataBr(dataDeMarca(j.inicio))) + ' às ' +
+        new Date(j.inicio).toTimeString().slice(0, 5) + '. O tempo agora entra pelo "Fechar o dia".'));
+      cj.appendChild(botao('btn btn-fantasma', 'Desligar o cronômetro', function () { encerrarJornada(j); }));
+      corpo.appendChild(cj);
     }
-    c.appendChild(botoes);
-    corpo.appendChild(c);
-
-    // Tempo de hoje, somado pelo cronômetro, com o lápis para corrigir.
     var msHoje = msDoDia(hoje);
     if (msHoje || estado.uberJornadas.some(function (x) { return dataDeMarca(x.inicio) === hoje; })) {
-      c.appendChild(botao('tempo-do-dia', 'Tempo de hoje: ' + formatarHoras(msHoje) + ' · editar', function () { abrirTempoDoDia(hoje); }));
+      corpo.appendChild(botao('tempo-do-dia', 'Tempo de hoje: ' + formatarHoras(msHoje) + ' · editar', function () { abrirTempoDoDia(hoje); }));
     }
 
     var fechado = fechamentoDoDia(hoje);
-    var n = j && !fechado ? numerosDoUber(null, null, j) : numerosDoUber(hoje, hoje);
-    corpo.appendChild(no('div', 'secao-rotulo', j && !fechado ? 'Nesta jornada' : 'Hoje'));
+    var n = numerosDoUber(hoje, hoje);
+    corpo.appendChild(no('div', 'secao-rotulo', 'Hoje'));
     corpo.appendChild(gradeDeTiles([
       tile('Corridas', String(n.corridas), ''),
       tile('Distância', decimalBr(n.km) + ' km', ''),
@@ -11280,14 +11672,14 @@
     corpo.appendChild(acoes);
 
     var corridas = estado.uberRegistros.filter(function (x) {
-      return (x.tipo === 'corrida' || x.tipo === 'dia') && (j && !fechado ? x.jornadaId === j.id : x.data === hoje);
+      return (x.tipo === 'corrida' || x.tipo === 'dia') && x.data === hoje;
     }).sort(ordemUber);
     var cl = cartao('liso');
     var topo = topoDeCartao('Registros de hoje', 'Ver histórico', function () { abaUber = 'historico'; desenharInicio(); });
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     cl.appendChild(topo);
-    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado ' + (j ? 'nesta jornada' : 'hoje'), 'No fim do dia, toque em "Fechar o dia" e passe o que o app da Uber mostrou.'));
+    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado hoje', 'No fim do dia, toque em "Fechar o dia" e passe o que o app da Uber mostrou.'));
     corridas.slice(0, 10).forEach(function (x) { cl.appendChild(linhaUber(x)); });
     corpo.appendChild(cl);
 
@@ -11366,6 +11758,24 @@
     });
   }
 
+  // O "+" do Uber pergunta o que é: o fechamento do dia, um gasto ou uma
+  // corrida avulsa (pedido de 03/11/2026).
+  function abrirMenuDoUber() {
+    var hoje = hojeTexto();
+    abrirEscolha({ titulo: 'O que você quer registrar?', semMarca: true, opcoes: [
+      { valor: 'fechar', rotulo: fechamentoDoDia(hoje) ? 'Editar o fechamento de hoje' : 'Fechamento de hoje',
+        detalhe: 'ganhos, viagens, tempo online e combustível' },
+      { valor: 'abastecer', rotulo: 'Abastecimento', detalhe: 'litros e preço do litro' },
+      { valor: 'gasto', rotulo: 'Outras despesas', detalhe: 'lavagem, manutenção, pedágio, aluguel do carro' },
+      { valor: 'corrida', rotulo: 'Corrida avulsa', detalhe: 'particular, ou paga depois' }
+    ] }, function (v) {
+      if (v === 'fechar') abrirFechamentoDoDia(hoje);
+      else if (v === 'abastecer') abrirFolhaAbastecimento(null);
+      else if (v === 'gasto') abrirFolhaGastoUber(null);
+      else if (v === 'corrida') abrirFolhaCorrida(null);
+    });
+  }
+
   // ---------- Fechamento do dia e tempo trabalhado ----------
 
   function msDoDia(data) {
@@ -11424,7 +11834,7 @@
       forma.appendChild(campo('Tempo online (horas:minutos)', tempo));
       forma.appendChild(no('p', 'ajuda ajuda-campo', cronometro
         ? 'O cronômetro contou ' + textoHoras(cronometro) + '. Se der diferença do app da Uber, corrija aqui.'
-        : 'Sem cronômetro neste dia: escreva o tempo online do app da Uber.'));
+        : 'Escreva o tempo online que o app da Uber mostra para o dia.'));
 
       forma.appendChild(no('div', 'rotulo-secao', 'Combustível'));
       var km = entradaDecimal(x ? x.km : 0, 1, 'Ex.: 120,5');
@@ -11444,7 +11854,7 @@
         var v = digitosParaCentavos(valor.value), k = lerDecimal(km.value), md = lerDecimal(media.value);
         var pr = digitosParaCentavos(preco.value), ab = digitosParaCentavos(abastecido.value);
         var mins = lerHoras(tempo.value);
-        var comb = combustivelDoDia({ km: k, kmPorLitro: md, precoLitro: pr });
+        var comb = combustivelDoDia({ km: k, kmPorLitro: md, precoLitro: pr, abastecido: ab });
         var outras = 0;
         estado.uberRegistros.forEach(function (r) {
           if (r.tipo === 'despesa' && r.data === campoData.value) outras += r.valor;
@@ -11452,12 +11862,17 @@
         var lucro = v - comb - outras;
         resumo.textContent = '';
         function par(rot, txt, cor) { juntar(resumo, no('span', null, rot), no('strong', 'num ' + (cor || ''), txt)); }
-        par('Combustível do Uber', md && pr && k ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)' : 'preencha km, média e preço', 'vermelho');
+        par('Combustível do Uber', md && pr && k ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)'
+          : ab ? '− ' + emReais(ab) + ' (o abastecido)' : 'preencha km, média e preço', 'vermelho');
         if (outras) par('Outras despesas do dia', '− ' + emReais(outras), 'vermelho');
         par('Lucro do dia', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde');
         if (k) par('Ganho por km', emReais(Math.round(v / k)) + ' · lucro ' + emReais(Math.round(lucro / k)), '');
         if (mins) par('Ganho por hora', emReais(Math.round(v / (mins / 60))) + ' · lucro ' + emReais(Math.round(lucro / (mins / 60))), '');
-        if (ab > comb && comb) {
+        if (ab && !(md && pr && k)) {
+          resumo.appendChild(no('div', 'linha-nota fechamento-nota',
+            'Sem a média do carro, o gasto é o que você abasteceu. Com a média, o app separa o que foi do Uber.'));
+        }
+        if (ab > comb && comb && md && pr && k) {
           resumo.appendChild(no('div', 'linha-nota fechamento-nota',
             emReais(ab - comb) + ' do abastecimento foram para outros usos e não entram no lucro.'));
         }
@@ -12153,8 +12568,9 @@
       var l = linhaSimples({
         titulo: v.nome + (v.ativo ? '' : ' (inativo)'),
         sub: c.vendidosPeriodo + ' un. vendidas em ' + MESES[mesAtivo.mes] + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
-        valor: c.pendente > 0 ? emReais(c.pendente) : 'em dia',
-        cor: c.pendente > 0 ? 'ouro' : 'verde',
+        // Sem nada devido, o que os doces com ele devem render (estimativa).
+        valor: c.pendente > 0 ? emReais(c.pendente) : estimativaDoVendedor(c) ? '~' + emReais(estimativaDoVendedor(c)) : 'em dia',
+        cor: c.pendente > 0 || estimativaDoVendedor(c) ? 'ouro' : 'verde',
         nota: 'lucro ' + emReais(c.lucroPeriodo), corNota: 'verde',
         selo: selo(v.ativo ? '#E9B44C' : '#7C7362', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirVendedorDoce(v.id); }
@@ -12172,8 +12588,8 @@
     if (n.recebido + n.pendente > 0) linhaTotal.appendChild(rosca(seg, n.recebido + n.pendente, 'Repasses'));
     t.appendChild(linhaTotal);
     t.appendChild(gradeDeTiles([
-      tile('Repasse do mês', emReais(n.faturamento), 'ouro'),
-      tile('Recebido no mês', emReais(n.recebido), 'verde'),
+      tile('Repasses', emReais(n.faturamento), 'ouro'),
+      tile('Recebido', emReais(n.recebido), 'verde'),
       tile('A receber', emReais(n.pendente), 'ouro')
     ], 3));
     t.appendChild(gradeDeTiles([
@@ -12195,8 +12611,47 @@
       return b.criadoEm - a.criadoEm;
     });
     if (!entregas.length) lista.appendChild(estadoVazio('Nenhuma entrega ainda', 'Cada vez que você deixa doces com um vendedor, registre aqui.'));
-    entregas.slice(0, 200).forEach(function (e) { lista.appendChild(linhaDeEntrega(e)); });
+    // Uma linha por vendedor (pedido de 03/11/2026); tocando, abrem os
+    // doces que foram para ele.
+    var porVendedor = {}, ordem = [];
+    entregas.forEach(function (e) {
+      if (!porVendedor[e.vendedorId]) { porVendedor[e.vendedorId] = []; ordem.push(e.vendedorId); }
+      porVendedor[e.vendedorId].push(e);
+    });
+    ordem.forEach(function (vid) {
+      var dele = porVendedor[vid];
+      var un = dele.reduce(function (t, e) { return t + e.quantidade; }, 0);
+      var repasse = dele.reduce(function (t, e) { return t + e.quantidade * e.repasse; }, 0);
+      var venda = dele.reduce(function (t, e) { return t + e.quantidade * e.preco; }, 0);
+      var nome = nomeDoVendedor(vid);
+      lista.appendChild(linhaSimples({
+        titulo: nome,
+        sub: dele.length + (dele.length === 1 ? ' entrega' : ' entregas') + ' · ' + un + ' un. · última ' + dataCurta(dele[0].data),
+        valor: emReais(repasse), cor: 'ouro',
+        nota: 'venda ' + emReais(venda),
+        selo: selo('#E9B44C', nome.charAt(0).toUpperCase()),
+        aoTocar: function () { abrirEntregasDoVendedor(vid); }
+      }));
+    });
     corpo.appendChild(lista);
+  }
+
+  function abrirEntregasDoVendedor(vid) {
+    var dele = estado.doceEntregas.filter(function (e) { return e.vendedorId === vid; }).sort(function (a, b) {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return b.criadoEm - a.criadoEm;
+    });
+    abrirFolha('Entregas · ' + nomeDoVendedor(vid), function (folha) {
+      var lista = cartao('liso');
+      if (!dele.length) lista.appendChild(estadoVazio('Nenhuma entrega', 'As entregas deste vendedor aparecem aqui.'));
+      dele.forEach(function (e) { lista.appendChild(linhaDeEntrega(e, function () { abrirEntregasDoVendedor(vid); })); });
+      folha.appendChild(lista);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', '+ Nova entrega para ' + nomeDoVendedor(vid), function () {
+        porCima(function () { abrirEntregasDoVendedor(vid); }, function () { abrirFolhaEntrega(null, vid, true); });
+      }));
+      folha.appendChild(acoes);
+    });
   }
 
   function linhaDeEntrega(e, reabrir) {
@@ -12211,6 +12666,12 @@
         else abrirFolhaEntrega(e.id, '');
       }
     });
+  }
+
+  // Quanto os doces que estão com o vendedor rendem para você vendidos:
+  // estoque de cada um vezes o repasse (o custo mais a sua comissão).
+  function estimativaDoVendedor(c) {
+    return c.produtos.reduce(function (t, x) { return t + Math.max(x.estoque, 0) * x.repasse; }, 0);
   }
 
   // As entregas deste doce feitas depois da última prestação de contas.
@@ -12263,8 +12724,10 @@
       lista.appendChild(linhaSimples({
         titulo: v.nome,
         sub: Math.max(c.estoque, 0) + ' doce(s) em estoque' + (quando ? ' · ' + quando : ''),
-        valor: c.pendente > 0 ? emReais(c.pendente) : 'em dia', cor: c.pendente > 0 ? 'ouro' : 'verde',
-        nota: 'Prestar contas ›', corNota: 'ouro',
+        // O que esses doces devem render para você se forem vendidos: o
+        // repasse de cada um (custo + a sua comissão). Já devendo, soma.
+        valor: emReais(estimativaDoVendedor(c) + Math.max(c.pendente, 0)), cor: 'ouro',
+        nota: (c.pendente > 0 ? emReais(c.pendente) + ' já devido · ' : 'estimativa · ') + 'prestar ›', corNota: 'ouro',
         selo: selo('#E9B44C', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirPrestacaoDeContas(v.id); }
       }));
@@ -12283,17 +12746,28 @@
     corpo.appendChild(hist);
   }
 
+  // Produtos e Fornecedor dividem a aba: as quatro de cima já ocupam a
+  // linha inteira, e a compra é do mesmo assunto que o produto.
+  var abaProdutosDoces = 'produtos';
+
   function desenharProdutosDoces(corpo) {
+    var sub = segmentos([{ valor: 'produtos', rotulo: 'Produtos' }, { valor: 'fornecedor', rotulo: 'Fornecedor' }],
+      abaProdutosDoces, function (v) { if (v === abaProdutosDoces) return; abaProdutosDoces = v; desenharInicio(); });
+    sub.classList.add('segmentos-pequenos', 'sub-produtos');
+    corpo.appendChild(sub);
+    if (abaProdutosDoces === 'fornecedor') { desenharFornecedorDoces(corpo); return; }
     var acoes = no('div', 'acoes acoes-topo');
     acoes.appendChild(botao('btn btn-ouro', '+ Novo produto', function () { abrirFolhaProduto(null); }));
     corpo.appendChild(acoes);
+    var pendentes = cartaoDeAjustesPendentes();
+    if (pendentes) corpo.appendChild(pendentes);
     var lista = cartao('liso');
     if (!estado.doceProdutos.length) lista.appendChild(estadoVazio('Nenhum produto ainda', 'Cadastre cada doce com o valor de repasse e o preço de venda.'));
     estado.doceProdutos.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome); }).forEach(function (p) {
+      var est = meuEstoqueDoce(p.id);
       lista.appendChild(linhaSimples({
         titulo: p.nome + (p.ativo ? '' : ' (inativo)'),
-        sub: (p.custo ? 'Compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco) +
-          ' · revendedor ' + emReais(Math.max(p.preco - p.repasse, 0)) + ' · para mim ' + emReais(p.repasse),
+        sub: 'Estoque ' + est + ' un. · ' + (p.custo ? 'compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco),
         valor: emReais(p.preco - p.repasse), cor: 'verde',
         nota: 'lucro do vendedor',
         selo: seloIcone('doce', '#F472B6'),
@@ -12301,6 +12775,254 @@
       }));
     });
     corpo.appendChild(lista);
+  }
+
+  // ---------- Fornecedor: compras e o seu estoque ----------
+
+  // O que está com você: o que comprou, menos o que entregou aos
+  // vendedores, mais o que eles devolveram.
+  function meuEstoqueDoce(produtoId) {
+    var t = 0;
+    estado.doceCompras.forEach(function (x) { if (x.produtoId === produtoId) t += x.quantidade; });
+    estado.doceEntregas.forEach(function (e) { if (e.produtoId === produtoId) t -= e.quantidade; });
+    estado.doceAcertos.forEach(function (a) {
+      a.itens.forEach(function (i) { if (i.produtoId === produtoId) t += i.devolvidos; });
+    });
+    estado.doceAjustes.forEach(function (x) { if (x.produtoId === produtoId && x.situacao === 'aprovado') t += x.quantidade; });
+    return t;
+  }
+
+  // Há sócio nesta Venda de Doces? (Compartilhada comigo, ou compartilhada
+  // por mim com alguém que aceitou.) Sem sócio, ajuste vale na hora.
+  function temSocioNosDoces() {
+    if (donoDaArea('doces')) return true;
+    return meusConvites.some(function (l) {
+      return l.situacao === 'aceito' && Array.isArray(l.areas) && l.areas.indexOf('doces') >= 0;
+    });
+  }
+
+  function meuIdNaNuvem() { return (sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || 'aqui'; }
+
+  function abrirAjusteDeEstoque(produtoId, reabrir) {
+    var sinal = 1, quantidade = 0;
+    abrirFolha('Ajustar estoque · ' + nomeDoProduto(produtoId), function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'ajuda', 'Com você agora: ' + meuEstoqueDoce(produtoId) + ' un.'));
+      forma.appendChild(campo('O que fazer', segmentosLocais([{ valor: 1, rotulo: 'Aumentar' }, { valor: -1, rotulo: 'Diminuir' }], 1,
+        function (v) { sinal = v; })));
+      forma.appendChild(campo('Quantidade', contadorDigitavel(0, function (v) { quantidade = v; })));
+      var motivo = entradaTexto('', 'Ex.: contagem do estoque, doce estragou', 120);
+      forma.appendChild(campo('Motivo', motivo));
+      var socio = temSocioNosDoces();
+      forma.appendChild(no('p', 'ajuda', socio
+        ? 'Como a Venda de Doces é compartilhada, o ajuste só entra no estoque depois que o seu sócio confirmar.'
+        : 'Sem sócio nesta Venda de Doces: o ajuste entra no estoque na hora.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', socio ? 'Pedir confirmação' : 'Ajustar', function () {
+        if (quantidade <= 0) { mostrarErro(forma, 'Informe a quantidade.'); return; }
+        if (!motivo.value.trim()) { mostrarErro(forma, 'Escreva o motivo: é ele que o sócio vai ver.'); return; }
+        estado.doceAjustes.push({ id: novoId(), produtoId: produtoId, quantidade: sinal * quantidade, motivo: motivo.value.trim().slice(0, 120),
+          data: hojeTexto(), criadoPor: meuIdNaNuvem(), criadoPorNome: String(estado.perfil.nome || '').slice(0, 60),
+          situacao: socio ? 'pendente' : 'aprovado', decididoPorNome: '', criadoEm: Date.now() });
+        salvar();
+        fecharOuVoltar(!!reabrir);
+        desenhar();
+        avisar(socio ? 'Pedido enviado. Entra no estoque quando o sócio confirmar.' : 'Estoque ajustado.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function decidirAjuste(x, aprovar) {
+    x.situacao = aprovar ? 'aprovado' : 'recusado';
+    x.decididoPorNome = String(estado.perfil.nome || '').slice(0, 60);
+    salvar();
+    desenhar();
+    avisar(aprovar ? 'Ajuste confirmado: entrou no estoque.' : 'Ajuste recusado.');
+  }
+
+  // Os ajustes esperando confirmação, no topo de Produtos. Quem pediu vê
+  // "esperando o sócio"; o outro sócio vê Confirmar e Recusar.
+  function cartaoDeAjustesPendentes() {
+    var pend = estado.doceAjustes.filter(function (x) { return x.situacao === 'pendente'; });
+    if (!pend.length) return null;
+    var c = cartao('liso cartao-ajustes');
+    var t = topoDeCartao('Ajustes de estoque para confirmar', null);
+    t.style.padding = '16px 16px 0'; t.style.marginBottom = '8px';
+    c.appendChild(t);
+    pend.forEach(function (x) {
+      var meu = x.criadoPor === meuIdNaNuvem();
+      c.appendChild(linhaSimples({
+        titulo: nomeDoProduto(x.produtoId) + ' · ' + (x.quantidade > 0 ? '+' : '−') + Math.abs(x.quantidade) + ' un.',
+        sub: (meu ? 'você pediu' : (x.criadoPorNome || 'o sócio') + ' pediu') + ' · ' + x.motivo,
+        valor: meu ? 'esperando' : 'confirmar', cor: meu ? '' : 'ouro',
+        selo: selo(meu ? '#38BDF8' : '#E9B44C', '±'),
+        aoTocar: function () {
+          if (meu) {
+            perguntar({ titulo: 'Cancelar o pedido?', texto: 'O ajuste ainda não entrou no estoque. Cancelando, ele some.', ok: 'Cancelar pedido', cancelar: 'Manter', tom: 'perigo' }, function () {
+              marcarExcluido('empreendedor_registros', x.id);
+              estado.doceAjustes = estado.doceAjustes.filter(function (y) { return y.id !== x.id; });
+              salvar(); desenhar(); avisar('Pedido cancelado.');
+            });
+            return;
+          }
+          abrirEscolha({ titulo: (x.criadoPorNome || 'O sócio') + ' pediu ' + (x.quantidade > 0 ? '+' : '−') + Math.abs(x.quantidade) + ' un. de ' + nomeDoProduto(x.produtoId),
+            opcoes: [{ valor: 'sim', rotulo: 'Confirmar', detalhe: 'entra no estoque agora' },
+                     { valor: 'nao', rotulo: 'Recusar', detalhe: 'o estoque fica como está' }] }, function (v) {
+            if (!v) return;
+            decidirAjuste(x, v === 'sim');
+          });
+        }
+      }));
+    });
+    return c;
+  }
+
+  function desenharFornecedorDoces(corpo) {
+    var acoes = no('div', 'acoes acoes-topo');
+    acoes.appendChild(botao('btn btn-ouro', '+ Nova compra', function () { abrirFolhaCompraDoce(null); }));
+    corpo.appendChild(acoes);
+
+    var f = faixaDoMesAtivo();
+    var doMes = estado.doceCompras.filter(function (x) { return x.data >= f.de && x.data <= f.ate; });
+    var gasto = doMes.reduce(function (t, x) { return t + x.valor; }, 0);
+    var un = doMes.reduce(function (t, x) { return t + x.quantidade; }, 0);
+    var cm = cartao();
+    cm.appendChild(topoDeCartao('Compras de ' + MESES[mesAtivo.mes], null));
+    cm.appendChild(gradeDeTiles([
+      tile('Gasto em compras', emReais(gasto), 'vermelho'),
+      tile('Unidades', String(un), '')
+    ], 2));
+    cm.appendChild(no('div', 'linha-nota', 'O lucro dos doces já desconta o valor de compra de cada unidade vendida, então a compra não entra de novo como despesa.'));
+    corpo.appendChild(cm);
+
+    var comCompra = {};
+    estado.doceCompras.forEach(function (x) { comCompra[x.produtoId] = true; });
+    estado.doceAjustes.forEach(function (x) { if (x.situacao === 'aprovado') comCompra[x.produtoId] = true; });
+    var ids = Object.keys(comCompra);
+    if (ids.length) {
+      var ce = cartao('liso');
+      var t1 = topoDeCartao('Seu estoque', null);
+      t1.style.padding = '16px 16px 0'; t1.style.marginBottom = '8px';
+      ce.appendChild(t1);
+      ids.forEach(function (pid) {
+        var q = meuEstoqueDoce(pid);
+        ce.appendChild(linhaSimples({
+          titulo: nomeDoProduto(pid),
+          sub: 'com você agora',
+          valor: q + ' un.', cor: q < 0 ? 'vermelho' : '',
+          selo: seloIcone('pacote', '#E9B44C')
+        }));
+      });
+      corpo.appendChild(ce);
+    }
+
+    var lista = cartao('liso');
+    var t2 = topoDeCartao('Compras', null);
+    t2.style.padding = '16px 16px 0'; t2.style.marginBottom = '8px';
+    lista.appendChild(t2);
+    var todas = estado.doceCompras.slice().sort(function (a, b) {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return b.criadoEm - a.criadoEm;
+    });
+    if (!todas.length) lista.appendChild(estadoVazio('Nenhuma compra ainda', 'Registre cada compra do fornecedor: o doce, a quantidade e quanto pagou.'));
+    todas.slice(0, 200).forEach(function (x) {
+      lista.appendChild(linhaSimples({
+        titulo: nomeDoProduto(x.produtoId) + ' · ' + x.quantidade + ' un.',
+        sub: dataBr(x.data) + (x.fornecedor ? ' · ' + x.fornecedor : '') + ' · ' + emReais(Math.round(x.valor / x.quantidade)) + ' cada',
+        valor: '− ' + emReais(x.valor), cor: 'vermelho',
+        selo: seloIcone('pacote', '#FF6B6B'),
+        aoTocar: function () { abrirFolhaCompraDoce(x.id); }
+      }));
+    });
+    corpo.appendChild(lista);
+  }
+
+  var ultimoFornecedor = '';
+
+  function abrirFolhaCompraDoce(id) {
+    var x = id ? achar(estado.doceCompras, id) : null;
+    var produtos = estado.doceProdutos.filter(function (p) { return p.ativo || (x && p.id === x.produtoId); });
+    if (!produtos.length) {
+      avisarCaixa('Cadastre o doce primeiro', 'A compra é de um produto: cadastre ele em Produtos e volte aqui.', function () {});
+      return;
+    }
+    var d = { produtoId: x ? x.produtoId : produtos[0].id, quantidade: x ? x.quantidade : 0 };
+    abrirFolha(x ? 'Editar compra' : 'Nova compra', function (folha) {
+      var forma = no('div', 'forma');
+      var valor = entradaValor(x ? x.valor : 0, true);
+      forma.appendChild(campo('Valor pago', valor));
+      var selP = entradaSelecao(produtos.map(function (p) {
+        return { valor: p.id, rotulo: p.nome, detalhe: p.custo ? 'compra ' + emReais(p.custo) + ' cada' : '' };
+      }), d.produtoId, 'Doce');
+      selP.aoMudar = function (v) { d.produtoId = v; pintar(); };
+      forma.appendChild(campo('Doce', selP));
+      var qtd = contadorDigitavel(d.quantidade, function (v) { d.quantidade = v; pintar(); });
+      forma.appendChild(campo('Quantidade comprada', qtd));
+      var forn = entradaTexto(x ? x.fornecedor : ultimoFornecedor, 'Ex.: Atacadão', 60);
+      forma.appendChild(campo('Fornecedor (opcional)', forn));
+      var data = entradaData(x ? x.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var obs = entradaTexto(x ? x.obs : '', 'Ex.: nota 1234', 200);
+      forma.appendChild(campo('Observação (opcional)', obs));
+
+      var atualizar = true;
+      var resumo = no('div', 'total-calculado');
+      forma.appendChild(resumo);
+      var marcar = botao('lembrar', null, function () {
+        atualizar = !atualizar;
+        marcar.setAttribute('aria-pressed', atualizar ? 'true' : 'false');
+        marcar.querySelector('.caixinha').textContent = atualizar ? '✓' : '';
+      });
+      marcar.setAttribute('aria-pressed', 'true');
+      marcar.appendChild(no('span', 'caixinha', '✓'));
+      var textoMarcar = no('span', null, '');
+      marcar.appendChild(textoMarcar);
+      forma.appendChild(marcar);
+
+      function pintar() {
+        var v = digitosParaCentavos(valor.value), q = d.quantidade;
+        var cada = q ? Math.round(v / q) : 0;
+        resumo.textContent = '';
+        juntar(resumo, no('span', null, 'Custo de cada unidade'), no('strong', 'num', q ? emReais(cada) : '—'));
+        var p = achar(estado.doceProdutos, d.produtoId);
+        textoMarcar.textContent = 'Usar ' + (q ? emReais(cada) : 'esse valor') + ' como valor de compra de ' + (p ? p.nome : 'o doce');
+      }
+      valor.addEventListener('input', pintar);
+      pintar();
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', x ? 'Salvar compra' : 'Registrar compra', function () {
+        var v = digitosParaCentavos(valor.value);
+        if (v <= 0) { mostrarErro(forma, 'Informe quanto pagou.'); return; }
+        if (d.quantidade <= 0) { mostrarErro(forma, 'Informe quantas unidades comprou.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        var reg = x || { id: novoId(), criadoEm: Date.now() };
+        reg.produtoId = d.produtoId; reg.quantidade = d.quantidade; reg.valor = v;
+        reg.fornecedor = forn.value.trim().slice(0, 60); reg.data = data.value; reg.obs = obs.value.trim().slice(0, 200);
+        if (!x) estado.doceCompras.push(reg);
+        ultimoFornecedor = reg.fornecedor;
+        var p = achar(estado.doceProdutos, reg.produtoId);
+        if (atualizar && p) p.custo = Math.round(v / d.quantidade);
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar(x ? 'Compra atualizada.' : 'Compra registrada: ' + reg.quantidade + ' un. de ' + nomeDoProduto(reg.produtoId) + '.');
+      }));
+      if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
+        perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + x.quantidade + ' un.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', x.id);
+          estado.doceCompras = estado.doceCompras.filter(function (y) { return y.id !== x.id; });
+          salvar();
+          fecharFolha();
+          desenhar();
+          avisar('Compra excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
   }
 
   // Entregas, acertos e pagamentos numa linha do tempo só.
@@ -12537,6 +13259,15 @@
       custo.addEventListener('input', pintar);
       pintar();
       forma.appendChild(campo('Situação', segmentosLocais([{ valor: true, rotulo: 'Ativo' }, { valor: false, rotulo: 'Inativo' }], ativo, function (x) { ativo = x; })));
+      if (p) {
+        var cEst = cartao('estoque-produto');
+        juntar(cEst, juntar(no('div', 'resumo-linha'), no('span', null, 'Estoque com você'),
+          no('strong', 'num', meuEstoqueDoce(p.id) + ' un.')));
+        cEst.appendChild(botao('btn btn-fantasma', 'Ajustar estoque', function () {
+          porCima(function () { abrirFolhaProduto(p.id, deCima, aoCriar); }, function () { abrirAjusteDeEstoque(p.id, true); });
+        }));
+        forma.appendChild(cEst);
+      }
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar produto', function () {
         var n = nome.value.trim();
@@ -13600,6 +14331,7 @@
 
     function conteudoFicha(folha, animar) {
       var lista = cartao('liso');
+      var cartaoSemParcela = null;
       if (animar) lista.classList.add('conteudo-aba');
       if (abaFicha === 'servicos') {
         var servicos = servicosDoCliente(id);
@@ -13642,6 +14374,14 @@
           });
         }
       } else if (abaFicha === 'parcelas') {
+        var criadasAgora = completarParcelasDoCliente(id);
+        if (criadasAgora) {
+          salvar();
+          setTimeout(function () {
+            avisar(criadasAgora === 1 ? 'Criei 1 parcela que faltava para fechar a conta.'
+              : 'Criei ' + criadasAgora + ' parcelas que faltavam para fechar a conta.');
+          }, 300);
+        }
         var parcelas = parcelasDoCliente(id);
         if (!parcelas.length) {
           lista.appendChild(estadoVazio('Sem parcelas combinadas',
@@ -13781,6 +14521,33 @@
             }
           }
         }
+        // O que o cliente deve e não tem parcela nenhuma: sem isso, o
+        // "Falta" de cima não batia com a soma das parcelas e não se via
+        // de onde vinha a diferença.
+        var comPlano = {};
+        parcelasDoCliente(id).forEach(function (p) { if (p.servicoId) comPlano[p.servicoId] = true; });
+        var foraDoCombinado = function (sv) {
+          var resto = restanteDoRegistro(id, sv.id);
+          return comPlano[sv.id] ? (planoEncerrado(sv.id) ? Math.max(resto - abertoNasParcelas(id, sv.id), 0) : 0) : resto;
+        };
+        var semParcela = servicosDoCliente(id).filter(function (sv) {
+          return !ehAcrescimoDeParcelamento(sv) && !sv.acrescimoDe && foraDoCombinado(sv) > 0;
+        });
+        if (semParcela.length) {
+          cartaoSemParcela = cartao('liso cartao-sem-parcela');
+          var tsp = topoDeCartao('Sem parcelas combinadas', null);
+          tsp.style.padding = '16px 16px 0'; tsp.style.marginBottom = '8px';
+          cartaoSemParcela.appendChild(tsp);
+          semParcela.forEach(function (sv) {
+            cartaoSemParcela.appendChild(linhaSimples({
+              titulo: sv.nome,
+              sub: 'falta receber · toque para combinar as parcelas',
+              valor: emReais(foraDoCombinado(sv)), cor: 'ouro',
+              selo: selo('#E9B44C', '+'),
+              aoTocar: function () { abrirFolhaParcelamento(id, sv.id); }
+            }));
+          });
+        }
       } else if (abaFicha === 'orcamentos') {
         var propostas = propostasDoCliente(id);
         if (!propostas.length) {
@@ -13841,6 +14608,7 @@
         }
       }
       folha.appendChild(lista);
+      if (cartaoSemParcela) folha.appendChild(cartaoSemParcela);
 
       var acoes = no('div', 'acoes');
       if (animar) acoes.classList.add('conteudo-aba');
@@ -13859,7 +14627,17 @@
         // oferece o acerto em vez de deixar a conta torta em silêncio.
         var abertasAgora = parcelasDoCliente(id).filter(function (p) { return !parcelaPaga(p); });
         var somaAbertas = abertasAgora.reduce(function (s, p) { return s + p.valor; }, 0);
-        var desencontro = Math.max(r.restante, 0) - somaAbertas;
+        // Registro sem parcela nenhuma tem o cartão dele ("Sem parcelas
+        // combinadas"); não é desencontro do combinado.
+        var foraDePlano = 0;
+        var temPlano = {};
+        parcelasDoCliente(id).forEach(function (p) { if (p.servicoId) temPlano[p.servicoId] = true; });
+        servicosDoCliente(id).forEach(function (sv) {
+          if (ehAcrescimoDeParcelamento(sv) || sv.acrescimoDe) return;
+          if (!temPlano[sv.id]) foraDePlano += restanteDoRegistro(id, sv.id);
+          else if (planoEncerrado(sv.id)) foraDePlano += Math.max(restanteDoRegistro(id, sv.id) - abertoNasParcelas(id, sv.id), 0);
+        });
+        var desencontro = Math.max(r.restante, 0) - foraDePlano - somaAbertas;
         if (abertasAgora.length && desencontro !== 0) {
           var bAcertar = botao('btn btn-fantasma',
             'Acertar as parcelas (' + (desencontro > 0 ? 'faltam ' : 'sobram ') +
@@ -13917,6 +14695,11 @@
               }
               // Pagamento parcial de uma parcela que saiu fica, mas solto.
               estado.pagamentos.forEach(function (g) { if (fora[g.parcelaId]) g.parcelaId = ''; });
+              // Apagou de propósito: o app não refaz este combinado sozinho.
+              if (temPagas && grupoSel.chave) {
+                if (!estado.revisados) estado.revisados = {};
+                estado.revisados['semparcela:' + grupoSel.chave] = 'fora';
+              }
               salvar();
               montarFichaCliente(id);
               avisar(abertasSel.length === 1 ? 'Parcela apagada.' : abertasSel.length + ' parcelas apagadas.');
@@ -16002,6 +16785,7 @@
               data: c.itens[0].vencimento, obs: '', criadoEm: Date.now()
             });
           }
+          if (estado.revisados && campoServico.value) delete estado.revisados['semparcela:' + campoServico.value];
           salvar();
           abaFicha = 'parcelas';
           // A ficha abre no parcelamento que acabou de nascer, mesmo que a
@@ -19617,6 +20401,11 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
+      ['⇄', 'Compartilhar', 'Venda de Doces ou Uber com outra conta, os dois mexendo',
+        function () {
+          if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Precisa da conta na nuvem', 'Compartilhar depende da conta ligada: os dados ficam no servidor para os dois.', function () {}); return; }
+          abrirCompartilhar();
+        }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
@@ -26093,12 +26882,20 @@
         // apagar olhando só as primeiras mil linhas: o resto ficava de pé
         // no servidor e voltava no download seguinte. Era por isso que
         // restaurar um backup parecia valer e depois desvalia.
-        return baixarTudo(t, 'select=id&excluido_em=is.null').catch(function (e) {
+        // Só as minhas linhas, e nunca as de uma área compartilhada comigo:
+        // restaurar um backup aqui não pode apagar nada de quem
+        // compartilhou, nem o que é meu e está guardado fora da tela.
+        var uidAqui = sessaoNuvem.usuario.id;
+        var filtro = t === 'empreendedor_registros'
+          ? 'select=id,tipo&excluido_em=is.null&user_id=eq.' + uidAqui
+          : 'select=id&excluido_em=is.null';
+        return baixarTudo(t, filtro).catch(function (e) {
           if (TABELAS_OPCIONAIS.indexOf(t) >= 0 && ehTabelaQueFalta(e)) return [];
           throw e;
         });
       }).then(function (r) {
         (r || []).forEach(function (linha) {
+          if (t === 'empreendedor_registros' && donoDaArea(areaDoTipo(linha.tipo))) return;
           var id = String(linha.id);
           if (!meus[t][id]) estado.excluidos.push({ t: t, id: id });
         });
