@@ -249,6 +249,7 @@ create table if not exists public.pagamentos (
   lancamento_id text        references public.lancamentos (id) on delete set null,
   valor         bigint      not null check (valor > 0),
   data          date        not null,
+  obs           text        not null default '' check (length(obs) <= 200),
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   excluido_em   timestamptz
