@@ -3,6 +3,9 @@
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
+// Relógio parado às 15h: a jornada de 2 horas começa no mesmo dia, rode o
+// teste a que hora for (perto da meia-noite ela caía no dia anterior).
+{ const quinze = new Date(); quinze.setHours(15, 0, 0, 0); await page.clock.setFixedTime(quinze); }
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
 
 let falhas = 0;
@@ -50,27 +53,20 @@ const noHub = limpo(await page.textContent('#telaInicio [data-modulo="uber"]'));
 conferir('1. com jornada aberta, o cartão do Uber mostra o tempo', /Em jornada\s*0?2:00:\d\d/.test(noHub), noHub);
 await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
 
-// ---- jornada ----
-const t0 = await page.textContent('#telaInicio .anel-tempo');
-await page.waitForTimeout(2200);
-const t1 = await page.textContent('#telaInicio .anel-tempo');
-conferir('2. o cronômetro anda', /Jornada em andamento/.test(await tela()) && /^02:00:/.test(t1) && t1 !== t0, t0 + ' → ' + t1);
-
-await page.click('#telaInicio button:has-text("Pausar")'); await page.waitForTimeout(400);
-const parado1 = await page.textContent('#telaInicio .anel-tempo');
-await page.waitForTimeout(1600);
-const parado2 = await page.textContent('#telaInicio .anel-tempo');
-conferir('3. pausado, o relógio para', /Jornada pausada/.test(await tela()) && parado1 === parado2, parado1 + ' → ' + parado2);
-await page.click('#telaInicio button:has-text("Retomar")'); await page.waitForTimeout(500);
+// ---- o cronômetro saiu (03/11/2026): o tempo entra no "Fechar o dia" ----
+conferir('2. não há mais cronômetro na tela', !(await page.locator('#telaInicio .anel-jornada').count()) && !/Iniciar jornada/.test(await tela()));
+conferir('3. a jornada antiga que ficou ligada aparece para desligar', /Ficou um cronômetro ligado/.test(await tela()));
 
 // ---- duas corridas: R$ 50 em 12 km e R$ 40 em 8 km (o "+" do módulo) ----
 // Desde a 5.37.0 o "+" do Uber fecha o dia; a corrida avulsa tem botão.
-await page.click('#fab'); await page.waitForTimeout(900);
-const tituloFab = await page.textContent('#folhaTitulo');
+await page.click('#fab'); await page.waitForTimeout(700);
+const opcoesFab = limpo(await page.textContent('#escolhaLista'));
+await page.click('#escolhaLista .escolha-item:has-text("Fechamento de hoje")'); await page.waitForTimeout(900);
+const tituloFab = await page.textContent('#folhaTitulo') + ' · ' + opcoesFab;
 await page.goBack(); await page.waitForTimeout(700);
 await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
-conferir('4. o "+" fecha o dia e "Corrida avulsa" abre a corrida',
-  /Fechar o dia/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
+conferir('4. o "+" pergunta o que registrar e "Corrida avulsa" abre a corrida',
+  /Fechar o dia/.test(tituloFab) && /Abastecimento/.test(tituloFab) && /Outras despesas/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
 await dinheiro(folha().locator('.valor-grande'), '5000');
 await folha().getByLabel('Distância (km)').fill('12');
 await page.click('#folha .btn-ouro:has-text("Salvar corrida")'); await page.waitForTimeout(900);
@@ -105,17 +101,13 @@ conferir('9. ganho por hora: R$ 90 em 2 horas, perto de R$ 45,00', /Ganho por ho
 conferir('10. a lista mostra as corridas com R$/km', /12,0 km · Uber/.test(hoje) && /8,0 km · 99/.test(hoje) && /R\$ 5,00\/km/.test(hoje));
 await page.screenshot({ path: dir + '/z30-uber-hoje.png', fullPage: true });
 
-// ---- encerrar ----
-await page.click('#telaInicio button:has-text("Encerrar jornada")'); await page.waitForTimeout(600);
+// ---- desligar a jornada antiga ----
+await page.click('#telaInicio button:has-text("Desligar o cronômetro")'); await page.waitForTimeout(600);
 const resumo = limpo(await page.textContent('#dialogoFundo'));
-conferir('11. encerrar mostra o resumo da jornada', /^Encerrar a jornada\? 2h/.test(resumo) && /2 corrida\(s\)/.test(resumo) && /lucrou R\$ 25,00/.test(resumo), resumo.slice(0, 160));
+conferir('11. desligar mostra o resumo da jornada', /^Encerrar a jornada\? 2h/.test(resumo) && /2 corrida\(s\)/.test(resumo) && /lucrou R\$ 25,00/.test(resumo), resumo.slice(0, 160));
 await page.click('#dialogoAcoes button:has-text("Encerrar")'); await page.waitForTimeout(900);
-conferir('12. depois de encerrar, sem jornada aberta', /Nenhuma jornada aberta/.test(await tela()));
-await page.click('#telaInicio button:has-text("Iniciar jornada")'); await page.waitForTimeout(2300);
-const nova = await page.textContent('#telaInicio .anel-tempo');
-conferir('12a. iniciar abre outra jornada, do zero', /Jornada em andamento/.test(await tela()) && /^00:00:0[1-9]$/.test(nova), nova);
-await page.click('#telaInicio button:has-text("Encerrar jornada")'); await page.waitForTimeout(500);
-await page.click('#dialogoAcoes button:has-text("Encerrar")'); await page.waitForTimeout(900);
+conferir('12. desligada, o aviso some e o tempo do dia fica para corrigir',
+  !/Ficou um cronômetro ligado/.test(await tela()) && /Tempo de hoje: 2h/.test(await tela()));
 
 // ---- histórico ----
 await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);

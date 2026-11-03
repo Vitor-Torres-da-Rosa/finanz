@@ -2111,6 +2111,8 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .jornada-antiga .btn { margin-top: 10px; }
+  .modulo-corpo > .tempo-do-dia { margin: 0 auto 10px; }
   .estoque-produto { margin-top: 14px; }
   .estoque-produto .btn { margin-top: 10px; }
   .cartao-ajustes { margin-bottom: 12px; }
@@ -2276,7 +2278,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.42.0';
+  var VERSAO = '5.43.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2285,6 +2287,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.43.0',
+      data: '2026-11-03',
+      itens: [
+        'Uber e Corridas sem cronômetro: o tempo online entra à mão no "Fechar o dia", copiado do app da Uber, quando você for cadastrar.',
+        'Se ficou alguma jornada antiga ligada, aparece um aviso com o botão para desligar. O tempo dos dias antigos continua no histórico e dá para corrigir em "Tempo de hoje".',
+        'O "+" do Uber pergunta o que registrar: fechamento de hoje, abastecimento, outras despesas ou corrida avulsa.',
+        'Fechar o dia sem a média do carro: o que você abasteceu no dia entra como gasto de combustível. Pode ficar acima do real, mas o lucro deixa de aparecer sem combustível nenhum.'
+      ]
+    },
     {
       versao: '5.42.0',
       data: '2026-11-03',
@@ -8945,7 +8957,7 @@
     // de cada módulo o "+" faz o que aquele módulo mais faz.
     b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel'));
     b.setAttribute('aria-label', !emp ? 'Novo lançamento'
-      : moduloEmp === 'uber' ? 'Fechar o dia'
+      : moduloEmp === 'uber' ? 'Registrar no Uber'
       : moduloEmp === 'doces' ? 'Nova entrega' : 'Novo cliente');
   }
 
@@ -10787,7 +10799,7 @@
   }
 
   function acaoDoFabNoEmpreendedor() {
-    if (moduloEmp === 'uber') abrirFechamentoDoDia(hojeTexto());
+    if (moduloEmp === 'uber') abrirMenuDoUber();
     else if (moduloEmp === 'doces') abrirFolhaEntrega(null, '');
     else if (moduloEmp === 'servicos') abrirFolhaCliente(null);
   }
@@ -11443,8 +11455,10 @@
   // pela média do carro, ao preço do litro daquele dia. O que se abasteceu
   // além disso foi para outra coisa (mercado, passeio) e não entra na conta.
   function combustivelDoDia(x) {
-    if (!x.km || !x.kmPorLitro || !x.precoLitro) return 0;
-    return Math.round(x.km / x.kmPorLitro * x.precoLitro);
+    if (x.km && x.kmPorLitro && x.precoLitro) return Math.round(x.km / x.kmPorLitro * x.precoLitro);
+    // Sem a média (esqueceu de olhar): o que abasteceu no dia vira o gasto.
+    // Pode passar do real, mas é melhor que lucro sem combustível nenhum.
+    return x.abastecido || 0;
   }
 
   function fechamentoDoDia(data) {
@@ -11528,40 +11542,26 @@
     var j = jornadaAberta();
     var hoje = hojeTexto();
 
-    var c = cartao('jornada-cartao');
-    var anel = no('div', 'anel-jornada' + (j ? (j.pausaDesde ? ' pausada' : ' ativa') : ''));
-    var dentro = no('div', 'anel-dentro');
-    var carro = no('div', 'anel-carro');
-    carro.appendChild(icone('carro'));
-    var tempo = no('div', 'anel-tempo num', formatarRelogio(j ? duracaoJornada(j) : 0));
-    if (j && !j.pausaDesde) tempo.setAttribute('data-relogio', '1');
-    juntar(dentro, carro, tempo);
-    anel.appendChild(dentro);
-    c.appendChild(anel);
-    c.appendChild(no('div', 'jornada-status ' + (j ? (j.pausaDesde ? 'ouro' : 'verde') : ''),
-      j ? (j.pausaDesde ? 'Jornada pausada' : 'Jornada em andamento') : 'Nenhuma jornada aberta'));
-    if (j) c.appendChild(no('div', 'linha-nota centro', 'Começou ' + (dataDeMarca(j.inicio) === hoje ? 'hoje' : 'em ' + dataBr(dataDeMarca(j.inicio))) +
-      ' às ' + new Date(j.inicio).toTimeString().slice(0, 5)));
-
-    var botoes = no('div', 'jornada-botoes');
-    if (!j) {
-      botoes.appendChild(botao('btn btn-ouro', 'Iniciar jornada', iniciarJornada));
-    } else {
-      botoes.appendChild(botao('btn btn-fantasma', j.pausaDesde ? 'Retomar' : 'Pausar', function () { pausarJornada(j); }));
-      botoes.appendChild(botao('btn btn-perigo', 'Encerrar jornada', function () { encerrarJornada(j); }));
+    // O cronômetro saiu (03/11/2026): o tempo online entra à mão no
+    // "Fechar o dia", copiado do app da Uber. Só aparece alguma coisa aqui
+    // se ficou uma jornada antiga ligada, ou se o dia tem jornadas para
+    // corrigir ou apagar.
+    if (j) {
+      var cj = cartao('jornada-antiga');
+      cj.appendChild(no('div', 'linha-nota', 'Ficou um cronômetro ligado desde ' +
+        (dataDeMarca(j.inicio) === hoje ? 'hoje' : dataBr(dataDeMarca(j.inicio))) + ' às ' +
+        new Date(j.inicio).toTimeString().slice(0, 5) + '. O tempo agora entra pelo "Fechar o dia".'));
+      cj.appendChild(botao('btn btn-fantasma', 'Desligar o cronômetro', function () { encerrarJornada(j); }));
+      corpo.appendChild(cj);
     }
-    c.appendChild(botoes);
-    corpo.appendChild(c);
-
-    // Tempo de hoje, somado pelo cronômetro, com o lápis para corrigir.
     var msHoje = msDoDia(hoje);
     if (msHoje || estado.uberJornadas.some(function (x) { return dataDeMarca(x.inicio) === hoje; })) {
-      c.appendChild(botao('tempo-do-dia', 'Tempo de hoje: ' + formatarHoras(msHoje) + ' · editar', function () { abrirTempoDoDia(hoje); }));
+      corpo.appendChild(botao('tempo-do-dia', 'Tempo de hoje: ' + formatarHoras(msHoje) + ' · editar', function () { abrirTempoDoDia(hoje); }));
     }
 
     var fechado = fechamentoDoDia(hoje);
-    var n = j && !fechado ? numerosDoUber(null, null, j) : numerosDoUber(hoje, hoje);
-    corpo.appendChild(no('div', 'secao-rotulo', j && !fechado ? 'Nesta jornada' : 'Hoje'));
+    var n = numerosDoUber(hoje, hoje);
+    corpo.appendChild(no('div', 'secao-rotulo', 'Hoje'));
     corpo.appendChild(gradeDeTiles([
       tile('Corridas', String(n.corridas), ''),
       tile('Distância', decimalBr(n.km) + ' km', ''),
@@ -11588,14 +11588,14 @@
     corpo.appendChild(acoes);
 
     var corridas = estado.uberRegistros.filter(function (x) {
-      return (x.tipo === 'corrida' || x.tipo === 'dia') && (j && !fechado ? x.jornadaId === j.id : x.data === hoje);
+      return (x.tipo === 'corrida' || x.tipo === 'dia') && x.data === hoje;
     }).sort(ordemUber);
     var cl = cartao('liso');
     var topo = topoDeCartao('Registros de hoje', 'Ver histórico', function () { abaUber = 'historico'; desenharInicio(); });
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     cl.appendChild(topo);
-    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado ' + (j ? 'nesta jornada' : 'hoje'), 'No fim do dia, toque em "Fechar o dia" e passe o que o app da Uber mostrou.'));
+    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado hoje', 'No fim do dia, toque em "Fechar o dia" e passe o que o app da Uber mostrou.'));
     corridas.slice(0, 10).forEach(function (x) { cl.appendChild(linhaUber(x)); });
     corpo.appendChild(cl);
 
@@ -11674,6 +11674,24 @@
     });
   }
 
+  // O "+" do Uber pergunta o que é: o fechamento do dia, um gasto ou uma
+  // corrida avulsa (pedido de 03/11/2026).
+  function abrirMenuDoUber() {
+    var hoje = hojeTexto();
+    abrirEscolha({ titulo: 'O que você quer registrar?', semMarca: true, opcoes: [
+      { valor: 'fechar', rotulo: fechamentoDoDia(hoje) ? 'Editar o fechamento de hoje' : 'Fechamento de hoje',
+        detalhe: 'ganhos, viagens, tempo online e combustível' },
+      { valor: 'abastecer', rotulo: 'Abastecimento', detalhe: 'litros e preço do litro' },
+      { valor: 'gasto', rotulo: 'Outras despesas', detalhe: 'lavagem, manutenção, pedágio, aluguel do carro' },
+      { valor: 'corrida', rotulo: 'Corrida avulsa', detalhe: 'particular, ou paga depois' }
+    ] }, function (v) {
+      if (v === 'fechar') abrirFechamentoDoDia(hoje);
+      else if (v === 'abastecer') abrirFolhaAbastecimento(null);
+      else if (v === 'gasto') abrirFolhaGastoUber(null);
+      else if (v === 'corrida') abrirFolhaCorrida(null);
+    });
+  }
+
   // ---------- Fechamento do dia e tempo trabalhado ----------
 
   function msDoDia(data) {
@@ -11732,7 +11750,7 @@
       forma.appendChild(campo('Tempo online (horas:minutos)', tempo));
       forma.appendChild(no('p', 'ajuda ajuda-campo', cronometro
         ? 'O cronômetro contou ' + textoHoras(cronometro) + '. Se der diferença do app da Uber, corrija aqui.'
-        : 'Sem cronômetro neste dia: escreva o tempo online do app da Uber.'));
+        : 'Escreva o tempo online que o app da Uber mostra para o dia.'));
 
       forma.appendChild(no('div', 'rotulo-secao', 'Combustível'));
       var km = entradaDecimal(x ? x.km : 0, 1, 'Ex.: 120,5');
@@ -11752,7 +11770,7 @@
         var v = digitosParaCentavos(valor.value), k = lerDecimal(km.value), md = lerDecimal(media.value);
         var pr = digitosParaCentavos(preco.value), ab = digitosParaCentavos(abastecido.value);
         var mins = lerHoras(tempo.value);
-        var comb = combustivelDoDia({ km: k, kmPorLitro: md, precoLitro: pr });
+        var comb = combustivelDoDia({ km: k, kmPorLitro: md, precoLitro: pr, abastecido: ab });
         var outras = 0;
         estado.uberRegistros.forEach(function (r) {
           if (r.tipo === 'despesa' && r.data === campoData.value) outras += r.valor;
@@ -11760,12 +11778,17 @@
         var lucro = v - comb - outras;
         resumo.textContent = '';
         function par(rot, txt, cor) { juntar(resumo, no('span', null, rot), no('strong', 'num ' + (cor || ''), txt)); }
-        par('Combustível do Uber', md && pr && k ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)' : 'preencha km, média e preço', 'vermelho');
+        par('Combustível do Uber', md && pr && k ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)'
+          : ab ? '− ' + emReais(ab) + ' (o abastecido)' : 'preencha km, média e preço', 'vermelho');
         if (outras) par('Outras despesas do dia', '− ' + emReais(outras), 'vermelho');
         par('Lucro do dia', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde');
         if (k) par('Ganho por km', emReais(Math.round(v / k)) + ' · lucro ' + emReais(Math.round(lucro / k)), '');
         if (mins) par('Ganho por hora', emReais(Math.round(v / (mins / 60))) + ' · lucro ' + emReais(Math.round(lucro / (mins / 60))), '');
-        if (ab > comb && comb) {
+        if (ab && !(md && pr && k)) {
+          resumo.appendChild(no('div', 'linha-nota fechamento-nota',
+            'Sem a média do carro, o gasto é o que você abasteceu. Com a média, o app separa o que foi do Uber.'));
+        }
+        if (ab > comb && comb && md && pr && k) {
           resumo.appendChild(no('div', 'linha-nota fechamento-nota',
             emReais(ab - comb) + ' do abastecimento foram para outros usos e não entram no lucro.'));
         }

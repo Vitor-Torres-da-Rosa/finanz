@@ -69,7 +69,8 @@ for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { awa
 conferir('2. dá para corrigir o tempo trabalhado', /Tempo de hoje: 5h 4min/.test(await tela()), (await tela()).match(/Tempo de hoje[^·]*/)?.[0]);
 
 // ---- fechar o dia pelo "+" ----
-await page.click('#fab'); await page.waitForTimeout(900);
+await page.click('#fab'); await page.waitForTimeout(700);
+await page.click('#escolhaLista .escolha-item:has-text("Fechamento de hoje")'); await page.waitForTimeout(900);
 conferir('3. o "+" abre o fechamento, com o tempo do cronômetro já preenchido',
   /Fechar o dia/.test(await page.textContent('#folhaTitulo')) &&
   (await folha().getByLabel('Tempo online (horas:minutos)').inputValue()) === '5:04');
@@ -130,6 +131,17 @@ for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { awa
 hoje = await tela();
 conferir('12. dá para excluir a jornada; o dia fechado continua com o tempo dele',
   !/Tempo de hoje/.test(hoje) && /Ganho por hora\s*R\$ 49,41/.test(hoje), (hoje.match(/Ganho por hora\s*\S+ \S+/) || [''])[0]);
+
+// ---- 03/11/2026: sem a média, o abastecido vira o gasto ----
+await page.click('#telaInicio button:has-text("Editar o fechamento de hoje")'); await page.waitForTimeout(900);
+await folha().getByLabel('Média (km/l)').fill('');
+await folha().getByLabel('Média (km/l)').press('Backspace');
+await page.waitForTimeout(300);
+const semMedia = limpo(await folha().locator('.fechamento-resumo').textContent());
+conferir('13. sem a média, o combustível é o abastecido (R$ 100,00)',
+  /Combustível do Uber\s*− R\$ 100,00 \(o abastecido\)/.test(semMedia) && /Lucro do dia\s*R\$ 150,33/.test(semMedia), semMedia.slice(0, 160));
+await page.click('#folha .btn-ouro:has-text("Salvar o dia")'); await page.waitForTimeout(1200);
+conferir('14. e o Hoje desconta esse gasto', /Gastos\s*R\$ 100,00/.test(await tela()) && /Lucro líquido\s*R\$ 150,33/.test(await tela()));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
