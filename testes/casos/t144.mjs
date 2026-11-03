@@ -166,6 +166,8 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 ch = await chips();
 conferir('15. pagar outra venda não refaz a parcela apagada da Capinha',
   !ch.includes('Capinha') && ch.includes('Película'), JSON.stringify(ch));
+const semPlano = limpo(await page.textContent('#folha .cartao-sem-parcela').catch(() => ''));
+conferir('15b. o que falta da Capinha aparece em "Sem parcelas combinadas"', /Capinha.*R\$ 50,00/.test(semPlano), semPlano.slice(0, 120));
 
 // ---- 03/11/2026: sem a aba Pagos, e registro pago em verde no fim ----
 const abasFicha = await page.$$eval('#folha .aba-cliente button', ns => ns.map(n => n.textContent.trim()));

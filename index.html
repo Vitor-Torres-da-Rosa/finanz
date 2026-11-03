@@ -2111,6 +2111,7 @@
   .resumo-lucro { margin: 12px 0 0; }
   .despesa-lucro { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
   .grupo-parcelas { padding: 2px 16px 10px; }
+  .cartao-sem-parcela { margin-top: 12px; }
   .jornada-antiga .btn { margin-top: 10px; }
   .modulo-corpo > .tempo-do-dia { margin: 0 auto 10px; }
   .estoque-produto { margin-top: 14px; }
@@ -2278,7 +2279,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.43.0';
+  var VERSAO = '5.43.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2287,6 +2288,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.43.1',
+      data: '2026-11-03',
+      itens: [
+        'Parcelas: quando uma parcela foi paga com menos e a diferença não virou parcela nova, o app completa o combinado sozinho ao abrir a aba, com parcelas do mesmo tamanho no fim e a sobra na última.',
+        'O que o cliente deve e não tem parcela nenhuma aparece em "Sem parcelas combinadas", com o valor que falta. Tocando, você combina as parcelas daquele registro. Assim o "Falta" de cima bate com o que aparece embaixo. Se você apagou de propósito as parcelas em aberto de uma venda, o app não refaz elas: o que falta vai para esse mesmo cartão.'
+      ]
+    },
     {
       versao: '5.43.0',
       data: '2026-11-03',
@@ -9299,6 +9308,81 @@
   // Sem isso, apagar as parcelas em aberto de uma venda já meio paga não
   // durava: o próximo pagamento de qualquer outra venda do cliente
   // refazia todas.
+  // O que falta receber de um registro: o valor dele mais os acréscimos
+  // que nasceram dele, menos o que entrou para ele (direto, por parcela
+  // ou pelo acréscimo). É a mesma conta do reencaixe abaixo.
+  function restanteDoRegistro(clienteId, servicoId) {
+    var sv = achar(estado.servicos, servicoId);
+    if (!sv) return 0;
+    var extras = [];
+    var acr = acrescimosPorRegistro(clienteId)[servicoId];
+    if (acr) extras.push(acr);
+    estado.servicos.forEach(function (x) {
+      if (x.clienteId === clienteId && x.acrescimoDe === servicoId && !ehAcrescimoDeParcelamento(x)) extras.push(x);
+    });
+    var ids = {};
+    extras.forEach(function (x) { ids[x.id] = true; });
+    var total = sv.valor + extras.reduce(function (t, x) { return t + x.valor; }, 0);
+    var pago = 0;
+    estado.pagamentos.forEach(function (pg) {
+      if (pg.clienteId !== clienteId) return;
+      var dele = pg.servicoId === servicoId || ids[pg.servicoId];
+      if (!dele && !pg.servicoId && pg.parcelaId) {
+        var par = achar(estado.parcelas, pg.parcelaId);
+        dele = !!(par && par.servicoId === servicoId);
+      }
+      if (dele) pago += pg.valor;
+    });
+    return Math.max(total - pago, 0);
+  }
+
+  // Registro cujas parcelas em aberto a pessoa apagou de propósito: o app
+  // não refaz o combinado dele. Fica em estado.revisados (sobe para a
+  // nuvem) como 'fora', na chave 'semparcela:' + id do registro.
+  function planoEncerrado(servicoId) {
+    return !!(estado.revisados && estado.revisados['semparcela:' + servicoId] === 'fora');
+  }
+
+  // O que as parcelas em aberto de um registro ainda cobram, sem juros.
+  function abertoNasParcelas(clienteId, servicoId) {
+    return estado.parcelas.reduce(function (t, p) {
+      if (p.clienteId !== clienteId || (p.servicoId || '') !== (servicoId || '') || parcelaPaga(p)) return t;
+      return t + Math.max(p.valor - pagoNaParcela(p), 0);
+    }, 0);
+  }
+
+  // Ao abrir a aba Parcelas: registro cujo combinado ficou curto (pagou
+  // menos numa parcela e a diferença não virou parcela nova) ganha as
+  // parcelas que faltam, do mesmo tamanho, no fim. Só cria até o que o
+  // cliente deve de fato e não está em parcela nenhuma: pagamento lançado
+  // sem registro não pode virar parcela a mais.
+  function completarParcelasDoCliente(clienteId) {
+    var r = resumoCliente(clienteId);
+    var emParcela = 0, semPlano = 0;
+    var registros = {};
+    estado.parcelas.forEach(function (p) { if (p.clienteId === clienteId && p.servicoId) registros[p.servicoId] = true; });
+    estado.parcelas.forEach(function (p) {
+      if (p.clienteId === clienteId && !parcelaPaga(p)) emParcela += Math.max(p.valor - pagoNaParcela(p), 0);
+    });
+    servicosDoCliente(clienteId).forEach(function (sv) {
+      if (ehAcrescimoDeParcelamento(sv) || sv.acrescimoDe) return;
+      if (!registros[sv.id]) semPlano += restanteDoRegistro(clienteId, sv.id);
+      else if (planoEncerrado(sv.id)) semPlano += Math.max(restanteDoRegistro(clienteId, sv.id) - abertoNasParcelas(clienteId, sv.id), 0);
+    });
+    var livre = Math.max(r.restante, 0) - emParcela - semPlano;
+    var criadas = 0;
+    Object.keys(registros).forEach(function (sid) {
+      if (!achar(estado.servicos, sid) || planoEncerrado(sid)) return;
+      var curto = restanteDoRegistro(clienteId, sid) - abertoNasParcelas(clienteId, sid);
+      if (curto <= 100 || curto > livre + 100) return;
+      var antes = estado.parcelas.length;
+      acertarParcelas(clienteId, null, null, sid);
+      criadas += Math.max(estado.parcelas.length - antes, 0);
+      livre -= curto;
+    });
+    return criadas;
+  }
+
   function acertarParcelas(clienteId, parcelaBase, fixaId, focoServicoId) {
     var todasDoCliente = parcelasDoCliente(clienteId);
     if (!todasDoCliente.length) return;
@@ -14247,6 +14331,7 @@
 
     function conteudoFicha(folha, animar) {
       var lista = cartao('liso');
+      var cartaoSemParcela = null;
       if (animar) lista.classList.add('conteudo-aba');
       if (abaFicha === 'servicos') {
         var servicos = servicosDoCliente(id);
@@ -14289,6 +14374,14 @@
           });
         }
       } else if (abaFicha === 'parcelas') {
+        var criadasAgora = completarParcelasDoCliente(id);
+        if (criadasAgora) {
+          salvar();
+          setTimeout(function () {
+            avisar(criadasAgora === 1 ? 'Criei 1 parcela que faltava para fechar a conta.'
+              : 'Criei ' + criadasAgora + ' parcelas que faltavam para fechar a conta.');
+          }, 300);
+        }
         var parcelas = parcelasDoCliente(id);
         if (!parcelas.length) {
           lista.appendChild(estadoVazio('Sem parcelas combinadas',
@@ -14428,6 +14521,33 @@
             }
           }
         }
+        // O que o cliente deve e não tem parcela nenhuma: sem isso, o
+        // "Falta" de cima não batia com a soma das parcelas e não se via
+        // de onde vinha a diferença.
+        var comPlano = {};
+        parcelasDoCliente(id).forEach(function (p) { if (p.servicoId) comPlano[p.servicoId] = true; });
+        var foraDoCombinado = function (sv) {
+          var resto = restanteDoRegistro(id, sv.id);
+          return comPlano[sv.id] ? (planoEncerrado(sv.id) ? Math.max(resto - abertoNasParcelas(id, sv.id), 0) : 0) : resto;
+        };
+        var semParcela = servicosDoCliente(id).filter(function (sv) {
+          return !ehAcrescimoDeParcelamento(sv) && !sv.acrescimoDe && foraDoCombinado(sv) > 0;
+        });
+        if (semParcela.length) {
+          cartaoSemParcela = cartao('liso cartao-sem-parcela');
+          var tsp = topoDeCartao('Sem parcelas combinadas', null);
+          tsp.style.padding = '16px 16px 0'; tsp.style.marginBottom = '8px';
+          cartaoSemParcela.appendChild(tsp);
+          semParcela.forEach(function (sv) {
+            cartaoSemParcela.appendChild(linhaSimples({
+              titulo: sv.nome,
+              sub: 'falta receber · toque para combinar as parcelas',
+              valor: emReais(foraDoCombinado(sv)), cor: 'ouro',
+              selo: selo('#E9B44C', '+'),
+              aoTocar: function () { abrirFolhaParcelamento(id, sv.id); }
+            }));
+          });
+        }
       } else if (abaFicha === 'orcamentos') {
         var propostas = propostasDoCliente(id);
         if (!propostas.length) {
@@ -14488,6 +14608,7 @@
         }
       }
       folha.appendChild(lista);
+      if (cartaoSemParcela) folha.appendChild(cartaoSemParcela);
 
       var acoes = no('div', 'acoes');
       if (animar) acoes.classList.add('conteudo-aba');
@@ -14506,7 +14627,17 @@
         // oferece o acerto em vez de deixar a conta torta em silêncio.
         var abertasAgora = parcelasDoCliente(id).filter(function (p) { return !parcelaPaga(p); });
         var somaAbertas = abertasAgora.reduce(function (s, p) { return s + p.valor; }, 0);
-        var desencontro = Math.max(r.restante, 0) - somaAbertas;
+        // Registro sem parcela nenhuma tem o cartão dele ("Sem parcelas
+        // combinadas"); não é desencontro do combinado.
+        var foraDePlano = 0;
+        var temPlano = {};
+        parcelasDoCliente(id).forEach(function (p) { if (p.servicoId) temPlano[p.servicoId] = true; });
+        servicosDoCliente(id).forEach(function (sv) {
+          if (ehAcrescimoDeParcelamento(sv) || sv.acrescimoDe) return;
+          if (!temPlano[sv.id]) foraDePlano += restanteDoRegistro(id, sv.id);
+          else if (planoEncerrado(sv.id)) foraDePlano += Math.max(restanteDoRegistro(id, sv.id) - abertoNasParcelas(id, sv.id), 0);
+        });
+        var desencontro = Math.max(r.restante, 0) - foraDePlano - somaAbertas;
         if (abertasAgora.length && desencontro !== 0) {
           var bAcertar = botao('btn btn-fantasma',
             'Acertar as parcelas (' + (desencontro > 0 ? 'faltam ' : 'sobram ') +
@@ -14564,6 +14695,11 @@
               }
               // Pagamento parcial de uma parcela que saiu fica, mas solto.
               estado.pagamentos.forEach(function (g) { if (fora[g.parcelaId]) g.parcelaId = ''; });
+              // Apagou de propósito: o app não refaz este combinado sozinho.
+              if (temPagas && grupoSel.chave) {
+                if (!estado.revisados) estado.revisados = {};
+                estado.revisados['semparcela:' + grupoSel.chave] = 'fora';
+              }
               salvar();
               montarFichaCliente(id);
               avisar(abertasSel.length === 1 ? 'Parcela apagada.' : abertasSel.length + ' parcelas apagadas.');
@@ -16649,6 +16785,7 @@
               data: c.itens[0].vencimento, obs: '', criadoEm: Date.now()
             });
           }
+          if (estado.revisados && campoServico.value) delete estado.revisados['semparcela:' + campoServico.value];
           salvar();
           abaFicha = 'parcelas';
           // A ficha abre no parcelamento que acabou de nascer, mesmo que a
