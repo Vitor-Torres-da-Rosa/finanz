@@ -70,10 +70,13 @@ conferir('2. dá para corrigir o tempo trabalhado', /Tempo de hoje: 5h 4min/.tes
 
 // ---- fechar o dia pelo "+" ----
 await page.click('#fab'); await page.waitForTimeout(700);
-await page.click('#escolhaLista .escolha-item:has-text("Fechamento de hoje")'); await page.waitForTimeout(900);
-conferir('3. o "+" abre o fechamento, com o tempo do cronômetro já preenchido',
-  /Fechar o dia/.test(await page.textContent('#folhaTitulo')) &&
-  (await folha().getByLabel('Tempo online (horas:minutos)').inputValue()) === '5:04');
+await page.click('#escolhaLista .escolha-item:has-text("Novo fechamento")'); await page.waitForTimeout(900);
+// Desde a 5.45.0 o tempo começa vazio (o cronômetro saiu e preenchia
+// "206:00" com uma jornada esquecida ligada).
+conferir('3. o "+" abre o fechamento, com o tempo vazio para digitar',
+  /Novo fechamento/.test(await page.textContent('#folhaTitulo')) &&
+  (await folha().getByLabel('Tempo online (horas:minutos)').inputValue()) === '');
+await folha().getByLabel('Tempo online (horas:minutos)').fill('5:04');
 await dinheiro(folha().locator('.valor-grande'), '25033');
 await folha().locator('.contador-campo').fill('14');
 await folha().getByLabel('Km rodados').fill('120');
@@ -86,7 +89,7 @@ conferir('4. o combustível do Uber sai dos km: 120 ÷ 12 × R$ 6,00 = R$ 60,00'
 conferir('5. o que abasteceu além disso não entra no lucro',
   /R\$ 40,00 do abastecimento foram para outros usos/.test(prev));
 await page.screenshot({ path: dir + '/z44-fechar-o-dia.png', fullPage: true });
-await page.click('#folha .btn-ouro:has-text("Salvar o dia")'); await page.waitForTimeout(1200);
+await page.click('#folha .btn-ouro:has-text("Salvar fechamento")'); await page.waitForTimeout(1200);
 
 let hoje = await tela();
 conferir('6. Hoje mostra o dia fechado',
@@ -94,7 +97,7 @@ conferir('6. Hoje mostra o dia fechado',
   /Gastos\s*R\$ 60,00/.test(hoje) && /Lucro líquido\s*R\$ 190,33/.test(hoje), hoje.slice(0, 400));
 conferir('7. ganho por hora usa o tempo online (R$ 250,33 em 5h04)', /Ganho por hora\s*R\$ 49,41/.test(hoje),
   (hoje.match(/Ganho por hora\s*\S+ \S+/) || [''])[0]);
-conferir('8. o botão vira "Editar o fechamento de hoje"', /Editar o fechamento de hoje/.test(hoje));
+conferir('8. o botão passa a ser "+ Mais um fechamento"', /\+ Mais um fechamento/.test(hoje));
 await page.screenshot({ path: dir + '/z45-uber-dia-fechado.png', fullPage: true });
 
 // ---- abastecimento lançado no dia fechado não vira gasto ----
@@ -133,15 +136,43 @@ conferir('12. dá para excluir a jornada; o dia fechado continua com o tempo del
   !/Tempo de hoje/.test(hoje) && /Ganho por hora\s*R\$ 49,41/.test(hoje), (hoje.match(/Ganho por hora\s*\S+ \S+/) || [''])[0]);
 
 // ---- 03/11/2026: sem a média, o abastecido vira o gasto ----
-await page.click('#telaInicio button:has-text("Editar o fechamento de hoje")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .linha:has-text("Dia ")'); await page.waitForTimeout(900);
 await folha().getByLabel('Média (km/l)').fill('');
 await folha().getByLabel('Média (km/l)').press('Backspace');
 await page.waitForTimeout(300);
 const semMedia = limpo(await folha().locator('.fechamento-resumo').textContent());
 conferir('13. sem a média, o combustível é o abastecido (R$ 100,00)',
   /Combustível do Uber\s*− R\$ 100,00 \(o abastecido\)/.test(semMedia) && /Lucro do dia\s*R\$ 150,33/.test(semMedia), semMedia.slice(0, 160));
-await page.click('#folha .btn-ouro:has-text("Salvar o dia")'); await page.waitForTimeout(1200);
+await page.click('#folha .btn-ouro:has-text("Salvar fechamento")'); await page.waitForTimeout(1200);
 conferir('14. e o Hoje desconta esse gasto', /Gastos\s*R\$ 100,00/.test(await tela()) && /Lucro líquido\s*R\$ 150,33/.test(await tela()));
+
+// ---- 04/11/2026: dois fechamentos no mesmo dia, e um de dia anterior ----
+await page.click('#telaInicio button:has-text("+ Mais um fechamento")'); await page.waitForTimeout(900);
+conferir('15. o segundo fechamento do dia avisa que soma com o primeiro',
+  /Mais um fechamento/.test(await page.textContent('#folhaTitulo')) && /já tem 1 fechamento/.test(limpo(await folha().textContent())));
+await dinheiro(folha().locator('.valor-grande'), '10000');
+await folha().locator('.contador-campo').fill('4');
+await folha().getByLabel('Tempo online (horas:minutos)').fill('2:00');
+await folha().getByLabel('Km rodados').fill('40');
+await folha().getByLabel('Média (km/l)').fill('10');
+await dinheiro(folha().getByLabel('Preço do litro hoje'), '550');
+await page.click('#folha .btn-ouro:has-text("Salvar fechamento")'); await page.waitForTimeout(1200);
+hoje = await tela();
+// 250,33 + 100 = 350,33; gastos 100 + 40/10×5,50 = 122; lucro 228,33.
+conferir('16. o dia soma os dois fechamentos', /Corridas\s*18/.test(hoje) && /Faturamento\s*R\$ 350,33/.test(hoje) &&
+  /Gastos\s*R\$ 122,00/.test(hoje) && /Lucro líquido\s*R\$ 228,33/.test(hoje), hoje.slice(0, 300));
+conferir('17. e lista os dois, cada um com a hora', (hoje.match(/Fechamento \d\d \w+ \d\d:\d\d/g) || []).length === 2);
+
+const ontem = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+await page.click('#telaInicio button:has-text("+ Mais um fechamento")'); await page.waitForTimeout(900);
+await dinheiro(folha().locator('.valor-grande'), '8000');
+await folha().getByLabel('Data', { exact: true }).fill(ontem);
+await page.click('#folha .btn-ouro:has-text("Salvar fechamento")'); await page.waitForTimeout(1200);
+conferir('18. um fechamento de ontem não entra no hoje', /Faturamento\s*R\$ 350,33/.test(await tela()));
+await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
+conferir('19. e aparece no histórico do mês', /R\$ 430,33/.test(await tela()), (await tela()).slice(0, 200));
+await page.screenshot({ path: dir + '/z57-dois-fechamentos.png', fullPage: true });
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
