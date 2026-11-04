@@ -2289,7 +2289,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.45.0';
+  var VERSAO = '5.45.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2298,6 +2298,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.45.1',
+      data: '2026-11-04',
+      itens: [
+        'Os números do fechamento do Uber se arrumam enquanto você digita: 3333 vira 33:33 e 504 vira 5:04 no tempo online; 431 vira 43,1 nos km e 83 vira 8,3 na média.'
+      ]
+    },
     {
       versao: '5.45.0',
       data: '2026-11-04',
@@ -11885,6 +11892,35 @@
     return Math.floor(min / 60) + ':' + (m < 10 ? '0' : '') + m;
   }
 
+  // Máscaras que se preenchem enquanto a pessoa digita (pedido de
+  // 04/11/2026). Só os dígitos contam, como no campo de dinheiro:
+  // "3333" vira "33:33", "504" vira "5:04"; "431" vira "43,1".
+  function noFimDoCampo(i) {
+    try { var n = i.value.length; i.setSelectionRange(n, n); } catch (e) { /* alguns navegadores recusam */ }
+  }
+
+  function mascaraHoras(i) {
+    function pintar() {
+      var d = String(i.value || '').replace(/\D/g, '').replace(/^0+(?=\d{3})/, '').slice(0, 4);
+      if (!d) { i.value = ''; return; }
+      if (d.length <= 2) { i.value = '0:' + ('0' + d).slice(-2); return; }
+      i.value = String(parseInt(d.slice(0, -2), 10)) + ':' + d.slice(-2);
+    }
+    i.addEventListener('input', function () { pintar(); noFimDoCampo(i); });
+    if (i.value) pintar();
+  }
+
+  function mascaraDecimal(i, casas) {
+    var fator = Math.pow(10, casas);
+    i.inputMode = 'numeric';
+    function pintar() {
+      var d = String(i.value || '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 7);
+      if (!d) { i.value = ''; return; }
+      i.value = decimalBr(parseInt(d, 10) / fator, casas);
+    }
+    i.addEventListener('input', function () { pintar(); noFimDoCampo(i); });
+  }
+
   // "5:04", "5h04", "5h 4m", "5,5" ou "304min" viram minutos.
   function lerHoras(txt) {
     var t = String(txt || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -11930,6 +11966,7 @@
       // ele vinha de uma jornada esquecida ligada e aparecia "206:00".
       var tempo = entradaTexto(x && x.minutos ? textoHoras(x.minutos) : '', 'Ex.: 5:04', 6);
       tempo.inputMode = 'numeric';
+      mascaraHoras(tempo);
       forma.appendChild(campo('Tempo online (horas:minutos)', tempo));
       forma.appendChild(no('p', 'ajuda ajuda-campo', jaNoDia
         ? 'Este dia já tem ' + jaNoDia + ' fechamento(s); este soma com ' + (jaNoDia === 1 ? 'ele' : 'eles') + '. Escreva só o tempo deste trecho.'
@@ -11938,6 +11975,8 @@
       forma.appendChild(no('div', 'rotulo-secao', 'Combustível'));
       var km = entradaDecimal(x ? x.km : 0, 1, 'Ex.: 120,5');
       var media = entradaDecimal(x ? x.kmPorLitro : (ultimo ? ultimo.kmPorLitro : 0), 1, 'Ex.: 11,5');
+      mascaraDecimal(km, 1);
+      mascaraDecimal(media, 1);
       var linha2 = no('div', 'duas');
       juntar(linha2, campo('Km rodados', km), campo('Média (km/l)', media));
       forma.appendChild(linha2);

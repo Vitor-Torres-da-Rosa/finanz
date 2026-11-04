@@ -79,8 +79,8 @@ conferir('3. o "+" abre o fechamento, com o tempo vazio para digitar',
 await folha().getByLabel('Tempo online (horas:minutos)').fill('5:04');
 await dinheiro(folha().locator('.valor-grande'), '25033');
 await folha().locator('.contador-campo').fill('14');
-await folha().getByLabel('Km rodados').fill('120');
-await folha().getByLabel('Média (km/l)').fill('12');
+await folha().getByLabel('Km rodados').fill('1200');
+await folha().getByLabel('Média (km/l)').fill('120');
 await dinheiro(folha().getByLabel('Preço do litro hoje'), '600');
 await dinheiro(folha().getByLabel('Abastecido hoje'), '10000');
 const prev = limpo(await folha().locator('.fechamento-resumo').textContent());
@@ -153,8 +153,8 @@ conferir('15. o segundo fechamento do dia avisa que soma com o primeiro',
 await dinheiro(folha().locator('.valor-grande'), '10000');
 await folha().locator('.contador-campo').fill('4');
 await folha().getByLabel('Tempo online (horas:minutos)').fill('2:00');
-await folha().getByLabel('Km rodados').fill('40');
-await folha().getByLabel('Média (km/l)').fill('10');
+await folha().getByLabel('Km rodados').fill('400');
+await folha().getByLabel('Média (km/l)').fill('100');
 await dinheiro(folha().getByLabel('Preço do litro hoje'), '550');
 await page.click('#folha .btn-ouro:has-text("Salvar fechamento")'); await page.waitForTimeout(1200);
 hoje = await tela();
@@ -173,6 +173,17 @@ conferir('18. um fechamento de ontem não entra no hoje', /Faturamento\s*R\$ 350
 await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
 conferir('19. e aparece no histórico do mês', /R\$ 430,33/.test(await tela()), (await tela()).slice(0, 200));
 await page.screenshot({ path: dir + '/z57-dois-fechamentos.png', fullPage: true });
+
+// ---- 04/11/2026: os números se arrumam enquanto digita ----
+await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(700);
+await page.click('#telaInicio button:has-text("+ Mais um fechamento")'); await page.waitForTimeout(900);
+const t = folha().getByLabel('Tempo online (horas:minutos)');
+await t.click(); await t.type('3333'); const v1 = await t.inputValue();
+await t.fill(''); await t.type('504'); const v2 = await t.inputValue();
+const k = folha().getByLabel('Km rodados'); await k.click(); await k.type('431'); const v3 = await k.inputValue();
+const m = folha().getByLabel('Média (km/l)'); await m.fill(''); await m.type('83'); const v4 = await m.inputValue();
+conferir('20. tempo, km e média se preenchem enquanto digita', v1 === '33:33' && v2 === '5:04' && v3 === '43,1' && v4 === '8,3', [v1, v2, v3, v4].join(' | '));
+await page.goBack(); await page.waitForTimeout(600);
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
