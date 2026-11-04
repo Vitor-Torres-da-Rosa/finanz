@@ -1782,6 +1782,11 @@
     letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.tocavel { cursor: pointer; position: relative; transition: transform .12s ease; }
+  .tile.tocavel:active { transform: scale(.97); }
+  .tile.tocavel .tile-rotulo::after { content: '›'; margin-left: auto; color: var(--fraco); font-size: 14px; line-height: 1; }
+  .detalhe-uber-lucro .parcela-linha.total { border-bottom: 0; font-weight: 700; font-size: 15px; }
+  .detalhe-uber-faturamento > .cartao-topo, .detalhe-uber-despesas > .cartao-topo { padding: 16px 16px 0; margin-bottom: 8px; }
   .secao-rotulo { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--fraco); margin: 4px 2px 8px; }
 
   .grafico-animado { animation: revelar .9s ease both; }
@@ -2289,7 +2294,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.45.1';
+  var VERSAO = '5.46.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2298,6 +2303,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.46.0',
+      data: '2026-11-04',
+      itens: [
+        'Uber: sem abastecer no dia, não sai combustível nenhum do lucro. Abasteceu, vale a conta dos km, nunca mais do que o abastecido.',
+        'Uber: toque em Faturamento, Despesas ou Lucro para ver o detalhamento: o combustível de cada dia, as outras despesas e cada fechamento.'
+      ]
+    },
     {
       versao: '5.45.1',
       data: '2026-11-04',
@@ -11627,11 +11640,43 @@
   // O combustível que o Uber gastou de verdade: os km rodados nas viagens
   // pela média do carro, ao preço do litro daquele dia. O que se abasteceu
   // além disso foi para outra coisa (mercado, passeio) e não entra na conta.
-  function combustivelDoDia(x) {
+  // O que o Uber gastou de combustível pelos km (sem a média, não dá para saber).
+  function estimativaDeCombustivel(x) {
     if (x.km && x.kmPorLitro && x.precoLitro) return Math.round(x.km / x.kmPorLitro * x.precoLitro);
-    // Sem a média (esqueceu de olhar): o que abasteceu no dia vira o gasto.
-    // Pode passar do real, mas é melhor que lucro sem combustível nenhum.
-    return x.abastecido || 0;
+    return null;
+  }
+
+  // Só sai do lucro o combustível que foi pago: sem abastecer, é tudo lucro
+  // (pedido de 04/11/2026). Abasteceu: vale a conta dos km, nunca mais do
+  // que o abastecido; sem a média, o abastecido inteiro.
+  function combustivelDoDia(x) {
+    var ab = x.abastecido || 0;
+    if (!ab) return 0;
+    var est = estimativaDeCombustivel(x);
+    return est === null ? ab : Math.min(est, ab);
+  }
+
+  // Combustível de cada dia fechado: os fechamentos, mais o que foi lançado
+  // como abastecimento avulso naquele dia, até o limite da conta dos km.
+  function combustivelDosFechados(de, ate) {
+    var dias = {};
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo !== 'dia' || x.data < de || x.data > ate) return;
+      var d = dias[x.data] || (dias[x.data] = { fixo: 0, folga: 0, avulsos: 0, abastecido: 0 });
+      var c = combustivelDoDia(x), est = estimativaDeCombustivel(x);
+      d.fixo += c; d.abastecido += x.abastecido || 0;
+      // Sem a média: com abastecido, o gasto já é ele; sem, o avulso entra todo.
+      d.folga += est === null ? (x.abastecido ? 0 : Infinity) : Math.max(0, est - c);
+    });
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo === 'abastecimento' && dias[x.data]) { dias[x.data].avulsos += x.valor; dias[x.data].abastecido += x.valor; }
+    });
+    Object.keys(dias).forEach(function (k) {
+      var d = dias[k];
+      d.dosAvulsos = Math.min(d.avulsos, d.folga);
+      d.total = d.fixo + d.dosAvulsos;
+    });
+    return dias;
   }
 
   function fechamentoDoDia(data) {
@@ -11658,6 +11703,12 @@
       if (x.tipo !== 'dia' || x.data < de || x.data > ate) return;
       fechados[x.data] = (fechados[x.data] || 0) + (x.minutos || 0);
     });
+    var combFechados = soDaJornada ? {} : combustivelDosFechados(de, ate);
+    Object.keys(combFechados).forEach(function (d) {
+      var c = combFechados[d];
+      r.combustivel += c.dosAvulsos;
+      if (c.abastecido > c.total) r.abastecidoFora += c.abastecido - c.total;
+    });
     estado.uberRegistros.forEach(function (x) {
       if (soDaJornada) { if (x.jornadaId !== soDaJornada.id) return; }
       else if (x.data < de || x.data > ate) return;
@@ -11665,12 +11716,12 @@
         var comb = combustivelDoDia(x);
         r.faturamento += x.valor; r.km += x.km; r.corridas += x.viagens;
         r.combustivel += comb; r.dias += 1;
-        if (x.kmPorLitro) r.litros += x.km / x.kmPorLitro;
-        if (x.abastecido > comb) r.abastecidoFora += x.abastecido - comb;
+        if (x.kmPorLitro && comb) r.litros += Math.min(x.km / x.kmPorLitro, x.precoLitro ? comb / x.precoLitro : Infinity);
+        if (soDaJornada && x.abastecido > comb) r.abastecidoFora += x.abastecido - comb;
       }
       else if (x.tipo === 'corrida') { r.faturamento += x.valor; r.km += x.km; r.corridas += 1; }
       else if (x.tipo === 'abastecimento') {
-        // Dia fechado: o combustível já saiu pela conta dos km.
+        // Dia fechado: o abastecimento já entrou na conta do dia.
         if (fechados[x.data] !== undefined) return;
         r.combustivel += x.valor; r.litros += x.litros;
       }
@@ -11788,11 +11839,7 @@
     var m = numerosDoUber(f.de, f.ate);
     var cm = cartao();
     cm.appendChild(topoDeCartao('Em ' + MESES[mesAtivo.mes], null));
-    cm.appendChild(gradeDeTiles([
-      tile('Faturamento', emReais(m.faturamento), 'ouro'),
-      tile('Despesas', emReais(m.despesas), 'vermelho'),
-      tile('Lucro', emReais(m.lucro), m.lucro < 0 ? 'vermelho' : 'verde')
-    ], 3));
+    cm.appendChild(tilesDoResultadoUber(m, f.de, f.ate, MESES[mesAtivo.mes]));
     cm.appendChild(no('div', 'linha-nota',
       m.corridas + ' corrida(s) · ' + decimalBr(m.km) + ' km · ' + formatarHoras(m.ms) + ' trabalhadas' +
       (m.km ? ' · ' + emReais(m.lucroPorKm) + ' de lucro por km' : '') +
@@ -12000,8 +12047,9 @@
         var lucro = v - comb - outras;
         resumo.textContent = '';
         function par(rot, txt, cor) { juntar(resumo, no('span', null, rot), no('strong', 'num ' + (cor || ''), txt)); }
-        par('Combustível do Uber', md && pr && k ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)'
-          : ab ? '− ' + emReais(ab) + ' (o abastecido)' : 'preencha km, média e preço', 'vermelho');
+        // Sem abastecer, não sai combustível nenhum: a linha nem aparece.
+        if (comb) par('Combustível do Uber', md && pr && k && comb < ab ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)'
+          : '− ' + emReais(comb) + ' (o abastecido)', 'vermelho');
         if (outras) par('Outras despesas do dia', '− ' + emReais(outras), 'vermelho');
         par('Lucro do dia', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde');
         if (k) par('Ganho por km', emReais(Math.round(v / k)) + ' · lucro ' + emReais(Math.round(lucro / k)), '');
@@ -12482,11 +12530,8 @@
     c.appendChild(leg);
     corpo.appendChild(c);
 
-    corpo.appendChild(gradeDeTiles([
-      tile('Faturamento', emReais(t.faturamento), 'ouro'),
-      tile('Despesas', emReais(t.despesas), 'vermelho'),
-      tile('Lucro', emReais(t.lucro), t.lucro < 0 ? 'vermelho' : 'verde')
-    ], 3));
+    corpo.appendChild(tilesDoResultadoUber(t, de, ate, escalaUber === 'dia' ? MESES[mesAtivo.mes]
+      : escalaUber === 'semana' ? 'últimas 8 semanas' : 'últimos 6 meses'));
     corpo.appendChild(gradeDeTiles([
       tile('Corridas', String(t.corridas), ''),
       tile('Km', decimalBr(t.km), ''),
@@ -12518,11 +12563,7 @@
     abrirFolha(p.titulo, function (folha) {
       var n = numerosDoUber(p.de, p.ate);
       var c = cartao();
-      c.appendChild(gradeDeTiles([
-        tile('Faturamento', emReais(n.faturamento), 'ouro'),
-        tile('Despesas', emReais(n.despesas), 'vermelho'),
-        tile('Lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde')
-      ], 3));
+      c.appendChild(tilesDoResultadoUber(n, p.de, p.ate, p.titulo));
       folha.appendChild(c);
       var lista = cartao('liso');
       var registros = estado.uberRegistros.filter(function (x) { return x.data >= p.de && x.data <= p.ate; }).sort(ordemUber);
@@ -12531,6 +12572,93 @@
         lista.appendChild(linhaUber(x, function () { abrirRegistrosUber(p); }));
       });
       folha.appendChild(lista);
+    });
+  }
+
+  // Faturamento, Despesas e Lucro do Uber abrem o detalhamento do período
+  // (pedido de 04/11/2026). O cartão tocado vem primeiro.
+  function tilesDoResultadoUber(n, de, ate, titulo) {
+    function t(rotulo, valor, cor, foco) {
+      var el = tile(rotulo, valor, cor);
+      el.classList.add('tocavel');
+      el.setAttribute('role', 'button');
+      el.addEventListener('click', function () { abrirDetalheUber(de, ate, titulo, foco); });
+      return el;
+    }
+    return gradeDeTiles([
+      t('Faturamento', emReais(n.faturamento), 'ouro', 'faturamento'),
+      t('Despesas', emReais(n.despesas), 'vermelho', 'despesas'),
+      t('Lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde', 'lucro')
+    ], 3);
+  }
+
+  function abrirDetalheUber(de, ate, titulo, foco) {
+    function reabrir() { abrirDetalheUber(de, ate, titulo, foco); }
+    abrirFolha('Detalhamento · ' + titulo, function (folha) {
+      var n = numerosDoUber(de, ate);
+      var regs = estado.uberRegistros.filter(function (x) { return x.data >= de && x.data <= ate; }).sort(ordemUber);
+      var combDias = combustivelDosFechados(de, ate);
+
+      function linhaCor(rotulo, texto, cor) {
+        var l = no('div', 'parcela-linha');
+        juntar(l, no('span', 'q', rotulo), no('span', 'v num ' + (cor || ''), texto));
+        return l;
+      }
+
+      // Lucro: a conta inteira.
+      var cL = cartao('detalhe-uber-lucro');
+      cL.appendChild(topoDeCartao('Lucro', null));
+      cL.appendChild(linhaCor('Faturamento', emReais(n.faturamento), 'ouro'));
+      cL.appendChild(linhaCor('Combustível', '− ' + emReais(n.combustivel), 'vermelho'));
+      cL.appendChild(linhaCor('Outras despesas', '− ' + emReais(n.extras), 'vermelho'));
+      var tot = linhaCor('Lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde');
+      tot.classList.add('total');
+      cL.appendChild(tot);
+      if (n.aReceberDepois) cL.appendChild(no('div', 'linha-nota',
+        emReais(n.aReceberDepois) + ' de corridas particulares ainda vão ser pagos (estão em Serviços e Vendas).'));
+
+      // Faturamento: fechamentos e corridas.
+      var cF = cartao('liso detalhe-uber-faturamento');
+      cF.appendChild(topoDeCartao('Faturamento · ' + emReais(n.faturamento), null));
+      var ganhos = regs.filter(function (x) { return x.tipo === 'dia' || x.tipo === 'corrida'; });
+      if (!ganhos.length) cF.appendChild(estadoVazio('Nenhum ganho', 'Os fechamentos e as corridas do período aparecem aqui.'));
+      ganhos.forEach(function (x) { cF.appendChild(linhaUber(x, reabrir)); });
+
+      // Despesas: combustível dia a dia e as outras despesas.
+      var cD = cartao('liso detalhe-uber-despesas');
+      cD.appendChild(topoDeCartao('Despesas · ' + emReais(n.despesas), null));
+      var linhasD = 0;
+      Object.keys(combDias).sort().reverse().forEach(function (d) {
+        var c = combDias[d];
+        var fechs = regs.filter(function (x) { return x.tipo === 'dia' && x.data === d; });
+        var partes = fechs.map(function (x) {
+          var est = estimativaDeCombustivel(x), cc = combustivelDoDia(x);
+          if (!x.abastecido) return 'não abasteceu';
+          if (est === null) return 'abastecido ' + emReais(x.abastecido) + ' (sem a média)';
+          return decimalBr(x.km, 1) + ' km ÷ ' + decimalBr(x.kmPorLitro, 1) + ' km/l × ' + emReais(x.precoLitro) +
+            (cc < est ? ' · limitado ao abastecido' : '');
+        });
+        if (c.avulsos) partes.push('abastecimento avulso ' + emReais(c.avulsos));
+        linhasD++;
+        cD.appendChild(linhaSimples({
+          titulo: 'Combustível · ' + dataCurta(d),
+          sub: partes.join(' · '),
+          valor: c.total ? '− ' + emReais(c.total) : emReais(0), cor: c.total ? 'vermelho' : '',
+          nota: !c.total ? 'fora do lucro' : c.abastecido > c.total ? 'abasteceu ' + emReais(c.abastecido) : '',
+          selo: seloIcone('bomba', '#FF6B6B'),
+          aoTocar: fechs.length ? function () { porCima(reabrir, function () { abrirFechamentoDoDia(d, true, fechs[0].id); }); } : null
+        }));
+      });
+      regs.forEach(function (x) {
+        if (x.tipo === 'despesa' || (x.tipo === 'abastecimento' && !combDias[x.data])) {
+          linhasD++;
+          cD.appendChild(linhaUber(x, reabrir));
+        }
+      });
+      if (!linhasD) cD.appendChild(estadoVazio('Nenhuma despesa', 'Combustível e outras despesas do período aparecem aqui.'));
+
+      var ordem = foco === 'faturamento' ? [cF, cL, cD] : foco === 'despesas' ? [cD, cL, cF] : [cL, cF, cD];
+      ordem.forEach(function (c) { folha.appendChild(c); });
     });
   }
 
