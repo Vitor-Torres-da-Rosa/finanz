@@ -144,6 +144,29 @@ await page.click('#telaInicio .linha:has-text("25,00 L")'); await page.waitForTi
 conferir('20. reabrindo, os três voltam como foram salvos',
   (await T.inputValue()) === 'R$ 156,25' && (await L.inputValue()) === '25,00' && (await P.inputValue()) === 'R$ 6,25');
 
+// ---- 05/11/2026: os km do painel ficam registrados no abastecimento ----
+const O = folha().getByLabel('Km do carro no painel (opcional)');
+await O.click(); await O.type('45230');
+conferir('21. os km do painel se formatam', (await O.inputValue()) === '45.230', await O.inputValue());
+await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1000);
+await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
+await folha().getByLabel('Data', { exact: true }).fill('2026-11-05'); await page.waitForTimeout(200);
+const n1 = limpo(await folha().textContent());
+await O.click(); await O.type('45460');
+const n2 = limpo(await folha().textContent());
+conferir('22. o abastecimento novo mostra o último registrado e quanto rodou',
+  /Último registrado: 45\.230 km em 04\/11\/2026\./.test(n1) && /Rodou 230 km desde então/.test(n2), n2.slice(0, 400));
+await L.click(); await L.fill('3000'); await dinheiro(P0, '600');
+await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1000);
+let gastos = await tela();
+conferir('23. a lista mostra os km do painel e o que rodou', /− R\$ 180,00\s*45\.460 km \(\+230\)/.test(gastos) && /− R\$ 156,25\s*45\.230 km/.test(gastos), gastos.slice(0, 500));
+await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3500);
+await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {}); await page.waitForTimeout(800);
+if (!(await page.locator('#telaInicio .modulo-cabecalho').count())) { await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900); }
+await page.click('#telaInicio .abas-modulo button:has-text("Gastos")').catch(() => {}); await page.waitForTimeout(800);
+conferir('24. recarregando, os km continuam', /45\.460 km \(\+230\)/.test(await tela()));
+await page.screenshot({ path: dir + '/z63-km-do-painel.png', fullPage: true });
+
 console.log(falhas ? `\n${falhas} verificação(ões) falharam` : '\ntudo certo: detalhamento do Uber');
 await browser.close();
 process.exit(falhas ? 1 : 0);

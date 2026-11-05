@@ -2295,7 +2295,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.48.0';
+  var VERSAO = '5.49.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2304,6 +2304,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.49.0',
+      data: '2026-11-05',
+      itens: [
+        'Abastecimento: novo campo "Km do carro no painel". O total de km fica registrado com a data, e o app mostra o último registrado e quanto o carro rodou desde então.'
+      ]
+    },
     {
       versao: '5.48.0',
       data: '2026-11-05',
@@ -4623,6 +4630,8 @@
         minutos: Math.max(0, Math.min(1440, Math.round(Number(r.minutos) || 0))),
         kmPorLitro: decimal(r.kmPorLitro, 1),
         abastecido: positivo(r.abastecido),
+        // Abastecimento: quantos km o painel do carro marcava naquele dia.
+        odometro: Math.max(0, Math.min(9999999, Math.round(Number(r.odometro) || 0))),
         clienteId: texto(r.clienteId),
         servicoId: texto(r.servicoId),
         criadoEm: marca(r.criadoEm) || Date.now()
@@ -11099,6 +11108,11 @@
     return s;
   }
 
+  // Inteiro com ponto de milhar: 45230 → "45.230".
+  function milharBr(n) {
+    return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
   function decimalBr(n, casas) {
     return Number(n || 0).toFixed(casas == null ? 1 : casas).replace('.', ',');
   }
@@ -11953,10 +11967,14 @@
       });
     }
     if (x.tipo === 'abastecimento') {
+      var antOdo = x.odometro ? odometroAnterior(x.data, x.id, x.criadoEm) : null;
       return linhaSimples({
         titulo: (x.combustivel || 'Combustível') + ' · ' + decimalBr(x.litros, 2) + ' L',
         sub: dataBr(x.data) + ' · ' + emReais(x.precoLitro) + ' por litro',
         valor: '− ' + emReais(x.valor), cor: 'vermelho',
+        // Os km do painel, e quanto rodou desde o abastecimento anterior.
+        nota: x.odometro ? milharBr(x.odometro) + ' km' +
+          (antOdo && x.odometro > antOdo.odometro ? ' (+' + milharBr(x.odometro - antOdo.odometro) + ')' : '') : '',
         selo: seloIcone('bomba', '#FF6B6B'),
         aoTocar: abrir(abrirFolhaAbastecimento)
       });
@@ -12007,6 +12025,27 @@
   // "3333" vira "33:33", "504" vira "5:04"; "431" vira "43,1".
   function noFimDoCampo(i) {
     try { var n = i.value.length; i.setSelectionRange(n, n); } catch (e) { /* alguns navegadores recusam */ }
+  }
+
+  function mascaraMilhar(i) {
+    i.inputMode = 'numeric';
+    i.addEventListener('input', function () {
+      var d = String(i.value || '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 7);
+      i.value = d ? milharBr(parseInt(d, 10)) : '';
+      noFimDoCampo(i);
+    });
+  }
+
+  // A leitura do painel anterior a esta (outro abastecimento, por data).
+  function odometroAnterior(data, semId, criadoEm) {
+    var melhor = null;
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo !== 'abastecimento' || !x.odometro || x.id === semId) return;
+      var antes = x.data < data || (x.data === data && criadoEm && (x.criadoEm || 0) < criadoEm);
+      if (!antes) return;
+      if (!melhor || x.data > melhor.data || (x.data === melhor.data && (x.criadoEm || 0) > (melhor.criadoEm || 0))) melhor = x;
+    });
+    return melhor;
   }
 
   function mascaraHoras(i) {
@@ -12471,7 +12510,26 @@
       forma.appendChild(campo('Combustível', grupoChips(COMBUSTIVEIS, combustivel, function (c) { combustivel = c; })));
       var data = entradaData(existente ? existente.data : hojeTexto());
       forma.appendChild(campo('Data', data));
-      var obs = entradaTexto(existente ? existente.descricao : '', 'Ex.: posto, quilometragem', 80);
+      // Os km que o painel marca, para ficar registrado com a data (pedido
+      // de 05/11/2026).
+      var odo = entradaTexto(existente && existente.odometro ? milharBr(existente.odometro) : '', 'Ex.: 45.230', 9);
+      mascaraMilhar(odo);
+      forma.appendChild(campo('Km do carro no painel (opcional)', odo));
+      var notaOdo = no('p', 'ajuda ajuda-campo');
+      forma.appendChild(notaOdo);
+      function pintarOdo() {
+        var ant = odometroAnterior(data.value, existente && existente.id, existente ? existente.criadoEm : Date.now());
+        var v = parseInt(String(odo.value).replace(/\D/g, ''), 10) || 0;
+        if (!ant) { notaOdo.textContent = 'O total de km que o painel do carro mostra. Fica registrado nesta data.'; return; }
+        var txt = 'Último registrado: ' + milharBr(ant.odometro) + ' km em ' + dataBr(ant.data) + '.';
+        if (v > ant.odometro) txt += ' Rodou ' + milharBr(v - ant.odometro) + ' km desde então.';
+        else if (v && v < ant.odometro) txt += ' Este número está menor que o anterior; confira.';
+        notaOdo.textContent = txt;
+      }
+      odo.addEventListener('input', pintarOdo);
+      data.addEventListener('change', pintarOdo);
+      pintarOdo();
+      var obs = entradaTexto(existente ? existente.descricao : '', 'Ex.: posto', 80);
       forma.appendChild(campo('Observação (opcional)', obs));
 
       var acoes = no('div', 'acoes');
@@ -12492,6 +12550,7 @@
         reg.hora = reg.hora || '';
         reg.descricao = obs.value.trim();
         reg.km = 0; reg.plataforma = ''; reg.categoria = '';
+        reg.odometro = parseInt(String(odo.value).replace(/\D/g, ''), 10) || 0;
         if (!existente) estado.uberRegistros.push(reg);
         ultimoCombustivel = combustivel;
         if (p > 0) ultimoPrecoLitro = p;
