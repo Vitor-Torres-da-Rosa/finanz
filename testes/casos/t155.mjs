@@ -81,6 +81,18 @@ conferir('7. a parcela paga em duas vezes mostra os dois pagamentos e a soma',
   /pix do Edison\s*\+ R\$ 400,00\s*soma R\$ 400,00/.test(disc) && /dinheiro\s*\+ R\$ 800,00\s*soma R\$ 1\.200,00/.test(disc), disc.slice(0, 260));
 await page.screenshot({ path: dir + '/z56-pagamentos-da-parcela.png', fullPage: true });
 
+// ---- 05/11/2026: tocar em "Recebido" mostra o que entrou ----
+for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .tile.tocavel:has-text("Recebido")'); await page.waitForTimeout(900);
+const rec = limpo(await folha().textContent());
+conferir('8. Recebido abre os pagamentos do mês, de quem e de qual registro',
+  /Recebido ·/.test(await page.textContent('#folhaTitulo')) && /R\$ 1\.200,00/.test(rec) && /2 pagamento\(s\) de 1 cliente\(s\)/.test(rec) &&
+  /Edison.*Investimento · parcela 1\/3 · dinheiro\s*\+ R\$ 800,00/.test(rec) && /Edison.*Investimento · parcela 1\/3 · pix do Edison\s*\+ R\$ 400,00/.test(rec), rec.slice(0, 300));
+await page.screenshot({ path: dir + '/z62-recebido.png', fullPage: true });
+await page.click('#folha .linha:has-text("pix do Edison")'); await page.waitForTimeout(900);
+conferir('9. tocar num pagamento abre ele', (await folha().getByLabel('Observação (opcional)').inputValue()) === 'pix do Edison');
+
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
 console.log('\ntudo certo: parcela paga em várias vezes');

@@ -122,6 +122,28 @@ await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.wai
 for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 conferir('16. e as despesas do mês ficam só com a lavagem', /Despesas\s*R\$ 15,00/.test(await tela()), (await tela()).slice(0, 300));
 
+// ---- 05/11/2026: no abastecimento, dois dos três calculam o outro ----
+await page.click('#fab'); await page.waitForTimeout(700);
+await page.click('#escolhaLista .escolha-item:has-text("Abastecimento")'); await page.waitForTimeout(900);
+const L0 = folha().getByLabel('Litros'), P0 = folha().getByLabel('Preço por litro'), T0 = folha().getByLabel('Total do abastecimento');
+const valorDe = (loc) => ({ inputValue: async () => limpo((await loc.inputValue()).replace(/\u00a0/g, ' ')), click: () => loc.click(), fill: (v) => loc.fill(v), press: (k) => loc.press(k), type: (v) => loc.type(v) });
+const L = valorDe(L0), P = valorDe(P0), T = valorDe(T0);
+await dinheiro(P, '500'); await dinheiro(T, '10000');
+const a1 = await L.inputValue();
+await L.click(); await L.fill('2500');
+const a2 = await P.inputValue(), a2t = await T.inputValue();
+await dinheiro(P, '625');
+const a3 = await T.inputValue(), a3l = await L.inputValue();
+conferir('17. preço e total dão os litros', a1 === '20,00', a1);
+conferir('18. total e litros dão o preço', a2 === 'R$ 4,00' && a2t === 'R$ 100,00', a2 + ' | ' + a2t);
+conferir('19. litros e preço dão o total', a3 === 'R$ 156,25' && a3l === '25,00', a3 + ' | ' + a3l);
+await page.screenshot({ path: dir + '/z61-abastecimento-tres.png', fullPage: true });
+await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1000);
+await page.click('#telaInicio .abas-modulo button:has-text("Gastos")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .linha:has-text("25,00 L")'); await page.waitForTimeout(900);
+conferir('20. reabrindo, os três voltam como foram salvos',
+  (await T.inputValue()) === 'R$ 156,25' && (await L.inputValue()) === '25,00' && (await P.inputValue()) === 'R$ 6,25');
+
 console.log(falhas ? `\n${falhas} verificação(ões) falharam` : '\ntudo certo: detalhamento do Uber');
 await browser.close();
 process.exit(falhas ? 1 : 0);

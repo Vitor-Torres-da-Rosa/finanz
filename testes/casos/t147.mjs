@@ -102,7 +102,7 @@ await page.screenshot({ path: dir + '/z45-uber-dia-fechado.png', fullPage: true 
 // ---- o abastecimento do dia sai do lucro ----
 await page.click('#telaInicio .abas-modulo button:has-text("Gastos")'); await page.waitForTimeout(800);
 await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
-await folha().getByLabel('Litros').fill('20');
+await folha().getByLabel('Litros').fill('2000');
 await dinheiro(folha().getByLabel('Preço por litro'), '500');
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(900);
 await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(800);

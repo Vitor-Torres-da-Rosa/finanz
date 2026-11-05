@@ -1782,6 +1782,7 @@
     letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entrada.calculado { color: var(--ouro); }
   .tile.tocavel { cursor: pointer; position: relative; transition: transform .12s ease; }
   .tile.tocavel:active { transform: scale(.97); }
   .tile.tocavel .tile-rotulo::after { content: '›'; margin-left: auto; color: var(--fraco); font-size: 14px; line-height: 1; }
@@ -2294,7 +2295,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.47.0';
+  var VERSAO = '5.48.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2303,6 +2304,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.48.0',
+      data: '2026-11-05',
+      itens: [
+        'Abastecimento: o total também se digita. Preencha dois dos três (litros, preço do litro, total) e o outro se calcula sozinho, em dourado.',
+        'Os litros se formatam enquanto digita: 2380 vira 23,80.',
+        'Serviços e Vendas: toque em "Recebido" para ver cada pagamento do mês: de qual cliente, de qual registro e parcela, a data e a observação.'
+      ]
+    },
     {
       versao: '5.47.0',
       data: '2026-11-05',
@@ -11220,6 +11230,42 @@
     return r;
   }
 
+  function abrirRecebidosDoPeriodo(de, ate, titulo) {
+    function reabrir() { abrirRecebidosDoPeriodo(de, ate, titulo); }
+    abrirFolha('Recebido · ' + titulo, function (folha) {
+      var lista = estado.pagamentos.filter(function (g) { return g.data >= de && g.data <= ate; })
+        .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.criadoEm || 0) - (a.criadoEm || 0); });
+      var soma = lista.reduce(function (t, g) { return t + g.valor; }, 0);
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Recebido em ' + titulo));
+      c.appendChild(no('div', 'valorao num verde', emReais(soma)));
+      var clientes = {};
+      lista.forEach(function (g) { clientes[g.clienteId] = 1; });
+      c.appendChild(no('div', 'linha-nota', lista.length + ' pagamento(s) de ' + Object.keys(clientes).length + ' cliente(s).'));
+      folha.appendChild(c);
+      var cl = cartao('liso');
+      if (!lista.length) cl.appendChild(estadoVazio('Nada recebido', 'Os pagamentos dos clientes neste mês aparecem aqui.'));
+      lista.forEach(function (g) {
+        var cli = achar(estado.clientes, g.clienteId);
+        var reg = g.servicoId ? achar(estado.servicos, g.servicoId) : null;
+        var parc = g.parcelaId ? achar(estado.parcelas, g.parcelaId) : null;
+        var partes = [];
+        if (reg) partes.push(reg.nome);
+        if (parc) partes.push('parcela ' + parc.numero + '/' + parc.total);
+        if (g.obs) partes.push(g.obs);
+        cl.appendChild(linhaSimples({
+          titulo: cli ? cli.nome : 'Cliente',
+          sub: partes.join(' · ') || 'pagamento',
+          valor: '+ ' + emReais(g.valor), cor: 'verde',
+          nota: dataBr(g.data),
+          selo: selo('#34D399', '✓'),
+          aoTocar: function () { porCima(reabrir, function () { abrirFolhaPagamento(g.clienteId, g.id); }); }
+        }));
+      });
+      folha.appendChild(cl);
+    });
+  }
+
   function numerosDoPeriodo(de, ate) {
     var s = numerosDeServicos(de, ate), u = numerosDoUber(de, ate), d = numerosDosDoces(de, ate);
     // Corrida particular cobrada em Serviços e Vendas aparece nos dois
@@ -11441,10 +11487,16 @@
     c.appendChild(jan);
     corpo.appendChild(c);
 
+    // Recebido abre o que entrou no mês: de quem, de qual registro e quando
+    // (pedido de 05/11/2026).
+    var tRec = tile('Recebido', emReais(n.recebido), 'verde', 'mais');
+    tRec.classList.add('tocavel');
+    tRec.setAttribute('role', 'button');
+    tRec.addEventListener('click', function () { abrirRecebidosDoPeriodo(faixa.de, faixa.ate, MESES[mesAtivo.mes]); });
     corpo.appendChild(gradeDeTiles([
       tile('Serviços', String(n.nServicos), '', 'ferramenta'),
       tile('Vendas', emReais(n.vendas), '', 'pacote'),
-      tile('Recebido', emReais(n.recebido), 'verde', 'mais')
+      tRec
     ], 3));
 
     var geral = resumoGeralClientes();
@@ -12384,21 +12436,38 @@
     var combustivel = existente ? existente.combustivel : (ultimoCombustivel || 'Gasolina');
     abrirFolha(existente ? 'Editar abastecimento' : 'Abastecimento', function (folha) {
       var forma = no('div', 'forma');
+      // Litros, preço do litro e total: preenchendo dois, o terceiro sai
+      // sozinho (pedido de 05/11/2026). O calculado é o que a pessoa não
+      // mexeu por último.
       var litros = entradaDecimal(existente ? existente.litros : 0, 2, 'Ex.: 23,80');
+      mascaraDecimal(litros, 2);
       var preco = entradaValor(existente ? existente.precoLitro : ultimoPrecoLitro, false);
+      var total = entradaValor(existente ? existente.valor : 0, false);
       var linha = no('div', 'duas');
       juntar(linha, campo('Litros', litros), campo('Preço por litro', preco));
       forma.appendChild(linha);
-      var total = no('div', 'total-calculado');
-      forma.appendChild(total);
-      function pintar() {
-        var t = Math.round(lerDecimal(litros.value) * digitosParaCentavos(preco.value));
-        total.textContent = '';
-        juntar(total, no('span', null, 'Total do abastecimento'), no('strong', 'num ouro', emReais(t)));
+      forma.appendChild(campo('Total do abastecimento', total));
+      var dica = no('p', 'ajuda ajuda-campo', 'Preencha dois dos três e o outro se calcula sozinho.');
+      forma.appendChild(dica);
+      var campos = { litros: litros, preco: preco, total: total };
+      var ordem = ['preco', 'litros'];
+      function calcular(soMarcar) {
+        var l = lerDecimal(litros.value), p = digitosParaCentavos(preco.value), t = digitosParaCentavos(total.value);
+        var alvo = ['litros', 'preco', 'total'].filter(function (k) { return ordem.indexOf(k) < 0; })[0];
+        Object.keys(campos).forEach(function (k) { campos[k].classList.toggle('calculado', k === alvo); });
+        if (soMarcar) return;
+        if (alvo === 'total') total.value = emReais(Math.round(l * p));
+        else if (alvo === 'preco') preco.value = emReais(l > 0 ? Math.round(t / l) : 0);
+        else litros.value = p > 0 && t > 0 ? decimalBr(Math.round(t / p * 100) / 100, 2) : '';
       }
-      litros.addEventListener('input', pintar);
-      preco.addEventListener('input', pintar);
-      pintar();
+      Object.keys(campos).forEach(function (k) {
+        campos[k].addEventListener('input', function () {
+          ordem = [k].concat(ordem.filter(function (o) { return o !== k; })).slice(0, 2);
+          calcular();
+        });
+      });
+      // Editando, os três já vêm certos: só marca qual seria o calculado.
+      calcular(!!existente);
       forma.appendChild(campo('Combustível', grupoChips(COMBUSTIVEIS, combustivel, function (c) { combustivel = c; })));
       var data = entradaData(existente ? existente.data : hojeTexto());
       forma.appendChild(campo('Data', data));
@@ -12409,14 +12478,15 @@
       acoes.appendChild(botao('btn btn-ouro', 'Salvar registro', function () {
         var l = lerDecimal(litros.value);
         var p = digitosParaCentavos(preco.value);
-        if (l <= 0) { mostrarErro(forma, 'Informe quantos litros.'); return; }
-        if (p <= 0) { mostrarErro(forma, 'Informe o preço do litro.'); return; }
+        var t = digitosParaCentavos(total.value);
+        if (t <= 0 || ((l <= 0) && (p <= 0))) { mostrarErro(forma, 'Preencha dois dos três: litros, preço do litro ou total.'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         var j = jornadaAberta();
         var reg = existente || { id: novoId(), tipo: 'abastecimento', criadoEm: Date.now(), jornadaId: j && data.value === hojeTexto() ? j.id : '' };
         reg.litros = Math.round(l * 100) / 100;
         reg.precoLitro = p;
-        reg.valor = Math.round(reg.litros * p);
+        // O total digitado vale como está (é o que saiu do bolso).
+        reg.valor = t;
         reg.combustivel = combustivel;
         reg.data = data.value;
         reg.hora = reg.hora || '';
@@ -12424,7 +12494,7 @@
         reg.km = 0; reg.plataforma = ''; reg.categoria = '';
         if (!existente) estado.uberRegistros.push(reg);
         ultimoCombustivel = combustivel;
-        ultimoPrecoLitro = p;
+        if (p > 0) ultimoPrecoLitro = p;
         salvar();
         fecharOuVoltar(deCima);
         avisar('Abastecimento salvo: ' + emReais(reg.valor) + '.');

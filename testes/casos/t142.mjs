@@ -79,9 +79,10 @@ await page.click('#folha .btn-ouro:has-text("Salvar corrida")'); await page.wait
 // ---- abastecimento: 10 L a R$ 5,00 ----
 await page.click('#telaInicio .abas-modulo button:has-text("Gastos")'); await page.waitForTimeout(800);
 await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
-await folha().getByLabel('Litros').fill('10');
+await folha().getByLabel('Litros').fill('1000');
 await dinheiro(folha().getByLabel('Preço por litro'), '500');
-conferir('5. o abastecimento calcula o total', /Total do abastecimento\s*R\$ 50,00/.test(limpo(await folha().textContent())));
+conferir('5. o abastecimento calcula o total', limpo((await folha().getByLabel('Total do abastecimento').inputValue()).replace(/\u00a0/g, ' ')) === 'R$ 50,00',
+  await folha().getByLabel('Total do abastecimento').inputValue());
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(900);
 await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(800);
 
