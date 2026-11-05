@@ -61,12 +61,12 @@ conferir('3. a jornada antiga que ficou ligada aparece para desligar', /Ficou um
 // Desde a 5.37.0 o "+" do Uber fecha o dia; a corrida avulsa tem botão.
 await page.click('#fab'); await page.waitForTimeout(700);
 const opcoesFab = limpo(await page.textContent('#escolhaLista'));
-await page.click('#escolhaLista .escolha-item:has-text("Novo fechamento")'); await page.waitForTimeout(900);
+await page.click('#escolhaLista .escolha-item:has-text("Novo registro")'); await page.waitForTimeout(900);
 const tituloFab = await page.textContent('#folhaTitulo') + ' · ' + opcoesFab;
 await page.goBack(); await page.waitForTimeout(700);
 await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
 conferir('4. o "+" pergunta o que registrar e "Corrida avulsa" abre a corrida',
-  /Novo fechamento/.test(tituloFab) && /Abastecimento/.test(tituloFab) && /Outras despesas/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
+  /Novo registro/.test(tituloFab) && /Abastecimento/.test(tituloFab) && /Outras despesas/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
 await dinheiro(folha().locator('.valor-grande'), '5000');
 await folha().getByLabel('Distância (km)').fill('12');
 await page.click('#folha .btn-ouro:has-text("Salvar corrida")'); await page.waitForTimeout(900);

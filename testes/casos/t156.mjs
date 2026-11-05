@@ -60,18 +60,16 @@ await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(
 
 // ---- hoje: rodou sem abastecer ----
 await page.click('#fab'); await page.waitForTimeout(700);
-await page.click('#escolhaLista .escolha-item:has-text("Novo fechamento")'); await page.waitForTimeout(900);
+await page.click('#escolhaLista .escolha-item:has-text("Novo registro")'); await page.waitForTimeout(900);
 await dinheiro(folha().locator('.valor-grande'), '7659');
 await folha().locator('.contador-campo').fill('6');
 await folha().getByLabel('Tempo online (horas:minutos)').fill('201');
 await folha().getByLabel('Km rodados').fill('431');
-await folha().getByLabel('Média (km/l)').fill('83');
-await dinheiro(folha().getByLabel('Preço do litro hoje'), '585');
 const prev = limpo(await folha().locator('.fechamento-resumo').textContent());
 conferir('1. sem abastecer, não aparece "Combustível do Uber"', !/Combustível/.test(prev), prev);
 conferir('2. e o lucro do dia é o ganho inteiro', /Lucro do dia\s*R\$ 76,59/.test(prev), prev);
 await page.screenshot({ path: dir + '/z58-sem-abastecer.png', fullPage: true });
-await page.click('#folha .btn-ouro:has-text("Salvar fechamento")'); await page.waitForTimeout(1200);
+await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1200);
 const hoje = await tela();
 conferir('3. o Hoje fica sem gasto', /Gastos\s*R\$ 0,00/.test(hoje) && /Lucro líquido\s*R\$ 76,59/.test(hoje), hoje.slice(0, 300));
 
@@ -105,9 +103,24 @@ det = limpo(await folha().textContent());
 conferir('11. Faturamento lista os fechamentos', det.indexOf('Faturamento · R$ 150,19') === det.search(/Faturamento · /) &&
   /Dia 04 nov.*R\$ 76,59.*Dia 03 nov.*R\$ 73,60/.test(det), det.slice(0, 300));
 await page.click('#folha .detalhe-uber-faturamento .linha >> nth=0'); await page.waitForTimeout(900);
-conferir('12. tocar num fechamento abre ele', /Fechamento/.test(await page.textContent('#folhaTitulo')), await page.textContent('#folhaTitulo'));
+conferir('12. tocar num registro abre ele', /Registro de/.test(await page.textContent('#folhaTitulo')), await page.textContent('#folhaTitulo'));
 await page.goBack(); await page.waitForTimeout(800);
 conferir('13. e voltar cai no detalhamento', /Detalhamento/.test(await page.textContent('#folhaTitulo')));
+
+
+// ---- 05/11/2026: registro antigo com combustível dentro ----
+await page.goBack(); await page.waitForTimeout(700);
+await page.click('#telaInicio .linha:has-text("terça")'); await page.waitForTimeout(900);
+await page.click('#folha .linha:has-text("Dia 03 nov")'); await page.waitForTimeout(900);
+const antigo = limpo(await folha().textContent());
+conferir('14. o registro antigo avisa do combustível lançado nele',
+  /tem R\$ 40,39 de combustível lançado nele/.test(antigo) && /Combustível lançado nos registros\s*− R\$ 40,39/.test(antigo), antigo.slice(0, 300));
+await page.click('#folha button:has-text("Tirar o combustível deste registro")'); await page.waitForTimeout(300);
+const semComb = limpo(await folha().locator('.fechamento-resumo').textContent());
+conferir('15. tirando, o lucro do dia volta', !/Combustível/.test(semComb) && /Lucro do dia\s*R\$ 58,60/.test(semComb), semComb);
+await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1200);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+conferir('16. e as despesas do mês ficam só com a lavagem', /Despesas\s*R\$ 15,00/.test(await tela()), (await tela()).slice(0, 300));
 
 console.log(falhas ? `\n${falhas} verificação(ões) falharam` : '\ntudo certo: detalhamento do Uber');
 await browser.close();

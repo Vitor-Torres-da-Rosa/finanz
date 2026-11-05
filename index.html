@@ -2294,7 +2294,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.46.0';
+  var VERSAO = '5.47.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2303,6 +2303,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.47.0',
+      data: '2026-11-05',
+      itens: [
+        'Uber: "Novo fechamento" virou "Novo registro", só com ganhos, viagens, data, tempo online e km.',
+        'O combustível saiu do registro: abasteceu, lance em "+" › Abastecimento, que ele sai do lucro do dia. Registro antigo com combustível dentro mostra o valor e um botão para tirar, se já estiver lançado no Abastecimento.'
+      ]
+    },
     {
       versao: '5.46.0',
       data: '2026-11-04',
@@ -11662,14 +11670,16 @@
     var dias = {};
     estado.uberRegistros.forEach(function (x) {
       if (x.tipo !== 'dia' || x.data < de || x.data > ate) return;
-      var d = dias[x.data] || (dias[x.data] = { fixo: 0, folga: 0, avulsos: 0, abastecido: 0 });
+      var d = dias[x.data] || (dias[x.data] = { fixo: 0, folga: 0, avulsos: 0, abastecido: 0, litrosAvulsos: 0 });
       var c = combustivelDoDia(x), est = estimativaDeCombustivel(x);
       d.fixo += c; d.abastecido += x.abastecido || 0;
       // Sem a média: com abastecido, o gasto já é ele; sem, o avulso entra todo.
       d.folga += est === null ? (x.abastecido ? 0 : Infinity) : Math.max(0, est - c);
     });
     estado.uberRegistros.forEach(function (x) {
-      if (x.tipo === 'abastecimento' && dias[x.data]) { dias[x.data].avulsos += x.valor; dias[x.data].abastecido += x.valor; }
+      if (x.tipo === 'abastecimento' && dias[x.data]) {
+        dias[x.data].avulsos += x.valor; dias[x.data].abastecido += x.valor; dias[x.data].litrosAvulsos += x.litros || 0;
+      }
     });
     Object.keys(dias).forEach(function (k) {
       var d = dias[k];
@@ -11707,6 +11717,7 @@
     Object.keys(combFechados).forEach(function (d) {
       var c = combFechados[d];
       r.combustivel += c.dosAvulsos;
+      if (c.avulsos) r.litros += c.litrosAvulsos * c.dosAvulsos / c.avulsos;
       if (c.abastecido > c.total) r.abastecidoFora += c.abastecido - c.total;
     });
     estado.uberRegistros.forEach(function (x) {
@@ -11783,7 +11794,7 @@
       var cj = cartao('jornada-antiga');
       cj.appendChild(no('div', 'linha-nota', 'Ficou um cronômetro ligado desde ' +
         (dataDeMarca(j.inicio) === hoje ? 'hoje' : dataBr(dataDeMarca(j.inicio))) + ' às ' +
-        new Date(j.inicio).toTimeString().slice(0, 5) + '. O tempo agora entra pelo fechamento.'));
+        new Date(j.inicio).toTimeString().slice(0, 5) + '. O tempo agora entra pelo registro do dia.'));
       cj.appendChild(botao('btn btn-fantasma', 'Desligar o cronômetro', function () { encerrarJornada(j); }));
       corpo.appendChild(cj);
     }
@@ -11815,7 +11826,7 @@
     // Sempre um fechamento novo: dá para fechar várias vezes no mesmo dia
     // e lançar dias anteriores (é só mudar a data). Editar é tocando nele
     // na lista abaixo ou no histórico.
-    acoes.appendChild(botao('btn btn-ouro', fechado ? '+ Mais um fechamento' : 'Novo fechamento',
+    acoes.appendChild(botao('btn btn-ouro', fechado ? '+ Mais um registro' : 'Novo registro',
       function () { abrirFechamentoDoDia(hoje); }));
     var linha = no('div', 'duas');
     linha.appendChild(botao('btn btn-fantasma', 'Corrida avulsa', function () { abrirFolhaCorrida(null); }));
@@ -11831,7 +11842,7 @@
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     cl.appendChild(topo);
-    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado hoje', 'Toque em "Novo fechamento" e passe o que o app da Uber mostrou. Para um dia anterior, é só mudar a data.'));
+    if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado hoje', 'Toque em "Novo registro" e passe o que o app da Uber mostrou. Para um dia anterior, é só mudar a data.'));
     corridas.slice(0, 10).forEach(function (x) { cl.appendChild(linhaUber(x)); });
     corpo.appendChild(cl);
 
@@ -11866,7 +11877,7 @@
     if (x.tipo === 'dia') {
       var comb = combustivelDoDia(x);
       return linhaSimples({
-        titulo: (fechamentosDoDia(x.data).length > 1 ? 'Fechamento ' + dataCurta(x.data) + (x.hora ? ' ' + x.hora : '') : 'Dia ' + dataCurta(x.data)) +
+        titulo: (fechamentosDoDia(x.data).length > 1 ? 'Registro ' + dataCurta(x.data) + (x.hora ? ' ' + x.hora : '') : 'Dia ' + dataCurta(x.data)) +
           ' · ' + x.viagens + ' viagen' + (x.viagens === 1 ? 'm' : 's'),
         sub: (x.minutos ? textoHoras(x.minutos) + ' online · ' : '') + decimalBr(x.km) + ' km' +
           (x.precoLitro ? ' · litro ' + emReais(x.precoLitro) : ''),
@@ -11912,8 +11923,8 @@
   function abrirMenuDoUber() {
     var hoje = hojeTexto();
     abrirEscolha({ titulo: 'O que você quer registrar?', semMarca: true, opcoes: [
-      { valor: 'fechar', rotulo: 'Novo fechamento',
-        detalhe: 'ganhos, viagens, tempo e combustível · de hoje ou de outro dia' },
+      { valor: 'fechar', rotulo: 'Novo registro',
+        detalhe: 'ganhos, viagens, tempo e km · de hoje ou de outro dia' },
       { valor: 'abastecer', rotulo: 'Abastecimento', detalhe: 'litros e preço do litro' },
       { valor: 'gasto', rotulo: 'Outras despesas', detalhe: 'lavagem, manutenção, pedágio, aluguel do carro' },
       { valor: 'corrida', rotulo: 'Corrida avulsa', detalhe: 'particular, ou paga depois' }
@@ -11980,24 +11991,14 @@
     return h ? Math.round(h * 60) : 0;
   }
 
-  function ultimoFechamento() {
-    var u = null;
-    estado.uberRegistros.forEach(function (x) {
-      if (x.tipo === 'dia' && (!u || x.data > u.data)) u = x;
-    });
-    return u;
-  }
-
-  // No fim do dia: o que o app da Uber mostrou (ganhos, viagens, tempo
-  // online) e o que o carro rodou. O tempo já vem do cronômetro; os km/l e
-  // o preço do litro vêm do último dia. O lucro sai na hora.
-  // Sem `id`, um fechamento novo (a data pode ser de qualquer dia, inclusive
+  // O registro do dia: o que o app da Uber mostrou (ganhos, viagens, tempo
+  // online) e os km. O combustível entra pelo Abastecimento.
+  // Sem `id`, um registro novo (a data pode ser de qualquer dia, inclusive
   // um que já tem outro fechamento). Com `id`, edita aquele.
   function abrirFechamentoDoDia(data, deCima, id) {
     var x = id ? achar(estado.uberRegistros, id) : null;
-    var ultimo = ultimoFechamento();
     var jaNoDia = fechamentosDoDia(data).filter(function (f) { return !x || f.id !== x.id; }).length;
-    abrirFolha(x ? 'Fechamento de ' + dataBr(data) : (jaNoDia ? 'Mais um fechamento' : 'Novo fechamento'), function (folha) {
+    abrirFolha(x ? 'Registro de ' + dataBr(data) : (jaNoDia ? 'Mais um registro' : 'Novo registro'), function (folha) {
       var forma = no('div', 'forma');
       var valor = entradaValor(x ? x.valor : 0, true);
       forma.appendChild(campo('Ganhos do dia', valor));
@@ -12016,81 +12017,81 @@
       mascaraHoras(tempo);
       forma.appendChild(campo('Tempo online (horas:minutos)', tempo));
       forma.appendChild(no('p', 'ajuda ajuda-campo', jaNoDia
-        ? 'Este dia já tem ' + jaNoDia + ' fechamento(s); este soma com ' + (jaNoDia === 1 ? 'ele' : 'eles') + '. Escreva só o tempo deste trecho.'
+        ? 'Este dia já tem ' + jaNoDia + ' registro(s); este soma com ' + (jaNoDia === 1 ? 'ele' : 'eles') + '. Escreva só o tempo deste trecho.'
         : 'Escreva o tempo online que o app da Uber mostra.'));
 
-      forma.appendChild(no('div', 'rotulo-secao', 'Combustível'));
+      // O combustível saiu daqui: ele entra só pelo Abastecimento (pedido de
+      // 05/11/2026). Os km ficam para o ganho por km.
       var km = entradaDecimal(x ? x.km : 0, 1, 'Ex.: 120,5');
-      var media = entradaDecimal(x ? x.kmPorLitro : (ultimo ? ultimo.kmPorLitro : 0), 1, 'Ex.: 11,5');
       mascaraDecimal(km, 1);
-      mascaraDecimal(media, 1);
-      var linha2 = no('div', 'duas');
-      juntar(linha2, campo('Km rodados', km), campo('Média (km/l)', media));
-      forma.appendChild(linha2);
-      var preco = entradaValor(x ? x.precoLitro : (ultimo ? ultimo.precoLitro : 0), false);
-      var abastecido = entradaValor(x ? x.abastecido : 0, false);
-      var linha3 = no('div', 'duas');
-      juntar(linha3, campo('Preço do litro hoje', preco), campo('Abastecido hoje', abastecido));
-      forma.appendChild(linha3);
+      forma.appendChild(campo('Km rodados', km));
+
+      // Registro antigo, de quando o combustível era lançado aqui: o valor
+      // continua valendo até a pessoa tirar.
+      var combAntigo = x ? combustivelDoDia(x) : 0;
 
       var resumo = no('div', 'total-calculado fechamento-resumo');
       forma.appendChild(resumo);
       function pintar() {
-        var v = digitosParaCentavos(valor.value), k = lerDecimal(km.value), md = lerDecimal(media.value);
-        var pr = digitosParaCentavos(preco.value), ab = digitosParaCentavos(abastecido.value);
+        var v = digitosParaCentavos(valor.value), k = lerDecimal(km.value);
         var mins = lerHoras(tempo.value);
-        var comb = combustivelDoDia({ km: k, kmPorLitro: md, precoLitro: pr, abastecido: ab });
-        var outras = 0;
+        var outrosGanhos = 0, combOutros = 0, abastecido = 0, outras = 0;
         estado.uberRegistros.forEach(function (r) {
-          if (r.tipo === 'despesa' && r.data === campoData.value) outras += r.valor;
+          if (r.data !== campoData.value || (x && r.id === x.id)) return;
+          if (r.tipo === 'dia') { outrosGanhos += r.valor; combOutros += combustivelDoDia(r); }
+          else if (r.tipo === 'abastecimento') abastecido += r.valor;
+          else if (r.tipo === 'despesa') outras += r.valor;
         });
-        var lucro = v - comb - outras;
+        var lucro = v + outrosGanhos - combAntigo - combOutros - abastecido - outras;
         resumo.textContent = '';
         function par(rot, txt, cor) { juntar(resumo, no('span', null, rot), no('strong', 'num ' + (cor || ''), txt)); }
-        // Sem abastecer, não sai combustível nenhum: a linha nem aparece.
-        if (comb) par('Combustível do Uber', md && pr && k && comb < ab ? '− ' + emReais(comb) + ' (' + decimalBr(k / md, 1) + ' L)'
-          : '− ' + emReais(comb) + ' (o abastecido)', 'vermelho');
+        if (outrosGanhos) par('Outros registros do dia', '+ ' + emReais(outrosGanhos), 'ouro');
+        if (combAntigo + combOutros) par('Combustível lançado nos registros', '− ' + emReais(combAntigo + combOutros), 'vermelho');
+        if (abastecido) par('Abastecimentos do dia', '− ' + emReais(abastecido), 'vermelho');
         if (outras) par('Outras despesas do dia', '− ' + emReais(outras), 'vermelho');
         par('Lucro do dia', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde');
-        if (k) par('Ganho por km', emReais(Math.round(v / k)) + ' · lucro ' + emReais(Math.round(lucro / k)), '');
-        if (mins) par('Ganho por hora', emReais(Math.round(v / (mins / 60))) + ' · lucro ' + emReais(Math.round(lucro / (mins / 60))), '');
-        if (ab && !(md && pr && k)) {
+        if (k) par('Ganho por km', emReais(Math.round(v / k)), '');
+        if (mins) par('Ganho por hora', emReais(Math.round(v / (mins / 60))), '');
+        if (!abastecido && !combAntigo && !combOutros) {
           resumo.appendChild(no('div', 'linha-nota fechamento-nota',
-            'Sem a média do carro, o gasto é o que você abasteceu. Com a média, o app separa o que foi do Uber.'));
-        }
-        if (ab > comb && comb && md && pr && k) {
-          resumo.appendChild(no('div', 'linha-nota fechamento-nota',
-            emReais(ab - comb) + ' do abastecimento foram para outros usos e não entram no lucro.'));
+            'Abasteceu? Lance em "+" › Abastecimento, que ele sai do lucro do dia.'));
         }
       }
-      [valor, km, media, preco, abastecido, tempo].forEach(function (i) { i.addEventListener('input', pintar); });
+      [valor, km, tempo].forEach(function (i) { i.addEventListener('input', pintar); });
       campoData.addEventListener('change', pintar);
       pintar();
+      if (combAntigo) {
+        forma.appendChild(no('p', 'ajuda ajuda-campo',
+          'Este registro é de antes e tem ' + emReais(combAntigo) + ' de combustível lançado nele. Se você já lançou esse abastecimento em Abastecimento, tire daqui para não contar duas vezes.'));
+        var tirar = botao('btn btn-fantasma', 'Tirar o combustível deste registro', function () {
+          combAntigo = 0; tirar.remove(); pintar();
+        });
+        forma.appendChild(tirar);
+      }
 
       var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', 'Salvar fechamento', function () {
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar registro', function () {
         var v = digitosParaCentavos(valor.value);
         if (v <= 0) { mostrarErro(forma, 'Informe os ganhos do dia.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         var mins = lerHoras(tempo.value);
         if (mins > 24 * 60) { mostrarErro(forma, 'O tempo passou de 24 horas. Escreva como no app da Uber, por exemplo 5:04.'); return; }
-        var reg = x || { id: novoId(), tipo: 'dia', criadoEm: Date.now(), jornadaId: '', plataforma: 'Uber' };
+        var reg = x || { id: novoId(), tipo: 'dia', criadoEm: Date.now(), jornadaId: '', plataforma: 'Uber',
+                         kmPorLitro: 0, precoLitro: 0, abastecido: 0 };
         reg.data = campoData.value;
         reg.valor = v;
         reg.viagens = viagens;
         reg.minutos = mins;
         reg.km = Math.round(lerDecimal(km.value) * 10) / 10;
-        reg.kmPorLitro = Math.round(lerDecimal(media.value) * 10) / 10;
-        reg.precoLitro = digitosParaCentavos(preco.value);
-        reg.abastecido = digitosParaCentavos(abastecido.value);
+        if (!combAntigo) { reg.kmPorLitro = 0; reg.precoLitro = 0; reg.abastecido = 0; }
         reg.hora = reg.hora || horaAgora();
         reg.descricao = ''; reg.litros = 0; reg.combustivel = ''; reg.categoria = '';
         if (!x) estado.uberRegistros.push(reg);
         salvar();
         fecharOuVoltar(deCima);
-        avisar('Fechamento salvo: ' + emReais(reg.valor - combustivelDoDia(reg)) + ' de lucro.');
+        avisar('Registro salvo.');
       }));
-      if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir o fechamento', function () { excluirRegistroUber(x, deCima); }));
+      if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir o registro', function () { excluirRegistroUber(x, deCima); }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
     });
@@ -12621,7 +12622,7 @@
       var cF = cartao('liso detalhe-uber-faturamento');
       cF.appendChild(topoDeCartao('Faturamento · ' + emReais(n.faturamento), null));
       var ganhos = regs.filter(function (x) { return x.tipo === 'dia' || x.tipo === 'corrida'; });
-      if (!ganhos.length) cF.appendChild(estadoVazio('Nenhum ganho', 'Os fechamentos e as corridas do período aparecem aqui.'));
+      if (!ganhos.length) cF.appendChild(estadoVazio('Nenhum ganho', 'Os registros e as corridas do período aparecem aqui.'));
       ganhos.forEach(function (x) { cF.appendChild(linhaUber(x, reabrir)); });
 
       // Despesas: combustível dia a dia e as outras despesas.
@@ -12631,14 +12632,16 @@
       Object.keys(combDias).sort().reverse().forEach(function (d) {
         var c = combDias[d];
         var fechs = regs.filter(function (x) { return x.tipo === 'dia' && x.data === d; });
-        var partes = fechs.map(function (x) {
+        var partes = [];
+        fechs.forEach(function (x) {
+          if (!x.abastecido) return;
           var est = estimativaDeCombustivel(x), cc = combustivelDoDia(x);
-          if (!x.abastecido) return 'não abasteceu';
-          if (est === null) return 'abastecido ' + emReais(x.abastecido) + ' (sem a média)';
-          return decimalBr(x.km, 1) + ' km ÷ ' + decimalBr(x.kmPorLitro, 1) + ' km/l × ' + emReais(x.precoLitro) +
-            (cc < est ? ' · limitado ao abastecido' : '');
+          if (est === null) partes.push('lançado no registro ' + emReais(x.abastecido));
+          else partes.push(decimalBr(x.km, 1) + ' km ÷ ' + decimalBr(x.kmPorLitro, 1) + ' km/l × ' + emReais(x.precoLitro) +
+            (cc < est ? ' · limitado ao abastecido' : ''));
         });
-        if (c.avulsos) partes.push('abastecimento avulso ' + emReais(c.avulsos));
+        if (c.avulsos) partes.push('abastecimento ' + emReais(c.avulsos));
+        if (!partes.length) partes.push('não abasteceu');
         linhasD++;
         cD.appendChild(linhaSimples({
           titulo: 'Combustível · ' + dataCurta(d),
