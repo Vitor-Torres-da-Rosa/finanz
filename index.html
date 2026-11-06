@@ -995,6 +995,7 @@
   /* Linha do cartão que é editável: o controle ocupa a direita, no
      lugar onde o valor ficaria, para a coluna continuar alinhada. */
   .parcela-linha.edita { align-items: center; padding: 4px 0; }
+  .parcela-linha.edita .q { flex: 0 0 auto; white-space: nowrap; }
   .parcela-linha.edita .v { flex: 1 1 auto; min-width: 0; text-align: right; }
   .parcela-linha.edita .v .selecao,
   .parcela-linha.edita .v input {
@@ -1786,6 +1787,8 @@
   .tile.tocavel { cursor: pointer; position: relative; transition: transform .12s ease; }
   .tile.tocavel:active { transform: scale(.97); }
   .tile.tocavel .tile-rotulo::after { content: '›'; margin-left: auto; color: var(--fraco); font-size: 14px; line-height: 1; }
+  .detalhe-uber-lucro .pct { display: inline-block; min-width: 52px; margin-left: 8px; text-align: right;
+    font-size: 12px; font-weight: 600; color: var(--suave); }
   .detalhe-uber-lucro .parcela-linha.total { border-bottom: 0; font-weight: 700; font-size: 15px; }
   .detalhe-uber-faturamento > .cartao-topo, .detalhe-uber-despesas > .cartao-topo { padding: 16px 16px 0; margin-bottom: 8px; }
   .secao-rotulo { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--fraco); margin: 4px 2px 8px; }
@@ -2295,7 +2298,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.49.0';
+  var VERSAO = '5.49.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2304,6 +2307,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.49.1',
+      data: '2026-11-06',
+      itens: [
+        'Uber, detalhamento do lucro: ao lado de cada valor, quanto ele é do faturamento em %: combustível, outras despesas e o que sobrou de lucro.'
+      ]
+    },
     {
       versao: '5.49.0',
       data: '2026-11-05',
@@ -12729,19 +12739,25 @@
       var regs = estado.uberRegistros.filter(function (x) { return x.data >= de && x.data <= ate; }).sort(ordemUber);
       var combDias = combustivelDosFechados(de, ate);
 
-      function linhaCor(rotulo, texto, cor) {
+      // `parte`: o valor em centavos, para mostrar quanto é do faturamento
+      // (pedido de 06/11/2026).
+      function linhaCor(rotulo, texto, cor, parte) {
         var l = no('div', 'parcela-linha');
-        juntar(l, no('span', 'q', rotulo), no('span', 'v num ' + (cor || ''), texto));
+        var v = no('span', 'v num ' + (cor || ''), texto);
+        if (parte !== undefined && n.faturamento > 0) {
+          v.appendChild(no('span', 'pct', decimalBr(parte / n.faturamento * 100, 1) + '%'));
+        }
+        juntar(l, no('span', 'q', rotulo), v);
         return l;
       }
 
       // Lucro: a conta inteira.
       var cL = cartao('detalhe-uber-lucro');
       cL.appendChild(topoDeCartao('Lucro', null));
-      cL.appendChild(linhaCor('Faturamento', emReais(n.faturamento), 'ouro'));
-      cL.appendChild(linhaCor('Combustível', '− ' + emReais(n.combustivel), 'vermelho'));
-      cL.appendChild(linhaCor('Outras despesas', '− ' + emReais(n.extras), 'vermelho'));
-      var tot = linhaCor('Lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde');
+      cL.appendChild(linhaCor('Faturamento', emReais(n.faturamento), 'ouro', n.faturamento));
+      cL.appendChild(linhaCor('Combustível', '− ' + emReais(n.combustivel), 'vermelho', n.combustivel));
+      cL.appendChild(linhaCor('Outras despesas', '− ' + emReais(n.extras), 'vermelho', n.extras));
+      var tot = linhaCor('Lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde', n.lucro);
       tot.classList.add('total');
       cL.appendChild(tot);
       if (n.aReceberDepois) cL.appendChild(no('div', 'linha-nota',

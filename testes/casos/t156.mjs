@@ -93,8 +93,9 @@ await page.goBack(); await page.waitForTimeout(700);
 
 await page.click('#telaInicio .tile.tocavel:has-text("Lucro")'); await page.waitForTimeout(900);
 det = limpo(await folha().textContent());
-conferir('10. Lucro mostra a conta inteira',
-  /Lucro\s*Faturamento\s*R\$ 150,19\s*Combustível\s*− R\$ 40,39\s*Outras despesas\s*− R\$ 15,00\s*Lucro\s*R\$ 94,80/.test(det), det.slice(0, 200));
+// 06/11/2026: cada linha diz quanto é do faturamento.
+conferir('10. Lucro mostra a conta inteira, com a parte de cada um em %',
+  /Lucro\s*Faturamento\s*R\$ 150,19\s*100,0%\s*Combustível\s*− R\$ 40,39\s*26,9%\s*Outras despesas\s*− R\$ 15,00\s*10,0%\s*Lucro\s*R\$ 94,80\s*63,1%/.test(det), det.slice(0, 200));
 await page.screenshot({ path: dir + '/z60-detalhe-lucro.png', fullPage: true });
 await page.goBack(); await page.waitForTimeout(700);
 
