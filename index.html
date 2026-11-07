@@ -2362,7 +2362,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.53.0';
+  var VERSAO = '5.53.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2371,6 +2371,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.53.1',
+      data: '2026-11-07',
+      itens: [
+        'Entregas: no cartão de cada revendedor, o mês anterior fica à esquerda e o mês atual à direita.'
+      ]
+    },
     {
       versao: '5.53.0',
       data: '2026-11-07',
@@ -14193,7 +14200,8 @@
         no('span', 'cve-seta', '›'));
       card.appendChild(topo);
       var meses = no('div', 'cve-meses');
-      [[MESES[mesAtivo.mes], m1], [MESES[ant.mes], m0]].forEach(function (m) {
+      // O mês anterior à esquerda e o atual à direita (pedido de 07/11/2026).
+      [[MESES[ant.mes], m0], [MESES[mesAtivo.mes], m1]].forEach(function (m) {
         juntar(meses, juntar(no('div', 'cve-mes'),
           no('span', 'cve-rotulo', m[0]),
           no('strong', 'num', m[1].n ? m[1].n + (m[1].n === 1 ? ' entrega' : ' entregas') : 'nenhuma'),

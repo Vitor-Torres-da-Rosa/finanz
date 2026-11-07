@@ -79,7 +79,7 @@ conferir('6. entregando 30, ficam 70 com você', /Seu estoque.*Pote de vidro.*70
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
 t = await tela();
 // 07/11/2026: um cartão por vendedor, com este mês, o mês passado, o custo e a estimativa.
-conferir('7. Entregas mostra um cartão por vendedor', /Daniela\s*última entrega.*1 entrega\s*30 un\..*nenhuma.*Com Daniela agora: 30 un\.\s*Custo da mercadoria\s*R\$ \d+,\d\d\s*Estimativa de venda\s*R\$/.test(t), t.slice(0, 300));
+conferir('7. Entregas mostra um cartão por vendedor', /Daniela\s*última entrega.*nenhuma.*1 entrega\s*30 un\..*Com Daniela agora: 30 un\.\s*Custo da mercadoria\s*R\$ \d+,\d\d\s*Estimativa de venda\s*R\$/.test(t), t.slice(0, 300));
 await page.screenshot({ path: dir + '/z72-cartoes-vendedores.png' });
 await page.click('#telaInicio .cartao-vendedor-entregas:has-text("Daniela")'); await page.waitForTimeout(800);
 conferir('8. tocando, aparecem os doces entregues a ela', /Entregas · Daniela/.test(await page.textContent('#folhaTitulo')) &&
