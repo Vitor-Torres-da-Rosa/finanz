@@ -80,7 +80,9 @@ t = await tela();
 conferir('7. Entregas mostra uma linha por vendedor', /Daniela\s*1 entrega · 30 un\./.test(t), t.slice(0, 200));
 await page.click('#telaInicio .linha:has-text("Daniela")'); await page.waitForTimeout(800);
 conferir('8. tocando, aparecem os doces entregues a ela', /Entregas · Daniela/.test(await page.textContent('#folhaTitulo')) &&
-  /Daniela · 30 un\..*Pote de vidro/.test(limpo(await folha().textContent())));
+  // 07/11/2026: dentro da folha dela, cada linha diz o doce, não o nome dela.
+  /Pote de vidro · 30 un\./.test(limpo(await folha().textContent())) && !/Daniela · 30 un/.test(limpo(await folha().textContent())),
+  limpo(await folha().textContent()).slice(0, 200));
 for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 
 // ---- Prestação: estimativa no lugar de "em dia" ----
@@ -100,6 +102,34 @@ await folha().locator('input[placeholder^="Ex.: contagem"]').fill('quebraram na 
 await page.click('#folha .btn-ouro:has-text("Ajustar")'); await page.waitForTimeout(1000);
 for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 conferir('11. sem sócio, o ajuste entra na hora: 65 un.', /Pote de vidro\s*Estoque 65 un\./.test(await tela()), (await tela()).slice(0, 200));
+
+
+// ---- 07/11/2026: acerto sem estoque, só o dinheiro ----
+await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(700);
+await page.click('#telaInicio button:has-text("+ Acerto sem estoque")'); await page.waitForTimeout(900);
+let fsem = limpo(await folha().textContent());
+conferir('12. "+ Acerto sem estoque" abre o acerto só do dinheiro', /Prestação · Daniela/.test(await page.textContent('#folhaTitulo')) &&
+  /Só o dinheiro: o estoque de Daniela e o seu ficam como estão/.test(fsem) && !(await folha().locator('.bloco-estoque').isVisible()), fsem.slice(0, 200));
+const vSem = folha().getByLabel('Valor que Daniela te repassa');
+await vSem.click(); await vSem.type('5000'); await page.waitForTimeout(200);
+await folha().getByLabel('Recebido agora').click();
+for (let i = 0; i < 12; i++) await folha().getByLabel('Recebido agora').press('Backspace');
+await folha().getByLabel('Recebido agora').type('2000');
+await folha().getByLabel('Observação (opcional)').fill('venda de bolo por encomenda');
+fsem = limpo(await folha().textContent());
+conferir('13. o resumo mostra só o valor, sem vendidos', /Precisa te repassar\s*R\$ 50,00/.test(fsem) && !/Vendidos\s*\d+ un/.test(fsem) && /Fica pendente: R\$ 30,00/.test(fsem), fsem.slice(0, 400));
+await page.screenshot({ path: dir + '/z69-acerto-sem-estoque.png', fullPage: true });
+await page.click('#folha .btn-ouro:has-text("Registrar prestação de contas")'); await page.waitForTimeout(1100);
+t = await tela();
+conferir('14. o acerto aparece na lista, e a Daniela fica com R$ 30,00 pendente',
+  /Acerto sem estoque · Daniela/.test(t) && /Daniela.*R\$ 210,00\s*R\$ 30,00 já devido/.test(t), (t.match(/Daniela.{0,120}/) || [''])[0]);
+await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(600);
+conferir('15. o estoque dela não mudou', /Daniela\s*1 entrega · 30 un\./.test(await tela()));
+await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
+conferir('16. nem o seu', /Pote de vidro\s*Estoque 65 un\./.test(await tela()));
+await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(600);
+await page.click('#telaInicio .linha:has-text("Acerto sem estoque")'); await page.waitForTimeout(800);
+conferir('17. abrindo, diz que o estoque não mudou', /Acerto só do dinheiro: o estoque do vendedor e o seu não mudaram/.test(limpo(await folha().textContent())));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
