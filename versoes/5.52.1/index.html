@@ -1784,6 +1784,54 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .cartoes-vendedores { display: grid; gap: 12px; }
+  .cartao-vendedor-entregas { display: block; width: 100%; text-align: left; padding: 14px 16px; cursor: pointer; font: inherit; color: inherit; }
+  .cve-topo { display: flex; align-items: center; gap: 12px; }
+  .cve-nome { display: grid; gap: 2px; flex: 1 1 auto; min-width: 0; }
+  .cve-nome strong { font-size: 16px; }
+  .cve-nome span { font-size: 12.5px; color: var(--suave); }
+  .cve-seta { color: var(--ouro); font-size: 22px; line-height: 1; }
+  .cve-meses { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 10px; }
+  .cve-mes { display: grid; gap: 2px; padding: 9px 11px; border-radius: 12px; background: rgba(255,255,255,.035); border: 1px solid rgba(198,158,78,.16); }
+  .cve-mes .cve-rotulo { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fraco); }
+  .cve-mes strong { font-size: 14px; }
+  .cve-mes span.num { font-size: 12.5px; color: var(--suave); }
+  .cve-valores { display: grid; gap: 4px; }
+  .cve-com { font-size: 12px; color: var(--fraco); margin-bottom: 2px; }
+  .cve-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13.5px; }
+  .cve-linha span { color: var(--suave); }
+  .lista-entregas-vendedor .linha-fim { min-width: 116px; }
+  .linha-titulo.com-qtd { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .linha-titulo.com-qtd .linha-titulo-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .linha-titulo.com-qtd .linha-qtd { flex: 0 0 auto; white-space: nowrap; color: var(--ouro); font-size: .92em; }
+  .acoes-pdf { margin: 0 0 14px; }
+  .acoes-pdf .btn { margin: 0; }
+  .linha-fala { display: flex; gap: 8px; align-items: stretch; }
+  .linha-fala .entrada { flex: 1 1 auto; min-width: 0; }
+  .linha-fala .btn { width: auto; margin: 0; padding: 0 16px; flex: 0 0 auto; }
+  .lista-previsao .v.editavel { cursor: pointer; border-bottom: 1px dashed rgba(233,180,76,.45); padding-bottom: 1px; }
+  .lista-previsao .v.ajustada { color: var(--ouro); }
+  .lista-previsao .v .entrada-parcela { width: 140px; text-align: right; padding: 6px 10px; min-height: 0; font-size: 14px; }
+  .lista-previsao .parcela-linha { align-items: center; }
+  .alertas-manutencao { display: grid; gap: 10px; margin-bottom: 14px; }
+  .alerta-manutencao { padding: 14px 16px; }
+  .alerta-manutencao .alerta-topo { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .alerta-manutencao .alerta-texto { display: grid; gap: 4px; min-width: 0; }
+  .alerta-manutencao .alerta-texto strong { font-size: 15px; }
+  .alerta-manutencao .alerta-texto span { font-size: 13px; color: var(--suave); line-height: 1.4; }
+  .alerta-manutencao.nivel-1 { border-color: rgba(233,180,76,.55); }
+  .alerta-manutencao.nivel-2 { border-color: rgba(245,158,11,.8); }
+  .alerta-manutencao.nivel-3 { border-color: rgba(255,107,107,.9); box-shadow: 0 0 0 1px rgba(255,107,107,.25) inset; }
+  .alerta-manutencao.nivel-3 .alerta-texto strong { color: #FF8A8A; }
+  .alerta-manutencao .duas .btn { margin: 0; }
+  .linha-mais { display: block; width: 100%; padding: 12px 16px; text-align: center; color: var(--ouro);
+    background: none; border: 0; border-top: 1px solid rgba(198,158,78,.14); font-size: 13.5px; cursor: pointer; }
+  .area-nota { min-height: 84px; resize: vertical; line-height: 1.4; padding-top: 12px; }
+  .km-fora .parcela-linha.total { font-weight: 700; border-bottom: 0; }
+  .secao-historico { margin-top: 18px; }
+  .notas-do-carro { border: 1px solid var(--borda); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; }
+  .notas-do-carro .nota-pendente { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+  .notas-do-carro .nota-pendente .btn { margin: 0; padding: 6px 12px; min-height: 0; font-size: 12.5px; width: auto; }
   .tile.tocavel { cursor: pointer; position: relative; transition: transform .12s ease; }
   .tile.tocavel:active { transform: scale(.97); }
   .tile.tocavel .tile-rotulo::after { content: '›'; margin-left: auto; color: var(--fraco); font-size: 14px; line-height: 1; }
@@ -2298,7 +2346,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.49.1';
+  var VERSAO = '5.52.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2307,6 +2355,53 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.52.1',
+      data: '2026-11-07',
+      itens: [
+        'Acerto: botão "Mandar para" o revendedor. Abre a conversa dele no WhatsApp com o resumo escrito (vendidos, total da venda e a comissão dele) e salva o PDF para anexar, ou manda o arquivo pelo app que você escolher. Sem número cadastrado, dá para cadastrar ali mesmo.'
+      ]
+    },
+    {
+      versao: '5.52.0',
+      data: '2026-11-07',
+      itens: [
+        'Venda de Doces: tocando num acerto, aparecem o total da venda e a comissão do revendedor, doce por doce. A sua parte não aparece.',
+        'Botões "Ver o PDF" e "Enviar o PDF": o detalhamento de todos os doces vendidos e acertados naquela data, com o total da venda e a comissão do revendedor, pronto para mandar pelo WhatsApp.',
+        'Entregas de um revendedor: o nome do doce corta igual quando é grande, as unidades ficam sempre visíveis numa coluna alinhada, e as datas aparecem só em números, entrega e acerto: "07/11 – 15/12".',
+        'Entregas: um cartão por revendedor com as entregas deste mês e do mês passado, e o que está com ele agora: custo da mercadoria e estimativa de venda.',
+        'Na Venda de Doces o "+" redondo saiu (cada aba já tem o seu botão), e o botão "+ Acerto sem estoque" também: o tipo se escolhe dentro da prestação.'
+      ]
+    },
+    {
+      versao: '5.51.1',
+      data: '2026-11-07',
+      itens: [
+        'Acerto sem estoque com os doces: escolha os produtos e quantos foram vendidos, e o app calcula o repasse e o lucro do vendedor, sem mexer no estoque. Dá para somar um valor fora dos doces.'
+      ]
+    },
+    {
+      versao: '5.51.0',
+      data: '2026-11-07',
+      itens: [
+        'Previsão de pagamento com entrada: diga se já foi paga. Paga, ela entra como a parcela 1 quitada, com o pagamento registrado; senão, fica em aberto na data dela.',
+        'Cada parcela aparece na lista com data e valor, e dá para tocar no valor e mudar: as outras se ajustam para fechar a conta.',
+        'Escreva o combinado do jeito que fala, como "10 mil de entrada e 1.000 por mês até fechar" ou "12x de 800, as duas primeiras de 2.000, todo dia 10", e toque em Preencher.',
+        'Venda de Doces: nas entregas de um revendedor, cada linha mostra o doce e as unidades, sem repetir o nome dele.',
+        'Venda de Doces: acerto de contas sem estoque. Na Prestação, escolha "Sem estoque" (ou toque em "+ Acerto sem estoque"): escolha os doces e quantos foram vendidos, e o app calcula o repasse e o lucro do vendedor sem mexer no estoque dele nem no seu.'
+      ]
+    },
+    {
+      versao: '5.50.0',
+      data: '2026-11-07',
+      itens: [
+        'Uber: Hoje e Histórico viraram uma aba só, o Resumo. No meio entrou a aba Manutenção.',
+        'Manutenção: os km atuais do carro vêm do painel lançado nos abastecimentos. Registre a troca de óleo e dos filtros (óleo, ar, combustível, ar-condicionado), mude o nome, o produto e os km de troca, ou crie outros itens.',
+        'Alertas no topo do Resumo com 1.000 km, 500 km e quando a troca vence, com "Irei trocar" e "Vou esperar um pouco". O custo da troca entra em Outras despesas.',
+        'Anotações do carro (barulho, desgaste): faça em Manutenção ou no "Novo registro", que também lembra o que está pendente.',
+        'Km fora do Uber: o que o painel rodou além dos km do Uber, com a gasolina estimada desse uso.'
+      ]
+    },
     {
       versao: '5.49.1',
       data: '2026-11-06',
@@ -3953,6 +4048,9 @@
       // juntos para a tabela empreendedor_registros (veja MODULOS_NA_NUVEM).
       uberJornadas: [],
       uberRegistros: [],
+      uberManutencao: [],
+      uberTrocas: [],
+      uberNotas: [],
       doceVendedores: [],
       doceProdutos: [],
       doceEntregas: [],
@@ -4617,6 +4715,26 @@
                pausadoMs: marca(j.pausadoMs), pausaDesde: marca(j.pausaDesde) };
     }).filter(function (j) { return j.inicio > 0; });
 
+    // Manutenção do carro: os itens (com o intervalo em km), as trocas e
+    // as anotações do motorista.
+    function km(v) { return Math.max(0, Math.min(9999999, Math.round(Number(v) || 0))); }
+    limpo.uberManutencao = lista('uberManutencao').map(function (x) {
+      return { id: x.id, chave: texto(x.chave).slice(0, 40) || x.id, nome: texto(x.nome).slice(0, 40) || 'Manutenção',
+               detalhe: texto(x.detalhe).slice(0, 60), intervaloKm: km(x.intervaloKm) || 10000,
+               vaiTrocar: x.vaiTrocar === true, adiadoNivel: Math.max(0, Math.min(3, Math.round(Number(x.adiadoNivel) || 0))),
+               adiadoKm: km(x.adiadoKm), criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.uberTrocas = lista('uberTrocas').map(function (x) {
+      return { id: x.id, chave: texto(x.chave).slice(0, 40), km: km(x.km), data: soData(x.data) || hojeTexto(),
+               valor: positivo(x.valor), obs: texto(x.obs).slice(0, 80), despesaId: texto(x.despesaId),
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.chave && x.km > 0; });
+    limpo.uberNotas = lista('uberNotas').map(function (x) {
+      return { id: x.id, texto: texto(x.texto).slice(0, 200), data: soData(x.data) || hojeTexto(), km: km(x.km),
+               situacao: x.situacao === 'resolvida' ? 'resolvida' : 'pendente', resolvidaEm: soData(x.resolvidaEm) || '',
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.texto; });
+
     limpo.uberRegistros = lista('uberRegistros').map(function (r) {
       return {
         id: r.id,
@@ -4678,8 +4796,11 @@
       }).slice(0, 100);
       return { id: a.id, vendedorId: texto(a.vendedorId), data: soData(a.data) || hojeTexto(),
                itens: itens, cobrarPerdidos: a.cobrarPerdidos === true,
+               // Acerto sem estoque: só o dinheiro, sem mexer nos doces de
+               // ninguém (pedido de 07/11/2026). A quantidade é só anotação.
+               semEstoque: a.semEstoque === true, valor: positivo(a.valor), quantidade: positivo(a.quantidade),
                obs: texto(a.obs).slice(0, 200), criadoEm: marca(a.criadoEm) || Date.now() };
-    }).filter(function (a) { return a.vendedorId && a.itens.length; });
+    }).filter(function (a) { return a.vendedorId && (a.itens.length || (a.semEstoque && a.valor > 0)); });
 
     limpo.docePagamentos = lista('docePagamentos').map(function (g) {
       return { id: g.id, vendedorId: texto(g.vendedorId), data: soData(g.data) || hojeTexto(),
@@ -5458,6 +5579,7 @@
   // aqui, sem migração.
   var MODULOS_NA_NUVEM = {
     uber_jornada: 'uberJornadas', uber_registro: 'uberRegistros',
+    uber_manutencao: 'uberManutencao', uber_troca: 'uberTrocas', uber_nota: 'uberNotas',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes'
   };
@@ -9057,7 +9179,8 @@
     var emp = noEmpreendedor();
     // Na entrada do Empreendedor e no painel não há um "novo" óbvio; dentro
     // de cada módulo o "+" faz o que aquele módulo mais faz.
-    b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel'));
+    // Na Venda de Doces cada aba já tem o seu botão (pedido de 07/11/2026).
+    b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel' || moduloEmp === 'doces'));
     b.setAttribute('aria-label', !emp ? 'Novo lançamento'
       : moduloEmp === 'uber' ? 'Registrar no Uber'
       : moduloEmp === 'doces' ? 'Nova entrega' : 'Novo cliente');
@@ -10985,7 +11108,7 @@
   var abaServicos = 'resumo';
   var janelaServicos = 30;
   var filtroRegistros = '';
-  var abaUber = 'hoje';
+  var abaUber = 'resumo';
   var escalaUber = 'dia';
   var abaGastosUber = 'combustivel';
   var abaDoces = 'vendedores';
@@ -11101,10 +11224,17 @@
     var fim = no('div', 'linha-fim');
     fim.appendChild(no('div', 'linha-valor num ' + (opcoes.cor || ''), opcoes.valor || ''));
     if (opcoes.nota) fim.appendChild(no('div', 'linha-nota num ' + (opcoes.corNota || ''), opcoes.nota));
+    // `qtd`: um número curto que nunca some, colado à direita do título
+    // (o nome é que encolhe com "…").
+    var titulo = no('div', 'linha-titulo', opcoes.qtd ? '' : opcoes.titulo);
+    if (opcoes.qtd) {
+      titulo.classList.add('com-qtd');
+      juntar(titulo, no('span', 'linha-titulo-nome', opcoes.titulo), no('span', 'linha-qtd num', opcoes.qtd));
+    }
     juntar(l,
       opcoes.selo || selo(opcoes.corSelo || '#E9B44C', opcoes.letra || '•'),
       juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', opcoes.titulo),
+        titulo,
         no('div', 'linha-sub', opcoes.sub || '')),
       fim);
     return l;
@@ -11849,13 +11979,591 @@
     return r;
   }
 
+
+  // ---------- Manutenção do carro (pedido de 07/11/2026) ----------
+  //
+  // Os itens de troca (óleo, filtros...) com o intervalo em km, as trocas
+  // feitas e as anotações do motorista (barulho, desgaste). Os km atuais
+  // vêm do painel lançado nos abastecimentos. Os itens de fábrica não ficam
+  // guardados até a pessoa mexer neles: assim a conta de quem compartilha
+  // o Uber não ganha uma cópia de cada.
+  var ITENS_MANUTENCAO_PADRAO = [
+    { chave: 'oleo', nome: 'Troca de óleo', intervaloKm: 5000 },
+    { chave: 'filtro_oleo', nome: 'Filtro de óleo', intervaloKm: 5000 },
+    { chave: 'filtro_ar', nome: 'Filtro de ar do motor', intervaloKm: 10000 },
+    { chave: 'filtro_combustivel', nome: 'Filtro de combustível', intervaloKm: 15000 },
+    { chave: 'filtro_cabine', nome: 'Filtro do ar-condicionado', intervaloKm: 10000 }
+  ];
+
+  // Por que não adiar, item por item, nas mensagens.
+  var RISCO_DE_ADIAR = {
+    oleo: 'o óleo vencido perde a capacidade de lubrificar e proteger o motor',
+    filtro_oleo: 'o filtro de óleo saturado deixa passar impurezas que desgastam o motor',
+    filtro_ar: 'o filtro de ar sujo tira desempenho e aumenta o consumo de combustível',
+    filtro_combustivel: 'o filtro de combustível saturado pode prejudicar a injeção e o rendimento',
+    filtro_cabine: 'o filtro do ar-condicionado saturado reduz a refrigeração e piora o ar dentro do carro'
+  };
+
+  function itensDaManutencao() {
+    var guardados = estado.uberManutencao;
+    var itens = [];
+    ITENS_MANUTENCAO_PADRAO.forEach(function (p) {
+      var r = guardados.filter(function (x) { return x.chave === p.chave; })[0];
+      itens.push(r ? itemDeRegistro(r) : { id: '', chave: p.chave, nome: p.nome, detalhe: '', intervaloKm: p.intervaloKm, registro: null });
+    });
+    guardados.forEach(function (r) {
+      if (ITENS_MANUTENCAO_PADRAO.some(function (p) { return p.chave === r.chave; })) return;
+      itens.push(itemDeRegistro(r));
+    });
+    return itens;
+  }
+
+  function itemDeRegistro(r) {
+    return { id: r.id, chave: r.chave, nome: r.nome, detalhe: r.detalhe, intervaloKm: r.intervaloKm, registro: r };
+  }
+
+  // O item vira registro na primeira vez que a pessoa mexe nele.
+  function garantirItem(item) {
+    if (item.registro) return item.registro;
+    var r = { id: novoId(), chave: item.chave, nome: item.nome, detalhe: item.detalhe || '',
+              intervaloKm: item.intervaloKm, vaiTrocar: false, adiadoNivel: 0, adiadoKm: 0, criadoEm: Date.now() };
+    estado.uberManutencao.push(r);
+    item.registro = r; item.id = r.id;
+    return r;
+  }
+
+  function itemPorChave(chave) {
+    return itensDaManutencao().filter(function (i) { return i.chave === chave; })[0] || null;
+  }
+
+  function trocasDoItem(chave) {
+    return estado.uberTrocas.filter(function (t) { return t.chave === chave; })
+      .sort(function (a, b) { return b.km - a.km || (a.data < b.data ? 1 : a.data > b.data ? -1 : 0); });
+  }
+
+  // Os km que o carro marca agora: a maior leitura do painel lançada.
+  function kmAtualDoCarro() {
+    var melhor = null;
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo === 'abastecimento' && x.odometro && (!melhor || x.odometro > melhor.km)) melhor = { km: x.odometro, data: x.data, origem: 'abastecimento' };
+    });
+    estado.uberTrocas.forEach(function (t) {
+      if (t.km && (!melhor || t.km > melhor.km)) melhor = { km: t.km, data: t.data, origem: 'troca' };
+    });
+    return melhor;
+  }
+
+  // nivel 0: longe · 1: faltam até 1.000 km · 2: até 500 km · 3: passou.
+  function situacaoDoItem(item, atual) {
+    var ultima = trocasDoItem(item.chave)[0] || null;
+    if (!ultima) return { ultima: null, nivel: 0 };
+    var proxima = ultima.km + item.intervaloKm;
+    var faltam = atual ? proxima - atual.km : null;
+    var nivel = faltam === null ? 0 : faltam <= 0 ? 3 : faltam <= 500 ? 2 : faltam <= 1000 ? 1 : 0;
+    return { ultima: ultima, proxima: proxima, faltam: faltam, nivel: nivel };
+  }
+
+  function textoFaltam(s) {
+    if (s.faltam === null) return 'próxima em ' + milharBr(s.proxima) + ' km';
+    return s.faltam <= 0 ? 'passou ' + milharBr(-s.faltam) + ' km' : 'faltam ' + milharBr(s.faltam) + ' km';
+  }
+
+  function notasPendentes() {
+    return estado.uberNotas.filter(function (n) { return n.situacao !== 'resolvida'; })
+      .sort(function (a, b) { return (b.criadoEm || 0) - (a.criadoEm || 0); });
+  }
+
+  // Os alertas que aparecem no topo do Resumo. Quem respondeu "vou esperar"
+  // só volta a ver quando o nível sobe (ou, já vencido, a cada 300 km).
+  function alertasDeManutencao() {
+    var atual = kmAtualDoCarro();
+    if (!atual) return [];
+    var fora = [];
+    itensDaManutencao().forEach(function (item) {
+      var s = situacaoDoItem(item, atual);
+      if (!s.nivel) return;
+      var r = item.registro;
+      if (r && r.vaiTrocar) { fora.push({ item: item, s: s, marcado: true }); return; }
+      if (r && r.adiadoNivel >= s.nivel && !(s.nivel === 3 && atual.km >= r.adiadoKm + 300)) return;
+      fora.push({ item: item, s: s, marcado: false });
+    });
+    return fora.sort(function (a, b) { return b.s.nivel - a.s.nivel || a.s.faltam - b.s.faltam; });
+  }
+
+  function cartaoDeAlertasDeManutencao() {
+    var alertas = alertasDeManutencao();
+    if (!alertas.length) return null;
+    var box = no('div', 'alertas-manutencao');
+    alertas.forEach(function (a) {
+      var nome = a.item.nome + (a.item.detalhe ? ' (' + a.item.detalhe + ')' : '');
+      var c = cartao('alerta-manutencao nivel-' + a.s.nivel + (a.marcado ? ' marcado' : ''));
+      var titulo = a.marcado ? nome + ': troca combinada'
+        : a.s.nivel === 3 ? nome + ': troca vencida'
+        : a.s.nivel === 2 ? nome + ': troca muito próxima' : nome + ': troca se aproximando';
+      var topo = no('div', 'alerta-topo');
+      juntar(topo, seloIcone(a.s.nivel === 3 ? 'alerta' : 'ferramenta', a.s.nivel === 3 ? '#FF6B6B' : a.s.nivel === 2 ? '#F59E0B' : '#E9B44C'),
+        juntar(no('div', 'alerta-texto'), no('strong', null, titulo),
+          no('span', null, a.marcado
+            ? 'Você confirmou que vai trocar. Registre a troca aqui quando fizer, para o app calcular a próxima.'
+            : a.s.nivel === 3
+              ? 'Passou ' + milharBr(-a.s.faltam) + ' km do previsto (' + milharBr(a.s.proxima) + ' km). Faça a troca o quanto antes.'
+              : 'Faltam ' + milharBr(a.s.faltam) + ' km. A troca está prevista para ' + milharBr(a.s.proxima) + ' km.')));
+      c.appendChild(topo);
+      var acoes = no('div', 'duas');
+      if (a.marcado) {
+        acoes.appendChild(botao('btn btn-ouro', 'Registrar a troca', function () { abrirTrocaManutencao(a.item.chave, null); }));
+        acoes.appendChild(botao('btn btn-fantasma', 'Ver próximas trocas', function () { abrirProximasTrocas(); }));
+      } else {
+        acoes.appendChild(botao('btn btn-ouro', 'Irei trocar', function () { responderAlerta(a, true); }));
+        acoes.appendChild(botao('btn btn-fantasma', 'Vou esperar um pouco', function () { responderAlerta(a, false); }));
+      }
+      c.appendChild(acoes);
+      box.appendChild(c);
+    });
+    return box;
+  }
+
+  function responderAlerta(a, vaiTrocar) {
+    var r = garantirItem(itemPorChave(a.item.chave) || a.item);
+    var atual = kmAtualDoCarro();
+    var nome = a.item.nome.toLowerCase();
+    if (vaiTrocar) {
+      r.vaiTrocar = true;
+      salvar();
+      desenhar();
+      var pend = notasPendentes();
+      var perto = itensDaManutencao().filter(function (i) {
+        if (i.chave === a.item.chave) return false;
+        var s = situacaoDoItem(i, atual);
+        return s.ultima && s.faltam !== null && s.faltam <= 2000;
+      });
+      var txt = 'Ótimo.';
+      if (pend.length) {
+        txt += ' Aproveite a ida à oficina para verificar também o que você anotou: ' +
+          pend.slice(0, 3).map(function (n) { return '“' + n.texto + '”'; }).join('; ') +
+          (pend.length > 3 ? ' e mais ' + (pend.length - 3) : '') + '.';
+      } else {
+        txt += ' Não há nenhuma anotação de manutenção pendente.';
+      }
+      if (perto.length) {
+        txt += ' E já estão perto do prazo: ' + perto.map(function (i) {
+          return i.nome + ' (' + textoFaltam(situacaoDoItem(i, atual)) + ')';
+        }).join(', ') + '. Vale fazer junto e economizar uma ida.';
+      } else if (!pend.length) {
+        txt += ' Nenhuma outra troca está próxima: com esta, o carro fica em dia.';
+      }
+      txt += ' Depois da troca, registre em Manutenção para o app calcular a próxima.';
+      perguntar({ titulo: 'Troca de ' + nome.replace(/^troca de /, '') + ' confirmada', texto: txt, icone: 'ferramenta',
+                  ok: 'Ver próximas trocas', cancelar: 'Fechar' }, function () { abrirProximasTrocas(); });
+    } else {
+      r.adiadoNivel = a.s.nivel;
+      r.adiadoKm = atual ? atual.km : 0;
+      r.vaiTrocar = false;
+      salvar();
+      desenhar();
+      var risco = RISCO_DE_ADIAR[a.item.chave] || 'adiar a manutenção aumenta o desgaste do carro';
+      perguntar({ titulo: 'Entendido', icone: 'alerta', soAviso: true, ok: 'Ok',
+        texto: a.s.nivel === 3
+          ? 'Tudo bem, mas evite rodar muito com o carro assim: ' + risco + ', e o conserto pode sair bem mais caro que a troca. O app volta a lembrar daqui a 300 km.'
+          : 'Tudo bem. Só não deixe passar do prazo: ' + risco + '. O app volta a avisar quando estiver mais perto.' });
+    }
+  }
+
+  function abrirProximasTrocas() {
+    var atual = kmAtualDoCarro();
+    abrirFolha('Próximas trocas', function (folha) {
+      var lista = itensDaManutencao().map(function (i) { return { item: i, s: situacaoDoItem(i, atual) }; });
+      var comTroca = lista.filter(function (x) { return x.s.ultima; })
+        .sort(function (a, b) { return a.s.proxima - b.s.proxima; });
+      var semTroca = lista.filter(function (x) { return !x.s.ultima; });
+      var c = cartao('liso');
+      if (!comTroca.length) c.appendChild(estadoVazio('Nenhuma troca registrada', 'Registre a última troca de cada item em Manutenção para o app calcular as próximas.'));
+      comTroca.forEach(function (x) { c.appendChild(linhaDoItem(x.item, x.s, function () { abrirProximasTrocas(); })); });
+      folha.appendChild(c);
+      if (semTroca.length) folha.appendChild(no('p', 'ajuda', 'Sem troca registrada: ' + semTroca.map(function (x) { return x.item.nome; }).join(', ') + '.'));
+    });
+  }
+
+  function linhaDoItem(item, s, reabrir) {
+    var cor = !s.ultima ? '' : s.nivel === 3 ? 'vermelho' : s.nivel ? 'ouro' : 'verde';
+    return linhaSimples({
+      titulo: item.nome + (item.detalhe ? ' · ' + item.detalhe : ''),
+      // Curto, para caber no celular: o intervalo aparece ao abrir o item.
+      sub: s.ultima ? 'trocado com ' + milharBr(s.ultima.km) + ' km · ' + dataCurta(s.ultima.data)
+        : 'registre a última troca',
+      valor: s.ultima ? textoFaltam(s) : '—', cor: cor,
+      nota: s.ultima ? 'em ' + milharBr(s.proxima) + ' km' : '',
+      selo: seloIcone('ferramenta', s.nivel === 3 ? '#FF6B6B' : '#E9B44C'),
+      aoTocar: function () {
+        if (reabrir) porCima(reabrir, function () { abrirItemManutencao(item.chave, true); });
+        else abrirItemManutencao(item.chave, false);
+      }
+    });
+  }
+
+  function desenharManutencaoUber(corpo) {
+    var atual = kmAtualDoCarro();
+    var c = cartao('cartao-destaque');
+    c.appendChild(no('div', 'rotulo', 'Km atual do carro'));
+    c.appendChild(no('div', 'valorao num ouro', atual ? milharBr(atual.km) + ' km' : '—'));
+    c.appendChild(no('div', 'linha-nota', atual
+      ? (atual.origem === 'abastecimento' ? 'Pelo painel no abastecimento de ' : 'Pela troca registrada em ') + dataBr(atual.data) + '. Atualiza a cada abastecimento com os km do painel.'
+      : 'Lance os km do painel no próximo abastecimento para o app acompanhar as trocas.'));
+    if (!atual) c.appendChild(botao('btn btn-fantasma', '+ Abastecimento', function () { abrirFolhaAbastecimento(null); }));
+    corpo.appendChild(c);
+
+    var ci = cartao('liso');
+    var t = topoDeCartao('Trocas', 'Próximas', function () { abrirProximasTrocas(); });
+    t.style.padding = '16px 16px 0'; t.style.marginBottom = '8px';
+    ci.appendChild(t);
+    itensDaManutencao().forEach(function (item) { ci.appendChild(linhaDoItem(item, situacaoDoItem(item, atual), null)); });
+    corpo.appendChild(ci);
+    var ac = no('div', 'acoes');
+    ac.appendChild(botao('btn btn-fantasma', '+ Outro item de manutenção', function () { abrirItemManutencao(null, false); }));
+    corpo.appendChild(ac);
+
+    var pend = notasPendentes();
+    var cn = cartao('liso');
+    var tn = topoDeCartao('Anotações do carro', null);
+    tn.style.padding = '16px 16px 0'; tn.style.marginBottom = '8px';
+    cn.appendChild(tn);
+    if (!pend.length) cn.appendChild(estadoVazio('Nada pendente', 'Barulho, desgaste ou algo para olhar na próxima revisão: anote aqui ou no "Novo registro".'));
+    pend.forEach(function (n) { cn.appendChild(linhaDaNota(n)); });
+    var resolvidas = estado.uberNotas.filter(function (n) { return n.situacao === 'resolvida'; })
+      .sort(function (a, b) { return (b.resolvidaEm || '') < (a.resolvidaEm || '') ? -1 : 1; });
+    if (resolvidas.length) {
+      cn.appendChild(botao('linha-mais', notasResolvidasAbertas ? 'Esconder as resolvidas' : 'Ver as resolvidas (' + resolvidas.length + ')', function () {
+        notasResolvidasAbertas = !notasResolvidasAbertas; desenharInicio();
+      }));
+      if (notasResolvidasAbertas) resolvidas.forEach(function (n) { cn.appendChild(linhaDaNota(n)); });
+    }
+    corpo.appendChild(cn);
+    var an = no('div', 'acoes');
+    an.appendChild(botao('btn btn-ouro', '+ Anotar algo no carro', function () { abrirNotaCarro(null, false); }));
+    corpo.appendChild(an);
+
+    var trocas = estado.uberTrocas.slice().sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : b.km - a.km; });
+    if (trocas.length) {
+      var ch = cartao('liso');
+      var th = topoDeCartao('Trocas feitas', null);
+      th.style.padding = '16px 16px 0'; th.style.marginBottom = '8px';
+      ch.appendChild(th);
+      trocas.slice(0, 20).forEach(function (tr) { ch.appendChild(linhaDaTroca(tr, null)); });
+      corpo.appendChild(ch);
+    }
+  }
+  var notasResolvidasAbertas = false;
+
+  function linhaDaNota(n, reabrir) {
+    return linhaSimples({
+      titulo: n.texto,
+      sub: dataBr(n.data) + (n.km ? ' · ' + milharBr(n.km) + ' km' : '') + (n.situacao === 'resolvida' ? ' · resolvida' : ''),
+      valor: n.situacao === 'resolvida' ? '✓' : 'pendente', cor: n.situacao === 'resolvida' ? 'verde' : 'ouro',
+      selo: seloIcone('alerta', n.situacao === 'resolvida' ? '#34D399' : '#E9B44C'),
+      aoTocar: function () {
+        if (reabrir) porCima(reabrir, function () { abrirNotaCarro(n.id, true); });
+        else abrirNotaCarro(n.id, false);
+      }
+    });
+  }
+
+  function linhaDaTroca(tr, reabrir) {
+    var item = itemPorChave(tr.chave);
+    return linhaSimples({
+      titulo: item ? item.nome : 'Manutenção',
+      sub: dataBr(tr.data) + ' · ' + milharBr(tr.km) + ' km' + (tr.obs ? ' · ' + tr.obs : ''),
+      valor: tr.valor ? '− ' + emReais(tr.valor) : '', cor: 'vermelho',
+      selo: seloIcone('ferramenta', '#E9B44C'),
+      aoTocar: function () {
+        if (reabrir) porCima(reabrir, function () { abrirTrocaManutencao(tr.chave, tr.id, true); });
+        else abrirTrocaManutencao(tr.chave, tr.id, false);
+      }
+    });
+  }
+
+  function lerMilhar(i) { return parseInt(String(i.value || '').replace(/\D/g, ''), 10) || 0; }
+
+  // `chave` vazia: item novo, criado pela pessoa.
+  function abrirItemManutencao(chave, deCima) {
+    var item = chave ? itemPorChave(chave) : null;
+    if (chave && !item) return;
+    function reabrir() { abrirItemManutencao(item.chave, deCima); }
+    abrirFolha(item ? item.nome : 'Novo item de manutenção', function (folha) {
+      var atual = kmAtualDoCarro();
+      if (item) {
+        var s = situacaoDoItem(item, atual);
+        var cs = cartao();
+        cs.appendChild(linhaDeCartaoFixa('Última troca', s.ultima ? milharBr(s.ultima.km) + ' km · ' + dataBr(s.ultima.data) : 'não registrada'));
+        if (s.ultima) {
+          cs.appendChild(linhaDeCartaoFixa('Próxima troca', milharBr(s.proxima) + ' km'));
+          if (s.faltam !== null) cs.appendChild(linhaDeCartaoFixa(s.faltam <= 0 ? 'Passou' : 'Faltam', milharBr(Math.abs(s.faltam)) + ' km'));
+        }
+        folha.appendChild(cs);
+        var ab = no('div', 'acoes');
+        ab.appendChild(botao('btn btn-ouro', s.ultima ? 'Registrar troca' : 'Registrar a última troca', function () {
+          porCima(reabrir, function () { abrirTrocaManutencao(item.chave, null, true); });
+        }));
+        folha.appendChild(ab);
+      }
+      var forma = no('div', 'forma');
+      var nome = entradaTexto(item ? item.nome : '', 'Ex.: Pastilhas de freio', 40);
+      forma.appendChild(campo('Nome', nome));
+      var detalhe = entradaTexto(item ? item.detalhe : '', 'Ex.: óleo 5W30 sintético', 60);
+      forma.appendChild(campo('Qual produto ou peça (opcional)', detalhe));
+      var intervalo = entradaTexto(item ? milharBr(item.intervaloKm) : '', 'Ex.: 10.000', 9);
+      mascaraMilhar(intervalo);
+      forma.appendChild(campo('Trocar a cada (km)', intervalo));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Confira no manual do carro. Para quem roda por aplicativo, o manual costuma indicar o intervalo de uso severo, que é menor.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Salvar alterações', function () {
+        var km = lerMilhar(intervalo);
+        if (!nome.value.trim()) { mostrarErro(forma, 'Dê um nome ao item.'); return; }
+        if (km < 100) { mostrarErro(forma, 'Informe a cada quantos km trocar.'); return; }
+        var r;
+        if (item) r = garantirItem(item);
+        else {
+          r = { id: novoId(), chave: '', nome: '', detalhe: '', intervaloKm: 0, vaiTrocar: false, adiadoNivel: 0, adiadoKm: 0, criadoEm: Date.now() };
+          r.chave = r.id;
+          estado.uberManutencao.push(r);
+        }
+        r.nome = nome.value.trim().slice(0, 40);
+        r.detalhe = detalhe.value.trim().slice(0, 60);
+        r.intervaloKm = km;
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Item salvo.');
+      }));
+      var personalizado = item && !ITENS_MANUTENCAO_PADRAO.some(function (p) { return p.chave === item.chave; });
+      if (personalizado) acoes.appendChild(botao('btn btn-perigo', 'Excluir este item', function () {
+        perguntar({ titulo: 'Excluir este item?', texto: 'As trocas registradas dele também saem.', ok: 'Excluir', tom: 'perigo' }, function () {
+          trocasDoItem(item.chave).forEach(function (t) { apagarTroca(t); });
+          marcarExcluido('empreendedor_registros', item.id);
+          estado.uberManutencao = estado.uberManutencao.filter(function (x) { return x.id !== item.id; });
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Item excluído.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      if (item) {
+        var trocas = trocasDoItem(item.chave);
+        if (trocas.length) {
+          var ch = cartao('liso');
+          var th = topoDeCartao('Trocas deste item', null);
+          th.style.padding = '16px 16px 0'; th.style.marginBottom = '8px';
+          ch.appendChild(th);
+          trocas.forEach(function (tr) { ch.appendChild(linhaDaTroca(tr, reabrir)); });
+          folha.appendChild(ch);
+        }
+      }
+    });
+  }
+
+  function apagarTroca(t) {
+    if (t.despesaId) {
+      marcarExcluido('empreendedor_registros', t.despesaId);
+      estado.uberRegistros = estado.uberRegistros.filter(function (r) { return r.id !== t.despesaId; });
+    }
+    marcarExcluido('empreendedor_registros', t.id);
+    estado.uberTrocas = estado.uberTrocas.filter(function (x) { return x.id !== t.id; });
+  }
+
+  function abrirTrocaManutencao(chave, id, deCima) {
+    var item = itemPorChave(chave);
+    if (!item) return;
+    var t = id ? achar(estado.uberTrocas, id) : null;
+    abrirFolha(t ? 'Editar troca' : item.nome, function (folha) {
+      var atual = kmAtualDoCarro();
+      var forma = no('div', 'forma');
+      var km = entradaTexto(t ? milharBr(t.km) : (atual ? milharBr(atual.km) : ''), 'Ex.: 45.230', 9);
+      mascaraMilhar(km);
+      forma.appendChild(campo('Km do carro na troca', km));
+      var data = entradaData(t ? t.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var valor = entradaValor(t ? t.valor : 0, false);
+      forma.appendChild(campo('Quanto custou (opcional)', valor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Com valor, a troca entra em Outras despesas do Uber, como Manutenção.'));
+      var obs = entradaTexto(t ? t.obs : '', 'Ex.: oficina, marca do óleo', 80);
+      forma.appendChild(campo('Observação (opcional)', obs));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar troca', function () {
+        var k = lerMilhar(km), v = digitosParaCentavos(valor.value);
+        if (k <= 0) { mostrarErro(forma, 'Informe os km do carro na troca.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        var reg = t || { id: novoId(), chave: item.chave, despesaId: '', criadoEm: Date.now() };
+        reg.km = k; reg.data = data.value; reg.valor = v; reg.obs = obs.value.trim().slice(0, 80);
+        // O valor vira uma despesa do Uber (Manutenção), ligada à troca.
+        var desp = reg.despesaId ? achar(estado.uberRegistros, reg.despesaId) : null;
+        if (v > 0) {
+          if (!desp) {
+            desp = { id: novoId(), tipo: 'despesa', criadoEm: Date.now(), jornadaId: '', hora: '', km: 0, litros: 0,
+                     precoLitro: 0, combustivel: '', plataforma: '', viagens: 0, minutos: 0, kmPorLitro: 0, abastecido: 0, odometro: 0 };
+            estado.uberRegistros.push(desp);
+            reg.despesaId = desp.id;
+          }
+          desp.valor = v; desp.data = reg.data; desp.categoria = 'Manutenção'; desp.descricao = item.nome.slice(0, 80);
+        } else if (desp) {
+          marcarExcluido('empreendedor_registros', desp.id);
+          estado.uberRegistros = estado.uberRegistros.filter(function (r) { return r.id !== desp.id; });
+          reg.despesaId = '';
+        }
+        if (!t) estado.uberTrocas.push(reg);
+        var r = garantirItem(item);
+        r.vaiTrocar = false; r.adiadoNivel = 0; r.adiadoKm = 0;
+        salvar();
+        fecharOuVoltar(deCima);
+        var s = situacaoDoItem(itemPorChave(item.chave), kmAtualDoCarro());
+        avisar('Troca registrada. Próxima em ' + milharBr(s.proxima) + ' km.');
+      }));
+      if (t) acoes.appendChild(botao('btn btn-perigo', 'Excluir esta troca', function () {
+        perguntar({ titulo: 'Excluir esta troca?', texto: t.despesaId ? 'A despesa ligada a ela também sai.' : 'Não dá para desfazer.', ok: 'Excluir', tom: 'perigo' }, function () {
+          apagarTroca(t);
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Troca excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function abrirNotaCarro(id, deCima) {
+    var n = id ? achar(estado.uberNotas, id) : null;
+    abrirFolha(n ? 'Anotação do carro' : 'Anotar algo no carro', function (folha) {
+      var atual = kmAtualDoCarro();
+      var forma = no('div', 'forma');
+      var texto = no('textarea', 'entrada area-nota');
+      texto.id = proximoId(); texto.maxLength = 200; texto.rows = 3;
+      texto.placeholder = 'Ex.: barulho na roda dianteira ao frear';
+      texto.value = n ? n.texto : '';
+      forma.appendChild(campo('O que você notou?', texto));
+      var data = entradaData(n ? n.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var km = entradaTexto(n && n.km ? milharBr(n.km) : (!n && atual ? milharBr(atual.km) : ''), 'Ex.: 45.230', 9);
+      mascaraMilhar(km);
+      forma.appendChild(campo('Km do carro (opcional)', km));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar anotação', function () {
+        var txt = texto.value.trim();
+        if (!txt) { mostrarErro(forma, 'Escreva o que você notou.'); return; }
+        var reg = n || { id: novoId(), situacao: 'pendente', resolvidaEm: '', criadoEm: Date.now() };
+        reg.texto = txt.slice(0, 200); reg.data = ehData(data.value) ? data.value : hojeTexto(); reg.km = lerMilhar(km);
+        if (!n) estado.uberNotas.push(reg);
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Anotação salva em Manutenção.');
+      }));
+      if (n) {
+        acoes.appendChild(botao('btn btn-fantasma', n.situacao === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida', function () {
+          n.situacao = n.situacao === 'resolvida' ? 'pendente' : 'resolvida';
+          n.resolvidaEm = n.situacao === 'resolvida' ? hojeTexto() : '';
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar(n.situacao === 'resolvida' ? 'Anotação resolvida.' : 'Anotação reaberta.');
+        }));
+        acoes.appendChild(botao('btn btn-perigo', 'Excluir anotação', function () {
+          perguntar({ titulo: 'Excluir esta anotação?', texto: 'Não dá para desfazer.', ok: 'Excluir', tom: 'perigo' }, function () {
+            marcarExcluido('empreendedor_registros', n.id);
+            estado.uberNotas = estado.uberNotas.filter(function (x) { return x.id !== n.id; });
+            salvar();
+            fecharOuVoltar(deCima);
+            avisar('Anotação excluída.');
+          });
+        }));
+      }
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      if (!n) setTimeout(function () { texto.focus(); }, 270);
+    });
+  }
+
+  // ---------- Km rodados fora do Uber ----------
+  //
+  // O painel diz quanto o carro rodou entre duas leituras; o que passou dos
+  // km lançados no Uber foi uso pessoal (mercado, farmácia). O gasto é uma
+  // estimativa: km ÷ média × preço do litro.
+  function kmForaDoUber(de, ate) {
+    var leituras = estado.uberRegistros.filter(function (x) { return x.tipo === 'abastecimento' && x.odometro; })
+      .sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : (a.criadoEm || 0) - (b.criadoEm || 0); });
+    var noPeriodo = leituras.filter(function (x) { return x.data >= de && x.data <= ate; });
+    if (!noPeriodo.length) return { leituras: leituras.length };
+    var antes = leituras.filter(function (x) { return x.data < de; });
+    var inicio = antes.length ? antes[antes.length - 1] : noPeriodo[0];
+    var fim = noPeriodo[noPeriodo.length - 1];
+    if (inicio === fim || fim.odometro <= inicio.odometro) return { leituras: leituras.length, inicio: inicio };
+    function depoisDoInicio(x) { return x.data > inicio.data || (x.data === inicio.data && (x.criadoEm || 0) > (inicio.criadoEm || 0)); }
+    function ateOFim(x) { return x.data < fim.data || (x.data === fim.data && (x.criadoEm || 0) <= (fim.criadoEm || 0)); }
+    var painel = fim.odometro - inicio.odometro;
+    var uber = 0, litros = 0, gastoComb = 0;
+    estado.uberRegistros.forEach(function (x) {
+      if ((x.tipo === 'dia' || x.tipo === 'corrida') && x.data > inicio.data && x.data <= fim.data) uber += x.km || 0;
+      if (x.tipo === 'abastecimento' && x.id !== inicio.id && depoisDoInicio(x) && ateOFim(x)) { litros += x.litros || 0; gastoComb += x.valor; }
+    });
+    uber = Math.round(uber * 10) / 10;
+    var fora = Math.max(0, Math.round((painel - uber) * 10) / 10);
+    // A média: pelo painel e pelos litros abastecidos (tanque a tanque);
+    // sem litros, a última média que a pessoa digitou num registro antigo.
+    var kmL = litros > 0 ? painel / litros : 0, origem = 'abastecimentos';
+    if (!kmL) {
+      var comMedia = estado.uberRegistros.filter(function (x) { return x.tipo === 'dia' && x.kmPorLitro; })
+        .sort(function (a, b) { return a.data < b.data ? 1 : -1; })[0];
+      if (comMedia) { kmL = comMedia.kmPorLitro; origem = 'registro'; }
+    }
+    var preco = litros > 0 ? Math.round(gastoComb / litros) : (fim.precoLitro || 0);
+    var gasto = kmL && preco ? Math.round(fora / kmL * preco) : 0;
+    return { leituras: leituras.length, inicio: inicio, fim: fim, painel: painel, uber: uber, fora: fora,
+             kmL: kmL, origem: origem, preco: preco, gasto: gasto };
+  }
+
+  function cartaoKmForaDoUber(de, ate, titulo) {
+    var k = kmForaDoUber(de, ate);
+    var c = cartao('km-fora');
+    c.appendChild(topoDeCartao('Km fora do Uber · ' + titulo, null));
+    if (!k.painel) {
+      c.appendChild(no('div', 'linha-nota', k.leituras
+        ? 'Lance os km do painel em mais um abastecimento para o app calcular quanto o carro rodou fora do Uber.'
+        : 'Lance os km do painel nos abastecimentos: com duas leituras, o app separa os km do Uber dos km de uso pessoal e estima o gasto de gasolina.'));
+      return c;
+    }
+    c.appendChild(linhaDeCartaoFixa('Rodados no painel', milharBr(k.painel) + ' km'));
+    c.appendChild(linhaDeCartaoFixa('No Uber', decimalBr(k.uber) + ' km'));
+    var lf = linhaDeCartaoFixa('Fora do Uber', decimalBr(k.fora) + ' km');
+    lf.classList.add('total');
+    c.appendChild(lf);
+    if (k.gasto) {
+      var lg = linhaDeCartaoFixa('Gasolina estimada fora', '− ' + emReais(k.gasto));
+      lg.lastChild.classList.add('vermelho');
+      c.appendChild(lg);
+    }
+    c.appendChild(no('div', 'linha-nota',
+      'De ' + dataBr(k.inicio.data) + ' (' + milharBr(k.inicio.odometro) + ' km) a ' + dataBr(k.fim.data) + ' (' + milharBr(k.fim.odometro) + ' km). ' +
+      (k.gasto
+        ? 'Estimativa com média de ' + decimalBr(k.kmL, 1) + ' km/l (' + (k.origem === 'abastecimentos' ? 'pelos litros abastecidos' : 'a última que você digitou') +
+          ') e litro a ' + emReais(k.preco) + '. Esse gasto já está dentro dos abastecimentos lançados.'
+        : 'Para estimar o gasto, lance os litros nos abastecimentos.')));
+    return c;
+  }
+
+  // Hoje e Histórico viraram uma aba só, o Resumo; no meio, a Manutenção
+  // (pedido de 07/11/2026).
   function desenharUber(corpo) {
+    if (abaUber !== 'manutencao' && abaUber !== 'gastos') abaUber = 'resumo';
     corpo.appendChild(abasDeModulo([
-      { valor: 'hoje', rotulo: 'Hoje' }, { valor: 'historico', rotulo: 'Histórico' }, { valor: 'gastos', rotulo: 'Gastos' }
+      { valor: 'resumo', rotulo: 'Resumo' }, { valor: 'manutencao', rotulo: 'Manutenção' }, { valor: 'gastos', rotulo: 'Gastos' }
     ], abaUber, function (v) { abaUber = v; }));
-    if (abaUber === 'historico') desenharHistoricoUber(corpo);
+    if (abaUber === 'manutencao') desenharManutencaoUber(corpo);
     else if (abaUber === 'gastos') desenharGastosUber(corpo);
-    else desenharHojeUber(corpo);
+    else {
+      var alertas = cartaoDeAlertasDeManutencao();
+      if (alertas) corpo.appendChild(alertas);
+      desenharHojeUber(corpo);
+      var f = faixaDoMesAtivo();
+      corpo.appendChild(cartaoKmForaDoUber(f.de, f.ate, MESES[mesAtivo.mes]));
+      corpo.appendChild(no('div', 'secao-rotulo secao-historico', 'Histórico'));
+      desenharHistoricoUber(corpo);
+    }
   }
 
   function desenharHojeUber(corpo) {
@@ -11914,24 +12622,13 @@
       return (x.tipo === 'corrida' || x.tipo === 'dia') && x.data === hoje;
     }).sort(ordemUber);
     var cl = cartao('liso');
-    var topo = topoDeCartao('Registros de hoje', 'Ver histórico', function () { abaUber = 'historico'; desenharInicio(); });
+    var topo = topoDeCartao('Registros de hoje', null);
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     cl.appendChild(topo);
     if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado hoje', 'Toque em "Novo registro" e passe o que o app da Uber mostrou. Para um dia anterior, é só mudar a data.'));
     corridas.slice(0, 10).forEach(function (x) { cl.appendChild(linhaUber(x)); });
     corpo.appendChild(cl);
-
-    var f = faixaDoMesAtivo();
-    var m = numerosDoUber(f.de, f.ate);
-    var cm = cartao();
-    cm.appendChild(topoDeCartao('Em ' + MESES[mesAtivo.mes], null));
-    cm.appendChild(tilesDoResultadoUber(m, f.de, f.ate, MESES[mesAtivo.mes]));
-    cm.appendChild(no('div', 'linha-nota',
-      m.corridas + ' corrida(s) · ' + decimalBr(m.km) + ' km · ' + formatarHoras(m.ms) + ' trabalhadas' +
-      (m.km ? ' · ' + emReais(m.lucroPorKm) + ' de lucro por km' : '') +
-      (m.porHora ? ' · ' + emReais(m.lucroPorHora) + ' de lucro por hora' : '')));
-    corpo.appendChild(cm);
 
     if (j && !j.pausaDesde) ligarRelogio();
   }
@@ -12127,6 +12824,31 @@
       mascaraDecimal(km, 1);
       forma.appendChild(campo('Km rodados', km));
 
+      // O carro: as anotações pendentes aparecem a cada registro, para não
+      // caírem no esquecimento, e dá para anotar algo novo aqui mesmo (vai
+      // direto para a Manutenção).
+      var pendentes = notasPendentes();
+      if (pendentes.length) {
+        var caixaNotas = no('div', 'notas-do-carro');
+        caixaNotas.appendChild(no('div', 'rotulo-secao', 'Pendente no carro'));
+        pendentes.slice(0, 5).forEach(function (nota) {
+          var l = no('div', 'nota-pendente');
+          var b = botao('btn btn-fantasma', 'Resolvido', function () {
+            nota.situacao = 'resolvida'; nota.resolvidaEm = hojeTexto();
+            salvar();
+            desenhar();
+            l.remove();
+            if (!caixaNotas.querySelector('.nota-pendente')) caixaNotas.remove();
+          });
+          juntar(l, no('span', null, nota.texto), b);
+          caixaNotas.appendChild(l);
+        });
+        forma.appendChild(caixaNotas);
+      }
+      var notaNova = entradaTexto('', 'Ex.: barulho na roda dianteira ao frear', 200);
+      forma.appendChild(campo('Notou algo no carro? (opcional)', notaNova));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Barulho, desgaste ou algo para a próxima revisão. Fica anotado em Manutenção.'));
+
       // Registro antigo, de quando o combustível era lançado aqui: o valor
       // continua valendo até a pessoa tirar.
       var combAntigo = x ? combustivelDoDia(x) : 0;
@@ -12188,9 +12910,15 @@
         reg.hora = reg.hora || horaAgora();
         reg.descricao = ''; reg.litros = 0; reg.combustivel = ''; reg.categoria = '';
         if (!x) estado.uberRegistros.push(reg);
+        var txtNota = notaNova.value.trim();
+        if (txtNota) {
+          var atualCarro = kmAtualDoCarro();
+          estado.uberNotas.push({ id: novoId(), texto: txtNota.slice(0, 200), data: reg.data, km: atualCarro ? atualCarro.km : 0,
+                                  situacao: 'pendente', resolvidaEm: '', criadoEm: Date.now() });
+        }
         salvar();
         fecharOuVoltar(deCima);
-        avisar('Registro salvo.');
+        avisar(txtNota ? 'Registro salvo. A anotação foi para Manutenção.' : 'Registro salvo.');
       }));
       if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir o registro', function () { excluirRegistroUber(x, deCima); }));
       forma.appendChild(acoes);
@@ -12901,6 +13629,17 @@
     estado.doceAcertos.forEach(function (a) {
       if (a.vendedorId !== vid) return;
       var dentro = noPeriodo(a.data);
+      if (a.semEstoque) {
+        // A conta é a mesma; só o estoque (x.vendidos) não se mexe.
+        var dev = a.valor, luc = 0, vend = a.quantidade, custo = 0;
+        a.itens.forEach(function (i) {
+          dev += i.vendidos * i.repasse; luc += i.vendidos * (i.preco - i.repasse);
+          vend += i.vendidos; custo += i.vendidos * (i.custo || 0);
+        });
+        r.devido += dev; r.lucroVendedor += luc; r.vendidos += vend;
+        if (dentro) { r.devidoPeriodo += dev; r.lucroPeriodo += luc; r.vendidosPeriodo += vend; r.custoPeriodo += custo; }
+        return;
+      }
       a.itens.forEach(function (i) {
         var x = p(i.produtoId);
         x.vendidos += i.vendidos; x.devolvidos += i.devolvidos; x.perdidos += i.perdidos;
@@ -13032,20 +13771,51 @@
       if (!porVendedor[e.vendedorId]) { porVendedor[e.vendedorId] = []; ordem.push(e.vendedorId); }
       porVendedor[e.vendedorId].push(e);
     });
+    // Um cartão por vendedor (pedido de 07/11/2026): as entregas deste mês
+    // e do mês passado lado a lado, e o que está com ele agora: o custo da
+    // mercadoria e quanto deve render vendido.
+    var fAtual = faixaDoMesAtivo();
+    var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
+    var fAnt = faixaDoMes(ant.ano, ant.mes);
+    if (ordem.length) lista = no('div', 'cartoes-vendedores');
     ordem.forEach(function (vid) {
       var dele = porVendedor[vid];
-      var un = dele.reduce(function (t, e) { return t + e.quantidade; }, 0);
-      var repasse = dele.reduce(function (t, e) { return t + e.quantidade * e.repasse; }, 0);
-      var venda = dele.reduce(function (t, e) { return t + e.quantidade * e.preco; }, 0);
       var nome = nomeDoVendedor(vid);
-      lista.appendChild(linhaSimples({
-        titulo: nome,
-        sub: dele.length + (dele.length === 1 ? ' entrega' : ' entregas') + ' · ' + un + ' un. · última ' + dataCurta(dele[0].data),
-        valor: emReais(repasse), cor: 'ouro',
-        nota: 'venda ' + emReais(venda),
-        selo: selo('#E9B44C', nome.charAt(0).toUpperCase()),
-        aoTocar: function () { abrirEntregasDoVendedor(vid); }
-      }));
+      function doMes(f) {
+        var es = dele.filter(function (e) { return e.data >= f.de && e.data <= f.ate; });
+        return { n: es.length, un: es.reduce(function (t, e) { return t + e.quantidade; }, 0) };
+      }
+      var m1 = doMes(fAtual), m0 = doMes(fAnt);
+      var c = contaDoVendedor(vid);
+      var custo = 0, venda = 0, comEle = 0;
+      c.produtos.forEach(function (x) {
+        if (x.estoque <= 0) return;
+        var p = achar(estado.doceProdutos, x.produtoId);
+        comEle += x.estoque;
+        custo += x.estoque * (p ? p.custo : 0);
+        venda += x.estoque * x.preco;
+      });
+      var card = botao('cartao cartao-vendedor-entregas', null, function () { abrirEntregasDoVendedor(vid); });
+      var topo = no('div', 'cve-topo');
+      juntar(topo, selo('#E9B44C', nome.charAt(0).toUpperCase()),
+        juntar(no('div', 'cve-nome'), no('strong', null, nome), no('span', null, 'última entrega ' + dataCurta(dele[0].data))),
+        no('span', 'cve-seta', '›'));
+      card.appendChild(topo);
+      var meses = no('div', 'cve-meses');
+      [[MESES[mesAtivo.mes], m1], [MESES[ant.mes], m0]].forEach(function (m) {
+        juntar(meses, juntar(no('div', 'cve-mes'),
+          no('span', 'cve-rotulo', m[0]),
+          no('strong', 'num', m[1].n ? m[1].n + (m[1].n === 1 ? ' entrega' : ' entregas') : 'nenhuma'),
+          no('span', 'num', m[1].un ? m[1].un + ' un.' : '—')));
+      });
+      card.appendChild(meses);
+      var valores = no('div', 'cve-valores');
+      valores.appendChild(no('div', 'cve-com', comEle ? 'Com ' + nome + ' agora: ' + comEle + ' un.' : 'Nada com ' + nome + ' agora'));
+      juntar(valores,
+        juntar(no('div', 'cve-linha'), no('span', null, 'Custo da mercadoria'), no('strong', 'num', emReais(custo))),
+        juntar(no('div', 'cve-linha'), no('span', null, 'Estimativa de venda'), no('strong', 'num verde', emReais(venda))));
+      card.appendChild(valores);
+      lista.appendChild(card);
     });
     corpo.appendChild(lista);
   }
@@ -13056,9 +13826,9 @@
       return b.criadoEm - a.criadoEm;
     });
     abrirFolha('Entregas · ' + nomeDoVendedor(vid), function (folha) {
-      var lista = cartao('liso');
+      var lista = cartao('liso lista-entregas-vendedor');
       if (!dele.length) lista.appendChild(estadoVazio('Nenhuma entrega', 'As entregas deste vendedor aparecem aqui.'));
-      dele.forEach(function (e) { lista.appendChild(linhaDeEntrega(e, function () { abrirEntregasDoVendedor(vid); })); });
+      dele.forEach(function (e) { lista.appendChild(linhaDeEntrega(e, function () { abrirEntregasDoVendedor(vid); }, true)); });
       folha.appendChild(lista);
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', '+ Nova entrega para ' + nomeDoVendedor(vid), function () {
@@ -13068,10 +13838,22 @@
     });
   }
 
-  function linhaDeEntrega(e, reabrir) {
+  // `doVendedor`: na folha de um vendedor o nome dele já está no título,
+  // então cada linha diz o doce e as unidades (pedido de 07/11/2026).
+  // Nome comprido corta igual em todos, para as unidades sempre caberem.
+  function nomeCurto(nome, max) {
+    nome = String(nome || '');
+    return nome.length > max ? nome.slice(0, max - 1).replace(/[\s(·,.-]+$/, '') + '…' : nome;
+  }
+  function diaMes(d) { return d ? d.slice(8, 10) + '/' + d.slice(5, 7) : ''; }
+
+  function linhaDeEntrega(e, reabrir, doVendedor) {
+    // As datas em números, entrega e acerto lado a lado: "07/11 – 15/12".
+    var datas = e.acertoEm ? diaMes(e.data) + ' – ' + diaMes(e.acertoEm) : dataBr(e.data);
     return linhaSimples({
-      titulo: nomeDoVendedor(e.vendedorId) + ' · ' + e.quantidade + ' un.',
-      sub: dataBr(e.data) + ' · ' + nomeDoProduto(e.produtoId) + (e.acertoEm ? ' · acerto ' + dataCurta(e.acertoEm) : ''),
+      titulo: doVendedor ? nomeCurto(nomeDoProduto(e.produtoId), 18) : nomeDoVendedor(e.vendedorId) + ' · ' + e.quantidade + ' un.',
+      qtd: doVendedor ? e.quantidade + ' un.' : '',
+      sub: datas + (doVendedor ? '' : ' · ' + nomeDoProduto(e.produtoId)),
       valor: emReais(e.quantidade * e.repasse), cor: 'ouro',
       nota: 'venda ' + emReais(e.quantidade * e.preco),
       selo: seloIcone('pacote', '#E9B44C'),
@@ -13091,7 +13873,7 @@
   // As entregas deste doce feitas depois da última prestação de contas.
   function entregasDesdeOAcerto(vendedorId, produtoId) {
     var ultimo = '';
-    estado.doceAcertos.forEach(function (a) { if (a.vendedorId === vendedorId && a.data > ultimo) ultimo = a.data; });
+    estado.doceAcertos.forEach(function (a) { if (a.vendedorId === vendedorId && !a.semEstoque && a.data > ultimo) ultimo = a.data; });
     return estado.doceEntregas.filter(function (e) {
       return e.vendedorId === vendedorId && e.produtoId === produtoId && (!ultimo || e.data > ultimo);
     }).sort(function (a, b) { return a.data < b.data ? -1 : 1; });
@@ -13101,7 +13883,7 @@
   // entregas feitas depois da última prestação de contas dele.
   function proximoAcerto(vendedorId) {
     var ultimo = '';
-    estado.doceAcertos.forEach(function (a) { if (a.vendedorId === vendedorId && a.data > ultimo) ultimo = a.data; });
+    estado.doceAcertos.forEach(function (a) { if (a.vendedorId === vendedorId && !a.semEstoque && a.data > ultimo) ultimo = a.data; });
     var prox = '';
     estado.doceEntregas.forEach(function (e) {
       if (e.vendedorId !== vendedorId || !e.acertoEm) return;
@@ -13453,6 +14235,13 @@
 
   function valoresDoAcerto(a) {
     var r = { vendidos: 0, devolvidos: 0, perdidos: 0, devido: 0, lucro: 0 };
+    if (a.semEstoque) {
+      r.vendidos = a.quantidade; r.devido = a.valor;
+      a.itens.forEach(function (i) {
+        r.vendidos += i.vendidos; r.devido += i.vendidos * i.repasse; r.lucro += i.vendidos * (i.preco - i.repasse);
+      });
+      return r;
+    }
     a.itens.forEach(function (i) {
       r.vendidos += i.vendidos; r.devolvidos += i.devolvidos; r.perdidos += i.perdidos;
       r.devido += (i.vendidos + (a.cobrarPerdidos ? i.perdidos : 0)) * i.repasse;
@@ -13470,8 +14259,10 @@
     if (e.tipo === 'acerto') {
       var v = valoresDoAcerto(e.item);
       return linhaSimples({
-        titulo: 'Prestação de contas · ' + quem,
-        sub: dataBr(e.data) + ' · vendeu ' + v.vendidos + (v.devolvidos ? ', devolveu ' + v.devolvidos : '') +
+        titulo: (e.item.semEstoque ? 'Acerto sem estoque · ' : 'Prestação de contas · ') + quem,
+        sub: e.item.semEstoque
+          ? dataBr(e.data) + (v.vendidos ? ' · vendeu ' + v.vendidos : '') + (e.item.obs ? ' · ' + e.item.obs : '')
+          : dataBr(e.data) + ' · vendeu ' + v.vendidos + (v.devolvidos ? ', devolveu ' + v.devolvidos : '') +
              (v.perdidos ? ', perdeu ' + v.perdidos : ''),
         valor: emReais(v.devido), cor: 'ouro', nota: 'a repassar',
         selo: seloIcone('painel', '#E9B44C'),
@@ -13873,7 +14664,7 @@
 
   // ---------- prestação de contas ----------
 
-  function abrirPrestacaoDeContas(vid, deCima) {
+  function abrirPrestacaoDeContas(vid, deCima, comecarSemEstoque) {
     var v = achar(estado.doceVendedores, vid);
     if (!v) return;
     var c = contaDoVendedor(vid);
@@ -13885,11 +14676,54 @@
     var cobrarPerdidos = false;
     var recebidoTocado = false;
 
+    var semEstoque = !!comecarSemEstoque;
     abrirFolha('Prestação · ' + v.nome, function (folha) {
       var forma = no('div', 'forma');
 
+      // Com estoque: conta doce por doce. Sem estoque: só o valor, e nenhum
+      // estoque muda (o do vendedor nem o seu).
+      forma.appendChild(campo('Tipo de acerto', segmentosLocais([
+        { valor: false, rotulo: 'Com estoque' }, { valor: true, rotulo: 'Sem estoque' }
+      ], semEstoque, function (x) {
+        semEstoque = x;
+        blocoEstoque.style.display = x ? 'none' : '';
+        blocoSemEstoque.style.display = x ? '' : 'none';
+        recebidoTocado = false;
+        pintar();
+      })));
+      var blocoSemEstoque = no('div', 'bloco-sem-estoque');
+      blocoSemEstoque.style.display = semEstoque ? '' : 'none';
+      blocoSemEstoque.appendChild(no('p', 'ajuda', 'Escolha os doces e quantos ' + v.nome + ' vendeu: a conta sai igual, mas o estoque dela e o seu ficam como estão.'));
+      // Todos os doces ativos, com o preço da última entrega a este vendedor
+      // (ou o do cadastro, se nunca entregou).
+      var itensSem = estado.doceProdutos.filter(function (p) { return p.ativo; }).map(function (p) {
+        var x = c.produtos.filter(function (y) { return y.produtoId === p.id; })[0];
+        return { produtoId: p.id, vendidos: 0, repasse: x && x.repasse ? x.repasse : p.repasse,
+                 preco: x && x.preco ? x.preco : p.preco, custo: p.custo || 0 };
+      });
+      if (!itensSem.length) blocoSemEstoque.appendChild(no('p', 'ajuda', 'Nenhum doce cadastrado: use o valor abaixo.'));
+      itensSem.forEach(function (it) {
+        var bloco = no('div', 'item-prestacao');
+        juntar(bloco, juntar(no('div', 'item-cabeca'),
+          no('strong', null, nomeDoProduto(it.produtoId)),
+          no('span', 'item-com', emReais(it.repasse) + ' por doce')));
+        var linha = no('div', 'config-linha');
+        var cont = contadorDigitavel(0, function (n) { it.vendidos = n; pintar(); });
+        cont.setAttribute('data-campo', 'vendidos-sem');
+        juntar(linha, no('span', 'config-rotulo', 'Vendidos'), cont);
+        bloco.appendChild(linha);
+        blocoSemEstoque.appendChild(bloco);
+      });
+      var valorSem = entradaValor(0, false);
+      valorSem.addEventListener('input', function () { pintar(); });
+      blocoSemEstoque.appendChild(campo('Outro valor, fora dos doces (opcional)', valorSem));
+      forma.appendChild(blocoSemEstoque);
+      var blocoEstoque = no('div', 'bloco-estoque');
+      if (semEstoque) blocoEstoque.style.display = 'none';
+      forma.appendChild(blocoEstoque);
+
       if (!itens.length) {
-        forma.appendChild(no('p', 'ajuda', 'Nenhum doce com ' + v.nome + ' agora. Dá para registrar só um pagamento do que ficou pendente.'));
+        blocoEstoque.appendChild(no('p', 'ajuda', 'Nenhum doce com ' + v.nome + ' agora. Dá para registrar só um pagamento do que ficou pendente.'));
       }
       itens.forEach(function (it) {
         var bloco = no('div', 'item-prestacao');
@@ -13913,11 +14747,11 @@
         });
         bloco.appendChild(juntar(no('div', 'item-pe'), no('span', null, 'Fica em estoque'), fica));
         it.elFica = fica;
-        forma.appendChild(bloco);
+        blocoEstoque.appendChild(bloco);
       });
 
       if (itens.length) {
-        forma.appendChild(campo('Doces perdidos', segmentosLocais([
+        blocoEstoque.appendChild(campo('Doces perdidos', segmentosLocais([
           { valor: false, rotulo: 'Perda é minha' }, { valor: true, rotulo: 'Cobrar do vendedor' }
         ], cobrarPerdidos, function (x) { cobrarPerdidos = x; pintar(); })));
       }
@@ -13947,6 +14781,14 @@
           devido += (it.vendidos + (cobrarPerdidos ? it.perdidos : 0)) * it.repasse;
           lucro += it.vendidos * (it.preco - it.repasse);
         });
+        if (semEstoque) {
+          vendidos = 0; lucro = 0; erro = false; devido = digitosParaCentavos(valorSem.value);
+          itensSem.forEach(function (it) {
+            vendidos += it.vendidos;
+            devido += it.vendidos * it.repasse;
+            lucro += it.vendidos * (it.preco - it.repasse);
+          });
+        }
         var antes = Math.max(c.pendente, 0);
         var credito = c.pendente < 0 ? -c.pendente : 0;
         totais = { devido: devido, lucro: lucro, total: Math.max(devido + antes - credito, 0), erro: erro, vendidos: vendidos };
@@ -13974,9 +14816,24 @@
         if (totais.erro) { mostrarErro(forma, 'Vendidos, devolvidos e perdidos passam do que ele tem. Confira os números em vermelho.'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         var r = digitosParaCentavos(recebido.value);
-        var usados = itens.filter(function (it) { return it.vendidos || it.devolvidos || it.perdidos; });
-        if (!usados.length && r <= 0) { mostrarErro(forma, 'Nada para registrar: informe o que ele vendeu, devolveu ou pagou.'); return; }
+        var usados = semEstoque ? [] : itens.filter(function (it) { return it.vendidos || it.devolvidos || it.perdidos; });
+        var valorDoAcerto = semEstoque ? digitosParaCentavos(valorSem.value) : 0;
+        var vendidosSem = semEstoque ? itensSem.filter(function (it) { return it.vendidos > 0; }) : [];
+        if (semEstoque && valorDoAcerto <= 0 && !vendidosSem.length && r <= 0) { mostrarErro(forma, 'Informe os doces vendidos ou um valor.'); return; }
+        if (!semEstoque && !usados.length && r <= 0) { mostrarErro(forma, 'Nada para registrar: informe o que ele vendeu, devolveu ou pagou.'); return; }
         var acertoId = '';
+        if (valorDoAcerto > 0 || vendidosSem.length) {
+          acertoId = novoId();
+          estado.doceAcertos.push({
+            id: acertoId, vendedorId: vid, data: data.value, cobrarPerdidos: false,
+            itens: vendidosSem.map(function (it) {
+              return { produtoId: it.produtoId, vendidos: it.vendidos, devolvidos: 0, perdidos: 0,
+                       repasse: it.repasse, preco: it.preco, custo: it.custo };
+            }),
+            semEstoque: true, valor: valorDoAcerto, quantidade: 0,
+            obs: obs.value.trim().slice(0, 200), criadoEm: Date.now()
+          });
+        }
         if (usados.length) {
           acertoId = novoId();
           estado.doceAcertos.push({
@@ -13995,35 +14852,229 @@
         salvar();
         fecharOuVoltar(deCima);
         var fica = totais.total - r;
-        avisar('Prestação registrada' + (fica > 0 ? ': fica ' + emReais(fica) + ' pendente.' : ': tudo acertado.'));
+        avisar((semEstoque ? 'Acerto registrado' : 'Prestação registrada') + (fica > 0 ? ': fica ' + emReais(fica) + ' pendente.' : ': tudo acertado.'));
       }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
     });
   }
 
+  // O que o revendedor vê do acerto (pedido de 07/11/2026): quanto a venda
+  // rendeu ao preço final e quanto ficou de comissão para ele. A sua parte
+  // (o repasse) não aparece aqui nem no PDF.
+  function vendaDoAcerto(acertos) {
+    var porProduto = {}, ordem = [];
+    var r = { total: 0, comissao: 0, vendidos: 0, devolvidos: 0, perdidos: 0, itens: [] };
+    acertos.forEach(function (a) {
+      a.itens.forEach(function (i) {
+        var chave = i.produtoId + '|' + i.preco + '|' + i.repasse;
+        var x = porProduto[chave];
+        if (!x) { x = porProduto[chave] = { produtoId: i.produtoId, preco: i.preco, comissaoUn: Math.max(i.preco - i.repasse, 0),
+                                             vendidos: 0, devolvidos: 0, perdidos: 0 }; ordem.push(chave); }
+        x.vendidos += i.vendidos; x.devolvidos += i.devolvidos; x.perdidos += i.perdidos;
+      });
+    });
+    ordem.forEach(function (k) {
+      var x = porProduto[k];
+      x.total = x.vendidos * x.preco;
+      x.comissao = x.vendidos * x.comissaoUn;
+      r.total += x.total; r.comissao += x.comissao;
+      r.vendidos += x.vendidos; r.devolvidos += x.devolvidos; r.perdidos += x.perdidos;
+      r.itens.push(x);
+    });
+    return r;
+  }
+
+  // Os acertos do vendedor naquela data: o PDF junta todos.
+  function acertosDaData(a) {
+    return estado.doceAcertos.filter(function (x) { return x.vendedorId === a.vendedorId && x.data === a.data; })
+      .sort(function (x, y) { return (x.criadoEm || 0) - (y.criadoEm || 0); });
+  }
+
+  function pdfDoAcertoDoce(a) {
+    var acertos = acertosDaData(a);
+    var r = vendaDoAcerto(acertos);
+    var quem = nomeDoVendedor(a.vendedorId);
+    var f = PDF.folha();
+    var MARGEM = 44, direita = f.largura - MARGEM;
+    var OURO = [0.91, 0.70, 0.30], CINZA = [0.42, 0.42, 0.42];
+    f.retangulo(0, 0, f.largura, 92, [0.03, 0.03, 0.04]);
+    f.texto('FINANZ', MARGEM, 44, { tamanho: 19, negrito: true, cor: OURO });
+    f.texto('Acerto de contas · Venda de Doces', MARGEM, 64, { tamanho: 9, cor: [0.72, 0.72, 0.72] });
+    f.texto(dataBr(a.data), direita, 44, { tamanho: 13, negrito: true, alinhar: 'direita', cor: [1, 1, 1] });
+    var y = 128;
+    var emitente = String(estado.perfil.negocio || estado.perfil.nome || '').trim();
+    if (emitente) {
+      f.texto('DE', MARGEM, y, { tamanho: 7.5, negrito: true, cor: CINZA });
+      f.texto(emitente, MARGEM, y + 14, { tamanho: 11, negrito: true });
+      y += 34;
+    }
+    f.texto('REVENDEDOR', MARGEM, y, { tamanho: 7.5, negrito: true, cor: CINZA });
+    f.texto(quem, MARGEM, y + 14, { tamanho: 11, negrito: true });
+    y += 44;
+
+    // Colunas: doce · qtd · preço · total · comissão.
+    var X_QTD = 300, X_PRECO = 372, X_TOTAL = 462, X_COM = direita - 8;
+    function cabecalho() {
+      f.retangulo(MARGEM, y - 12, direita - MARGEM, 22, [0.94, 0.94, 0.94]);
+      f.texto('DOCE', MARGEM + 8, y + 3, { tamanho: 8, negrito: true, cor: CINZA });
+      f.texto('QTD', X_QTD, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      f.texto('PREÇO', X_PRECO, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      f.texto('TOTAL', X_TOTAL, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      f.texto('COMISSÃO', X_COM, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      y += 26;
+    }
+    cabecalho();
+    if (!r.itens.length) {
+      f.texto('Nenhum doce neste acerto.', MARGEM + 8, y, { tamanho: 10, cor: CINZA });
+      y += 20;
+    }
+    r.itens.forEach(function (x) {
+      if (y > f.altura - 120) { f.novaPagina(); y = 70; cabecalho(); }
+      var linhas = f.quebrar(nomeDoProduto(x.produtoId), 10, false, X_QTD - MARGEM - 44);
+      linhas.forEach(function (l, k) {
+        f.texto(l, MARGEM + 8, y, { tamanho: 10 });
+        if (k === 0) {
+          f.texto(String(x.vendidos), X_QTD, y, { tamanho: 10, alinhar: 'direita' });
+          f.texto(emReais(x.preco), X_PRECO, y, { tamanho: 10, alinhar: 'direita' });
+          f.texto(emReais(x.total), X_TOTAL, y, { tamanho: 10, alinhar: 'direita' });
+          f.texto(emReais(x.comissao), X_COM, y, { tamanho: 10, negrito: true, alinhar: 'direita' });
+        }
+        y += 14;
+      });
+      if (x.devolvidos || x.perdidos) {
+        f.texto((x.devolvidos ? 'devolveu ' + x.devolvidos : '') + (x.devolvidos && x.perdidos ? ' · ' : '') +
+                (x.perdidos ? 'perdeu ' + x.perdidos : ''), MARGEM + 8, y, { tamanho: 8, cor: CINZA });
+        y += 12;
+      }
+      f.linha(MARGEM, y - 5, direita, y - 5, 0.4, [0.86, 0.86, 0.86]);
+      y += 6;
+    });
+
+    y += 10;
+    if (y > f.altura - 140) { f.novaPagina(); y = 70; }
+    f.retangulo(MARGEM, y - 12, direita - MARGEM, 30, [0.97, 0.94, 0.86]);
+    f.texto('Total da venda (' + r.vendidos + ' un.)', MARGEM + 8, y + 6, { tamanho: 11, negrito: true });
+    f.texto(emReais(r.total), direita - 8, y + 6, { tamanho: 12, negrito: true, alinhar: 'direita' });
+    y += 40;
+    f.retangulo(MARGEM, y - 12, direita - MARGEM, 34, [0.03, 0.03, 0.04]);
+    f.texto('COMISSÃO DO REVENDEDOR', MARGEM + 8, y + 8, { tamanho: 11, negrito: true, cor: [1, 1, 1] });
+    f.texto(emReais(r.comissao), direita - 8, y + 8, { tamanho: 14, negrito: true, alinhar: 'direita', cor: OURO });
+    y += 52;
+    var obs = acertos.map(function (x) { return x.obs; }).filter(Boolean);
+    if (obs.length) {
+      f.texto('OBSERVAÇÕES', MARGEM, y, { tamanho: 7.5, negrito: true, cor: CINZA });
+      y += 14;
+      obs.forEach(function (o) {
+        f.quebrar(o, 9.5, false, direita - MARGEM).forEach(function (l) { f.texto(l, MARGEM, y, { tamanho: 9.5 }); y += 13; });
+      });
+    }
+    return f.bytes();
+  }
+
+  function nomeDoPdfDoAcerto(a) {
+    return ('Acerto ' + nomeDoVendedor(a.vendedorId) + ' ' + a.data).replace(/[^\wÀ-ú .-]/g, '').trim() + '.pdf';
+  }
+
+  function verPdfDoAcerto(a) {
+    try {
+      var url = URL.createObjectURL(new Blob([pdfDoAcertoDoce(a)], { type: 'application/pdf' }));
+      var aba = window.open(url, '_blank');
+      if (!aba) {
+        URL.revokeObjectURL(url);
+        baixarArquivo(nomeDoPdfDoAcerto(a), pdfDoAcertoDoce(a), 'application/pdf');
+        avisar('O navegador não deixou abrir: o PDF foi salvo em Downloads.');
+        return;
+      }
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } catch (e) {
+      avisarCaixa('Não consegui gerar o PDF', String(e && e.message || e), function () {});
+    }
+  }
+
+  // O texto que vai junto com o PDF para o revendedor: o resumo, sem a sua parte.
+  function textoDoAcertoParaRevendedor(a) {
+    var r = vendaDoAcerto(acertosDaData(a));
+    var nome = nomeDoVendedor(a.vendedorId);
+    return 'Oi, ' + nome + '! Segue o acerto de ' + dataBr(a.data) + ':\n' +
+      '• ' + r.vendidos + ' doce(s) vendido(s)\n' +
+      '• Total da venda: ' + emReais(r.total) + '\n' +
+      '• Sua comissão: ' + emReais(r.comissao) + '\n\n' +
+      'O detalhamento de cada doce está no PDF.';
+  }
+
+  // Mandar para o revendedor (pedido de 07/11/2026): pela conversa dele no
+  // WhatsApp (o texto vai pronto e o PDF fica salvo para anexar) ou pela
+  // folha de compartilhar do celular, que leva o arquivo junto.
+  function mandarAcertoAoRevendedor(a) {
+    var v = achar(estado.doceVendedores, a.vendedorId);
+    var nome = nomeDoVendedor(a.vendedorId);
+    var numero = v ? numeroWhatsapp(v.telefone) : '';
+    var opcoes = [];
+    if (numero) opcoes.push({ valor: 'zap', rotulo: 'WhatsApp de ' + nome,
+      detalhe: 'abre a conversa com o resumo escrito; o PDF fica salvo para anexar' });
+    opcoes.push({ valor: 'app', rotulo: 'Escolher o app',
+      detalhe: 'manda o arquivo pelo WhatsApp, e-mail ou outro, e você escolhe o contato' });
+    if (!numero) opcoes.push({ valor: 'fone', rotulo: 'Cadastrar o WhatsApp de ' + nome,
+      detalhe: 'para mandar direto para a conversa dele da próxima vez' });
+    abrirEscolha({ titulo: 'Mandar para ' + nome, semMarca: true, opcoes: opcoes }, function (x) {
+      if (x === 'zap') {
+        try { baixarArquivo(nomeDoPdfDoAcerto(a), pdfDoAcertoDoce(a), 'application/pdf'); } catch (e) {}
+        window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(textoDoAcertoParaRevendedor(a)), '_blank', 'noopener');
+        avisar('PDF salvo em Downloads: na conversa, use o clipe para anexar.');
+      } else if (x === 'app') enviarPdfDoAcerto(a);
+      else if (x === 'fone') porCima(function () { abrirAcertoDoce(a.id, false); }, function () { abrirFolhaVendedor(a.vendedorId, true); });
+    });
+  }
+
+  function enviarPdfDoAcerto(a) {
+    var arquivo;
+    try { arquivo = new File([pdfDoAcertoDoce(a)], nomeDoPdfDoAcerto(a), { type: 'application/pdf' }); } catch (e) {
+      avisarCaixa('Não consegui gerar o PDF', String(e && e.message || e), function () {});
+      return;
+    }
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+      navigator.share({ files: [arquivo], text: textoDoAcertoParaRevendedor(a),
+                        title: 'Acerto ' + nomeDoVendedor(a.vendedorId) + ' ' + dataBr(a.data) }).catch(function () {});
+      return;
+    }
+    baixarArquivo(arquivo.name, pdfDoAcertoDoce(a), 'application/pdf');
+    avisar('PDF salvo. Procure em Downloads.');
+  }
+
   function abrirAcertoDoce(id, deCima) {
     var a = achar(estado.doceAcertos, id);
     if (!a) return;
     var v = valoresDoAcerto(a);
-    abrirFolha('Prestação de ' + dataBr(a.data), function (folha) {
+    var venda = vendaDoAcerto([a]);
+    abrirFolha((a.semEstoque ? 'Acerto sem estoque de ' : 'Prestação de ') + dataBr(a.data), function (folha) {
       var c = cartao();
       c.appendChild(no('div', 'rotulo', nomeDoVendedor(a.vendedorId)));
       c.appendChild(gradeDeTiles([
-        tile('A repassar', emReais(v.devido), 'ouro'),
-        tile('Lucro do vendedor', emReais(v.lucro), 'verde'),
-        tile('Vendidos', v.vendidos + ' un.', '')
+        tile('Total da venda', emReais(venda.total), 'ouro'),
+        tile('Comissão do revendedor', emReais(venda.comissao), 'verde'),
+        tile('Vendidos', venda.vendidos ? venda.vendidos + ' un.' : '—', '')
       ], 3));
+      if (a.semEstoque) {
+        if (a.valor) c.appendChild(no('div', 'linha-nota', 'Mais ' + emReais(a.valor) + ' fora dos doces.'));
+        c.appendChild(no('div', 'linha-nota', 'Acerto sem estoque: o estoque do vendedor e o seu não mudaram.'));
+      }
       if (a.obs) c.appendChild(no('div', 'linha-nota', a.obs));
       if (v.perdidos) c.appendChild(no('div', 'linha-nota', a.cobrarPerdidos ? 'Os perdidos foram cobrados do vendedor.' : 'Os perdidos ficaram como perda sua.'));
       folha.appendChild(c);
+      var pdfs = no('div', 'duas acoes-pdf');
+      pdfs.appendChild(botao('btn btn-ouro', 'Ver o PDF', function () { verPdfDoAcerto(a); }));
+      pdfs.appendChild(botao('btn btn-fantasma', 'Mandar para ' + nomeDoVendedor(a.vendedorId), function () { mandarAcertoAoRevendedor(a); }));
+      folha.appendChild(pdfs);
+      if (acertosDaData(a).length > 1) folha.appendChild(no('p', 'ajuda', 'O PDF junta todos os acertos de ' + nomeDoVendedor(a.vendedorId) + ' em ' + dataBr(a.data) + '.'));
       var lista = cartao('liso');
-      a.itens.forEach(function (i) {
+      venda.itens.forEach(function (x) {
         lista.appendChild(linhaSimples({
-          titulo: nomeDoProduto(i.produtoId),
-          sub: 'Vendeu ' + i.vendidos + ' · devolveu ' + i.devolvidos + ' · perdeu ' + i.perdidos,
-          valor: emReais((i.vendidos + (a.cobrarPerdidos ? i.perdidos : 0)) * i.repasse), cor: 'ouro',
-          nota: emReais(i.repasse) + ' por doce',
+          titulo: nomeDoProduto(x.produtoId) + ' · ' + x.vendidos + ' un.',
+          sub: emReais(x.preco) + ' cada' + (x.devolvidos ? ' · devolveu ' + x.devolvidos : '') + (x.perdidos ? ' · perdeu ' + x.perdidos : '') +
+            (a.semEstoque ? ' · sem mexer no estoque' : ''),
+          valor: emReais(x.total), cor: 'ouro',
+          nota: 'comissão ' + emReais(x.comissao), corNota: 'verde',
           selo: seloIcone('doce', '#F472B6')
         }));
       });
@@ -14033,7 +15084,7 @@
       acoes.appendChild(botao('btn btn-perigo', 'Excluir prestação de contas', function () {
         perguntar({
           titulo: 'Excluir esta prestação?',
-          texto: 'Os doces voltam a contar como estoque do vendedor' + (pagamento ? ', e o pagamento de ' + emReais(pagamento.valor) + ' registrado junto também sai' : '') + '.',
+          texto: (a.semEstoque ? 'O valor sai da conta do vendedor' : 'Os doces voltam a contar como estoque do vendedor') + (pagamento ? ', e o pagamento de ' + emReais(pagamento.valor) + ' registrado junto também sai' : '') + '.',
           ok: 'Excluir', tom: 'perigo'
         }, function () {
           marcarExcluido('empreendedor_registros', a.id);
@@ -16874,6 +17925,100 @@
     return mapa;
   }
 
+  // Lê o combinado escrito do jeito que se fala (pedido de 07/11/2026):
+  // "10 mil de entrada e 1.000 por mês até fechar", "entrada de 5 mil já
+  // paga, 12x de 800, as duas primeiras de 2 mil, todo dia 10". Devolve o
+  // que achou; o que não achou fica de fora e o formulário mantém.
+  var NUMEROS_ESCRITOS = { um: 1, uma: 1, dois: 2, duas: 2, 'três': 3, tres: 3, quatro: 4, cinco: 5, seis: 6,
+                           sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12 };
+
+  function centavosDoTexto(numero, mil) {
+    var t = String(numero);
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    var n = parseFloat(t);
+    if (!isFinite(n) || n <= 0) return 0;
+    if (mil) n *= 1000;
+    return Math.round(n * 100);
+  }
+
+  function lerCombinado(texto) {
+    var t = ' ' + String(texto || '').toLowerCase().replace(/\s+/g, ' ') + ' ';
+    var r = {};
+    var VALOR = '(?:r\\$\\s*)?(\\d[\\d.,]*\\d|\\d)\\s*(mil(?![a-z])|k(?![a-z]))?';
+    function apagar(m) { t = t.replace(m, function (x) { return new Array(x.length + 1).join(' '); }); }
+
+    // Contagens escritas por extenso: "duas primeiras", "dez vezes".
+    t = t.replace(/\b(uma|um|duas|dois|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|onze|doze)\s+(?=primeir|[uú]ltim|parcel|vez|mes|presta|mensalid)/g,
+      function (x, w) { var n = NUMEROS_ESCRITOS[w.replace('tres', 'três')] || NUMEROS_ESCRITOS[w]; return n + ' '; });
+
+    // Para achar "paga" perto de "entrada", os números perdem o ponto e a
+    // vírgula ("2.500,00" não corta a frase).
+    var semNumeros = t.replace(/(\d)[.,](?=\d)/g, '$1');
+    if (/entrada[^,.;]{0,40}?(n[aã]o (foi )?pag|vai pagar|a pagar|ainda n[aã]o|depois)/.test(semNumeros)) r.entradaPaga = false;
+    else if (/entrada[^,.;]{0,40}?\b(j[aá] (foi )?(paga|pago)|paga\b|pago\b|pagou|recebid[ao]|recebi)/.test(semNumeros) ||
+        /\b(pagou|deu|recebi|recebeu)\b[^,.;]{0,25}entrada/.test(semNumeros)) r.entradaPaga = true;
+    if (/at[eé] (fechar|completar|quitar|acabar|terminar)/.test(t)) r.ateFechar = true;
+
+    var m = t.match(/\bdia (\d{1,2})\b/);
+    if (m && +m[1] >= 1 && +m[1] <= 31) { r.dia = +m[1]; apagar(m[0]); }
+    var datas = t.match(/\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/g);
+    if (datas) datas.forEach(apagar);
+
+    m = t.match(new RegExp('\\b(\\d{1,2}) primeiras?(?: parcelas?)?(?: (?:de|em|com|a|ser[aã]o de|v[aã]o ser de|ficam (?:de|em)|ficando em|no valor de))? ' + VALOR));
+    if (m) { r.primeiras = { qtd: +m[1], valor: centavosDoTexto(m[2], m[3]) }; apagar(m[0]); }
+    else {
+      m = t.match(new RegExp('\\b(?:a )?primeira(?: parcela)?(?: (?:de|em|com|ser[aá] de|vai ser de|fica (?:de|em)|no valor de))? ' + VALOR));
+      if (m) { r.primeiras = { qtd: 1, valor: centavosDoTexto(m[1], m[2]) }; apagar(m[0]); }
+    }
+
+    m = t.match(new RegExp('\\b(\\d{1,3}) ?(?:x(?![a-z])|vezes|parcelas|presta[cç][oõ]es|meses|mensalidades)(?: iguais)?(?: (?:de|em|no valor de) ' + VALOR + ')?'));
+    if (m && +m[1] >= 1 && +m[1] <= 240) {
+      r.vezes = +m[1];
+      if (m[2]) r.parcela = centavosDoTexto(m[2], m[3]);
+      apagar(m[0]);
+    }
+
+    var re = new RegExp(VALOR, 'g'), achado, soltos = [];
+    while ((achado = re.exec(t))) {
+      var valor = centavosDoTexto(achado[1], achado[2]);
+      if (!valor) continue;
+      var antes = t.slice(Math.max(0, achado.index - 32), achado.index);
+      var depois = t.slice(achado.index + achado[0].length, achado.index + achado[0].length + 32);
+      // "entrada de 5 mil" / "5 mil de entrada". Em "10 mil de entrada 1000
+      // por mês" o "entrada" antes do 1000 é do valor anterior.
+      var entradaAntes = /entrada (de |: ?|no valor de |com |= ?)?\s*$/.test(antes) && !/\d\s*(mil|k)?\s*(reais )?(de |na |como |da )?entrada\s*$/.test(antes);
+      if (entradaAntes || /^\s*(reais )?(de |na |como |da |)entrada/.test(depois)) r.entrada = valor;
+      else if (/^\s*(reais )?(por|ao|\/|a cada|cada|todo|toda)\s*(m[eê]s|parcela|semana)/.test(depois) || /^\s*(reais )?(mensa|por m)/.test(depois) ||
+               /(parcelas?|mensalidades?|presta[cç][oõ]es) (de|em) \s*$/.test(antes) ||
+               /(resto|restante|depois|demais|saldo)( (em|de|com|pago em))?( parcelas( de)?)? \s*$/.test(antes)) r.parcela = r.parcela || valor;
+      else if (/(total|fechar|vendi|venda|valor|custou|pre[cç]o)( (de|em|por|:|é|e|foi|do|da))? \s*$/.test(antes) || /^\s*(reais )?(no |de |)total/.test(depois)) r.total = valor;
+      else soltos.push(valor);
+    }
+    // Um valor sem palavra perto: com entrada e sem parcela, é a parcela;
+    // sem total, é o total.
+    soltos.forEach(function (v) {
+      if (r.entrada && !r.parcela && !r.vezes) r.parcela = v;
+      else if (!r.total) r.total = v;
+      else if (!r.parcela) r.parcela = v;
+    });
+    var achouAlgo = ['entrada', 'parcela', 'vezes', 'total', 'primeiras', 'dia'].some(function (k) { return r[k]; });
+    return achouAlgo ? r : null;
+  }
+
+  // O próximo dia N do mês a partir de hoje (amanhã em diante).
+  function proximoDiaDoMes(dia) {
+    var h = partes(hojeTexto());
+    var cand = new Date(h.ano, h.mes, 1);
+    for (var i = 0; i < 2; i++) {
+      var ultimo = new Date(cand.getFullYear(), cand.getMonth() + 1, 0).getDate();
+      var d = deData(new Date(cand.getFullYear(), cand.getMonth(), Math.min(dia, ultimo)));
+      if (d > hojeTexto()) return d;
+      cand = new Date(cand.getFullYear(), cand.getMonth() + 1, 1);
+    }
+    return somaMeses(hojeTexto(), 1);
+  }
+
   function abrirFolhaParcelamento(clienteId, servicoId) {
     var cliente = achar(estado.clientes, clienteId);
     if (!cliente) return;
@@ -16917,8 +18062,46 @@
       var campoServico = entradaSelecao(opcoesServico, servicoId || sozinhoNaFila, 'Referente a');
       forma.appendChild(campo('Referente a', campoServico));
 
+      // Escrever o combinado do jeito que se fala e o app preencher o resto
+      // (pedido de 07/11/2026).
+      var campoFala = entradaTexto('', 'Ex.: 10 mil de entrada e 1.000 por mês até fechar', 200);
+      var caixaFala = campo('Escreva o combinado (opcional)', campoFala);
+      var linhaFala = no('div', 'linha-fala');
+      linhaFala.appendChild(campoFala);
+      linhaFala.appendChild(botao('btn btn-fantasma', 'Preencher', function () { preencherPeloTexto(); }));
+      caixaFala.appendChild(linhaFala);
+      forma.appendChild(caixaFala);
+      var notaFala = no('div', 'linha-nota nota-fala');
+      notaFala.style.margin = '-8px 0 16px';
+      notaFala.style.display = 'none';
+      forma.appendChild(notaFala);
+      campoFala.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); preencherPeloTexto(); } });
+
+      // Entrada: entra como a primeira parcela. Já paga, ela nasce quitada,
+      // com o pagamento registrado; senão, fica em aberto na data dela.
+      var campoEntrada = entradaValor(0, false);
+      forma.appendChild(campo('Entrada (opcional)', campoEntrada));
+      var entradaPaga = 'paga';
+      var segEntrada = segmentosLocais([
+        { valor: 'paga', rotulo: 'Já foi paga' }, { valor: 'depois', rotulo: 'Ainda vai pagar' }
+      ], entradaPaga, function (v) { entradaPaga = v; pintarResumo(); });
+      var campoDataEntrada = entradaData(hojeTexto());
+      var caixaEntrada = no('div', 'caixa-entrada');
+      caixaEntrada.appendChild(campo('A entrada já foi paga?', segEntrada));
+      caixaEntrada.appendChild(campo('Data da entrada', campoDataEntrada));
+      caixaEntrada.style.display = 'none';
+      forma.appendChild(caixaEntrada);
+      function marcarEntradaPaga(v) {
+        entradaPaga = v;
+        Array.prototype.forEach.call(segEntrada.children, function (b, i) {
+          b.setAttribute('aria-selected', (i === 0 ? 'paga' : 'depois') === v ? 'true' : 'false');
+        });
+      }
+
       var campoData = entradaData(hojeTexto());
       forma.appendChild(campo('Primeira parcela vence em', campoData));
+      var dataParcelaMexida = false;
+      campoData.addEventListener('change', function () { dataParcelaMexida = true; });
 
       var opcoesVezes = [];
       for (var v = 1; v <= 24; v++) {
@@ -16999,34 +18182,118 @@
         mexidos = [campo].concat(mexidos.filter(function (c) { return c !== campo; })).slice(0, 2);
       }
 
+      // Valores de parcela escritos à mão, pela posição (0 = a primeira
+      // depois da entrada). Com o valor da parcela fixo, as outras seguem
+      // até fechar o total; com a quantidade fixa, as outras dividem o resto.
+      var ajustes = {};
+      function valorEntrada() { return digitosParaCentavos(campoEntrada.value); }
+      function dataDaEntrada() { return ehData(campoDataEntrada.value) ? campoDataEntrada.value : hojeTexto(); }
+      function temAjustes() { return Object.keys(ajustes).length > 0; }
+
+      function aplicarAjustes(itens, resto, porParcela, primeira) {
+        if (!temAjustes() || resto <= 0) return { itens: itens, passou: 0 };
+        var out = [], i, v;
+        if (porParcela > 0) {
+          var sobrando = resto;
+          for (i = 0; sobrando > 0 && i < 240; i++) {
+            v = Math.min(ajustes[i] != null ? ajustes[i] : porParcela, sobrando);
+            out.push({ valor: v, vencimento: somaMeses(primeira, i) });
+            sobrando -= v;
+          }
+          return { itens: out, passou: 0 };
+        }
+        var n = itens.length, fixo = 0, livres = [];
+        for (i = 0; i < n; i++) { if (ajustes[i] != null) fixo += ajustes[i]; else livres.push(i); }
+        var sobra = resto - fixo;
+        if (sobra < 0) {
+          return { itens: itens.map(function (p, k) { return { valor: ajustes[k] != null ? ajustes[k] : 0, vencimento: p.vencimento }; }), passou: -sobra };
+        }
+        var partesLivres = livres.length ? espalhar(sobra, livres.length, primeira) : [];
+        for (i = 0; i < n; i++) out.push({ valor: ajustes[i] != null ? ajustes[i] : 0, vencimento: itens[i].vencimento });
+        livres.forEach(function (idx, k) { out[idx].valor = partesLivres[k].valor; });
+        if (!livres.length && sobra > 0) out.push({ valor: sobra, vencimento: somaMeses(primeira, n) });
+        return { itens: out.filter(function (p) { return p.valor > 0; }), passou: 0 };
+      }
+
       function contas() {
         var base = digitosParaCentavos(campoValorEl.value);
+        var entrada = valorEntrada();
         var quandoVence = quando();
-        var natural = calcularParcelas(base, vezes, modo, lerAcrescimo(), quandoVence, 0, 0);
+        var natural = calcularParcelas(Math.max(base - entrada, 0), vezes, modo, lerAcrescimo(), quandoVence, 0, 0);
         var dupla = mexidos.slice(0, 2);
         var comParcela = parcelaManual > 0 && dupla.indexOf('parcela') >= 0;
         var comTotal = totalManual > 0 && dupla.indexOf('total') >= 0;
         var comVezes = dupla.indexOf('vezes') >= 0;
-        var r;
+        var itens, resto, aj;
 
         if (comParcela && comVezes) {
-          var alvo = parcelaManual * vezes;
-          r = { itens: espalhar(alvo, vezes, quandoVence), total: alvo };
-        } else if (comParcela && comTotal) {
-          r = { itens: porValorDaParcela(totalManual, parcelaManual, quandoVence), total: totalManual };
-        } else if (comParcela) {
-          r = { itens: porValorDaParcela(natural.total, parcelaManual, quandoVence),
-                total: natural.total };
-        } else if (comTotal) {
-          r = { itens: espalhar(totalManual, vezes, quandoVence), total: totalManual };
+          // "12x de 800": a quantidade e o valor mandam; parcela escrita à
+          // mão muda só ela, e o total acompanha.
+          itens = [];
+          for (var i = 0; i < vezes; i++) {
+            itens.push({ valor: ajustes[i] != null ? ajustes[i] : parcelaManual, vencimento: somaMeses(quandoVence, i) });
+          }
+          aj = { itens: itens, passou: 0 };
         } else {
-          r = { itens: natural.itens, total: natural.total };
+          if (comParcela && comTotal) { resto = totalManual - entrada; itens = resto > 0 ? porValorDaParcela(resto, parcelaManual, quandoVence) : []; }
+          else if (comParcela) { resto = natural.total; itens = resto > 0 ? porValorDaParcela(resto, parcelaManual, quandoVence) : []; }
+          else if (comTotal) { resto = totalManual - entrada; itens = resto > 0 ? espalhar(resto, vezes, quandoVence) : []; }
+          else { resto = natural.total; itens = resto > 0 ? natural.itens : []; }
+          aj = aplicarAjustes(itens, Math.max(resto, 0), comParcela ? parcelaManual : 0, quandoVence);
         }
 
-        r.base = base;
+        var lista = [];
+        if (entrada > 0) lista.push({ entrada: true, valor: entrada, vencimento: dataDaEntrada() });
+        aj.itens.forEach(function (p, k) {
+          lista.push({ indice: k, valor: p.valor, vencimento: p.vencimento, ajustada: ajustes[k] != null });
+        });
+        lista.forEach(function (p, k) { p.numero = k + 1; p.total = lista.length; });
+        var total = lista.reduce(function (soma, p) { return soma + p.valor; }, 0);
+        var livre = aj.itens.filter(function (p, k) { return ajustes[k] == null; })[0] || aj.itens[0];
+        var r = { itens: lista, parcelas: aj.itens, entrada: entrada, total: total, base: base, passou: aj.passou,
+                  padrao: comParcela ? parcelaManual : (livre ? livre.valor : 0) };
         r.acrescimoTotal = r.total - base;
         r.manual = totalManual > 0 || parcelaManual > 0;
         return r;
+      }
+
+      function preencherPeloTexto() {
+        var r = lerCombinado(campoFala.value);
+        notaFala.style.display = '';
+        if (!r) {
+          notaFala.className = 'linha-nota nota-fala vermelho';
+          notaFala.textContent = 'Não deu para entender. Tente algo como: “10 mil de entrada e 1.000 por mês até fechar”.';
+          return;
+        }
+        ajustes = {};
+        if (r.total) campoValorEl.value = emReais(r.total);
+        var base = digitosParaCentavos(campoValorEl.value);
+        if (r.entrada) { campoEntrada.value = emReais(r.entrada); caixaEntrada.style.display = ''; }
+        if (r.entradaPaga != null) marcarEntradaPaga(r.entradaPaga ? 'paga' : 'depois');
+        if (r.dia) { campoData.value = proximoDiaDoMes(r.dia); dataParcelaMexida = true; }
+        else if (valorEntrada() > 0 && !dataParcelaMexida && campoData.value === hojeTexto()) campoData.value = somaMeses(hojeTexto(), 1);
+        totalManual = 0; parcelaManual = 0; mexidos = [];
+        if (r.parcela && r.vezes) { parcelaManual = r.parcela; vezes = r.vezes; mexidos = ['parcela', 'vezes']; }
+        else if (r.parcela) {
+          parcelaManual = r.parcela;
+          if (base > 0) { totalManual = base; mexidos = ['parcela', 'total']; } else mexidos = ['parcela'];
+        } else if (r.vezes) { vezes = r.vezes; mexidos = ['vezes']; }
+        campoVezes.value = String(Math.min(vezes, 24));
+        if (r.primeiras && r.primeiras.qtd > 0 && r.primeiras.valor > 0) {
+          for (var i = 0; i < Math.min(r.primeiras.qtd, 60); i++) ajustes[i] = r.primeiras.valor;
+        }
+        pintarResumo();
+        var entendi = [];
+        if (r.total) entendi.push('total ' + emReais(r.total));
+        if (r.entrada) entendi.push('entrada ' + emReais(r.entrada) + (r.entradaPaga === true ? ' já paga' : r.entradaPaga === false ? ' a pagar' : ''));
+        if (r.vezes) entendi.push(r.vezes + 'x');
+        if (r.parcela) entendi.push('parcelas de ' + emReais(r.parcela) + (!r.vezes ? ' até fechar' : ''));
+        if (r.primeiras) entendi.push((r.primeiras.qtd === 1 ? 'a primeira' : 'as ' + r.primeiras.qtd + ' primeiras') + ' de ' + emReais(r.primeiras.valor));
+        if (r.dia) entendi.push('todo dia ' + r.dia);
+        notaFala.className = 'linha-nota nota-fala verde';
+        notaFala.textContent = (base > 0 || (r.parcela && r.vezes))
+          ? 'Entendi: ' + entendi.join(' · ') + '. Confira as parcelas abaixo; dá para mudar qualquer uma.'
+          : 'Entendi: ' + entendi.join(' · ') + '. Falta o valor total: preencha o “Valor a combinar”.';
       }
 
       // A régua do acréscimo é o que já está registrado, não o que foi
@@ -17062,7 +18329,12 @@
           return;
         }
         var c = contas();
-        var quantas = c.itens.length;
+        var ps = c.parcelas;
+        var quantas = ps.length;
+        if (!c.itens.length) {
+          resumo.appendChild(no('div', 'linha-sub', 'Informe o valor para ver o resumo do parcelamento.'));
+          return;
+        }
 
         // Os três campos ficam mostrando a mesma conta. Só não mexo no que
         // está sendo digitado agora, senão o cursor pula debaixo do dedo.
@@ -17070,24 +18342,33 @@
           campoTotal.value = emReais(c.total);
           if (totalManual > 0) totalManual = c.total;
         }
-        if (digitando !== 'parcela') {
-          campoPorParcela.value = emReais(c.itens[0].valor);
-          parcelaManual = c.itens[0].valor;
+        if (digitando !== 'parcela' && quantas) {
+          campoPorParcela.value = emReais(c.padrao);
+          parcelaManual = c.padrao;
         }
-        if (quantas !== vezes) {
+        if (quantas && quantas !== vezes) {
           vezes = Math.min(quantas, 24);
           campoVezes.value = String(vezes);
         }
 
         resumo.appendChild(no('div', 'rotulo', 'Vai ser cobrado'));
         resumo.appendChild(no('div', 'valorao pequeno num', emReais(c.total)));
-        var primeiro = c.itens[0].valor, ultimo = c.itens[quantas - 1].valor;
-        var detalhe = quantas + 'x de ' + emReais(primeiro);
-        if (quantas > 1 && primeiro !== ultimo) {
-          detalhe = (quantas - 1) + 'x de ' + emReais(primeiro) +
-            ' e a última de ' + emReais(ultimo);
+        var detalhe = '';
+        if (quantas) {
+          var primeiro = ps[0].valor, ultimo = ps[quantas - 1].valor;
+          detalhe = quantas + 'x de ' + emReais(primeiro);
+          if (temAjustes()) detalhe = quantas + ' parcelas, com valores escritos à mão';
+          else if (quantas > 1 && primeiro !== ultimo) {
+            detalhe = (quantas - 1) + 'x de ' + emReais(primeiro) +
+              ' e a última de ' + emReais(ultimo);
+          }
         }
+        if (c.entrada) detalhe = 'Entrada de ' + emReais(c.entrada) + (entradaPaga === 'paga' ? ' (já paga)' : '') + (detalhe ? ' + ' + detalhe : '');
         resumo.appendChild(no('div', 'linha-nota', detalhe));
+        if (c.passou) {
+          resumo.appendChild(no('div', 'linha-nota vermelho',
+            'As parcelas escritas à mão passam do total em ' + emReais(c.passou) + '. Diminua alguma delas.'));
+        }
         var extra = acrescimoACobrar(c);
         if (extra > 0) {
           var svRef = campoServico.value ? achar(estado.servicos, campoServico.value) : null;
@@ -17107,16 +18388,50 @@
             'Atrasando, entram ' + numeroBr(juros) + '% ao mês sobre a parcela, contados por dia.'));
         }
 
-        var lista = no('div');
+        // Uma linha por parcela. Tocar no valor deixa escrever outro: as
+        // demais se ajustam para fechar a conta.
+        var lista = no('div', 'lista-previsao');
         lista.style.marginTop = '12px';
         c.itens.forEach(function (p) {
           var linha = no('div', 'parcela-linha');
-          juntar(linha,
-            no('span', 'q', p.numero + '/' + p.total + ' · ' + dataBr(p.vencimento)),
-            no('span', 'v num', emReais(p.valor)));
+          var rotulo = p.entrada
+            ? 'Entrada · ' + dataBr(p.vencimento) + (entradaPaga === 'paga' ? ' · paga' : '')
+            : p.numero + '/' + p.total + ' · ' + dataBr(p.vencimento);
+          var v = no('span', 'v num' + (p.entrada ? '' : ' editavel') + (p.ajustada ? ' ajustada' : ''), emReais(p.valor));
+          if (!p.entrada) {
+            v.setAttribute('role', 'button');
+            v.addEventListener('click', function () { editarParcelaDaPrevisao(v, p); });
+          }
+          juntar(linha, no('span', 'q', rotulo), v);
           lista.appendChild(linha);
         });
         resumo.appendChild(lista);
+        if (quantas) {
+          var dica = no('div', 'linha-nota', 'Toque no valor de uma parcela para mudar. As outras se ajustam para fechar a conta.');
+          resumo.appendChild(dica);
+        }
+        if (temAjustes()) {
+          resumo.appendChild(botao('btn btn-fantasma', 'Voltar todas ao automático', function () { ajustes = {}; pintarResumo(); }));
+        }
+      }
+
+      function editarParcelaDaPrevisao(span, p) {
+        var inp = entradaValor(p.valor, false);
+        inp.classList.add('entrada-parcela');
+        span.textContent = '';
+        span.appendChild(inp);
+        var feito = false;
+        function aplicar() {
+          if (feito) return;
+          feito = true;
+          var v = digitosParaCentavos(inp.value);
+          if (v > 0) ajustes[p.indice] = v; else delete ajustes[p.indice];
+          pintarResumo();
+        }
+        inp.addEventListener('change', aplicar);
+        inp.addEventListener('blur', aplicar);
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+        setTimeout(function () { inp.focus(); try { inp.select(); } catch (e) {} }, 30);
       }
 
       // Mexer no valor a combinar ou no acréscimo devolve tudo ao cálculo:
@@ -17125,8 +18440,19 @@
         totalManual = 0;
         parcelaManual = 0;
         mexidos = [];
+        ajustes = {};
         pintarResumo();
       }
+      campoEntrada.addEventListener('input', function () {
+        var tinha = caixaEntrada.style.display !== 'none';
+        var e = valorEntrada();
+        caixaEntrada.style.display = e > 0 ? '' : 'none';
+        // Com entrada hoje, as parcelas começam no mês que vem.
+        if (e > 0 && !tinha && !dataParcelaMexida && campoData.value === hojeTexto()) campoData.value = somaMeses(hojeTexto(), 1);
+        ajustes = {};
+        pintarResumo();
+      });
+      campoDataEntrada.addEventListener('change', pintarResumo);
       campoValorEl.addEventListener('input', recalcular);
       campoPorcento.addEventListener('input', recalcular);
       campoReais.addEventListener('input', recalcular);
@@ -17166,12 +18492,21 @@
         if (base <= 0) { mostrarErro(forma, 'Informe o valor a combinar.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha a data da primeira parcela.'); return; }
         var c = contas();
+        if (!c.itens.length) { mostrarErro(forma, 'Informe o valor a combinar.'); return; }
+        if (c.passou) { mostrarErro(forma, 'As parcelas escritas à mão passam do total em ' + emReais(c.passou) + '.'); return; }
+        if (c.entrada && !ehData(campoDataEntrada.value)) { mostrarErro(forma, 'Escolha a data da entrada.'); return; }
 
         var ultimaP = c.itens[c.itens.length - 1];
         var extraACobrar = acrescimoACobrar(c);
+        var ps = c.parcelas;
         perguntar({
-          titulo: 'Confirmar ' + c.itens.length + 'x de ' + emReais(c.itens[0].valor) + '?',
-          texto: 'Total de ' + emReais(c.total) +
+          titulo: c.entrada
+            ? (ps.length ? 'Confirmar entrada + ' + ps.length + 'x?' : 'Confirmar a entrada de ' + emReais(c.entrada) + '?')
+            : 'Confirmar ' + c.itens.length + 'x de ' + emReais(c.itens[0].valor) + '?',
+          texto: (c.entrada ? 'Entrada de ' + emReais(c.entrada) + (entradaPaga === 'paga'
+              ? ', já paga: entra como a parcela 1, quitada. '
+              : ', para ' + dataBr(c.itens[0].vencimento) + '. ') : '') +
+            'Total de ' + emReais(c.total) +
             (extraACobrar > 0 ? ', com ' + emReais(extraACobrar) + ' de acréscimo' : '') +
             (c.itens.length > 1 && ultimaP.valor !== c.itens[0].valor
               ? '. A última fica em ' + emReais(ultimaP.valor) : '') +
@@ -17180,9 +18515,12 @@
           ok: 'Confirmar', icone: 'alvo'
         }, function () {
           var jurosSalvo = Math.min(Math.max(comoNumero(campoJuros.value, 0), 0), 100);
+          var idDaEntrada = '';
           c.itens.forEach(function (p) {
+            var idParcela = novoId();
+            if (p.entrada) idDaEntrada = idParcela;
             estado.parcelas.push({
-              id: novoId(),
+              id: idParcela,
               clienteId: clienteId,
               servicoId: campoServico.value,
               numero: p.numero,
@@ -17191,11 +18529,20 @@
               vencimento: p.vencimento,
               minimo: 0,
               jurosAtraso: jurosSalvo,
-              quitadaEm: '',
+              quitadaEm: p.entrada && entradaPaga === 'paga' ? p.vencimento : '',
               pagamentoId: '',
               criadoEm: Date.now()
             });
           });
+          // Entrada já paga: o pagamento fica registrado nela, como qualquer
+          // outro (sem lançar no caixa, igual ao pagamento novo).
+          if (idDaEntrada && entradaPaga === 'paga') {
+            estado.pagamentos.push({
+              id: novoId(), clienteId: clienteId, servicoId: campoServico.value,
+              valor: c.entrada, data: dataDaEntrada(), parcelaId: idDaEntrada,
+              lancamentoId: '', obs: 'Entrada', criadoEm: Date.now()
+            });
+          }
           // O acréscimo é dinheiro a mais a receber: entra como registro
           // próprio, seja ele do acréscimo por parcela ou do total escrito
           // na mão. À vista não há parcelamento, então o nome muda.
@@ -17221,7 +18568,7 @@
           filtroParcelaServico = campoServico.value || '__sem';
           finalizadoAberto = '';
           voltarNavegacao();
-          avisar('Parcelamento combinado.');
+          avisar(idDaEntrada && entradaPaga === 'paga' ? 'Parcelamento combinado, com a entrada paga.' : 'Parcelamento combinado.');
         });
       }));
       forma.appendChild(acoes);
