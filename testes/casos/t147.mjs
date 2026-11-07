@@ -105,14 +105,14 @@ await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.w
 await folha().getByLabel('Litros').fill('2000');
 await dinheiro(folha().getByLabel('Preço por litro'), '500');
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(900);
-await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
 hoje = await tela();
 conferir('9. abastecer R$ 100,00 no dia entra nos gastos', /Gastos\s*R\$ 100,00/.test(hoje) && /Lucro líquido\s*R\$ 150,33/.test(hoje),
   (hoje.match(/Gastos\s*\S+ \S+/) || [''])[0]);
 
 // ---- o histórico guarda o dia ----
-await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
-await page.click('#telaInicio .linha >> nth=0'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .linha:has-text("corrida(s)") >> nth=0'); await page.waitForTimeout(900);
 const reg = limpo(await folha().textContent());
 conferir('10. no histórico o dia aparece com viagens, tempo e km',
   /14 viagens/.test(reg) && /5:04 online · 120,0 km/.test(reg), reg.slice(0, 200));
@@ -121,7 +121,7 @@ conferir('10. no histórico o dia aparece com viagens, tempo e km',
 await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3500);
 await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {}); await page.waitForTimeout(800);
 if (!(await page.locator('#telaInicio .modulo-cabecalho').count())) { await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900); }
-await page.click('#telaInicio .abas-modulo button:has-text("Hoje")').catch(() => {}); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")').catch(() => {}); await page.waitForTimeout(800);
 hoje = await tela();
 conferir('11. recarregando, o registro continua', /Faturamento\s*R\$ 250,33/.test(hoje) && /Lucro líquido\s*R\$ 150,33/.test(hoje));
 
@@ -168,12 +168,12 @@ await dinheiro(folha().locator('.valor-grande'), '8000');
 await folha().getByLabel('Data', { exact: true }).fill(ontem);
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1200);
 conferir('18. um registro de ontem não entra no hoje', /Faturamento\s*R\$ 350,33/.test(await tela()));
-await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
 conferir('19. e aparece no histórico', /R\$ 430,33/.test(await tela()), (await tela()).slice(0, 200));
 await page.screenshot({ path: dir + '/z57-dois-fechamentos.png', fullPage: true });
 
 // ---- 04/11/2026: os números se arrumam enquanto digita ----
-await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(700);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(700);
 await page.click('#telaInicio button:has-text("+ Mais um registro")'); await page.waitForTimeout(900);
 const t = folha().getByLabel('Tempo online (horas:minutos)');
 await t.click(); await t.type('3333'); const v1 = await t.inputValue();

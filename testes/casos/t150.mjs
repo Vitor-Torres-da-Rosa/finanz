@@ -67,7 +67,7 @@ await page.click('#telaInicio .abas-modulo button:has-text("Vendedores")'); awai
 conferir('3. a vendedora voltou', /Daniela/.test(limpo(await page.textContent('#telaInicio'))));
 await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
 await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
-await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
 conferir('4. a corrida voltou', /R\$ 50,00/.test(limpo(await page.textContent('#telaInicio'))));
 const vez = await page.evaluate(() => !!localStorage.getItem('finanz.recuperouModulos.v1'));
 conferir('5. o conserto roda uma vez só', vez);

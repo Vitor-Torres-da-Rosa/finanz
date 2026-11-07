@@ -84,7 +84,7 @@ await dinheiro(folha().getByLabel('Preço por litro'), '500');
 conferir('5. o abastecimento calcula o total', limpo((await folha().getByLabel('Total do abastecimento').inputValue()).replace(/\u00a0/g, ' ')) === 'R$ 50,00',
   await folha().getByLabel('Total do abastecimento').inputValue());
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(900);
-await page.click('#telaInicio .abas-modulo button:has-text("Hoje")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
 
 // ---- lavagem: R$ 15 ----
 await page.click('#telaInicio button:has-text("Outras despesas")'); await page.waitForTimeout(900);
@@ -111,7 +111,7 @@ conferir('12. desligada, o aviso some e o tempo do dia fica para corrigir',
   !/Ficou um cronômetro ligado/.test(await tela()) && /Tempo de hoje: 2h/.test(await tela()));
 
 // ---- histórico ----
-await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
 const barras = await page.locator('#telaInicio .barra-col').count();
 const hist = await tela();
 conferir('13. histórico do mês com uma barra por dia', barras >= 1 && /Faturamento\s*R\$ 90,00/.test(hist) && /Lucro\s*R\$ 25,00/.test(hist), barras + ' barras');

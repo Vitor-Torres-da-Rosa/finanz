@@ -1784,6 +1784,25 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .alertas-manutencao { display: grid; gap: 10px; margin-bottom: 14px; }
+  .alerta-manutencao { padding: 14px 16px; }
+  .alerta-manutencao .alerta-topo { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .alerta-manutencao .alerta-texto { display: grid; gap: 4px; min-width: 0; }
+  .alerta-manutencao .alerta-texto strong { font-size: 15px; }
+  .alerta-manutencao .alerta-texto span { font-size: 13px; color: var(--suave); line-height: 1.4; }
+  .alerta-manutencao.nivel-1 { border-color: rgba(233,180,76,.55); }
+  .alerta-manutencao.nivel-2 { border-color: rgba(245,158,11,.8); }
+  .alerta-manutencao.nivel-3 { border-color: rgba(255,107,107,.9); box-shadow: 0 0 0 1px rgba(255,107,107,.25) inset; }
+  .alerta-manutencao.nivel-3 .alerta-texto strong { color: #FF8A8A; }
+  .alerta-manutencao .duas .btn { margin: 0; }
+  .linha-mais { display: block; width: 100%; padding: 12px 16px; text-align: center; color: var(--ouro);
+    background: none; border: 0; border-top: 1px solid rgba(198,158,78,.14); font-size: 13.5px; cursor: pointer; }
+  .area-nota { min-height: 84px; resize: vertical; line-height: 1.4; padding-top: 12px; }
+  .km-fora .parcela-linha.total { font-weight: 700; border-bottom: 0; }
+  .secao-historico { margin-top: 18px; }
+  .notas-do-carro { border: 1px solid var(--borda); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; }
+  .notas-do-carro .nota-pendente { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+  .notas-do-carro .nota-pendente .btn { margin: 0; padding: 6px 12px; min-height: 0; font-size: 12.5px; width: auto; }
   .tile.tocavel { cursor: pointer; position: relative; transition: transform .12s ease; }
   .tile.tocavel:active { transform: scale(.97); }
   .tile.tocavel .tile-rotulo::after { content: '›'; margin-left: auto; color: var(--fraco); font-size: 14px; line-height: 1; }
@@ -2298,7 +2317,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.49.1';
+  var VERSAO = '5.50.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2307,6 +2326,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.50.0',
+      data: '2026-11-07',
+      itens: [
+        'Uber: Hoje e Histórico viraram uma aba só, o Resumo. No meio entrou a aba Manutenção.',
+        'Manutenção: os km atuais do carro vêm do painel lançado nos abastecimentos. Registre a troca de óleo e dos filtros (óleo, ar, combustível, ar-condicionado), mude o nome, o produto e os km de troca, ou crie outros itens.',
+        'Alertas no topo do Resumo com 1.000 km, 500 km e quando a troca vence, com "Irei trocar" e "Vou esperar um pouco". O custo da troca entra em Outras despesas.',
+        'Anotações do carro (barulho, desgaste): faça em Manutenção ou no "Novo registro", que também lembra o que está pendente.',
+        'Km fora do Uber: o que o painel rodou além dos km do Uber, com a gasolina estimada desse uso.'
+      ]
+    },
     {
       versao: '5.49.1',
       data: '2026-11-06',
@@ -3953,6 +3983,9 @@
       // juntos para a tabela empreendedor_registros (veja MODULOS_NA_NUVEM).
       uberJornadas: [],
       uberRegistros: [],
+      uberManutencao: [],
+      uberTrocas: [],
+      uberNotas: [],
       doceVendedores: [],
       doceProdutos: [],
       doceEntregas: [],
@@ -4616,6 +4649,26 @@
       return { id: j.id, inicio: marca(j.inicio), fim: marca(j.fim),
                pausadoMs: marca(j.pausadoMs), pausaDesde: marca(j.pausaDesde) };
     }).filter(function (j) { return j.inicio > 0; });
+
+    // Manutenção do carro: os itens (com o intervalo em km), as trocas e
+    // as anotações do motorista.
+    function km(v) { return Math.max(0, Math.min(9999999, Math.round(Number(v) || 0))); }
+    limpo.uberManutencao = lista('uberManutencao').map(function (x) {
+      return { id: x.id, chave: texto(x.chave).slice(0, 40) || x.id, nome: texto(x.nome).slice(0, 40) || 'Manutenção',
+               detalhe: texto(x.detalhe).slice(0, 60), intervaloKm: km(x.intervaloKm) || 10000,
+               vaiTrocar: x.vaiTrocar === true, adiadoNivel: Math.max(0, Math.min(3, Math.round(Number(x.adiadoNivel) || 0))),
+               adiadoKm: km(x.adiadoKm), criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.uberTrocas = lista('uberTrocas').map(function (x) {
+      return { id: x.id, chave: texto(x.chave).slice(0, 40), km: km(x.km), data: soData(x.data) || hojeTexto(),
+               valor: positivo(x.valor), obs: texto(x.obs).slice(0, 80), despesaId: texto(x.despesaId),
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.chave && x.km > 0; });
+    limpo.uberNotas = lista('uberNotas').map(function (x) {
+      return { id: x.id, texto: texto(x.texto).slice(0, 200), data: soData(x.data) || hojeTexto(), km: km(x.km),
+               situacao: x.situacao === 'resolvida' ? 'resolvida' : 'pendente', resolvidaEm: soData(x.resolvidaEm) || '',
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.texto; });
 
     limpo.uberRegistros = lista('uberRegistros').map(function (r) {
       return {
@@ -5458,6 +5511,7 @@
   // aqui, sem migração.
   var MODULOS_NA_NUVEM = {
     uber_jornada: 'uberJornadas', uber_registro: 'uberRegistros',
+    uber_manutencao: 'uberManutencao', uber_troca: 'uberTrocas', uber_nota: 'uberNotas',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes'
   };
@@ -10985,7 +11039,7 @@
   var abaServicos = 'resumo';
   var janelaServicos = 30;
   var filtroRegistros = '';
-  var abaUber = 'hoje';
+  var abaUber = 'resumo';
   var escalaUber = 'dia';
   var abaGastosUber = 'combustivel';
   var abaDoces = 'vendedores';
@@ -11849,13 +11903,591 @@
     return r;
   }
 
+
+  // ---------- Manutenção do carro (pedido de 07/11/2026) ----------
+  //
+  // Os itens de troca (óleo, filtros...) com o intervalo em km, as trocas
+  // feitas e as anotações do motorista (barulho, desgaste). Os km atuais
+  // vêm do painel lançado nos abastecimentos. Os itens de fábrica não ficam
+  // guardados até a pessoa mexer neles: assim a conta de quem compartilha
+  // o Uber não ganha uma cópia de cada.
+  var ITENS_MANUTENCAO_PADRAO = [
+    { chave: 'oleo', nome: 'Troca de óleo', intervaloKm: 5000 },
+    { chave: 'filtro_oleo', nome: 'Filtro de óleo', intervaloKm: 5000 },
+    { chave: 'filtro_ar', nome: 'Filtro de ar do motor', intervaloKm: 10000 },
+    { chave: 'filtro_combustivel', nome: 'Filtro de combustível', intervaloKm: 15000 },
+    { chave: 'filtro_cabine', nome: 'Filtro do ar-condicionado', intervaloKm: 10000 }
+  ];
+
+  // Por que não adiar, item por item, nas mensagens.
+  var RISCO_DE_ADIAR = {
+    oleo: 'o óleo vencido perde a capacidade de lubrificar e proteger o motor',
+    filtro_oleo: 'o filtro de óleo saturado deixa passar impurezas que desgastam o motor',
+    filtro_ar: 'o filtro de ar sujo tira desempenho e aumenta o consumo de combustível',
+    filtro_combustivel: 'o filtro de combustível saturado pode prejudicar a injeção e o rendimento',
+    filtro_cabine: 'o filtro do ar-condicionado saturado reduz a refrigeração e piora o ar dentro do carro'
+  };
+
+  function itensDaManutencao() {
+    var guardados = estado.uberManutencao;
+    var itens = [];
+    ITENS_MANUTENCAO_PADRAO.forEach(function (p) {
+      var r = guardados.filter(function (x) { return x.chave === p.chave; })[0];
+      itens.push(r ? itemDeRegistro(r) : { id: '', chave: p.chave, nome: p.nome, detalhe: '', intervaloKm: p.intervaloKm, registro: null });
+    });
+    guardados.forEach(function (r) {
+      if (ITENS_MANUTENCAO_PADRAO.some(function (p) { return p.chave === r.chave; })) return;
+      itens.push(itemDeRegistro(r));
+    });
+    return itens;
+  }
+
+  function itemDeRegistro(r) {
+    return { id: r.id, chave: r.chave, nome: r.nome, detalhe: r.detalhe, intervaloKm: r.intervaloKm, registro: r };
+  }
+
+  // O item vira registro na primeira vez que a pessoa mexe nele.
+  function garantirItem(item) {
+    if (item.registro) return item.registro;
+    var r = { id: novoId(), chave: item.chave, nome: item.nome, detalhe: item.detalhe || '',
+              intervaloKm: item.intervaloKm, vaiTrocar: false, adiadoNivel: 0, adiadoKm: 0, criadoEm: Date.now() };
+    estado.uberManutencao.push(r);
+    item.registro = r; item.id = r.id;
+    return r;
+  }
+
+  function itemPorChave(chave) {
+    return itensDaManutencao().filter(function (i) { return i.chave === chave; })[0] || null;
+  }
+
+  function trocasDoItem(chave) {
+    return estado.uberTrocas.filter(function (t) { return t.chave === chave; })
+      .sort(function (a, b) { return b.km - a.km || (a.data < b.data ? 1 : a.data > b.data ? -1 : 0); });
+  }
+
+  // Os km que o carro marca agora: a maior leitura do painel lançada.
+  function kmAtualDoCarro() {
+    var melhor = null;
+    estado.uberRegistros.forEach(function (x) {
+      if (x.tipo === 'abastecimento' && x.odometro && (!melhor || x.odometro > melhor.km)) melhor = { km: x.odometro, data: x.data, origem: 'abastecimento' };
+    });
+    estado.uberTrocas.forEach(function (t) {
+      if (t.km && (!melhor || t.km > melhor.km)) melhor = { km: t.km, data: t.data, origem: 'troca' };
+    });
+    return melhor;
+  }
+
+  // nivel 0: longe · 1: faltam até 1.000 km · 2: até 500 km · 3: passou.
+  function situacaoDoItem(item, atual) {
+    var ultima = trocasDoItem(item.chave)[0] || null;
+    if (!ultima) return { ultima: null, nivel: 0 };
+    var proxima = ultima.km + item.intervaloKm;
+    var faltam = atual ? proxima - atual.km : null;
+    var nivel = faltam === null ? 0 : faltam <= 0 ? 3 : faltam <= 500 ? 2 : faltam <= 1000 ? 1 : 0;
+    return { ultima: ultima, proxima: proxima, faltam: faltam, nivel: nivel };
+  }
+
+  function textoFaltam(s) {
+    if (s.faltam === null) return 'próxima em ' + milharBr(s.proxima) + ' km';
+    return s.faltam <= 0 ? 'passou ' + milharBr(-s.faltam) + ' km' : 'faltam ' + milharBr(s.faltam) + ' km';
+  }
+
+  function notasPendentes() {
+    return estado.uberNotas.filter(function (n) { return n.situacao !== 'resolvida'; })
+      .sort(function (a, b) { return (b.criadoEm || 0) - (a.criadoEm || 0); });
+  }
+
+  // Os alertas que aparecem no topo do Resumo. Quem respondeu "vou esperar"
+  // só volta a ver quando o nível sobe (ou, já vencido, a cada 300 km).
+  function alertasDeManutencao() {
+    var atual = kmAtualDoCarro();
+    if (!atual) return [];
+    var fora = [];
+    itensDaManutencao().forEach(function (item) {
+      var s = situacaoDoItem(item, atual);
+      if (!s.nivel) return;
+      var r = item.registro;
+      if (r && r.vaiTrocar) { fora.push({ item: item, s: s, marcado: true }); return; }
+      if (r && r.adiadoNivel >= s.nivel && !(s.nivel === 3 && atual.km >= r.adiadoKm + 300)) return;
+      fora.push({ item: item, s: s, marcado: false });
+    });
+    return fora.sort(function (a, b) { return b.s.nivel - a.s.nivel || a.s.faltam - b.s.faltam; });
+  }
+
+  function cartaoDeAlertasDeManutencao() {
+    var alertas = alertasDeManutencao();
+    if (!alertas.length) return null;
+    var box = no('div', 'alertas-manutencao');
+    alertas.forEach(function (a) {
+      var nome = a.item.nome + (a.item.detalhe ? ' (' + a.item.detalhe + ')' : '');
+      var c = cartao('alerta-manutencao nivel-' + a.s.nivel + (a.marcado ? ' marcado' : ''));
+      var titulo = a.marcado ? nome + ': troca combinada'
+        : a.s.nivel === 3 ? nome + ': troca vencida'
+        : a.s.nivel === 2 ? nome + ': troca muito próxima' : nome + ': troca se aproximando';
+      var topo = no('div', 'alerta-topo');
+      juntar(topo, seloIcone(a.s.nivel === 3 ? 'alerta' : 'ferramenta', a.s.nivel === 3 ? '#FF6B6B' : a.s.nivel === 2 ? '#F59E0B' : '#E9B44C'),
+        juntar(no('div', 'alerta-texto'), no('strong', null, titulo),
+          no('span', null, a.marcado
+            ? 'Você confirmou que vai trocar. Registre a troca aqui quando fizer, para o app calcular a próxima.'
+            : a.s.nivel === 3
+              ? 'Passou ' + milharBr(-a.s.faltam) + ' km do previsto (' + milharBr(a.s.proxima) + ' km). Faça a troca o quanto antes.'
+              : 'Faltam ' + milharBr(a.s.faltam) + ' km. A troca está prevista para ' + milharBr(a.s.proxima) + ' km.')));
+      c.appendChild(topo);
+      var acoes = no('div', 'duas');
+      if (a.marcado) {
+        acoes.appendChild(botao('btn btn-ouro', 'Registrar a troca', function () { abrirTrocaManutencao(a.item.chave, null); }));
+        acoes.appendChild(botao('btn btn-fantasma', 'Ver próximas trocas', function () { abrirProximasTrocas(); }));
+      } else {
+        acoes.appendChild(botao('btn btn-ouro', 'Irei trocar', function () { responderAlerta(a, true); }));
+        acoes.appendChild(botao('btn btn-fantasma', 'Vou esperar um pouco', function () { responderAlerta(a, false); }));
+      }
+      c.appendChild(acoes);
+      box.appendChild(c);
+    });
+    return box;
+  }
+
+  function responderAlerta(a, vaiTrocar) {
+    var r = garantirItem(itemPorChave(a.item.chave) || a.item);
+    var atual = kmAtualDoCarro();
+    var nome = a.item.nome.toLowerCase();
+    if (vaiTrocar) {
+      r.vaiTrocar = true;
+      salvar();
+      desenhar();
+      var pend = notasPendentes();
+      var perto = itensDaManutencao().filter(function (i) {
+        if (i.chave === a.item.chave) return false;
+        var s = situacaoDoItem(i, atual);
+        return s.ultima && s.faltam !== null && s.faltam <= 2000;
+      });
+      var txt = 'Ótimo.';
+      if (pend.length) {
+        txt += ' Aproveite a ida à oficina para verificar também o que você anotou: ' +
+          pend.slice(0, 3).map(function (n) { return '“' + n.texto + '”'; }).join('; ') +
+          (pend.length > 3 ? ' e mais ' + (pend.length - 3) : '') + '.';
+      } else {
+        txt += ' Não há nenhuma anotação de manutenção pendente.';
+      }
+      if (perto.length) {
+        txt += ' E já estão perto do prazo: ' + perto.map(function (i) {
+          return i.nome + ' (' + textoFaltam(situacaoDoItem(i, atual)) + ')';
+        }).join(', ') + '. Vale fazer junto e economizar uma ida.';
+      } else if (!pend.length) {
+        txt += ' Nenhuma outra troca está próxima: com esta, o carro fica em dia.';
+      }
+      txt += ' Depois da troca, registre em Manutenção para o app calcular a próxima.';
+      perguntar({ titulo: 'Troca de ' + nome.replace(/^troca de /, '') + ' confirmada', texto: txt, icone: 'ferramenta',
+                  ok: 'Ver próximas trocas', cancelar: 'Fechar' }, function () { abrirProximasTrocas(); });
+    } else {
+      r.adiadoNivel = a.s.nivel;
+      r.adiadoKm = atual ? atual.km : 0;
+      r.vaiTrocar = false;
+      salvar();
+      desenhar();
+      var risco = RISCO_DE_ADIAR[a.item.chave] || 'adiar a manutenção aumenta o desgaste do carro';
+      perguntar({ titulo: 'Entendido', icone: 'alerta', soAviso: true, ok: 'Ok',
+        texto: a.s.nivel === 3
+          ? 'Tudo bem, mas evite rodar muito com o carro assim: ' + risco + ', e o conserto pode sair bem mais caro que a troca. O app volta a lembrar daqui a 300 km.'
+          : 'Tudo bem. Só não deixe passar do prazo: ' + risco + '. O app volta a avisar quando estiver mais perto.' });
+    }
+  }
+
+  function abrirProximasTrocas() {
+    var atual = kmAtualDoCarro();
+    abrirFolha('Próximas trocas', function (folha) {
+      var lista = itensDaManutencao().map(function (i) { return { item: i, s: situacaoDoItem(i, atual) }; });
+      var comTroca = lista.filter(function (x) { return x.s.ultima; })
+        .sort(function (a, b) { return a.s.proxima - b.s.proxima; });
+      var semTroca = lista.filter(function (x) { return !x.s.ultima; });
+      var c = cartao('liso');
+      if (!comTroca.length) c.appendChild(estadoVazio('Nenhuma troca registrada', 'Registre a última troca de cada item em Manutenção para o app calcular as próximas.'));
+      comTroca.forEach(function (x) { c.appendChild(linhaDoItem(x.item, x.s, function () { abrirProximasTrocas(); })); });
+      folha.appendChild(c);
+      if (semTroca.length) folha.appendChild(no('p', 'ajuda', 'Sem troca registrada: ' + semTroca.map(function (x) { return x.item.nome; }).join(', ') + '.'));
+    });
+  }
+
+  function linhaDoItem(item, s, reabrir) {
+    var cor = !s.ultima ? '' : s.nivel === 3 ? 'vermelho' : s.nivel ? 'ouro' : 'verde';
+    return linhaSimples({
+      titulo: item.nome + (item.detalhe ? ' · ' + item.detalhe : ''),
+      // Curto, para caber no celular: o intervalo aparece ao abrir o item.
+      sub: s.ultima ? 'trocado com ' + milharBr(s.ultima.km) + ' km · ' + dataCurta(s.ultima.data)
+        : 'registre a última troca',
+      valor: s.ultima ? textoFaltam(s) : '—', cor: cor,
+      nota: s.ultima ? 'em ' + milharBr(s.proxima) + ' km' : '',
+      selo: seloIcone('ferramenta', s.nivel === 3 ? '#FF6B6B' : '#E9B44C'),
+      aoTocar: function () {
+        if (reabrir) porCima(reabrir, function () { abrirItemManutencao(item.chave, true); });
+        else abrirItemManutencao(item.chave, false);
+      }
+    });
+  }
+
+  function desenharManutencaoUber(corpo) {
+    var atual = kmAtualDoCarro();
+    var c = cartao('cartao-destaque');
+    c.appendChild(no('div', 'rotulo', 'Km atual do carro'));
+    c.appendChild(no('div', 'valorao num ouro', atual ? milharBr(atual.km) + ' km' : '—'));
+    c.appendChild(no('div', 'linha-nota', atual
+      ? (atual.origem === 'abastecimento' ? 'Pelo painel no abastecimento de ' : 'Pela troca registrada em ') + dataBr(atual.data) + '. Atualiza a cada abastecimento com os km do painel.'
+      : 'Lance os km do painel no próximo abastecimento para o app acompanhar as trocas.'));
+    if (!atual) c.appendChild(botao('btn btn-fantasma', '+ Abastecimento', function () { abrirFolhaAbastecimento(null); }));
+    corpo.appendChild(c);
+
+    var ci = cartao('liso');
+    var t = topoDeCartao('Trocas', 'Próximas', function () { abrirProximasTrocas(); });
+    t.style.padding = '16px 16px 0'; t.style.marginBottom = '8px';
+    ci.appendChild(t);
+    itensDaManutencao().forEach(function (item) { ci.appendChild(linhaDoItem(item, situacaoDoItem(item, atual), null)); });
+    corpo.appendChild(ci);
+    var ac = no('div', 'acoes');
+    ac.appendChild(botao('btn btn-fantasma', '+ Outro item de manutenção', function () { abrirItemManutencao(null, false); }));
+    corpo.appendChild(ac);
+
+    var pend = notasPendentes();
+    var cn = cartao('liso');
+    var tn = topoDeCartao('Anotações do carro', null);
+    tn.style.padding = '16px 16px 0'; tn.style.marginBottom = '8px';
+    cn.appendChild(tn);
+    if (!pend.length) cn.appendChild(estadoVazio('Nada pendente', 'Barulho, desgaste ou algo para olhar na próxima revisão: anote aqui ou no "Novo registro".'));
+    pend.forEach(function (n) { cn.appendChild(linhaDaNota(n)); });
+    var resolvidas = estado.uberNotas.filter(function (n) { return n.situacao === 'resolvida'; })
+      .sort(function (a, b) { return (b.resolvidaEm || '') < (a.resolvidaEm || '') ? -1 : 1; });
+    if (resolvidas.length) {
+      cn.appendChild(botao('linha-mais', notasResolvidasAbertas ? 'Esconder as resolvidas' : 'Ver as resolvidas (' + resolvidas.length + ')', function () {
+        notasResolvidasAbertas = !notasResolvidasAbertas; desenharInicio();
+      }));
+      if (notasResolvidasAbertas) resolvidas.forEach(function (n) { cn.appendChild(linhaDaNota(n)); });
+    }
+    corpo.appendChild(cn);
+    var an = no('div', 'acoes');
+    an.appendChild(botao('btn btn-ouro', '+ Anotar algo no carro', function () { abrirNotaCarro(null, false); }));
+    corpo.appendChild(an);
+
+    var trocas = estado.uberTrocas.slice().sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : b.km - a.km; });
+    if (trocas.length) {
+      var ch = cartao('liso');
+      var th = topoDeCartao('Trocas feitas', null);
+      th.style.padding = '16px 16px 0'; th.style.marginBottom = '8px';
+      ch.appendChild(th);
+      trocas.slice(0, 20).forEach(function (tr) { ch.appendChild(linhaDaTroca(tr, null)); });
+      corpo.appendChild(ch);
+    }
+  }
+  var notasResolvidasAbertas = false;
+
+  function linhaDaNota(n, reabrir) {
+    return linhaSimples({
+      titulo: n.texto,
+      sub: dataBr(n.data) + (n.km ? ' · ' + milharBr(n.km) + ' km' : '') + (n.situacao === 'resolvida' ? ' · resolvida' : ''),
+      valor: n.situacao === 'resolvida' ? '✓' : 'pendente', cor: n.situacao === 'resolvida' ? 'verde' : 'ouro',
+      selo: seloIcone('alerta', n.situacao === 'resolvida' ? '#34D399' : '#E9B44C'),
+      aoTocar: function () {
+        if (reabrir) porCima(reabrir, function () { abrirNotaCarro(n.id, true); });
+        else abrirNotaCarro(n.id, false);
+      }
+    });
+  }
+
+  function linhaDaTroca(tr, reabrir) {
+    var item = itemPorChave(tr.chave);
+    return linhaSimples({
+      titulo: item ? item.nome : 'Manutenção',
+      sub: dataBr(tr.data) + ' · ' + milharBr(tr.km) + ' km' + (tr.obs ? ' · ' + tr.obs : ''),
+      valor: tr.valor ? '− ' + emReais(tr.valor) : '', cor: 'vermelho',
+      selo: seloIcone('ferramenta', '#E9B44C'),
+      aoTocar: function () {
+        if (reabrir) porCima(reabrir, function () { abrirTrocaManutencao(tr.chave, tr.id, true); });
+        else abrirTrocaManutencao(tr.chave, tr.id, false);
+      }
+    });
+  }
+
+  function lerMilhar(i) { return parseInt(String(i.value || '').replace(/\D/g, ''), 10) || 0; }
+
+  // `chave` vazia: item novo, criado pela pessoa.
+  function abrirItemManutencao(chave, deCima) {
+    var item = chave ? itemPorChave(chave) : null;
+    if (chave && !item) return;
+    function reabrir() { abrirItemManutencao(item.chave, deCima); }
+    abrirFolha(item ? item.nome : 'Novo item de manutenção', function (folha) {
+      var atual = kmAtualDoCarro();
+      if (item) {
+        var s = situacaoDoItem(item, atual);
+        var cs = cartao();
+        cs.appendChild(linhaDeCartaoFixa('Última troca', s.ultima ? milharBr(s.ultima.km) + ' km · ' + dataBr(s.ultima.data) : 'não registrada'));
+        if (s.ultima) {
+          cs.appendChild(linhaDeCartaoFixa('Próxima troca', milharBr(s.proxima) + ' km'));
+          if (s.faltam !== null) cs.appendChild(linhaDeCartaoFixa(s.faltam <= 0 ? 'Passou' : 'Faltam', milharBr(Math.abs(s.faltam)) + ' km'));
+        }
+        folha.appendChild(cs);
+        var ab = no('div', 'acoes');
+        ab.appendChild(botao('btn btn-ouro', s.ultima ? 'Registrar troca' : 'Registrar a última troca', function () {
+          porCima(reabrir, function () { abrirTrocaManutencao(item.chave, null, true); });
+        }));
+        folha.appendChild(ab);
+      }
+      var forma = no('div', 'forma');
+      var nome = entradaTexto(item ? item.nome : '', 'Ex.: Pastilhas de freio', 40);
+      forma.appendChild(campo('Nome', nome));
+      var detalhe = entradaTexto(item ? item.detalhe : '', 'Ex.: óleo 5W30 sintético', 60);
+      forma.appendChild(campo('Qual produto ou peça (opcional)', detalhe));
+      var intervalo = entradaTexto(item ? milharBr(item.intervaloKm) : '', 'Ex.: 10.000', 9);
+      mascaraMilhar(intervalo);
+      forma.appendChild(campo('Trocar a cada (km)', intervalo));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Confira no manual do carro. Para quem roda por aplicativo, o manual costuma indicar o intervalo de uso severo, que é menor.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Salvar alterações', function () {
+        var km = lerMilhar(intervalo);
+        if (!nome.value.trim()) { mostrarErro(forma, 'Dê um nome ao item.'); return; }
+        if (km < 100) { mostrarErro(forma, 'Informe a cada quantos km trocar.'); return; }
+        var r;
+        if (item) r = garantirItem(item);
+        else {
+          r = { id: novoId(), chave: '', nome: '', detalhe: '', intervaloKm: 0, vaiTrocar: false, adiadoNivel: 0, adiadoKm: 0, criadoEm: Date.now() };
+          r.chave = r.id;
+          estado.uberManutencao.push(r);
+        }
+        r.nome = nome.value.trim().slice(0, 40);
+        r.detalhe = detalhe.value.trim().slice(0, 60);
+        r.intervaloKm = km;
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Item salvo.');
+      }));
+      var personalizado = item && !ITENS_MANUTENCAO_PADRAO.some(function (p) { return p.chave === item.chave; });
+      if (personalizado) acoes.appendChild(botao('btn btn-perigo', 'Excluir este item', function () {
+        perguntar({ titulo: 'Excluir este item?', texto: 'As trocas registradas dele também saem.', ok: 'Excluir', tom: 'perigo' }, function () {
+          trocasDoItem(item.chave).forEach(function (t) { apagarTroca(t); });
+          marcarExcluido('empreendedor_registros', item.id);
+          estado.uberManutencao = estado.uberManutencao.filter(function (x) { return x.id !== item.id; });
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Item excluído.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      if (item) {
+        var trocas = trocasDoItem(item.chave);
+        if (trocas.length) {
+          var ch = cartao('liso');
+          var th = topoDeCartao('Trocas deste item', null);
+          th.style.padding = '16px 16px 0'; th.style.marginBottom = '8px';
+          ch.appendChild(th);
+          trocas.forEach(function (tr) { ch.appendChild(linhaDaTroca(tr, reabrir)); });
+          folha.appendChild(ch);
+        }
+      }
+    });
+  }
+
+  function apagarTroca(t) {
+    if (t.despesaId) {
+      marcarExcluido('empreendedor_registros', t.despesaId);
+      estado.uberRegistros = estado.uberRegistros.filter(function (r) { return r.id !== t.despesaId; });
+    }
+    marcarExcluido('empreendedor_registros', t.id);
+    estado.uberTrocas = estado.uberTrocas.filter(function (x) { return x.id !== t.id; });
+  }
+
+  function abrirTrocaManutencao(chave, id, deCima) {
+    var item = itemPorChave(chave);
+    if (!item) return;
+    var t = id ? achar(estado.uberTrocas, id) : null;
+    abrirFolha(t ? 'Editar troca' : item.nome, function (folha) {
+      var atual = kmAtualDoCarro();
+      var forma = no('div', 'forma');
+      var km = entradaTexto(t ? milharBr(t.km) : (atual ? milharBr(atual.km) : ''), 'Ex.: 45.230', 9);
+      mascaraMilhar(km);
+      forma.appendChild(campo('Km do carro na troca', km));
+      var data = entradaData(t ? t.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var valor = entradaValor(t ? t.valor : 0, false);
+      forma.appendChild(campo('Quanto custou (opcional)', valor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Com valor, a troca entra em Outras despesas do Uber, como Manutenção.'));
+      var obs = entradaTexto(t ? t.obs : '', 'Ex.: oficina, marca do óleo', 80);
+      forma.appendChild(campo('Observação (opcional)', obs));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar troca', function () {
+        var k = lerMilhar(km), v = digitosParaCentavos(valor.value);
+        if (k <= 0) { mostrarErro(forma, 'Informe os km do carro na troca.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        var reg = t || { id: novoId(), chave: item.chave, despesaId: '', criadoEm: Date.now() };
+        reg.km = k; reg.data = data.value; reg.valor = v; reg.obs = obs.value.trim().slice(0, 80);
+        // O valor vira uma despesa do Uber (Manutenção), ligada à troca.
+        var desp = reg.despesaId ? achar(estado.uberRegistros, reg.despesaId) : null;
+        if (v > 0) {
+          if (!desp) {
+            desp = { id: novoId(), tipo: 'despesa', criadoEm: Date.now(), jornadaId: '', hora: '', km: 0, litros: 0,
+                     precoLitro: 0, combustivel: '', plataforma: '', viagens: 0, minutos: 0, kmPorLitro: 0, abastecido: 0, odometro: 0 };
+            estado.uberRegistros.push(desp);
+            reg.despesaId = desp.id;
+          }
+          desp.valor = v; desp.data = reg.data; desp.categoria = 'Manutenção'; desp.descricao = item.nome.slice(0, 80);
+        } else if (desp) {
+          marcarExcluido('empreendedor_registros', desp.id);
+          estado.uberRegistros = estado.uberRegistros.filter(function (r) { return r.id !== desp.id; });
+          reg.despesaId = '';
+        }
+        if (!t) estado.uberTrocas.push(reg);
+        var r = garantirItem(item);
+        r.vaiTrocar = false; r.adiadoNivel = 0; r.adiadoKm = 0;
+        salvar();
+        fecharOuVoltar(deCima);
+        var s = situacaoDoItem(itemPorChave(item.chave), kmAtualDoCarro());
+        avisar('Troca registrada. Próxima em ' + milharBr(s.proxima) + ' km.');
+      }));
+      if (t) acoes.appendChild(botao('btn btn-perigo', 'Excluir esta troca', function () {
+        perguntar({ titulo: 'Excluir esta troca?', texto: t.despesaId ? 'A despesa ligada a ela também sai.' : 'Não dá para desfazer.', ok: 'Excluir', tom: 'perigo' }, function () {
+          apagarTroca(t);
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Troca excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function abrirNotaCarro(id, deCima) {
+    var n = id ? achar(estado.uberNotas, id) : null;
+    abrirFolha(n ? 'Anotação do carro' : 'Anotar algo no carro', function (folha) {
+      var atual = kmAtualDoCarro();
+      var forma = no('div', 'forma');
+      var texto = no('textarea', 'entrada area-nota');
+      texto.id = proximoId(); texto.maxLength = 200; texto.rows = 3;
+      texto.placeholder = 'Ex.: barulho na roda dianteira ao frear';
+      texto.value = n ? n.texto : '';
+      forma.appendChild(campo('O que você notou?', texto));
+      var data = entradaData(n ? n.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var km = entradaTexto(n && n.km ? milharBr(n.km) : (!n && atual ? milharBr(atual.km) : ''), 'Ex.: 45.230', 9);
+      mascaraMilhar(km);
+      forma.appendChild(campo('Km do carro (opcional)', km));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar anotação', function () {
+        var txt = texto.value.trim();
+        if (!txt) { mostrarErro(forma, 'Escreva o que você notou.'); return; }
+        var reg = n || { id: novoId(), situacao: 'pendente', resolvidaEm: '', criadoEm: Date.now() };
+        reg.texto = txt.slice(0, 200); reg.data = ehData(data.value) ? data.value : hojeTexto(); reg.km = lerMilhar(km);
+        if (!n) estado.uberNotas.push(reg);
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Anotação salva em Manutenção.');
+      }));
+      if (n) {
+        acoes.appendChild(botao('btn btn-fantasma', n.situacao === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida', function () {
+          n.situacao = n.situacao === 'resolvida' ? 'pendente' : 'resolvida';
+          n.resolvidaEm = n.situacao === 'resolvida' ? hojeTexto() : '';
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar(n.situacao === 'resolvida' ? 'Anotação resolvida.' : 'Anotação reaberta.');
+        }));
+        acoes.appendChild(botao('btn btn-perigo', 'Excluir anotação', function () {
+          perguntar({ titulo: 'Excluir esta anotação?', texto: 'Não dá para desfazer.', ok: 'Excluir', tom: 'perigo' }, function () {
+            marcarExcluido('empreendedor_registros', n.id);
+            estado.uberNotas = estado.uberNotas.filter(function (x) { return x.id !== n.id; });
+            salvar();
+            fecharOuVoltar(deCima);
+            avisar('Anotação excluída.');
+          });
+        }));
+      }
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      if (!n) setTimeout(function () { texto.focus(); }, 270);
+    });
+  }
+
+  // ---------- Km rodados fora do Uber ----------
+  //
+  // O painel diz quanto o carro rodou entre duas leituras; o que passou dos
+  // km lançados no Uber foi uso pessoal (mercado, farmácia). O gasto é uma
+  // estimativa: km ÷ média × preço do litro.
+  function kmForaDoUber(de, ate) {
+    var leituras = estado.uberRegistros.filter(function (x) { return x.tipo === 'abastecimento' && x.odometro; })
+      .sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : (a.criadoEm || 0) - (b.criadoEm || 0); });
+    var noPeriodo = leituras.filter(function (x) { return x.data >= de && x.data <= ate; });
+    if (!noPeriodo.length) return { leituras: leituras.length };
+    var antes = leituras.filter(function (x) { return x.data < de; });
+    var inicio = antes.length ? antes[antes.length - 1] : noPeriodo[0];
+    var fim = noPeriodo[noPeriodo.length - 1];
+    if (inicio === fim || fim.odometro <= inicio.odometro) return { leituras: leituras.length, inicio: inicio };
+    function depoisDoInicio(x) { return x.data > inicio.data || (x.data === inicio.data && (x.criadoEm || 0) > (inicio.criadoEm || 0)); }
+    function ateOFim(x) { return x.data < fim.data || (x.data === fim.data && (x.criadoEm || 0) <= (fim.criadoEm || 0)); }
+    var painel = fim.odometro - inicio.odometro;
+    var uber = 0, litros = 0, gastoComb = 0;
+    estado.uberRegistros.forEach(function (x) {
+      if ((x.tipo === 'dia' || x.tipo === 'corrida') && x.data > inicio.data && x.data <= fim.data) uber += x.km || 0;
+      if (x.tipo === 'abastecimento' && x.id !== inicio.id && depoisDoInicio(x) && ateOFim(x)) { litros += x.litros || 0; gastoComb += x.valor; }
+    });
+    uber = Math.round(uber * 10) / 10;
+    var fora = Math.max(0, Math.round((painel - uber) * 10) / 10);
+    // A média: pelo painel e pelos litros abastecidos (tanque a tanque);
+    // sem litros, a última média que a pessoa digitou num registro antigo.
+    var kmL = litros > 0 ? painel / litros : 0, origem = 'abastecimentos';
+    if (!kmL) {
+      var comMedia = estado.uberRegistros.filter(function (x) { return x.tipo === 'dia' && x.kmPorLitro; })
+        .sort(function (a, b) { return a.data < b.data ? 1 : -1; })[0];
+      if (comMedia) { kmL = comMedia.kmPorLitro; origem = 'registro'; }
+    }
+    var preco = litros > 0 ? Math.round(gastoComb / litros) : (fim.precoLitro || 0);
+    var gasto = kmL && preco ? Math.round(fora / kmL * preco) : 0;
+    return { leituras: leituras.length, inicio: inicio, fim: fim, painel: painel, uber: uber, fora: fora,
+             kmL: kmL, origem: origem, preco: preco, gasto: gasto };
+  }
+
+  function cartaoKmForaDoUber(de, ate, titulo) {
+    var k = kmForaDoUber(de, ate);
+    var c = cartao('km-fora');
+    c.appendChild(topoDeCartao('Km fora do Uber · ' + titulo, null));
+    if (!k.painel) {
+      c.appendChild(no('div', 'linha-nota', k.leituras
+        ? 'Lance os km do painel em mais um abastecimento para o app calcular quanto o carro rodou fora do Uber.'
+        : 'Lance os km do painel nos abastecimentos: com duas leituras, o app separa os km do Uber dos km de uso pessoal e estima o gasto de gasolina.'));
+      return c;
+    }
+    c.appendChild(linhaDeCartaoFixa('Rodados no painel', milharBr(k.painel) + ' km'));
+    c.appendChild(linhaDeCartaoFixa('No Uber', decimalBr(k.uber) + ' km'));
+    var lf = linhaDeCartaoFixa('Fora do Uber', decimalBr(k.fora) + ' km');
+    lf.classList.add('total');
+    c.appendChild(lf);
+    if (k.gasto) {
+      var lg = linhaDeCartaoFixa('Gasolina estimada fora', '− ' + emReais(k.gasto));
+      lg.lastChild.classList.add('vermelho');
+      c.appendChild(lg);
+    }
+    c.appendChild(no('div', 'linha-nota',
+      'De ' + dataBr(k.inicio.data) + ' (' + milharBr(k.inicio.odometro) + ' km) a ' + dataBr(k.fim.data) + ' (' + milharBr(k.fim.odometro) + ' km). ' +
+      (k.gasto
+        ? 'Estimativa com média de ' + decimalBr(k.kmL, 1) + ' km/l (' + (k.origem === 'abastecimentos' ? 'pelos litros abastecidos' : 'a última que você digitou') +
+          ') e litro a ' + emReais(k.preco) + '. Esse gasto já está dentro dos abastecimentos lançados.'
+        : 'Para estimar o gasto, lance os litros nos abastecimentos.')));
+    return c;
+  }
+
+  // Hoje e Histórico viraram uma aba só, o Resumo; no meio, a Manutenção
+  // (pedido de 07/11/2026).
   function desenharUber(corpo) {
+    if (abaUber !== 'manutencao' && abaUber !== 'gastos') abaUber = 'resumo';
     corpo.appendChild(abasDeModulo([
-      { valor: 'hoje', rotulo: 'Hoje' }, { valor: 'historico', rotulo: 'Histórico' }, { valor: 'gastos', rotulo: 'Gastos' }
+      { valor: 'resumo', rotulo: 'Resumo' }, { valor: 'manutencao', rotulo: 'Manutenção' }, { valor: 'gastos', rotulo: 'Gastos' }
     ], abaUber, function (v) { abaUber = v; }));
-    if (abaUber === 'historico') desenharHistoricoUber(corpo);
+    if (abaUber === 'manutencao') desenharManutencaoUber(corpo);
     else if (abaUber === 'gastos') desenharGastosUber(corpo);
-    else desenharHojeUber(corpo);
+    else {
+      var alertas = cartaoDeAlertasDeManutencao();
+      if (alertas) corpo.appendChild(alertas);
+      desenharHojeUber(corpo);
+      var f = faixaDoMesAtivo();
+      corpo.appendChild(cartaoKmForaDoUber(f.de, f.ate, MESES[mesAtivo.mes]));
+      corpo.appendChild(no('div', 'secao-rotulo secao-historico', 'Histórico'));
+      desenharHistoricoUber(corpo);
+    }
   }
 
   function desenharHojeUber(corpo) {
@@ -11914,24 +12546,13 @@
       return (x.tipo === 'corrida' || x.tipo === 'dia') && x.data === hoje;
     }).sort(ordemUber);
     var cl = cartao('liso');
-    var topo = topoDeCartao('Registros de hoje', 'Ver histórico', function () { abaUber = 'historico'; desenharInicio(); });
+    var topo = topoDeCartao('Registros de hoje', null);
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     cl.appendChild(topo);
     if (!corridas.length) cl.appendChild(estadoVazio('Nada registrado hoje', 'Toque em "Novo registro" e passe o que o app da Uber mostrou. Para um dia anterior, é só mudar a data.'));
     corridas.slice(0, 10).forEach(function (x) { cl.appendChild(linhaUber(x)); });
     corpo.appendChild(cl);
-
-    var f = faixaDoMesAtivo();
-    var m = numerosDoUber(f.de, f.ate);
-    var cm = cartao();
-    cm.appendChild(topoDeCartao('Em ' + MESES[mesAtivo.mes], null));
-    cm.appendChild(tilesDoResultadoUber(m, f.de, f.ate, MESES[mesAtivo.mes]));
-    cm.appendChild(no('div', 'linha-nota',
-      m.corridas + ' corrida(s) · ' + decimalBr(m.km) + ' km · ' + formatarHoras(m.ms) + ' trabalhadas' +
-      (m.km ? ' · ' + emReais(m.lucroPorKm) + ' de lucro por km' : '') +
-      (m.porHora ? ' · ' + emReais(m.lucroPorHora) + ' de lucro por hora' : '')));
-    corpo.appendChild(cm);
 
     if (j && !j.pausaDesde) ligarRelogio();
   }
@@ -12127,6 +12748,31 @@
       mascaraDecimal(km, 1);
       forma.appendChild(campo('Km rodados', km));
 
+      // O carro: as anotações pendentes aparecem a cada registro, para não
+      // caírem no esquecimento, e dá para anotar algo novo aqui mesmo (vai
+      // direto para a Manutenção).
+      var pendentes = notasPendentes();
+      if (pendentes.length) {
+        var caixaNotas = no('div', 'notas-do-carro');
+        caixaNotas.appendChild(no('div', 'rotulo-secao', 'Pendente no carro'));
+        pendentes.slice(0, 5).forEach(function (nota) {
+          var l = no('div', 'nota-pendente');
+          var b = botao('btn btn-fantasma', 'Resolvido', function () {
+            nota.situacao = 'resolvida'; nota.resolvidaEm = hojeTexto();
+            salvar();
+            desenhar();
+            l.remove();
+            if (!caixaNotas.querySelector('.nota-pendente')) caixaNotas.remove();
+          });
+          juntar(l, no('span', null, nota.texto), b);
+          caixaNotas.appendChild(l);
+        });
+        forma.appendChild(caixaNotas);
+      }
+      var notaNova = entradaTexto('', 'Ex.: barulho na roda dianteira ao frear', 200);
+      forma.appendChild(campo('Notou algo no carro? (opcional)', notaNova));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Barulho, desgaste ou algo para a próxima revisão. Fica anotado em Manutenção.'));
+
       // Registro antigo, de quando o combustível era lançado aqui: o valor
       // continua valendo até a pessoa tirar.
       var combAntigo = x ? combustivelDoDia(x) : 0;
@@ -12188,9 +12834,15 @@
         reg.hora = reg.hora || horaAgora();
         reg.descricao = ''; reg.litros = 0; reg.combustivel = ''; reg.categoria = '';
         if (!x) estado.uberRegistros.push(reg);
+        var txtNota = notaNova.value.trim();
+        if (txtNota) {
+          var atualCarro = kmAtualDoCarro();
+          estado.uberNotas.push({ id: novoId(), texto: txtNota.slice(0, 200), data: reg.data, km: atualCarro ? atualCarro.km : 0,
+                                  situacao: 'pendente', resolvidaEm: '', criadoEm: Date.now() });
+        }
         salvar();
         fecharOuVoltar(deCima);
-        avisar('Registro salvo.');
+        avisar(txtNota ? 'Registro salvo. A anotação foi para Manutenção.' : 'Registro salvo.');
       }));
       if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir o registro', function () { excluirRegistroUber(x, deCima); }));
       forma.appendChild(acoes);

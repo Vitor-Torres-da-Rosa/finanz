@@ -74,7 +74,7 @@ const hoje = await tela();
 conferir('3. o Hoje fica sem gasto', /Gastos\s*R\$ 0,00/.test(hoje) && /Lucro líquido\s*R\$ 76,59/.test(hoje), hoje.slice(0, 300));
 
 // ---- histórico: os três cartões abrem o detalhamento ----
-await page.click('#telaInicio .abas-modulo button:has-text("Histórico")'); await page.waitForTimeout(800);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(800);
 const hist = await tela();
 // 76,59 + 73,60 = 150,19; despesas 40,39 + 15,00 = 55,39; lucro 94,80.
 conferir('4. o histórico soma certo', /Faturamento\s*R\$ 150,19/.test(hist) && /Despesas\s*R\$ 55,39/.test(hist) &&
