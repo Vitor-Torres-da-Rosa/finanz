@@ -67,7 +67,8 @@ await page.click('#telaInicio .sub-produtos button:has-text("Produtos")'); await
 conferir('5. o produto ganhou o valor de compra da compra', /compra R\$ 1,50/i.test(await tela()));
 
 // Entrega de 30 para a Daniela: o seu estoque cai para 70.
-await page.click('#fab'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
+await page.click('#telaInicio button:has-text("+ Registrar entrega")'); await page.waitForTimeout(900);
 await folha().locator('.contador-campo').fill('30'); await page.waitForTimeout(300);
 await page.click('#folha .btn-ouro:has-text("Registrar entrega")'); await page.waitForTimeout(1000);
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
@@ -77,11 +78,13 @@ conferir('6. entregando 30, ficam 70 com você', /Seu estoque.*Pote de vidro.*70
 // ---- Entregas: uma linha por vendedor (03/11/2026) ----
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
 t = await tela();
-conferir('7. Entregas mostra uma linha por vendedor', /Daniela\s*1 entrega · 30 un\./.test(t), t.slice(0, 200));
-await page.click('#telaInicio .linha:has-text("Daniela")'); await page.waitForTimeout(800);
+// 07/11/2026: um cartão por vendedor, com este mês, o mês passado, o custo e a estimativa.
+conferir('7. Entregas mostra um cartão por vendedor', /Daniela\s*última entrega.*1 entrega\s*30 un\..*nenhuma.*Com Daniela agora: 30 un\.\s*Custo da mercadoria\s*R\$ \d+,\d\d\s*Estimativa de venda\s*R\$/.test(t), t.slice(0, 300));
+await page.screenshot({ path: dir + '/z72-cartoes-vendedores.png' });
+await page.click('#telaInicio .cartao-vendedor-entregas:has-text("Daniela")'); await page.waitForTimeout(800);
 conferir('8. tocando, aparecem os doces entregues a ela', /Entregas · Daniela/.test(await page.textContent('#folhaTitulo')) &&
   // 07/11/2026: dentro da folha dela, cada linha diz o doce, não o nome dela.
-  /Pote de vidro · 30 un\./.test(limpo(await folha().textContent())) && !/Daniela · 30 un/.test(limpo(await folha().textContent())),
+  /Pote de vidro\s*30 un\./.test(limpo(await folha().textContent())) && await folha().locator('.linha-qtd:has-text("30 un.")').count() === 1 && !/Daniela · 30 un/.test(limpo(await folha().textContent())),
   limpo(await folha().textContent()).slice(0, 200));
 for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 
@@ -106,7 +109,10 @@ conferir('11. sem sócio, o ajuste entra na hora: 65 un.', /Pote de vidro\s*Esto
 
 // ---- 07/11/2026: acerto sem estoque, só o dinheiro ----
 await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(700);
-await page.click('#telaInicio button:has-text("+ Acerto sem estoque")'); await page.waitForTimeout(900);
+// O botão "+ Acerto sem estoque" saiu (07/11/2026): o tipo se escolhe dentro da prestação.
+conferir('11b. a aba Prestação não tem mais o botão de acerto sem estoque', !(await page.locator('#telaInicio button:has-text("+ Acerto sem estoque")').count()));
+await page.click('#telaInicio .linha:has-text("Daniela")'); await page.waitForTimeout(900);
+await page.click('#folha button:has-text("Sem estoque")'); await page.waitForTimeout(300);
 let fsem = limpo(await folha().textContent());
 conferir('12. "+ Acerto sem estoque" abre o acerto só do dinheiro', /Prestação · Daniela/.test(await page.textContent('#folhaTitulo')) &&
   /a conta sai igual, mas o estoque dela e o seu ficam como estão/.test(fsem) && !(await folha().locator('.bloco-estoque').isVisible()), fsem.slice(0, 200));
@@ -126,12 +132,28 @@ t = await tela();
 conferir('14. o acerto aparece na lista, e a Daniela fica com R$ 30,00 pendente',
   /Acerto sem estoque · Daniela/.test(t) && /Daniela.*R\$ 210,00\s*R\$ 30,00 já devido/.test(t), (t.match(/Daniela.{0,120}/) || [''])[0]);
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(600);
-conferir('15. o estoque dela não mudou', /Daniela\s*1 entrega · 30 un\./.test(await tela()));
+conferir('15. o estoque dela não mudou', /Com Daniela agora: 30 un\./.test(await tela()));
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
 conferir('16. nem o seu', /Pote de vidro\s*Estoque 65 un\./.test(await tela()));
 await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(600);
 await page.click('#telaInicio .linha:has-text("Acerto sem estoque")'); await page.waitForTimeout(800);
 conferir('17. abrindo, diz que o estoque não mudou', /Acerto sem estoque: o estoque do vendedor e o seu não mudaram/.test(limpo(await folha().textContent())));
+
+// ---- 07/11/2026: o detalhe mostra o total da venda e a comissão dela, não a sua parte ----
+let det = limpo(await folha().textContent());
+conferir('18. o acerto mostra o total da venda e a comissão do revendedor, sem a sua parte',
+  /Total da venda\s*R\$ 125,00/.test(det) && /Comissão do revendedor\s*R\$ 95,00/.test(det) && !/A repassar/.test(det) &&
+  /Pote de vidro · 5 un\.\s*R\$ 25,00 cada.*R\$ 125,00\s*comissão R\$ 95,00/.test(det), det.slice(0, 400));
+// Guarda o endereço que o app abre, para ler o PDF gerado.
+await page.evaluate(() => { window.__abriu = []; window.open = (u) => { window.__abriu.push(u); return {}; }; });
+await page.click('#folha button:has-text("Ver o PDF")'); await page.waitForTimeout(500);
+const urlPdf = await page.evaluate(() => window.__abriu[0] || '');
+const pdf = await page.evaluate(async (u) => { const r = await fetch(u); const b = new Uint8Array(await r.arrayBuffer()); let s = ''; for (const c of b) s += String.fromCharCode(c); return s; }, urlPdf).catch(e => 'ERRO ' + e);
+conferir('19. "Ver o PDF" abre o PDF com os itens, o total e a comissão',
+  urlPdf.startsWith('blob:') && pdf.startsWith('%PDF') && /Pote de vidro/.test(pdf) && /R\$.125,00/.test(pdf) && /R\$.95,00/.test(pdf) && /Daniela/.test(pdf),
+  urlPdf.slice(0, 30) + ' · ' + pdf.length + ' bytes');
+conferir('20. e sem a sua parte no PDF', !/R\$.6,00/.test(pdf) && !/R\$.30,00/.test(pdf));
+await import('node:fs').then(fs => fs.writeFileSync(dir + '/z70-acerto.pdf', Buffer.from(pdf, 'latin1')));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }

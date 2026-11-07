@@ -92,8 +92,11 @@ await page.screenshot({ path: dir + '/z42-produto.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.waitForTimeout(900);
 
 // ---- entrega de 50 pelo "+" do módulo ----
-await page.click('#fab'); await page.waitForTimeout(900);
-conferir('6. o "+" dos Doces abre a entrega', /Nova entrega/.test(await page.textContent('#folhaTitulo')));
+// 07/11/2026: na Venda de Doces o "+" redondo saiu; a entrega abre pela aba.
+const fabOculto = await page.$eval('#fab', b => b.classList.contains('fab-oculto'));
+await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
+await page.click('#telaInicio button:has-text("+ Registrar entrega")'); await page.waitForTimeout(900);
+conferir('6. sem o "+" redondo, a aba Entregas abre a entrega', fabOculto && /Nova entrega/.test(await page.textContent('#folhaTitulo')));
 await folha().locator('.contador-campo').fill('50'); await page.waitForTimeout(300);
 const prevEntrega = limpo(await folha().textContent());
 conferir('7. a entrega calcula venda, repasse e lucro do vendedor',

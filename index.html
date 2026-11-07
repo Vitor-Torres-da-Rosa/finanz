@@ -1784,6 +1784,28 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .cartoes-vendedores { display: grid; gap: 12px; }
+  .cartao-vendedor-entregas { display: block; width: 100%; text-align: left; padding: 14px 16px; cursor: pointer; font: inherit; color: inherit; }
+  .cve-topo { display: flex; align-items: center; gap: 12px; }
+  .cve-nome { display: grid; gap: 2px; flex: 1 1 auto; min-width: 0; }
+  .cve-nome strong { font-size: 16px; }
+  .cve-nome span { font-size: 12.5px; color: var(--suave); }
+  .cve-seta { color: var(--ouro); font-size: 22px; line-height: 1; }
+  .cve-meses { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 10px; }
+  .cve-mes { display: grid; gap: 2px; padding: 9px 11px; border-radius: 12px; background: rgba(255,255,255,.035); border: 1px solid rgba(198,158,78,.16); }
+  .cve-mes .cve-rotulo { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fraco); }
+  .cve-mes strong { font-size: 14px; }
+  .cve-mes span.num { font-size: 12.5px; color: var(--suave); }
+  .cve-valores { display: grid; gap: 4px; }
+  .cve-com { font-size: 12px; color: var(--fraco); margin-bottom: 2px; }
+  .cve-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13.5px; }
+  .cve-linha span { color: var(--suave); }
+  .lista-entregas-vendedor .linha-fim { min-width: 116px; }
+  .linha-titulo.com-qtd { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .linha-titulo.com-qtd .linha-titulo-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .linha-titulo.com-qtd .linha-qtd { flex: 0 0 auto; white-space: nowrap; color: var(--ouro); font-size: .92em; }
+  .acoes-pdf { margin: 0 0 14px; }
+  .acoes-pdf .btn { margin: 0; }
   .linha-fala { display: flex; gap: 8px; align-items: stretch; }
   .linha-fala .entrada { flex: 1 1 auto; min-width: 0; }
   .linha-fala .btn { width: auto; margin: 0; padding: 0 16px; flex: 0 0 auto; }
@@ -2324,7 +2346,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.51.1';
+  var VERSAO = '5.52.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2333,6 +2355,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.52.0',
+      data: '2026-11-07',
+      itens: [
+        'Venda de Doces: tocando num acerto, aparecem o total da venda e a comissão do revendedor, doce por doce. A sua parte não aparece.',
+        'Botões "Ver o PDF" e "Enviar o PDF": o detalhamento de todos os doces vendidos e acertados naquela data, com o total da venda e a comissão do revendedor, pronto para mandar pelo WhatsApp.',
+        'Entregas de um revendedor: o nome do doce corta igual quando é grande, as unidades ficam sempre visíveis numa coluna alinhada, e as datas aparecem só em números, entrega e acerto: "07/11 – 15/12".',
+        'Entregas: um cartão por revendedor com as entregas deste mês e do mês passado, e o que está com ele agora: custo da mercadoria e estimativa de venda.',
+        'Na Venda de Doces o "+" redondo saiu (cada aba já tem o seu botão), e o botão "+ Acerto sem estoque" também: o tipo se escolhe dentro da prestação.'
+      ]
+    },
     {
       versao: '5.51.1',
       data: '2026-11-07',
@@ -9139,7 +9172,8 @@
     var emp = noEmpreendedor();
     // Na entrada do Empreendedor e no painel não há um "novo" óbvio; dentro
     // de cada módulo o "+" faz o que aquele módulo mais faz.
-    b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel'));
+    // Na Venda de Doces cada aba já tem o seu botão (pedido de 07/11/2026).
+    b.classList.toggle('fab-oculto', emp && (!moduloEmp || moduloEmp === 'painel' || moduloEmp === 'doces'));
     b.setAttribute('aria-label', !emp ? 'Novo lançamento'
       : moduloEmp === 'uber' ? 'Registrar no Uber'
       : moduloEmp === 'doces' ? 'Nova entrega' : 'Novo cliente');
@@ -11183,10 +11217,17 @@
     var fim = no('div', 'linha-fim');
     fim.appendChild(no('div', 'linha-valor num ' + (opcoes.cor || ''), opcoes.valor || ''));
     if (opcoes.nota) fim.appendChild(no('div', 'linha-nota num ' + (opcoes.corNota || ''), opcoes.nota));
+    // `qtd`: um número curto que nunca some, colado à direita do título
+    // (o nome é que encolhe com "…").
+    var titulo = no('div', 'linha-titulo', opcoes.qtd ? '' : opcoes.titulo);
+    if (opcoes.qtd) {
+      titulo.classList.add('com-qtd');
+      juntar(titulo, no('span', 'linha-titulo-nome', opcoes.titulo), no('span', 'linha-qtd num', opcoes.qtd));
+    }
     juntar(l,
       opcoes.selo || selo(opcoes.corSelo || '#E9B44C', opcoes.letra || '•'),
       juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', opcoes.titulo),
+        titulo,
         no('div', 'linha-sub', opcoes.sub || '')),
       fim);
     return l;
@@ -13723,20 +13764,51 @@
       if (!porVendedor[e.vendedorId]) { porVendedor[e.vendedorId] = []; ordem.push(e.vendedorId); }
       porVendedor[e.vendedorId].push(e);
     });
+    // Um cartão por vendedor (pedido de 07/11/2026): as entregas deste mês
+    // e do mês passado lado a lado, e o que está com ele agora: o custo da
+    // mercadoria e quanto deve render vendido.
+    var fAtual = faixaDoMesAtivo();
+    var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
+    var fAnt = faixaDoMes(ant.ano, ant.mes);
+    if (ordem.length) lista = no('div', 'cartoes-vendedores');
     ordem.forEach(function (vid) {
       var dele = porVendedor[vid];
-      var un = dele.reduce(function (t, e) { return t + e.quantidade; }, 0);
-      var repasse = dele.reduce(function (t, e) { return t + e.quantidade * e.repasse; }, 0);
-      var venda = dele.reduce(function (t, e) { return t + e.quantidade * e.preco; }, 0);
       var nome = nomeDoVendedor(vid);
-      lista.appendChild(linhaSimples({
-        titulo: nome,
-        sub: dele.length + (dele.length === 1 ? ' entrega' : ' entregas') + ' · ' + un + ' un. · última ' + dataCurta(dele[0].data),
-        valor: emReais(repasse), cor: 'ouro',
-        nota: 'venda ' + emReais(venda),
-        selo: selo('#E9B44C', nome.charAt(0).toUpperCase()),
-        aoTocar: function () { abrirEntregasDoVendedor(vid); }
-      }));
+      function doMes(f) {
+        var es = dele.filter(function (e) { return e.data >= f.de && e.data <= f.ate; });
+        return { n: es.length, un: es.reduce(function (t, e) { return t + e.quantidade; }, 0) };
+      }
+      var m1 = doMes(fAtual), m0 = doMes(fAnt);
+      var c = contaDoVendedor(vid);
+      var custo = 0, venda = 0, comEle = 0;
+      c.produtos.forEach(function (x) {
+        if (x.estoque <= 0) return;
+        var p = achar(estado.doceProdutos, x.produtoId);
+        comEle += x.estoque;
+        custo += x.estoque * (p ? p.custo : 0);
+        venda += x.estoque * x.preco;
+      });
+      var card = botao('cartao cartao-vendedor-entregas', null, function () { abrirEntregasDoVendedor(vid); });
+      var topo = no('div', 'cve-topo');
+      juntar(topo, selo('#E9B44C', nome.charAt(0).toUpperCase()),
+        juntar(no('div', 'cve-nome'), no('strong', null, nome), no('span', null, 'última entrega ' + dataCurta(dele[0].data))),
+        no('span', 'cve-seta', '›'));
+      card.appendChild(topo);
+      var meses = no('div', 'cve-meses');
+      [[MESES[mesAtivo.mes], m1], [MESES[ant.mes], m0]].forEach(function (m) {
+        juntar(meses, juntar(no('div', 'cve-mes'),
+          no('span', 'cve-rotulo', m[0]),
+          no('strong', 'num', m[1].n ? m[1].n + (m[1].n === 1 ? ' entrega' : ' entregas') : 'nenhuma'),
+          no('span', 'num', m[1].un ? m[1].un + ' un.' : '—')));
+      });
+      card.appendChild(meses);
+      var valores = no('div', 'cve-valores');
+      valores.appendChild(no('div', 'cve-com', comEle ? 'Com ' + nome + ' agora: ' + comEle + ' un.' : 'Nada com ' + nome + ' agora'));
+      juntar(valores,
+        juntar(no('div', 'cve-linha'), no('span', null, 'Custo da mercadoria'), no('strong', 'num', emReais(custo))),
+        juntar(no('div', 'cve-linha'), no('span', null, 'Estimativa de venda'), no('strong', 'num verde', emReais(venda))));
+      card.appendChild(valores);
+      lista.appendChild(card);
     });
     corpo.appendChild(lista);
   }
@@ -13747,7 +13819,7 @@
       return b.criadoEm - a.criadoEm;
     });
     abrirFolha('Entregas · ' + nomeDoVendedor(vid), function (folha) {
-      var lista = cartao('liso');
+      var lista = cartao('liso lista-entregas-vendedor');
       if (!dele.length) lista.appendChild(estadoVazio('Nenhuma entrega', 'As entregas deste vendedor aparecem aqui.'));
       dele.forEach(function (e) { lista.appendChild(linhaDeEntrega(e, function () { abrirEntregasDoVendedor(vid); }, true)); });
       folha.appendChild(lista);
@@ -13761,10 +13833,20 @@
 
   // `doVendedor`: na folha de um vendedor o nome dele já está no título,
   // então cada linha diz o doce e as unidades (pedido de 07/11/2026).
+  // Nome comprido corta igual em todos, para as unidades sempre caberem.
+  function nomeCurto(nome, max) {
+    nome = String(nome || '');
+    return nome.length > max ? nome.slice(0, max - 1).replace(/[\s(·,.-]+$/, '') + '…' : nome;
+  }
+  function diaMes(d) { return d ? d.slice(8, 10) + '/' + d.slice(5, 7) : ''; }
+
   function linhaDeEntrega(e, reabrir, doVendedor) {
+    // As datas em números, entrega e acerto lado a lado: "07/11 – 15/12".
+    var datas = e.acertoEm ? diaMes(e.data) + ' – ' + diaMes(e.acertoEm) : dataBr(e.data);
     return linhaSimples({
-      titulo: (doVendedor ? nomeDoProduto(e.produtoId) : nomeDoVendedor(e.vendedorId)) + ' · ' + e.quantidade + ' un.',
-      sub: dataBr(e.data) + (doVendedor ? '' : ' · ' + nomeDoProduto(e.produtoId)) + (e.acertoEm ? ' · acerto ' + dataCurta(e.acertoEm) : ''),
+      titulo: doVendedor ? nomeCurto(nomeDoProduto(e.produtoId), 18) : nomeDoVendedor(e.vendedorId) + ' · ' + e.quantidade + ' un.',
+      qtd: doVendedor ? e.quantidade + ' un.' : '',
+      sub: datas + (doVendedor ? '' : ' · ' + nomeDoProduto(e.produtoId)),
       valor: emReais(e.quantidade * e.repasse), cor: 'ouro',
       nota: 'venda ' + emReais(e.quantidade * e.preco),
       selo: seloIcone('pacote', '#E9B44C'),
@@ -13841,16 +13923,6 @@
     });
     if (!algum) lista.appendChild(estadoVazio('Tudo acertado', 'Nenhum vendedor com doces ou com valor para repassar.'));
     corpo.appendChild(lista);
-    if (estado.doceVendedores.length) {
-      var acSem = no('div', 'acoes');
-      acSem.appendChild(botao('btn btn-fantasma', '+ Acerto sem estoque', function () {
-        if (estado.doceVendedores.length === 1) { abrirPrestacaoDeContas(estado.doceVendedores[0].id, false, true); return; }
-        abrirEscolha({ titulo: 'Acerto sem estoque com quem?', semMarca: true,
-          opcoes: estado.doceVendedores.map(function (x) { return { valor: x.id, rotulo: x.nome }; }) },
-          function (vid) { if (vid) abrirPrestacaoDeContas(vid, false, true); });
-      }));
-      corpo.appendChild(acSem);
-    }
 
     var hist = cartao('liso');
     var t2 = topoDeCartao('Acertos e pagamentos', null);
@@ -14780,36 +14852,186 @@
     });
   }
 
+  // O que o revendedor vê do acerto (pedido de 07/11/2026): quanto a venda
+  // rendeu ao preço final e quanto ficou de comissão para ele. A sua parte
+  // (o repasse) não aparece aqui nem no PDF.
+  function vendaDoAcerto(acertos) {
+    var porProduto = {}, ordem = [];
+    var r = { total: 0, comissao: 0, vendidos: 0, devolvidos: 0, perdidos: 0, itens: [] };
+    acertos.forEach(function (a) {
+      a.itens.forEach(function (i) {
+        var chave = i.produtoId + '|' + i.preco + '|' + i.repasse;
+        var x = porProduto[chave];
+        if (!x) { x = porProduto[chave] = { produtoId: i.produtoId, preco: i.preco, comissaoUn: Math.max(i.preco - i.repasse, 0),
+                                             vendidos: 0, devolvidos: 0, perdidos: 0 }; ordem.push(chave); }
+        x.vendidos += i.vendidos; x.devolvidos += i.devolvidos; x.perdidos += i.perdidos;
+      });
+    });
+    ordem.forEach(function (k) {
+      var x = porProduto[k];
+      x.total = x.vendidos * x.preco;
+      x.comissao = x.vendidos * x.comissaoUn;
+      r.total += x.total; r.comissao += x.comissao;
+      r.vendidos += x.vendidos; r.devolvidos += x.devolvidos; r.perdidos += x.perdidos;
+      r.itens.push(x);
+    });
+    return r;
+  }
+
+  // Os acertos do vendedor naquela data: o PDF junta todos.
+  function acertosDaData(a) {
+    return estado.doceAcertos.filter(function (x) { return x.vendedorId === a.vendedorId && x.data === a.data; })
+      .sort(function (x, y) { return (x.criadoEm || 0) - (y.criadoEm || 0); });
+  }
+
+  function pdfDoAcertoDoce(a) {
+    var acertos = acertosDaData(a);
+    var r = vendaDoAcerto(acertos);
+    var quem = nomeDoVendedor(a.vendedorId);
+    var f = PDF.folha();
+    var MARGEM = 44, direita = f.largura - MARGEM;
+    var OURO = [0.91, 0.70, 0.30], CINZA = [0.42, 0.42, 0.42];
+    f.retangulo(0, 0, f.largura, 92, [0.03, 0.03, 0.04]);
+    f.texto('FINANZ', MARGEM, 44, { tamanho: 19, negrito: true, cor: OURO });
+    f.texto('Acerto de contas · Venda de Doces', MARGEM, 64, { tamanho: 9, cor: [0.72, 0.72, 0.72] });
+    f.texto(dataBr(a.data), direita, 44, { tamanho: 13, negrito: true, alinhar: 'direita', cor: [1, 1, 1] });
+    var y = 128;
+    var emitente = String(estado.perfil.negocio || estado.perfil.nome || '').trim();
+    if (emitente) {
+      f.texto('DE', MARGEM, y, { tamanho: 7.5, negrito: true, cor: CINZA });
+      f.texto(emitente, MARGEM, y + 14, { tamanho: 11, negrito: true });
+      y += 34;
+    }
+    f.texto('REVENDEDOR', MARGEM, y, { tamanho: 7.5, negrito: true, cor: CINZA });
+    f.texto(quem, MARGEM, y + 14, { tamanho: 11, negrito: true });
+    y += 44;
+
+    // Colunas: doce · qtd · preço · total · comissão.
+    var X_QTD = 300, X_PRECO = 372, X_TOTAL = 462, X_COM = direita - 8;
+    function cabecalho() {
+      f.retangulo(MARGEM, y - 12, direita - MARGEM, 22, [0.94, 0.94, 0.94]);
+      f.texto('DOCE', MARGEM + 8, y + 3, { tamanho: 8, negrito: true, cor: CINZA });
+      f.texto('QTD', X_QTD, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      f.texto('PREÇO', X_PRECO, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      f.texto('TOTAL', X_TOTAL, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      f.texto('COMISSÃO', X_COM, y + 3, { tamanho: 8, negrito: true, alinhar: 'direita', cor: CINZA });
+      y += 26;
+    }
+    cabecalho();
+    if (!r.itens.length) {
+      f.texto('Nenhum doce neste acerto.', MARGEM + 8, y, { tamanho: 10, cor: CINZA });
+      y += 20;
+    }
+    r.itens.forEach(function (x) {
+      if (y > f.altura - 120) { f.novaPagina(); y = 70; cabecalho(); }
+      var linhas = f.quebrar(nomeDoProduto(x.produtoId), 10, false, X_QTD - MARGEM - 44);
+      linhas.forEach(function (l, k) {
+        f.texto(l, MARGEM + 8, y, { tamanho: 10 });
+        if (k === 0) {
+          f.texto(String(x.vendidos), X_QTD, y, { tamanho: 10, alinhar: 'direita' });
+          f.texto(emReais(x.preco), X_PRECO, y, { tamanho: 10, alinhar: 'direita' });
+          f.texto(emReais(x.total), X_TOTAL, y, { tamanho: 10, alinhar: 'direita' });
+          f.texto(emReais(x.comissao), X_COM, y, { tamanho: 10, negrito: true, alinhar: 'direita' });
+        }
+        y += 14;
+      });
+      if (x.devolvidos || x.perdidos) {
+        f.texto((x.devolvidos ? 'devolveu ' + x.devolvidos : '') + (x.devolvidos && x.perdidos ? ' · ' : '') +
+                (x.perdidos ? 'perdeu ' + x.perdidos : ''), MARGEM + 8, y, { tamanho: 8, cor: CINZA });
+        y += 12;
+      }
+      f.linha(MARGEM, y - 5, direita, y - 5, 0.4, [0.86, 0.86, 0.86]);
+      y += 6;
+    });
+
+    y += 10;
+    if (y > f.altura - 140) { f.novaPagina(); y = 70; }
+    f.retangulo(MARGEM, y - 12, direita - MARGEM, 30, [0.97, 0.94, 0.86]);
+    f.texto('Total da venda (' + r.vendidos + ' un.)', MARGEM + 8, y + 6, { tamanho: 11, negrito: true });
+    f.texto(emReais(r.total), direita - 8, y + 6, { tamanho: 12, negrito: true, alinhar: 'direita' });
+    y += 40;
+    f.retangulo(MARGEM, y - 12, direita - MARGEM, 34, [0.03, 0.03, 0.04]);
+    f.texto('COMISSÃO DO REVENDEDOR', MARGEM + 8, y + 8, { tamanho: 11, negrito: true, cor: [1, 1, 1] });
+    f.texto(emReais(r.comissao), direita - 8, y + 8, { tamanho: 14, negrito: true, alinhar: 'direita', cor: OURO });
+    y += 52;
+    var obs = acertos.map(function (x) { return x.obs; }).filter(Boolean);
+    if (obs.length) {
+      f.texto('OBSERVAÇÕES', MARGEM, y, { tamanho: 7.5, negrito: true, cor: CINZA });
+      y += 14;
+      obs.forEach(function (o) {
+        f.quebrar(o, 9.5, false, direita - MARGEM).forEach(function (l) { f.texto(l, MARGEM, y, { tamanho: 9.5 }); y += 13; });
+      });
+    }
+    return f.bytes();
+  }
+
+  function nomeDoPdfDoAcerto(a) {
+    return ('Acerto ' + nomeDoVendedor(a.vendedorId) + ' ' + a.data).replace(/[^\wÀ-ú .-]/g, '').trim() + '.pdf';
+  }
+
+  function verPdfDoAcerto(a) {
+    try {
+      var url = URL.createObjectURL(new Blob([pdfDoAcertoDoce(a)], { type: 'application/pdf' }));
+      var aba = window.open(url, '_blank');
+      if (!aba) {
+        URL.revokeObjectURL(url);
+        baixarArquivo(nomeDoPdfDoAcerto(a), pdfDoAcertoDoce(a), 'application/pdf');
+        avisar('O navegador não deixou abrir: o PDF foi salvo em Downloads.');
+        return;
+      }
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } catch (e) {
+      avisarCaixa('Não consegui gerar o PDF', String(e && e.message || e), function () {});
+    }
+  }
+
+  function enviarPdfDoAcerto(a) {
+    var arquivo;
+    try { arquivo = new File([pdfDoAcertoDoce(a)], nomeDoPdfDoAcerto(a), { type: 'application/pdf' }); } catch (e) {
+      avisarCaixa('Não consegui gerar o PDF', String(e && e.message || e), function () {});
+      return;
+    }
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+      navigator.share({ files: [arquivo], title: 'Acerto ' + nomeDoVendedor(a.vendedorId) + ' ' + dataBr(a.data) }).catch(function () {});
+      return;
+    }
+    baixarArquivo(arquivo.name, pdfDoAcertoDoce(a), 'application/pdf');
+    avisar('PDF salvo. Procure em Downloads.');
+  }
+
   function abrirAcertoDoce(id, deCima) {
     var a = achar(estado.doceAcertos, id);
     if (!a) return;
     var v = valoresDoAcerto(a);
+    var venda = vendaDoAcerto([a]);
     abrirFolha((a.semEstoque ? 'Acerto sem estoque de ' : 'Prestação de ') + dataBr(a.data), function (folha) {
       var c = cartao();
       c.appendChild(no('div', 'rotulo', nomeDoVendedor(a.vendedorId)));
-      if (a.semEstoque) {
-        c.appendChild(gradeDeTiles([
-          tile('A repassar', emReais(v.devido), 'ouro'),
-          tile('Lucro do vendedor', emReais(v.lucro), 'verde'),
-          tile('Vendidos', v.vendidos ? v.vendidos + ' un.' : '—', '')
-        ], 3));
-        if (a.valor && a.itens.length) c.appendChild(no('div', 'linha-nota', 'Inclui ' + emReais(a.valor) + ' fora dos doces.'));
-        c.appendChild(no('div', 'linha-nota', 'Acerto sem estoque: o estoque do vendedor e o seu não mudaram.'));
-      } else c.appendChild(gradeDeTiles([
-        tile('A repassar', emReais(v.devido), 'ouro'),
-        tile('Lucro do vendedor', emReais(v.lucro), 'verde'),
-        tile('Vendidos', v.vendidos + ' un.', '')
+      c.appendChild(gradeDeTiles([
+        tile('Total da venda', emReais(venda.total), 'ouro'),
+        tile('Comissão do revendedor', emReais(venda.comissao), 'verde'),
+        tile('Vendidos', venda.vendidos ? venda.vendidos + ' un.' : '—', '')
       ], 3));
+      if (a.semEstoque) {
+        if (a.valor) c.appendChild(no('div', 'linha-nota', 'Mais ' + emReais(a.valor) + ' fora dos doces.'));
+        c.appendChild(no('div', 'linha-nota', 'Acerto sem estoque: o estoque do vendedor e o seu não mudaram.'));
+      }
       if (a.obs) c.appendChild(no('div', 'linha-nota', a.obs));
       if (v.perdidos) c.appendChild(no('div', 'linha-nota', a.cobrarPerdidos ? 'Os perdidos foram cobrados do vendedor.' : 'Os perdidos ficaram como perda sua.'));
       folha.appendChild(c);
+      var pdfs = no('div', 'duas acoes-pdf');
+      pdfs.appendChild(botao('btn btn-ouro', 'Ver o PDF', function () { verPdfDoAcerto(a); }));
+      pdfs.appendChild(botao('btn btn-fantasma', 'Enviar o PDF', function () { enviarPdfDoAcerto(a); }));
+      folha.appendChild(pdfs);
+      if (acertosDaData(a).length > 1) folha.appendChild(no('p', 'ajuda', 'O PDF junta todos os acertos de ' + nomeDoVendedor(a.vendedorId) + ' em ' + dataBr(a.data) + '.'));
       var lista = cartao('liso');
-      a.itens.forEach(function (i) {
+      venda.itens.forEach(function (x) {
         lista.appendChild(linhaSimples({
-          titulo: nomeDoProduto(i.produtoId),
-          sub: a.semEstoque ? 'Vendeu ' + i.vendidos + ' · sem mexer no estoque' : 'Vendeu ' + i.vendidos + ' · devolveu ' + i.devolvidos + ' · perdeu ' + i.perdidos,
-          valor: emReais((i.vendidos + (a.cobrarPerdidos ? i.perdidos : 0)) * i.repasse), cor: 'ouro',
-          nota: emReais(i.repasse) + ' por doce',
+          titulo: nomeDoProduto(x.produtoId) + ' · ' + x.vendidos + ' un.',
+          sub: emReais(x.preco) + ' cada' + (x.devolvidos ? ' · devolveu ' + x.devolvidos : '') + (x.perdidos ? ' · perdeu ' + x.perdidos : '') +
+            (a.semEstoque ? ' · sem mexer no estoque' : ''),
+          valor: emReais(x.total), cor: 'ouro',
+          nota: 'comissão ' + emReais(x.comissao), corNota: 'verde',
           selo: seloIcone('doce', '#F472B6')
         }));
       });
