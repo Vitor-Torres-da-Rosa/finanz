@@ -1784,6 +1784,22 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .neutro { color: #A8B3C4; }
+  .cartao-meu-lucro { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+  .resumo-doces .rosca, .resumo-doces svg { margin: 4px auto 10px; }
+  .resumo-linha-doces { display: grid; grid-template-columns: 1fr auto 52px 12px; align-items: baseline; gap: 8px; width: 100%;
+    padding: 10px 0; border: 0; border-bottom: 1px solid rgba(198,158,78,.14); background: none; font: inherit; color: inherit; text-align: left; }
+  .resumo-linha-doces.tocavel { cursor: pointer; }
+  .resumo-linha-doces .rl-rotulo { color: var(--suave); font-size: 13.5px; }
+  .resumo-linha-doces .rl-valor { font-size: 14.5px; }
+  .resumo-linha-doces .rl-pct { font-size: 12px; color: var(--suave); text-align: right; }
+  .resumo-linha-doces .rl-seta { color: var(--ouro); text-align: right; }
+  .resumo-linha-doces.total { border-bottom: 0; margin-bottom: 8px; }
+  .resumo-linha-doces.total .rl-rotulo { color: inherit; font-weight: 700; }
+  .resumo-linha-doces.total .rl-valor { font-size: 16px; }
+  .acoes-resumo-doces { margin: 0 0 14px; }
+  .acoes-resumo-doces .btn { margin: 0; }
+  .nota-membros { padding: 8px 16px 12px; }
   .cartoes-vendedores { display: grid; gap: 12px; }
   .cartao-vendedor-entregas { display: block; width: 100%; text-align: left; padding: 14px 16px; cursor: pointer; font: inherit; color: inherit; }
   .cve-topo { display: flex; align-items: center; gap: 12px; }
@@ -2346,7 +2362,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.52.1';
+  var VERSAO = '5.53.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2355,6 +2371,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.53.0',
+      data: '2026-11-07',
+      itens: [
+        'Venda de Doces: a primeira aba virou o Resumo. Primeiro o "Meu lucro" (a sua parte no lucro da operação); tocando, o lucro total da empresa e a divisão entre os membros.',
+        'Total do mês em %: venda total, lucro dos revendedores (em cinza, porque não é despesa), custo total e lucro da operação. O custo total junta as compras do fornecedor e o custo operacional; tocando, aparecem os dois.',
+        'Tocando no lucro dos revendedores, o top 3 dos doces mais vendidos, de todas as vendas e do mês.',
+        'Novos botões "+ Custo operacional" e "+ Membro": cada membro com e-mail, o que é na empresa, a função e a parte do lucro em %.',
+        'Os vendedores ficam por último, com o "+ Novo vendedor" embaixo.'
+      ]
+    },
     {
       versao: '5.52.1',
       data: '2026-11-07',
@@ -4058,6 +4085,8 @@
       docePagamentos: [],
       doceCompras: [],
       doceAjustes: [],
+      doceCustos: [],
+      doceMembros: [],
       excluidos: []
     };
   }
@@ -4820,6 +4849,20 @@
                criadoEm: marca(x.criadoEm) || Date.now() };
     }).filter(function (x) { return x.produtoId && x.quantidade !== 0; });
 
+    // Resumo dos Doces: os custos operacionais e os membros da empresa,
+    // cada um com a parte dele no lucro.
+    limpo.doceCustos = lista('doceCustos').map(function (x) {
+      return { id: x.id, descricao: texto(x.descricao).slice(0, 80) || 'Custo', valor: positivo(x.valor),
+               data: soData(x.data) || hojeTexto(), criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.valor > 0; });
+    limpo.doceMembros = lista('doceMembros').map(function (x) {
+      var pc = Number(x.percentual);
+      return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Membro', email: texto(x.email).trim().toLowerCase().slice(0, 200),
+               papel: texto(x.papel).slice(0, 30), funcao: texto(x.funcao).slice(0, 80),
+               percentual: isFinite(pc) ? Math.max(0, Math.min(100, Math.round(pc * 10) / 10)) : 0,
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+
     limpo.doceCompras = lista('doceCompras').map(function (x) {
       return { id: x.id, produtoId: texto(x.produtoId), quantidade: positivo(x.quantidade),
                valor: positivo(x.valor), fornecedor: texto(x.fornecedor).slice(0, 60),
@@ -5581,7 +5624,8 @@
     uber_jornada: 'uberJornadas', uber_registro: 'uberRegistros',
     uber_manutencao: 'uberManutencao', uber_troca: 'uberTrocas', uber_nota: 'uberNotas',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
-    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes'
+    doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes',
+    doce_custo: 'doceCustos', doce_membro: 'doceMembros'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -5788,11 +5832,11 @@
     carregarCompartilhamentos();
   }
 
-  function abrirConvite(l) {
+  function abrirConvite(l, emailInicial) {
     var areas = l && Array.isArray(l.areas) ? l.areas.slice() : ['doces'];
     abrirFolha(l ? 'Compartilhamento' : 'Convidar', function (folha) {
       var forma = no('div', 'forma');
-      var email = entradaTexto(l ? l.convidado_email : '', 'email@da-outra-conta.com', 200);
+      var email = entradaTexto(l ? l.convidado_email : (emailInicial || ''), 'email@da-outra-conta.com', 200);
       email.type = 'email'; email.autocapitalize = 'off'; email.inputMode = 'email';
       if (l) email.disabled = true;
       forma.appendChild(campo('E-mail da conta dela no Finanz', email));
@@ -13683,6 +13727,11 @@
       r.vendidos += c.vendidosPeriodo;
       r.estoque += Math.max(c.estoque, 0);
     });
+    // Custo do mês (pedido de 07/11/2026): as compras do fornecedor mais o
+    // custo operacional, e não o custo dos doces vendidos.
+    r.despesas = 0;
+    estado.doceCompras.forEach(function (x) { if (x.data >= de && x.data <= ate) r.despesas += x.valor; });
+    estado.doceCustos.forEach(function (x) { if (x.data >= de && x.data <= ate) r.despesas += x.valor; });
     r.lucro = r.faturamento - r.despesas;
     r.semCusto = estado.doceProdutos.some(function (p) { return p.ativo && !p.custo; });
     return r;
@@ -13693,21 +13742,135 @@
 
   function desenharDoces(corpo) {
     corpo.appendChild(abasDeModulo([
-      { valor: 'vendedores', rotulo: 'Vendedores' }, { valor: 'entregas', rotulo: 'Entregas' },
+      { valor: 'vendedores', rotulo: 'Resumo' }, { valor: 'entregas', rotulo: 'Entregas' },
       { valor: 'prestacao', rotulo: 'Prestação' }, { valor: 'produtos', rotulo: 'Produtos' }
     ], abaDoces, function (v) { abaDoces = v; }));
     if (abaDoces === 'entregas') desenharEntregasDoces(corpo);
     else if (abaDoces === 'prestacao') desenharPrestacaoDoces(corpo);
     else if (abaDoces === 'produtos') desenharProdutosDoces(corpo);
-    else desenharVendedoresDoces(corpo);
+    else desenharResumoDoces(corpo);
+  }
+  // ---------- Resumo da Venda de Doces (pedido de 07/11/2026) ----------
+  //
+  // A conta do mês, tudo em % da venda total:
+  //   venda total = o que entrou para você (repasses) + o lucro dos revendedores
+  //   custo total = compras do fornecedor no mês + custo operacional
+  //   lucro da operação = repasses − custo total
+  // O lucro dos revendedores não é despesa: no acerto ele já fica com eles.
+  // O lucro da operação se divide entre os membros da empresa.
+  var COR_REVENDEDORES = '#94A3B8';
+
+  function resumoDosDoces(de, ate) {
+    var n = numerosDosDoces(de, ate);
+    var compras = 0, oper = 0;
+    estado.doceCompras.forEach(function (x) { if (x.data >= de && x.data <= ate) compras += x.valor; });
+    estado.doceCustos.forEach(function (x) { if (x.data >= de && x.data <= ate) oper += x.valor; });
+    var r = { repasses: n.faturamento, revendedores: n.lucroVendedores, compras: compras, oper: oper,
+              recebido: n.recebido, pendente: n.pendente, estoque: n.estoque, vendidos: n.vendidos };
+    r.custo = compras + oper;
+    r.venda = r.repasses + r.revendedores;
+    r.lucro = r.repasses - r.custo;
+    r.pct = function (v) { return r.venda > 0 ? v / r.venda * 100 : 0; };
+    return r;
   }
 
-  function desenharVendedoresDoces(corpo) {
-    var acoes = no('div', 'acoes acoes-topo');
-    acoes.appendChild(botao('btn btn-ouro', '+ Novo vendedor', function () { abrirFolhaVendedor(null); }));
-    corpo.appendChild(acoes);
+  function textoPct(v) { return decimalBr(v, 1) + '%'; }
 
+  // Quem sou eu entre os membros: pelo e-mail da conta.
+  function meuEmailNaConta() {
+    return String(sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.email || '').trim().toLowerCase();
+  }
+
+  // A divisão do lucro: cada membro com a % dele. Sem a pessoa na lista,
+  // a parte dela é o que sobra dos outros.
+  function divisaoDoLucro() {
+    var eu = meuEmailNaConta();
+    var membros = estado.doceMembros.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
+    var meu = membros.filter(function (m) { return eu && m.email === eu; })[0] || null;
+    var dosOutros = membros.reduce(function (t, m) { return t + (m === meu ? 0 : m.percentual); }, 0);
+    var meuPct = meu ? meu.percentual : Math.max(0, 100 - dosOutros);
+    var soma = dosOutros + meuPct;
+    return { membros: membros, meu: meu, meuPct: meuPct, soma: soma };
+  }
+
+  function maisVendidos(de, ate) {
+    var porProduto = {};
+    estado.doceAcertos.forEach(function (a) {
+      if (de && (a.data < de || a.data > ate)) return;
+      a.itens.forEach(function (i) { porProduto[i.produtoId] = (porProduto[i.produtoId] || 0) + i.vendidos; });
+    });
+    var total = 0;
+    var lista = Object.keys(porProduto).map(function (k) { total += porProduto[k]; return { produtoId: k, un: porProduto[k] }; })
+      .filter(function (x) { return x.un > 0; })
+      .sort(function (a, b) { return b.un - a.un; });
+    return { lista: lista, total: total };
+  }
+
+  function desenharResumoDoces(corpo) {
     var f = faixaDoMesAtivo();
+    var mes = MESES[mesAtivo.mes];
+    var r = resumoDosDoces(f.de, f.ate);
+    var d = divisaoDoLucro();
+    var meuLucro = Math.round(r.lucro * d.meuPct / 100);
+
+    // ---- o que mais importa: o meu lucro ----
+    var cm = botao('cartao cartao-destaque cartao-meu-lucro', null, function () { abrirLucroDaEmpresa(); });
+    cm.appendChild(no('div', 'rotulo', 'Meu lucro · ' + mes));
+    cm.appendChild(no('div', 'valorao num ' + (meuLucro < 0 ? 'vermelho' : 'verde'), emReais(meuLucro)));
+    cm.appendChild(no('div', 'linha-nota', d.membros.length
+      ? 'Sua parte: ' + textoPct(d.meuPct) + ' do lucro da operação (' + emReais(r.lucro) + ') · ver a divisão ›'
+      : 'Você fica com 100% do lucro da operação. Adicione os membros da empresa para dividir ›'));
+    corpo.appendChild(cm);
+
+    // ---- a conta do mês, em % ----
+    var t = cartao('resumo-doces');
+    t.appendChild(topoDeCartao('Total de ' + mes, null));
+    if (r.venda > 0 || r.custo > 0) {
+      var seg = [
+        { nome: 'Lucro da operação', valor: Math.max(r.lucro, 0), cor: '#3DDC84' },
+        { nome: 'Custo total', valor: r.custo, cor: '#FF6B6B' },
+        { nome: 'Lucro dos revendedores', valor: r.revendedores, cor: COR_REVENDEDORES }
+      ].filter(function (x) { return x.valor > 0; });
+      var somaSeg = seg.reduce(function (s, x) { return s + x.valor; }, 0);
+      if (somaSeg > 0) t.appendChild(rosca(seg, somaSeg, 'Venda total'));
+    }
+    function linha(rotulo, valor, cor, pct, aoTocar, extra) {
+      var l = aoTocar ? botao('resumo-linha-doces tocavel', null, aoTocar) : no('div', 'resumo-linha-doces');
+      juntar(l, no('span', 'rl-rotulo', rotulo),
+        no('strong', 'num rl-valor ' + (cor || ''), emReais(valor)),
+        no('span', 'num rl-pct', pct === null ? '' : textoPct(pct)),
+        no('span', 'rl-seta', aoTocar ? '›' : ''));
+      if (extra) l.classList.add(extra);
+      t.appendChild(l);
+    }
+    linha('Venda total', r.venda, 'ouro', r.venda > 0 ? 100 : 0, null);
+    linha('Lucro dos revendedores', r.revendedores, 'neutro', r.pct(r.revendedores), function () { abrirMaisVendidos(); });
+    linha('Custo total', r.custo, 'vermelho', r.pct(r.custo), function () { abrirCustoTotalDoces(); });
+    linha('Lucro da operação', r.lucro, r.lucro < 0 ? 'vermelho' : 'verde', r.pct(r.lucro), function () { abrirLucroDaEmpresa(); }, 'total');
+    t.appendChild(gradeDeTiles([
+      tile('Recebido', emReais(r.recebido), 'verde'),
+      tile('A receber', emReais(r.pendente), 'ouro')
+    ], 2));
+    if (!r.venda && !r.custo) t.appendChild(no('div', 'linha-nota', 'Nada neste mês ainda: as prestações de contas, as compras do fornecedor e os custos operacionais entram aqui.'));
+    t.appendChild(no('div', 'linha-nota', 'O lucro dos revendedores não é despesa: no acerto ele já fica com eles. Está aqui para você ver quanto eles ganham.'));
+    if (r.estoque) t.appendChild(no('div', 'linha-nota', r.estoque + ' doce(s) ainda com os vendedores.'));
+    corpo.appendChild(t);
+
+    var ac = no('div', 'duas acoes-resumo-doces');
+    ac.appendChild(botao('btn btn-fantasma', '+ Custo operacional', function () { abrirCustoOperacional(null); }));
+    ac.appendChild(botao('btn btn-fantasma', '+ Membro', function () { abrirMembroDoces(null); }));
+    corpo.appendChild(ac);
+
+    // ---- membros ----
+    var cmb = cartao('liso');
+    var tm = topoDeCartao('Membros da empresa', null);
+    tm.style.padding = '16px 16px 0'; tm.style.marginBottom = '8px';
+    cmb.appendChild(tm);
+    cmb.appendChild(linhasDosMembros(r.lucro, d, function () { desenharInicio(); }, false));
+    corpo.appendChild(cmb);
+
+    // ---- vendedores, por último ----
+    corpo.appendChild(no('div', 'secao-rotulo secao-historico', 'Vendedores'));
     var lista = cartao('liso');
     if (!estado.doceVendedores.length) {
       lista.appendChild(estadoVazio('Nenhum vendedor ainda',
@@ -13720,11 +13883,10 @@
       var c = contaDoVendedor(v.id, f.de, f.ate);
       var l = linhaSimples({
         titulo: v.nome + (v.ativo ? '' : ' (inativo)'),
-        sub: c.vendidosPeriodo + ' un. vendidas em ' + MESES[mesAtivo.mes] + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
-        // Sem nada devido, o que os doces com ele devem render (estimativa).
+        sub: c.vendidosPeriodo + ' un. vendidas em ' + mes + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
         valor: c.pendente > 0 ? emReais(c.pendente) : estimativaDoVendedor(c) ? '~' + emReais(estimativaDoVendedor(c)) : 'em dia',
         cor: c.pendente > 0 || estimativaDoVendedor(c) ? 'ouro' : 'verde',
-        nota: 'lucro ' + emReais(c.lucroPeriodo), corNota: 'verde',
+        nota: 'lucro ' + emReais(c.lucroPeriodo), corNota: 'neutro',
         selo: selo(v.ativo ? '#E9B44C' : '#7C7362', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirVendedorDoce(v.id); }
       });
@@ -13732,27 +13894,256 @@
       lista.appendChild(l);
     });
     corpo.appendChild(lista);
-
-    var n = numerosDosDoces(f.de, f.ate);
-    var t = cartao('cartao-destaque');
-    t.appendChild(no('div', 'rotulo', 'Total de ' + MESES[mesAtivo.mes]));
-    var linhaTotal = no('div', 'total-doces');
-    var seg = [{ nome: 'Recebido', valor: n.recebido, cor: '#3DDC84' }, { nome: 'A receber', valor: n.pendente, cor: '#E9B44C' }];
-    if (n.recebido + n.pendente > 0) linhaTotal.appendChild(rosca(seg, n.recebido + n.pendente, 'Repasses'));
-    t.appendChild(linhaTotal);
-    t.appendChild(gradeDeTiles([
-      tile('Repasses', emReais(n.faturamento), 'ouro'),
-      tile('Recebido', emReais(n.recebido), 'verde'),
-      tile('A receber', emReais(n.pendente), 'ouro')
-    ], 3));
-    t.appendChild(gradeDeTiles([
-      tile('Seu lucro', emReais(n.lucro), n.lucro < 0 ? 'vermelho' : 'verde'),
-      tile('Lucro dos vendedores', emReais(n.lucroVendedores), '')
-    ], 2));
-    if (n.semCusto) t.appendChild(no('div', 'linha-nota', 'Informe o valor de compra de cada doce em Produtos para o seu lucro sair certo.'));
-    if (n.estoque) t.appendChild(no('div', 'linha-nota', n.estoque + ' doce(s) ainda com os vendedores.'));
-    corpo.appendChild(t);
+    var acoes = no('div', 'acoes');
+    acoes.appendChild(botao('btn btn-ouro', '+ Novo vendedor', function () { abrirFolhaVendedor(null); }));
+    corpo.appendChild(acoes);
   }
+
+  // As linhas dos membros, cada um com a % e quanto fica do lucro.
+  function linhasDosMembros(lucro, d, reabrir, deCima) {
+    var box = no('div');
+    var eu = meuEmailNaConta();
+    if (!d.meu) {
+      box.appendChild(linhaSimples({
+        titulo: 'Você' + (eu ? '' : ''), sub: 'dono da operação' + (d.membros.length ? ' · o que sobra dos outros' : ''),
+        valor: emReais(Math.round(lucro * d.meuPct / 100)), cor: 'verde', nota: textoPct(d.meuPct),
+        selo: selo('#3DDC84', 'V')
+      }));
+    }
+    d.membros.forEach(function (m) {
+      var convite = meusConvites.filter(function (l) { return l.convidado_email === m.email; })[0];
+      var souEu = eu && m.email === eu;
+      box.appendChild(linhaSimples({
+        titulo: m.nome + (souEu ? ' (você)' : ''),
+        sub: [m.papel, m.funcao].filter(Boolean).join(' · ') + (convite ? ' · ' + (convite.situacao === 'aceito' ? 'vê a Venda de Doces' : 'convite enviado') : ''),
+        valor: emReais(Math.round(lucro * m.percentual / 100)), cor: souEu ? 'verde' : '', nota: textoPct(m.percentual),
+        selo: selo(souEu ? '#3DDC84' : '#E9B44C', (m.nome || '?').charAt(0).toUpperCase()),
+        aoTocar: function () {
+          if (deCima) porCima(reabrir, function () { abrirMembroDoces(m.id, true); });
+          else abrirMembroDoces(m.id, false);
+        }
+      }));
+    });
+    if (Math.abs(d.soma - 100) > 0.01 && d.membros.length) {
+      box.appendChild(no('div', 'linha-nota vermelho nota-membros', 'As partes somam ' + textoPct(d.soma) + ': ajuste para dar 100%.'));
+    }
+    return box;
+  }
+
+  function abrirLucroDaEmpresa() {
+    var f = faixaDoMesAtivo();
+    var mes = MESES[mesAtivo.mes];
+    function reabrir() { abrirLucroDaEmpresa(); }
+    abrirFolha('Lucro da empresa · ' + mes, function (folha) {
+      var r = resumoDosDoces(f.de, f.ate);
+      var d = divisaoDoLucro();
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Lucro da operação'));
+      c.appendChild(no('div', 'valorao num ' + (r.lucro < 0 ? 'vermelho' : 'verde'), emReais(r.lucro)));
+      c.appendChild(no('div', 'linha-nota', textoPct(r.pct(r.lucro)) + ' da venda total de ' + emReais(r.venda)));
+      folha.appendChild(c);
+      var conta = cartao();
+      [['Venda total', emReais(r.venda), 'ouro', 100],
+       ['Lucro dos revendedores', '− ' + emReais(r.revendedores), 'neutro', r.pct(r.revendedores)],
+       ['Custo total', '− ' + emReais(r.custo), 'vermelho', r.pct(r.custo)],
+       ['Lucro da operação', emReais(r.lucro), r.lucro < 0 ? 'vermelho' : 'verde', r.pct(r.lucro)]].forEach(function (x, i) {
+        var l = no('div', 'parcela-linha' + (i === 3 ? ' total' : ''));
+        juntar(l, no('span', 'q', x[0]), juntar(no('span', 'v num ' + x[2], x[1]), no('span', 'pct', textoPct(x[3]))));
+        conta.appendChild(l);
+      });
+      conta.classList.add('detalhe-uber-lucro');
+      folha.appendChild(conta);
+      var cm = cartao('liso');
+      var tm = topoDeCartao('Divisão entre os membros', null);
+      tm.style.padding = '16px 16px 0'; tm.style.marginBottom = '8px';
+      cm.appendChild(tm);
+      cm.appendChild(linhasDosMembros(r.lucro, d, reabrir, true));
+      folha.appendChild(cm);
+      var ac = no('div', 'acoes');
+      ac.appendChild(botao('btn btn-fantasma', '+ Membro', function () { porCima(reabrir, function () { abrirMembroDoces(null, true); }); }));
+      folha.appendChild(ac);
+    });
+  }
+
+  function abrirMaisVendidos() {
+    var f = faixaDoMesAtivo();
+    var mes = MESES[mesAtivo.mes];
+    abrirFolha('Mais vendidos', function (folha) {
+      var r = resumoDosDoces(f.de, f.ate);
+      var c = cartao();
+      c.appendChild(no('div', 'rotulo', 'Lucro dos revendedores · ' + mes));
+      c.appendChild(no('div', 'valorao pequeno num neutro', emReais(r.revendedores)));
+      c.appendChild(no('div', 'linha-nota', textoPct(r.pct(r.revendedores)) + ' da venda total. Não sai como despesa: no acerto ele já fica com os revendedores.'));
+      folha.appendChild(c);
+      [['Top 3 de todas as vendas', maisVendidos('', '')], ['Top 3 em ' + mes, maisVendidos(f.de, f.ate)]].forEach(function (bloco) {
+        var l = cartao('liso');
+        var tt = topoDeCartao(bloco[0], null);
+        tt.style.padding = '16px 16px 0'; tt.style.marginBottom = '8px';
+        l.appendChild(tt);
+        if (!bloco[1].lista.length) l.appendChild(estadoVazio('Nenhuma venda ainda', 'As prestações de contas dizem o que mais sai.'));
+        bloco[1].lista.slice(0, 3).forEach(function (x, i) {
+          l.appendChild(linhaSimples({
+            titulo: (i + 1) + 'º · ' + nomeDoProduto(x.produtoId),
+            sub: textoPct(x.un / bloco[1].total * 100) + ' de tudo o que foi vendido',
+            valor: x.un + ' un.', cor: i === 0 ? 'ouro' : '',
+            selo: seloIcone('doce', '#F472B6')
+          }));
+        });
+        folha.appendChild(l);
+      });
+    });
+  }
+
+  function abrirCustoTotalDoces() {
+    var f = faixaDoMesAtivo();
+    var mes = MESES[mesAtivo.mes];
+    function reabrir() { abrirCustoTotalDoces(); }
+    abrirFolha('Custo total · ' + mes, function (folha) {
+      var r = resumoDosDoces(f.de, f.ate);
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Custo total'));
+      c.appendChild(no('div', 'valorao num vermelho', emReais(r.custo)));
+      c.appendChild(no('div', 'linha-nota', textoPct(r.pct(r.custo)) + ' da venda total'));
+      folha.appendChild(c);
+      var conta = cartao('detalhe-uber-lucro');
+      [['Mercadoria (compras do fornecedor)', r.compras], ['Custo operacional', r.oper]].forEach(function (x) {
+        var l = no('div', 'parcela-linha');
+        juntar(l, no('span', 'q', x[0]), juntar(no('span', 'v num vermelho', emReais(x[1])),
+          no('span', 'pct', textoPct(r.custo > 0 ? x[1] / r.custo * 100 : 0))));
+        conta.appendChild(l);
+      });
+      conta.appendChild(no('div', 'linha-nota', 'A % ao lado é a parte de cada um no custo total.'));
+      folha.appendChild(conta);
+      var lo = cartao('liso');
+      var to = topoDeCartao('Custos operacionais de ' + mes, null);
+      to.style.padding = '16px 16px 0'; to.style.marginBottom = '8px';
+      lo.appendChild(to);
+      var doMes = estado.doceCustos.filter(function (x) { return x.data >= f.de && x.data <= f.ate; })
+        .sort(function (a, b) { return a.data < b.data ? 1 : -1; });
+      if (!doMes.length) lo.appendChild(estadoVazio('Nenhum custo operacional', 'Embalagem, gás, transporte, divulgação: o que a operação gasta além da mercadoria.'));
+      doMes.forEach(function (x) {
+        lo.appendChild(linhaSimples({
+          titulo: x.descricao, sub: dataBr(x.data),
+          valor: '− ' + emReais(x.valor), cor: 'vermelho', nota: textoPct(r.pct(x.valor)),
+          selo: seloIcone('ferramenta', '#FF6B6B'),
+          aoTocar: function () { porCima(reabrir, function () { abrirCustoOperacional(x.id, true); }); }
+        }));
+      });
+      folha.appendChild(lo);
+      var ac = no('div', 'acoes');
+      ac.appendChild(botao('btn btn-ouro', '+ Custo operacional', function () { porCima(reabrir, function () { abrirCustoOperacional(null, true); }); }));
+      folha.appendChild(ac);
+      var lc = cartao('liso');
+      var tc = topoDeCartao('Compras do fornecedor em ' + mes, null);
+      tc.style.padding = '16px 16px 0'; tc.style.marginBottom = '8px';
+      lc.appendChild(tc);
+      var compras = estado.doceCompras.filter(function (x) { return x.data >= f.de && x.data <= f.ate; })
+        .sort(function (a, b) { return a.data < b.data ? 1 : -1; });
+      if (!compras.length) lc.appendChild(estadoVazio('Nenhuma compra', 'As compras entram por Produtos › Fornecedor.'));
+      compras.forEach(function (x) {
+        lc.appendChild(linhaSimples({
+          titulo: nomeDoProduto(x.produtoId) + ' · ' + x.quantidade + ' un.', sub: dataBr(x.data) + (x.fornecedor ? ' · ' + x.fornecedor : ''),
+          valor: '− ' + emReais(x.valor), cor: 'vermelho', nota: textoPct(r.pct(x.valor)),
+          selo: seloIcone('pacote', '#E9B44C')
+        }));
+      });
+      folha.appendChild(lc);
+    });
+  }
+
+  function abrirCustoOperacional(id, deCima) {
+    var x = id ? achar(estado.doceCustos, id) : null;
+    abrirFolha(x ? 'Editar custo operacional' : 'Custo operacional', function (folha) {
+      var forma = no('div', 'forma');
+      var valor = entradaValor(x ? x.valor : 0, true);
+      forma.appendChild(campo('Valor', valor));
+      var desc = entradaTexto(x ? x.descricao : '', 'Ex.: embalagens, gás, gasolina das entregas', 80);
+      forma.appendChild(campo('O que foi', desc));
+      var data = entradaData(x ? x.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar custo', function () {
+        var v = digitosParaCentavos(valor.value);
+        if (v <= 0) { mostrarErro(forma, 'Informe o valor.'); return; }
+        if (!desc.value.trim()) { mostrarErro(forma, 'Diga o que foi o custo.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        var reg = x || { id: novoId(), criadoEm: Date.now() };
+        reg.valor = v; reg.descricao = desc.value.trim().slice(0, 80); reg.data = data.value;
+        if (!x) estado.doceCustos.push(reg);
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Custo operacional salvo.');
+      }));
+      if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir custo', function () {
+        perguntar({ titulo: 'Excluir este custo?', texto: 'Não dá para desfazer.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', x.id);
+          estado.doceCustos = estado.doceCustos.filter(function (y) { return y.id !== x.id; });
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Custo excluído.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  var PAPEIS_MEMBRO = ['Sócio(a)', 'Investidor(a)', 'Funcionário(a)', 'Outro'];
+
+  function abrirMembroDoces(id, deCima) {
+    var m = id ? achar(estado.doceMembros, id) : null;
+    var papel = m ? m.papel : 'Sócio(a)';
+    abrirFolha(m ? m.nome : 'Novo membro', function (folha) {
+      var forma = no('div', 'forma');
+      var nome = entradaTexto(m ? m.nome : '', 'Ex.: Vitória', 60);
+      forma.appendChild(campo('Nome', nome));
+      var email = entradaTexto(m ? m.email : '', 'email@da-conta.com', 200);
+      email.type = 'email'; email.autocapitalize = 'off'; email.inputMode = 'email';
+      forma.appendChild(campo('E-mail', email));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Pelo e-mail o app sabe quem é quem: cada um vê o próprio lucro em "Meu lucro".'));
+      forma.appendChild(campo('O que é na empresa', grupoChips(PAPEIS_MEMBRO, papel, function (p) { papel = p; })));
+      var funcao = entradaTexto(m ? m.funcao : '', 'Ex.: produção, vendas, entregas', 80);
+      forma.appendChild(campo('Função', funcao));
+      var pct = entradaDecimal(m ? m.percentual : 0, 1, 'Ex.: 50');
+      forma.appendChild(campo('Parte do lucro (%)', pct));
+      var d = divisaoDoLucro();
+      var dosOutros = d.membros.reduce(function (t, x) { return t + (m && x.id === m.id ? 0 : x.percentual); }, 0);
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Os outros membros já somam ' + textoPct(dosOutros) + '.' + (d.meu ? '' : ' Você fica com o que sobrar, se não estiver na lista.')));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar membro', function () {
+        var e = email.value.trim().toLowerCase();
+        var p = lerDecimal(pct.value);
+        if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome.'); return; }
+        if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { mostrarErro(forma, 'Esse e-mail não parece certo.'); return; }
+        if (!(p >= 0 && p <= 100)) { mostrarErro(forma, 'A parte do lucro vai de 0 a 100%.'); return; }
+        if (dosOutros + p > 100.001) { mostrarErro(forma, 'Com essa parte, a soma passa de 100% (' + textoPct(dosOutros + p) + ').'); return; }
+        var reg = m || { id: novoId(), criadoEm: Date.now() };
+        reg.nome = nome.value.trim().slice(0, 60); reg.email = e.slice(0, 200); reg.papel = papel;
+        reg.funcao = funcao.value.trim().slice(0, 80); reg.percentual = Math.round(p * 10) / 10;
+        if (!m) estado.doceMembros.push(reg);
+        salvar();
+        fecharOuVoltar(deCima);
+        avisar('Membro salvo.');
+      }));
+      var eu = meuEmailNaConta();
+      if (m && m.email && m.email !== eu && !meusConvites.some(function (l) { return l.convidado_email === m.email; })) {
+        acoes.appendChild(botao('btn btn-fantasma', 'Convidar para ver a Venda de Doces', function () { abrirConvite(null, m.email); }));
+      }
+      if (m) acoes.appendChild(botao('btn btn-perigo', 'Tirar da empresa', function () {
+        perguntar({ titulo: 'Tirar ' + m.nome + '?', texto: 'A parte dele no lucro volta para a divisão.', ok: 'Tirar', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', m.id);
+          estado.doceMembros = estado.doceMembros.filter(function (y) { return y.id !== m.id; });
+          salvar();
+          fecharOuVoltar(deCima);
+          avisar('Membro removido.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+
 
   function desenharEntregasDoces(corpo) {
     var acoes = no('div', 'acoes acoes-topo');

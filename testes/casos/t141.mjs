@@ -145,13 +145,18 @@ await dinheiro('Recebido agora', '5000');
 conferir('12. mostra o que fica pendente', /Fica pendente: R\$ 20,00/.test(limpo(await folha().textContent())));
 await page.click('#folha .btn-ouro:has-text("Registrar prestação")'); await page.waitForTimeout(1200);
 
-await page.click('#telaInicio .abas-modulo button:has-text("Vendedores")'); await page.waitForTimeout(700);
+// 07/11/2026: a primeira aba virou o Resumo; o custo do mês é o das compras
+// do fornecedor mais o operacional (aqui, nenhum), e tudo em % da venda.
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(700);
 const linhaMariana = limpo(await page.textContent('#telaInicio .linha-vendedor'));
 conferir('13. na lista, R$ 20,00 a receber e o lucro dela', /R\$ 20,00/.test(linhaMariana) && /lucro R\$ 70,00/.test(linhaMariana), linhaMariana);
-const totalMes = limpo(await page.textContent('#telaInicio .cartao-destaque'));
-conferir('14. o total do mês separa recebido de a receber',
-  /Repasses\s*R\$ 70,00/.test(totalMes) && /Recebido\s*R\$ 50,00/.test(totalMes) && /A receber\s*R\$ 20,00/.test(totalMes));
-conferir('15. e o seu lucro desconta o custo de produção (35 × R$ 1,00)', /Seu lucro\s*R\$ 35,00/.test(totalMes), totalMes.slice(0, 200));
+const totalMes = limpo(await page.textContent('#telaInicio .resumo-doces'));
+conferir('14. o total do mês: venda, lucro dos revendedores, custo e lucro da operação, em %',
+  /Venda total\s*R\$ 140,00\s*100,0%/.test(totalMes) && /Lucro dos revendedores\s*R\$ 70,00\s*50,0%/.test(totalMes) &&
+  /Custo total\s*R\$ 0,00\s*0,0%/.test(totalMes) && /Lucro da operação\s*R\$ 70,00\s*50,0%/.test(totalMes) &&
+  /Recebido\s*R\$ 50,00/.test(totalMes) && /A receber\s*R\$ 20,00/.test(totalMes), totalMes.slice(0, 400));
+const telaR = limpo(await page.textContent('#telaInicio'));
+conferir('15. sem membros, o meu lucro é o lucro da operação inteiro', /Meu lucro · \S+\s*R\$ 70,00\s*Você fica com 100%/.test(telaR), telaR.slice(0, 300));
 
 // ---- a ficha da vendedora ----
 await page.click('#telaInicio .linha-vendedor'); await page.waitForTimeout(900);

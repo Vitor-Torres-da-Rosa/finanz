@@ -63,7 +63,7 @@ await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await 
 const produtos = limpo(await page.textContent('#telaInicio'));
 conferir('1. o produto que tinha sumido voltou', /Brigadeiro/.test(produtos), produtos.slice(0, 160));
 conferir('2. o que foi apagado de propósito não volta', !/Bolo apagado/.test(produtos));
-await page.click('#telaInicio .abas-modulo button:has-text("Vendedores")'); await page.waitForTimeout(700);
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(700);
 conferir('3. a vendedora voltou', /Daniela/.test(limpo(await page.textContent('#telaInicio'))));
 await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
 await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
