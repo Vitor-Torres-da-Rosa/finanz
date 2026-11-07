@@ -2324,7 +2324,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.51.0';
+  var VERSAO = '5.51.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2334,6 +2334,13 @@
 
   var NOVIDADES = [
     {
+      versao: '5.51.1',
+      data: '2026-11-07',
+      itens: [
+        'Acerto sem estoque com os doces: escolha os produtos e quantos foram vendidos, e o app calcula o repasse e o lucro do vendedor, sem mexer no estoque. Dá para somar um valor fora dos doces.'
+      ]
+    },
+    {
       versao: '5.51.0',
       data: '2026-11-07',
       itens: [
@@ -2341,7 +2348,7 @@
         'Cada parcela aparece na lista com data e valor, e dá para tocar no valor e mudar: as outras se ajustam para fechar a conta.',
         'Escreva o combinado do jeito que fala, como "10 mil de entrada e 1.000 por mês até fechar" ou "12x de 800, as duas primeiras de 2.000, todo dia 10", e toque em Preencher.',
         'Venda de Doces: nas entregas de um revendedor, cada linha mostra o doce e as unidades, sem repetir o nome dele.',
-        'Venda de Doces: acerto de contas sem estoque. Na Prestação, escolha "Sem estoque" (ou toque em "+ Acerto sem estoque"): só o valor entra na conta do vendedor, e nem o estoque dele nem o seu mudam.'
+        'Venda de Doces: acerto de contas sem estoque. Na Prestação, escolha "Sem estoque" (ou toque em "+ Acerto sem estoque"): escolha os doces e quantos foram vendidos, e o app calcula o repasse e o lucro do vendedor sem mexer no estoque dele nem no seu.'
       ]
     },
     {
@@ -13575,8 +13582,14 @@
       if (a.vendedorId !== vid) return;
       var dentro = noPeriodo(a.data);
       if (a.semEstoque) {
-        r.devido += a.valor;
-        if (dentro) r.devidoPeriodo += a.valor;
+        // A conta é a mesma; só o estoque (x.vendidos) não se mexe.
+        var dev = a.valor, luc = 0, vend = a.quantidade, custo = 0;
+        a.itens.forEach(function (i) {
+          dev += i.vendidos * i.repasse; luc += i.vendidos * (i.preco - i.repasse);
+          vend += i.vendidos; custo += i.vendidos * (i.custo || 0);
+        });
+        r.devido += dev; r.lucroVendedor += luc; r.vendidos += vend;
+        if (dentro) { r.devidoPeriodo += dev; r.lucroPeriodo += luc; r.vendidosPeriodo += vend; r.custoPeriodo += custo; }
         return;
       }
       a.itens.forEach(function (i) {
@@ -14143,7 +14156,13 @@
 
   function valoresDoAcerto(a) {
     var r = { vendidos: 0, devolvidos: 0, perdidos: 0, devido: 0, lucro: 0 };
-    if (a.semEstoque) { r.vendidos = a.quantidade; r.devido = a.valor; return r; }
+    if (a.semEstoque) {
+      r.vendidos = a.quantidade; r.devido = a.valor;
+      a.itens.forEach(function (i) {
+        r.vendidos += i.vendidos; r.devido += i.vendidos * i.repasse; r.lucro += i.vendidos * (i.preco - i.repasse);
+      });
+      return r;
+    }
     a.itens.forEach(function (i) {
       r.vendidos += i.vendidos; r.devolvidos += i.devolvidos; r.perdidos += i.perdidos;
       r.devido += (i.vendidos + (a.cobrarPerdidos ? i.perdidos : 0)) * i.repasse;
@@ -14163,7 +14182,7 @@
       return linhaSimples({
         titulo: (e.item.semEstoque ? 'Acerto sem estoque · ' : 'Prestação de contas · ') + quem,
         sub: e.item.semEstoque
-          ? dataBr(e.data) + (e.item.quantidade ? ' · ' + e.item.quantidade + ' doce(s)' : '') + (e.item.obs ? ' · ' + e.item.obs : '')
+          ? dataBr(e.data) + (v.vendidos ? ' · vendeu ' + v.vendidos : '') + (e.item.obs ? ' · ' + e.item.obs : '')
           : dataBr(e.data) + ' · vendeu ' + v.vendidos + (v.devolvidos ? ', devolveu ' + v.devolvidos : '') +
              (v.perdidos ? ', perdeu ' + v.perdidos : ''),
         valor: emReais(v.devido), cor: 'ouro', nota: 'a repassar',
@@ -14595,12 +14614,30 @@
       })));
       var blocoSemEstoque = no('div', 'bloco-sem-estoque');
       blocoSemEstoque.style.display = semEstoque ? '' : 'none';
-      blocoSemEstoque.appendChild(no('p', 'ajuda', 'Só o dinheiro: o estoque de ' + v.nome + ' e o seu ficam como estão.'));
+      blocoSemEstoque.appendChild(no('p', 'ajuda', 'Escolha os doces e quantos ' + v.nome + ' vendeu: a conta sai igual, mas o estoque dela e o seu ficam como estão.'));
+      // Todos os doces ativos, com o preço da última entrega a este vendedor
+      // (ou o do cadastro, se nunca entregou).
+      var itensSem = estado.doceProdutos.filter(function (p) { return p.ativo; }).map(function (p) {
+        var x = c.produtos.filter(function (y) { return y.produtoId === p.id; })[0];
+        return { produtoId: p.id, vendidos: 0, repasse: x && x.repasse ? x.repasse : p.repasse,
+                 preco: x && x.preco ? x.preco : p.preco, custo: p.custo || 0 };
+      });
+      if (!itensSem.length) blocoSemEstoque.appendChild(no('p', 'ajuda', 'Nenhum doce cadastrado: use o valor abaixo.'));
+      itensSem.forEach(function (it) {
+        var bloco = no('div', 'item-prestacao');
+        juntar(bloco, juntar(no('div', 'item-cabeca'),
+          no('strong', null, nomeDoProduto(it.produtoId)),
+          no('span', 'item-com', emReais(it.repasse) + ' por doce')));
+        var linha = no('div', 'config-linha');
+        var cont = contadorDigitavel(0, function (n) { it.vendidos = n; pintar(); });
+        cont.setAttribute('data-campo', 'vendidos-sem');
+        juntar(linha, no('span', 'config-rotulo', 'Vendidos'), cont);
+        bloco.appendChild(linha);
+        blocoSemEstoque.appendChild(bloco);
+      });
       var valorSem = entradaValor(0, false);
       valorSem.addEventListener('input', function () { pintar(); });
-      blocoSemEstoque.appendChild(campo('Valor que ' + v.nome + ' te repassa', valorSem));
-      var qtdSem = 0;
-      blocoSemEstoque.appendChild(campo('Quantos doces (opcional, só para anotar)', contadorDigitavel(0, function (n) { qtdSem = n; })));
+      blocoSemEstoque.appendChild(campo('Outro valor, fora dos doces (opcional)', valorSem));
       forma.appendChild(blocoSemEstoque);
       var blocoEstoque = no('div', 'bloco-estoque');
       if (semEstoque) blocoEstoque.style.display = 'none';
@@ -14665,14 +14702,20 @@
           devido += (it.vendidos + (cobrarPerdidos ? it.perdidos : 0)) * it.repasse;
           lucro += it.vendidos * (it.preco - it.repasse);
         });
-        if (semEstoque) { vendidos = 0; devido = digitosParaCentavos(valorSem.value); lucro = 0; erro = false; }
+        if (semEstoque) {
+          vendidos = 0; lucro = 0; erro = false; devido = digitosParaCentavos(valorSem.value);
+          itensSem.forEach(function (it) {
+            vendidos += it.vendidos;
+            devido += it.vendidos * it.repasse;
+            lucro += it.vendidos * (it.preco - it.repasse);
+          });
+        }
         var antes = Math.max(c.pendente, 0);
         var credito = c.pendente < 0 ? -c.pendente : 0;
         totais = { devido: devido, lucro: lucro, total: Math.max(devido + antes - credito, 0), erro: erro, vendidos: vendidos };
         resumo.textContent = '';
-        (semEstoque ? [['Precisa te repassar', emReais(devido), 'ouro']]
-          : [['Vendidos', vendidos + ' un.', ''], ['Precisa te repassar', emReais(devido), 'ouro'],
-             ['Lucro do vendedor', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde']])
+        [['Vendidos', vendidos + ' un.', ''], ['Precisa te repassar', emReais(devido), 'ouro'],
+         ['Lucro do vendedor', emReais(lucro), lucro < 0 ? 'vermelho' : 'verde']]
           .forEach(function (x) { juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, x[0]), no('strong', 'num ' + x[2], x[1]))); });
         if (antes) juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Pendente de antes'), no('strong', 'num ouro', emReais(antes))));
         if (credito) juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Crédito do vendedor'), no('strong', 'num verde', '− ' + emReais(credito))));
@@ -14696,14 +14739,19 @@
         var r = digitosParaCentavos(recebido.value);
         var usados = semEstoque ? [] : itens.filter(function (it) { return it.vendidos || it.devolvidos || it.perdidos; });
         var valorDoAcerto = semEstoque ? digitosParaCentavos(valorSem.value) : 0;
-        if (semEstoque && valorDoAcerto <= 0 && r <= 0) { mostrarErro(forma, 'Informe o valor do acerto.'); return; }
+        var vendidosSem = semEstoque ? itensSem.filter(function (it) { return it.vendidos > 0; }) : [];
+        if (semEstoque && valorDoAcerto <= 0 && !vendidosSem.length && r <= 0) { mostrarErro(forma, 'Informe os doces vendidos ou um valor.'); return; }
         if (!semEstoque && !usados.length && r <= 0) { mostrarErro(forma, 'Nada para registrar: informe o que ele vendeu, devolveu ou pagou.'); return; }
         var acertoId = '';
-        if (valorDoAcerto > 0) {
+        if (valorDoAcerto > 0 || vendidosSem.length) {
           acertoId = novoId();
           estado.doceAcertos.push({
-            id: acertoId, vendedorId: vid, data: data.value, cobrarPerdidos: false, itens: [],
-            semEstoque: true, valor: valorDoAcerto, quantidade: qtdSem,
+            id: acertoId, vendedorId: vid, data: data.value, cobrarPerdidos: false,
+            itens: vendidosSem.map(function (it) {
+              return { produtoId: it.produtoId, vendidos: it.vendidos, devolvidos: 0, perdidos: 0,
+                       repasse: it.repasse, preco: it.preco, custo: it.custo };
+            }),
+            semEstoque: true, valor: valorDoAcerto, quantidade: 0,
             obs: obs.value.trim().slice(0, 200), criadoEm: Date.now()
           });
         }
@@ -14741,10 +14789,12 @@
       c.appendChild(no('div', 'rotulo', nomeDoVendedor(a.vendedorId)));
       if (a.semEstoque) {
         c.appendChild(gradeDeTiles([
-          tile('A repassar', emReais(a.valor), 'ouro'),
-          tile('Doces', a.quantidade ? a.quantidade + ' un.' : '—', '')
-        ], 2));
-        c.appendChild(no('div', 'linha-nota', 'Acerto só do dinheiro: o estoque do vendedor e o seu não mudaram.'));
+          tile('A repassar', emReais(v.devido), 'ouro'),
+          tile('Lucro do vendedor', emReais(v.lucro), 'verde'),
+          tile('Vendidos', v.vendidos ? v.vendidos + ' un.' : '—', '')
+        ], 3));
+        if (a.valor && a.itens.length) c.appendChild(no('div', 'linha-nota', 'Inclui ' + emReais(a.valor) + ' fora dos doces.'));
+        c.appendChild(no('div', 'linha-nota', 'Acerto sem estoque: o estoque do vendedor e o seu não mudaram.'));
       } else c.appendChild(gradeDeTiles([
         tile('A repassar', emReais(v.devido), 'ouro'),
         tile('Lucro do vendedor', emReais(v.lucro), 'verde'),
@@ -14757,7 +14807,7 @@
       a.itens.forEach(function (i) {
         lista.appendChild(linhaSimples({
           titulo: nomeDoProduto(i.produtoId),
-          sub: 'Vendeu ' + i.vendidos + ' · devolveu ' + i.devolvidos + ' · perdeu ' + i.perdidos,
+          sub: a.semEstoque ? 'Vendeu ' + i.vendidos + ' · sem mexer no estoque' : 'Vendeu ' + i.vendidos + ' · devolveu ' + i.devolvidos + ' · perdeu ' + i.perdidos,
           valor: emReais((i.vendidos + (a.cobrarPerdidos ? i.perdidos : 0)) * i.repasse), cor: 'ouro',
           nota: emReais(i.repasse) + ' por doce',
           selo: seloIcone('doce', '#F472B6')

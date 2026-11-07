@@ -109,15 +109,17 @@ await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); awa
 await page.click('#telaInicio button:has-text("+ Acerto sem estoque")'); await page.waitForTimeout(900);
 let fsem = limpo(await folha().textContent());
 conferir('12. "+ Acerto sem estoque" abre o acerto só do dinheiro', /Prestação · Daniela/.test(await page.textContent('#folhaTitulo')) &&
-  /Só o dinheiro: o estoque de Daniela e o seu ficam como estão/.test(fsem) && !(await folha().locator('.bloco-estoque').isVisible()), fsem.slice(0, 200));
-const vSem = folha().getByLabel('Valor que Daniela te repassa');
-await vSem.click(); await vSem.type('5000'); await page.waitForTimeout(200);
+  /a conta sai igual, mas o estoque dela e o seu ficam como estão/.test(fsem) && !(await folha().locator('.bloco-estoque').isVisible()), fsem.slice(0, 200));
+// Os doces com a conta inteira: 5 potes a R$ 6,00, mais R$ 20,00 fora.
+await folha().locator('.bloco-sem-estoque .item-prestacao:has-text("Pote de vidro") .contador-campo').fill('5'); await page.waitForTimeout(200);
+const vSem = folha().getByLabel('Outro valor, fora dos doces (opcional)');
+await vSem.click(); await vSem.type('2000'); await page.waitForTimeout(200);
 await folha().getByLabel('Recebido agora').click();
 for (let i = 0; i < 12; i++) await folha().getByLabel('Recebido agora').press('Backspace');
 await folha().getByLabel('Recebido agora').type('2000');
 await folha().getByLabel('Observação (opcional)').fill('venda de bolo por encomenda');
 fsem = limpo(await folha().textContent());
-conferir('13. o resumo mostra só o valor, sem vendidos', /Precisa te repassar\s*R\$ 50,00/.test(fsem) && !/Vendidos\s*\d+ un/.test(fsem) && /Fica pendente: R\$ 30,00/.test(fsem), fsem.slice(0, 400));
+conferir('13. escolhendo os doces, a conta sai inteira', /Vendidos\s*5 un\.\s*Precisa te repassar\s*R\$ 50,00\s*Lucro do vendedor/.test(fsem) && /Fica pendente: R\$ 30,00/.test(fsem), fsem.slice(0, 500));
 await page.screenshot({ path: dir + '/z69-acerto-sem-estoque.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Registrar prestação de contas")'); await page.waitForTimeout(1100);
 t = await tela();
@@ -129,7 +131,7 @@ await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await 
 conferir('16. nem o seu', /Pote de vidro\s*Estoque 65 un\./.test(await tela()));
 await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(600);
 await page.click('#telaInicio .linha:has-text("Acerto sem estoque")'); await page.waitForTimeout(800);
-conferir('17. abrindo, diz que o estoque não mudou', /Acerto só do dinheiro: o estoque do vendedor e o seu não mudaram/.test(limpo(await folha().textContent())));
+conferir('17. abrindo, diz que o estoque não mudou', /Acerto sem estoque: o estoque do vendedor e o seu não mudaram/.test(limpo(await folha().textContent())));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
