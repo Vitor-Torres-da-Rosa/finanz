@@ -1,6 +1,6 @@
 // Venda de Doces: a aba Resumo (pedido do Vitor em 07/11/2026).
 //
-// Primeiro o "Meu lucro" (a parte dele no lucro da operação); depois o
+// O "Meu lucro" fica no Início do Empreendedor; aqui, primeiro o
 // total do mês em %: venda total, lucro dos revendedores (não é despesa),
 // custo total (compras do fornecedor + custo operacional) e lucro da
 // operação; os membros da empresa com a parte de cada um; e os vendedores
@@ -60,8 +60,8 @@ await page.click('#telaInicio [data-modulo="doces"]'); await page.waitForTimeout
 let t = await tela();
 conferir('1. a primeira aba é o Resumo, e o "+" redondo não aparece',
   /Resumo\s*Entregas\s*Prestação\s*Produtos/.test(t) && await page.$eval('#fab', b => b.classList.contains('fab-oculto')), t.slice(0, 120));
-conferir('2. primeiro o "Meu lucro"; os vendedores e o "+ Novo vendedor" no fim',
-  t.indexOf('Meu lucro') < t.indexOf('Total de novembro') && t.indexOf('Total de novembro') < t.lastIndexOf('Vendedores') && t.lastIndexOf('Vendedores') < t.indexOf('Mirian') &&
+conferir('2. primeiro o total do mês; os vendedores e o "+ Novo vendedor" no fim',
+  !/Meu lucro ·/.test(t) && t.indexOf('Total de novembro') < t.lastIndexOf('Vendedores') && t.lastIndexOf('Vendedores') < t.indexOf('Mirian') &&
   t.lastIndexOf('+ Novo vendedor') > t.indexOf('Mirian'), t.slice(0, 200));
 // custo 60; lucro 172 − 60 = 112.
 conferir('3. o total do mês em %', /Venda total\s*R\$ 240,00\s*100,0%/.test(t) && /Lucro dos revendedores\s*R\$ 68,00\s*28,3%/.test(t) &&
@@ -85,7 +85,15 @@ await fechar();
 // ---- top 3 ----
 await page.click('#telaInicio .resumo-linha-doces:has-text("Lucro dos revendedores")'); await page.waitForTimeout(900);
 f = limpo(await folha().textContent());
-conferir('7. tocando no lucro dos revendedores, o top 3 dos mais vendidos', /Top 3 de todas as vendas\s*1º · Brigadeiro.*80,0% de tudo o que foi vendido\s*16 un\..*2º · Bolo de pote.*4 un\./.test(f), f.slice(0, 400));
+conferir('7. tocando no lucro dos revendedores, o top 3 dos mais vendidos', /Top 3 de todas as vendas\s*1º · Brigadeiro.*80,0% de tudo o que foi vendido.*16 un\..*2º · Bolo de pote.*4 un\./.test(f), f.slice(0, 400));
+// 07/11/2026: tocando no doce, abre o top 5 dos vendedores dele.
+await page.click('#folha .linha:has-text("1º · Brigadeiro") >> nth=0'); await page.waitForTimeout(400);
+const abre = limpo(await page.locator('#folha .top-vendedores >> nth=0').textContent());
+conferir('7b. o doce abre os vendedores que mais venderam, com unidades e %',
+  await page.locator('#folha .top-vendedores >> nth=0').isVisible() && /1º\s*Dani\s*10 un\.\s*62,5%\s*2º\s*Mirian\s*6 un\.\s*37,5%/.test(abre), abre);
+await page.screenshot({ path: dir + '/z75-top-vendedores.png' });
+await page.click('#folha .linha:has-text("1º · Brigadeiro") >> nth=0'); await page.waitForTimeout(300);
+conferir('7c. tocando de novo, fecha', !(await page.locator('#folha .top-vendedores >> nth=0').isVisible()));
 await fechar();
 
 // ---- membros e a divisão do lucro ----
@@ -106,12 +114,17 @@ conferir('8. a soma das partes não passa de 100%', /a soma passa de 100%/.test(
 await folha().getByLabel('Parte do lucro (%)').fill('50');
 await page.click('#folha .btn-ouro:has-text("Salvar membro")'); await page.waitForTimeout(900);
 t = await tela();
-conferir('9. "Meu lucro" mostra só a minha parte: 50% de R$ 72,00', /Meu lucro · novembro\s*R\$ 36,00\s*Sua parte: 50,0% do lucro da operação \(R\$ 72,00\)/.test(t), t.slice(0, 260));
-conferir('10. os membros com a parte de cada um', /Membros da empresa\s*V?Vitor \(você\)\s*Sócio\(a\) · produção e compras\s*R\$ 36,00\s*50,0%\s*V?Vitória\s*Sócio\(a\) · vendas\s*R\$ 36,00\s*50,0%/.test(t), (t.match(/Membros da empresa.{0,200}/) || [''])[0]);
+// 07/11/2026: o "Meu lucro" fica no cartão da Venda de Doces, no Início do Empreendedor.
+await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(800);
+const hub = limpo(await page.textContent('#telaInicio [data-modulo="doces"]'));
+conferir('9. no Início, a Venda de Doces mostra o meu lucro no mês: 50% de R$ 72,00', /Meu lucro no mês\s*R\$ 36,00/.test(hub), hub);
+await page.click('#telaInicio [data-modulo="doces"]'); await page.waitForTimeout(900);
+t = await tela();
+conferir('10. os membros com a parte de cada um', /Membros da empresa\s*Ver a divisão ›\s*V?Vitor \(você\)\s*Sócio\(a\) · produção e compras\s*R\$ 36,00\s*50,0%\s*V?Vitória\s*Sócio\(a\) · vendas · convite enviado\s*R\$ 36,00\s*50,0%/.test(t), (t.match(/Membros da empresa.{0,200}/) || [''])[0]);
 await page.screenshot({ path: dir + '/z73-resumo-doces.png', fullPage: true });
-await page.click('#telaInicio .cartao-meu-lucro'); await page.waitForTimeout(900);
+await page.click('#telaInicio .cartao-topo:has-text("Membros da empresa") button:has-text("Ver a divisão")'); await page.waitForTimeout(900);
 f = limpo(await folha().textContent());
-conferir('11. tocando no meu lucro, o lucro total da empresa e a divisão', /Lucro da empresa · novembro/.test(await page.textContent('#folhaTitulo')) &&
+conferir('11. "Ver a divisão" em Membros mostra o lucro total da empresa e a divisão', /Lucro da empresa · novembro/.test(await page.textContent('#folhaTitulo')) &&
   /Lucro da operação\s*R\$ 72,00/.test(f) && /Divisão entre os membros\s*V?Vitor \(você\).*Vitória/.test(f), f.slice(0, 300));
 await fechar();
 
@@ -120,7 +133,7 @@ await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3500)
 await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {}); await page.waitForTimeout(800);
 if (!(await page.locator('#telaInicio .modulo-cabecalho').count())) { await page.click('#telaInicio [data-modulo="doces"]'); await page.waitForTimeout(900); }
 t = await tela();
-conferir('12. recarregando, custos e membros continuam', /Custo total\s*R\$ 100,00/.test(t) && /Vitória/.test(t) && /Meu lucro · novembro\s*R\$ 36,00/.test(t));
+conferir('12. recarregando, custos e membros continuam', /Custo total\s*R\$ 100,00/.test(t) && /Vitória/.test(t) && /Vitor \(você\).*R\$ 36,00/.test(t));
 
 console.log(falhas ? `\n${falhas} verificação(ões) falharam` : '\ntudo certo: resumo da venda de doces');
 await browser.close();

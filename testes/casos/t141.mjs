@@ -156,7 +156,7 @@ conferir('14. o total do mês: venda, lucro dos revendedores, custo e lucro da o
   /Custo total\s*R\$ 0,00\s*0,0%/.test(totalMes) && /Lucro da operação\s*R\$ 70,00\s*50,0%/.test(totalMes) &&
   /Recebido\s*R\$ 50,00/.test(totalMes) && /A receber\s*R\$ 20,00/.test(totalMes), totalMes.slice(0, 400));
 const telaR = limpo(await page.textContent('#telaInicio'));
-conferir('15. sem membros, o meu lucro é o lucro da operação inteiro', /Meu lucro · \S+\s*R\$ 70,00\s*Você fica com 100%/.test(telaR), telaR.slice(0, 300));
+conferir('15. sem membros, você fica com 100% do lucro da operação', /Membros da empresa.*Você\s*dono da operação.*R\$ 70,00\s*100,0%/.test(telaR), (telaR.match(/Membros da empresa.{0,120}/) || [''])[0]);
 
 // ---- a ficha da vendedora ----
 await page.click('#telaInicio .linha-vendedor'); await page.waitForTimeout(900);

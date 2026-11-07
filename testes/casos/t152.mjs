@@ -72,15 +72,21 @@ await vitor.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await
 await novoProduto(vitor, 'Brigadeiro do Vitor');
 await sincronizar(vitor);
 
-// ---- convite ----
+// ---- convite: pelo "+ Membro" do Resumo (07/11/2026) ----
 await vitor.click('#navegacao button:has-text("Mais")'); await vitor.waitForTimeout(900);
-await vitor.click('#telaMais .linha:has-text("Compartilhar")'); await vitor.waitForTimeout(1200);
-await vitor.click('#folha .btn-ouro:has-text("+ Convidar")'); await vitor.waitForTimeout(800);
-await vitor.locator('#folha input[type=email]').fill(emailEsposa);
-const marcado = await vitor.$eval('#folha .chip:has-text("Venda de Doces")', b => b.getAttribute('aria-pressed'));
-conferir('1. o convite já vem com Venda de Doces marcada', marcado === 'true');
+conferir('0. o "Compartilhar" saiu do Mais', !(await vitor.locator('#telaMais .linha:has-text("Compartilhar")').count()));
+await irParaProdutos(vitor);
+await vitor.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await vitor.waitForTimeout(800);
+await vitor.click('#telaInicio button:has-text("+ Membro")'); await vitor.waitForTimeout(800);
+await vitor.locator('#folha').getByLabel('Nome').fill('Daniela');
+await vitor.locator('#folha').getByLabel('E-mail').fill(emailEsposa);
+await vitor.locator('#folha').getByLabel('Parte do lucro (%)').fill('50');
 await vitor.screenshot({ path: dir + '/z50-convidar.png', fullPage: true });
-await vitor.click('#folha .btn-ouro:has-text("Enviar convite")'); await vitor.waitForTimeout(1500);
+await vitor.click('#folha .btn-ouro:has-text("Salvar membro")'); await vitor.waitForTimeout(2500);
+await vitor.click('#telaInicio .linha:has-text("Daniela")'); await vitor.waitForTimeout(900);
+const sitConvite = limpo(await vitor.textContent('#folha'));
+conferir('1. o membro com e-mail recebe o convite da Venda de Doces', /Convite enviado: falta Daniela aceitar/.test(sitConvite), sitConvite.slice(0, 160));
+for (let i = 0; i < 3 && await vitor.locator('#folha.aberta').count(); i++) { await vitor.goBack(); await vitor.waitForTimeout(600); }
 
 // ---- a esposa recebe e aceita ----
 await reabrir(esposa);
@@ -131,10 +137,10 @@ tv = limpo(await vitor.textContent('#telaInicio'));
 conferir('6c. confirmado, entra no estoque', !/Ajustes de estoque para confirmar/.test(tv) && /Cocada do Vitor\s*Estoque 10 un\./.test(tv), tv.slice(0, 200));
 await sincronizar(vitor);
 
-// ---- ela sai: o dela volta, o dele fica com ele ----
-await esposa.click('#navegacao button:has-text("Mais")'); await esposa.waitForTimeout(900);
-await esposa.click('#telaMais .linha:has-text("Compartilhar")'); await esposa.waitForTimeout(1500);
-await esposa.click('#folha .linha:has-text("de Vitor")'); await esposa.waitForTimeout(700);
+// ---- ela sai pelo Resumo dos Doces: o dela volta, o dele fica com ele ----
+await irParaProdutos(esposa);
+await esposa.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await esposa.waitForTimeout(800);
+await esposa.click('#telaInicio .cartao-compartilhado .linha:has-text("Compartilhado por Vitor")'); await esposa.waitForTimeout(700);
 await esposa.click('#dialogoAcoes button:has-text("Sair")'); await esposa.waitForTimeout(8000);
 await irParaProdutos(esposa);
 telaE = limpo(await esposa.textContent('#telaInicio'));

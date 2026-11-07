@@ -1784,6 +1784,15 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .top-vendedores { padding: 4px 16px 12px 68px; border-bottom: 1px solid rgba(198,158,78,.14); display: grid; gap: 10px; }
+  .top-vendedor-linha { display: grid; grid-template-columns: 24px 1fr auto 52px; gap: 8px; align-items: baseline; font-size: 13.5px; }
+  .top-pos { color: var(--fraco); font-size: 12px; }
+  .top-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-pct { color: var(--suave); font-size: 12px; text-align: right; }
+  .top-trilho { height: 4px; border-radius: 4px; background: rgba(255,255,255,.06); margin: 5px 0 0 32px; }
+  .top-barra { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #F472B6, #E9B44C); }
+  .cartao-compartilhado { margin-bottom: 14px; }
+  .situacao-convite { margin: 0 0 12px; color: #7DD3FC; }
   .neutro { color: #A8B3C4; }
   .cartao-meu-lucro { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
   .resumo-doces .rosca, .resumo-doces svg { margin: 4px auto 10px; }
@@ -2362,7 +2371,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.53.1';
+  var VERSAO = '5.54.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2371,6 +2380,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.54.0',
+      data: '2026-11-07',
+      itens: [
+        'Venda de Doces: o "+ Membro" também compartilha. O membro com e-mail recebe o convite para ver e mexer na Venda de Doces, a ficha dele diz se já aceitou, e tirá-lo da empresa tira o acesso. O "Compartilhar" saiu do Mais.',
+        'Quem recebe o convite vê o convite e o "Sair" no próprio Resumo dos Doces (ou do Uber).',
+        'Mais vendidos: tocando num doce, abrem embaixo os 5 vendedores que mais venderam aquele doce, com as unidades e a %.',
+        'No Início do Empreendedor, o cartão da Venda de Doces mostra o "Meu lucro no mês". No Resumo dos Doces, o cartão "Meu lucro" saiu e a divisão fica em "Membros da empresa" › Ver a divisão.'
+      ]
+    },
     {
       versao: '5.53.1',
       data: '2026-11-07',
@@ -5770,133 +5789,76 @@
       .catch(function () { avisar('Não deu para responder agora. Tente de novo com internet.'); });
   }
 
-  function abrirCompartilhar() {
-    abrirFolha('Compartilhar', function (folha) {
-      folha.appendChild(no('p', 'ajuda', 'Escolha o que compartilhar e o e-mail da conta da outra pessoa no Finanz. Ela recebe o convite dentro do app e, aceitando, vocês dois veem e mexem nos mesmos registros daquela parte. O resto da sua conta continua só seu.'));
-      var lista = cartao('liso');
-      var t1 = topoDeCartao('Que você compartilhou', null);
-      t1.style.padding = '16px 16px 0'; t1.style.marginBottom = '8px';
-      lista.appendChild(t1);
-      if (!meusConvites.length) lista.appendChild(estadoVazio('Nada compartilhado', 'Toque em "+ Convidar" para escolher o que compartilhar.'));
-      meusConvites.forEach(function (l) {
-        var sit = l.situacao === 'aceito' ? 'aceitou' : l.situacao === 'recusado' ? 'recusou' : 'ainda não respondeu';
-        lista.appendChild(linhaSimples({
-          titulo: l.convidado_email,
-          sub: (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e ') + ' · ' + sit,
-          valor: '', selo: selo(l.situacao === 'aceito' ? '#3DDC84' : l.situacao === 'recusado' ? '#FF6B6B' : '#E9B44C', '@'),
-          aoTocar: function () { abrirConvite(l); }
-        }));
-      });
-      folha.appendChild(lista);
-      if (convitesParaMim.length) {
-        var lp = cartao('liso');
-        var t0 = topoDeCartao('Convites para você', null);
-        t0.style.padding = '16px 16px 0'; t0.style.marginBottom = '8px';
-        lp.appendChild(t0);
-        convitesParaMim.forEach(function (l) {
-          lp.appendChild(linhaSimples({
-            titulo: (Array.isArray(l.areas) ? l.areas : []).map(nomeDaArea).join(' e '),
-            sub: 'de ' + (l.dono_nome || 'outra conta') + ' · aceitar ou recusar',
-            valor: '', selo: selo('#E9B44C', '✉'),
-            aoTocar: function () {
-              abrirEscolha({ titulo: 'Convite de ' + (l.dono_nome || 'outra conta'), opcoes: [
-                { valor: 'sim', rotulo: 'Aceitar', detalhe: 'vocês dois passam a ver e mexer nos mesmos registros' },
-                { valor: 'nao', rotulo: 'Recusar', detalhe: 'o convite some' }
-              ] }, function (v) {
-                if (!v) return;
-                fecharFolha();
-                responderConvite(l, v === 'sim');
-              });
-            }
-          }));
-        });
-        folha.appendChild(lp);
-      }
-      var comigo = compartilhadosComigo();
-      if (comigo.length) {
-        var lc = cartao('liso');
-        var t2 = topoDeCartao('Compartilhado com você', null);
-        t2.style.padding = '16px 16px 0'; t2.style.marginBottom = '8px';
-        lc.appendChild(t2);
-        comigo.forEach(function (x) {
-          lc.appendChild(linhaSimples({
-            titulo: x.areas.map(nomeDaArea).join(' e '),
-            sub: 'de ' + (x.donoNome || 'outra conta') + ' · toque para sair',
-            valor: '', selo: selo('#38BDF8', '⇄'),
-            aoTocar: function () {
-              perguntar({ titulo: 'Sair do compartilhamento?', texto: 'Você deixa de ver ' + x.areas.map(nomeDaArea).join(' e ') +
-                ' de ' + (x.donoNome || 'outra conta') + '. O que era seu nessa parte volta para a tela.', ok: 'Sair', tom: 'perigo' },
-                function () { fecharFolha(); responderConvite({ id: x.id }, false); });
-            }
-          }));
-        });
-        folha.appendChild(lc);
-      }
-      var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', '+ Convidar', function () { abrirConvite(null); }));
-      folha.appendChild(acoes);
-    });
-    carregarCompartilhamentos();
+  // ---------- Compartilhar pelo "+ Membro" (pedido de 07/11/2026) ----------
+  //
+  // O membro com e-mail recebe o convite para a Venda de Doces; tirá-lo da
+  // empresa tira o acesso. Quem convida é o dono: a sócia, vendo os doces
+  // dele, não pode convidar em nome dele.
+  function conviteDoEmail(email) {
+    return meusConvites.filter(function (l) { return l.convidado_email === email; })[0] || null;
   }
 
-  function abrirConvite(l, emailInicial) {
-    var areas = l && Array.isArray(l.areas) ? l.areas.slice() : ['doces'];
-    abrirFolha(l ? 'Compartilhamento' : 'Convidar', function (folha) {
-      var forma = no('div', 'forma');
-      var email = entradaTexto(l ? l.convidado_email : (emailInicial || ''), 'email@da-outra-conta.com', 200);
-      email.type = 'email'; email.autocapitalize = 'off'; email.inputMode = 'email';
-      if (l) email.disabled = true;
-      forma.appendChild(campo('E-mail da conta dela no Finanz', email));
-      var chips = no('div', 'chips');
-      AREAS_COMPARTILHAVEIS.forEach(function (a) {
-        var b = botao('chip', a.nome, function () {
-          var i = areas.indexOf(a.id);
-          if (i >= 0) areas.splice(i, 1); else areas.push(a.id);
-          b.classList.toggle('ativo', areas.indexOf(a.id) >= 0);
-          b.setAttribute('aria-pressed', areas.indexOf(a.id) >= 0 ? 'true' : 'false');
-        });
-        b.classList.toggle('ativo', areas.indexOf(a.id) >= 0);
-        b.setAttribute('aria-pressed', areas.indexOf(a.id) >= 0 ? 'true' : 'false');
-        chips.appendChild(b);
-      });
-      forma.appendChild(campo('O que compartilhar', chips));
-      var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', l ? 'Salvar' : 'Enviar convite', function () {
-        var em = String(email.value || '').trim().toLowerCase();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { mostrarErro(forma, 'Escreva o e-mail da conta dela.'); return; }
-        if (sessaoNuvem && sessaoNuvem.usuario.email && em === String(sessaoNuvem.usuario.email).toLowerCase()) {
-          mostrarErro(forma, 'Esse é o seu próprio e-mail.'); return;
+  function garantirConviteDoces(email) {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.reject(new Error('sem conta na nuvem'));
+    var l = conviteDoEmail(email);
+    var pedido;
+    if (l) {
+      var areas = Array.isArray(l.areas) ? l.areas.slice() : [];
+      if (areas.indexOf('doces') >= 0 && l.situacao !== 'recusado') return Promise.resolve('ja');
+      if (areas.indexOf('doces') < 0) areas.push('doces');
+      pedido = pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH',
+        corpo: { areas: areas, situacao: l.situacao === 'recusado' ? 'pendente' : l.situacao }, cabecalhos: { 'Prefer': 'return=minimal' } });
+    } else {
+      pedido = pedirNuvem('/rest/v1/compartilhamentos', { metodo: 'POST', cabecalhos: { 'Prefer': 'return=minimal' },
+        corpo: [{ id: novoId(), dono_id: sessaoNuvem.usuario.id, dono_nome: String(estado.perfil.nome || '').slice(0, 80),
+                  convidado_email: email, areas: ['doces'], situacao: 'pendente' }] });
+    }
+    return pedido.then(function () { carregarCompartilhamentos(); return 'enviado'; });
+  }
+
+  function tirarAcessoAosDoces(email) {
+    var l = conviteDoEmail(email);
+    if (!l || !NUVEM.ligada || !sessaoNuvem) return Promise.resolve();
+    var resto = (Array.isArray(l.areas) ? l.areas : []).filter(function (a) { return a !== 'doces'; });
+    var pedido = resto.length
+      ? pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH', corpo: { areas: resto }, cabecalhos: { 'Prefer': 'return=minimal' } })
+      : pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'DELETE' });
+    return pedido.then(function () { carregarCompartilhamentos(); });
+  }
+
+  // Para quem recebeu: o convite pendente e o "sair", dentro da própria
+  // área (o "Compartilhar" saiu do Mais).
+  function cartaoCompartilhamentoDaArea(area) {
+    var pend = convitesParaMim.filter(function (l) { return Array.isArray(l.areas) && l.areas.indexOf(area) >= 0; });
+    var comigo = compartilhadosComigo().filter(function (x) { return x.areas.indexOf(area) >= 0; });
+    if (!pend.length && !comigo.length) return null;
+    var c = cartao('liso cartao-compartilhado');
+    pend.forEach(function (l) {
+      c.appendChild(linhaSimples({
+        titulo: 'Convite de ' + (l.dono_nome || 'outra conta'),
+        sub: 'para ver e mexer em ' + l.areas.map(nomeDaArea).join(' e ') + ' · aceitar ou recusar',
+        valor: '', selo: selo('#E9B44C', '✉'),
+        aoTocar: function () {
+          abrirEscolha({ titulo: 'Convite de ' + (l.dono_nome || 'outra conta'), opcoes: [
+            { valor: 'sim', rotulo: 'Aceitar', detalhe: 'vocês dois passam a ver e mexer nos mesmos registros' },
+            { valor: 'nao', rotulo: 'Recusar', detalhe: 'o convite some' }
+          ] }, function (v) { if (v) responderConvite(l, v === 'sim'); });
         }
-        if (!areas.length) { mostrarErro(forma, 'Escolha pelo menos uma parte.'); return; }
-        var pedido = l
-          // Recusado e salvo de novo: o convite volta a valer.
-          ? pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH',
-              corpo: { areas: areas, situacao: l.situacao === 'recusado' ? 'pendente' : l.situacao }, cabecalhos: { 'Prefer': 'return=minimal' } })
-          : pedirNuvem('/rest/v1/compartilhamentos', { metodo: 'POST', cabecalhos: { 'Prefer': 'return=minimal' },
-              corpo: [{ id: novoId(), dono_id: sessaoNuvem.usuario.id, dono_nome: String(estado.perfil.nome || '').slice(0, 80),
-                        convidado_email: em, areas: areas, situacao: 'pendente' }] });
-        pedido.then(function () {
-          fecharFolha();
-          avisar(l ? 'Compartilhamento atualizado.' : 'Convite enviado. Ela vê quando abrir o app.');
-          carregarCompartilhamentos();
-        }).catch(function (e) {
-          mostrarErro(forma, /duplicate|unique|23505/i.test(String((e && (e.message || e.codigo)) || ''))
-            ? 'Você já convidou esse e-mail. Abra o convite na lista para mudar.'
-            : 'Não deu para enviar agora. Confira a internet e tente de novo.');
-        });
       }));
-      if (l) acoes.appendChild(botao('btn btn-perigo', 'Parar de compartilhar', function () {
-        perguntar({ titulo: 'Parar de compartilhar?', texto: l.convidado_email + ' deixa de ver o que você compartilhou. Os registros continuam seus.', ok: 'Parar', tom: 'perigo' }, function () {
-          pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'DELETE' }).then(function () {
-            fecharFolha();
-            avisar('Compartilhamento desfeito.');
-            carregarCompartilhamentos();
-          }).catch(function () { avisar('Não deu agora. Tente de novo com internet.'); });
-        });
-      }));
-      forma.appendChild(acoes);
-      folha.appendChild(forma);
     });
+    comigo.forEach(function (x) {
+      c.appendChild(linhaSimples({
+        titulo: 'Compartilhado por ' + (x.donoNome || 'outra conta'),
+        sub: x.areas.map(nomeDaArea).join(' e ') + ' · toque para sair',
+        valor: '', selo: selo('#38BDF8', '⇄'),
+        aoTocar: function () {
+          perguntar({ titulo: 'Sair do compartilhamento?', texto: 'Você deixa de ver ' + x.areas.map(nomeDaArea).join(' e ') +
+            ' de ' + (x.donoNome || 'outra conta') + '. O que era seu nessa parte volta para a tela.', ok: 'Sair', tom: 'perigo' },
+            function () { responderConvite({ id: x.id }, false); });
+        }
+      }));
+    });
+    return c;
   }
 
   function linhasDoEstado(uid) {
@@ -11503,8 +11465,10 @@
         ? { rotulo: aberta.pausaDesde ? 'Jornada pausada' : 'Em jornada', valor: formatarRelogio(duracaoJornada(aberta)),
             cor: aberta.pausaDesde ? 'ouro' : 'verde', relogio: !aberta.pausaDesde }
         : { rotulo: 'Lucro no mês', valor: emReais(n.uber.lucro), cor: n.uber.lucro < 0 ? 'vermelho' : 'verde' }));
+    // Doces: a sua parte no lucro do mês (pedido de 07/11/2026).
+    var meuDoces = meuLucroNosDoces(faixa.de, faixa.ate);
     lista.appendChild(cartaoDeModulo('doces', 'Vendedores, entregas e prestação de contas',
-      { rotulo: 'Total a receber', valor: emReais(n.doces.pendente), cor: n.doces.pendente > 0 ? 'ouro' : 'verde' }));
+      { rotulo: 'Meu lucro no mês', valor: emReais(meuDoces), cor: meuDoces < 0 ? 'vermelho' : 'verde' }));
     // O quarto quadro (Painel geral) saiu: ele repetia o resumo, que agora
     // é a primeira coisa da tela e continua abrindo o painel.
 
@@ -12607,6 +12571,8 @@
     if (abaUber === 'manutencao') desenharManutencaoUber(corpo);
     else if (abaUber === 'gastos') desenharGastosUber(corpo);
     else {
+      var compartU = cartaoCompartilhamentoDaArea('uber');
+      if (compartU) corpo.appendChild(compartU);
       var alertas = cartaoDeAlertasDeManutencao();
       if (alertas) corpo.appendChild(alertas);
       desenharHojeUber(corpo);
@@ -13813,21 +13779,17 @@
     return { lista: lista, total: total };
   }
 
+  function meuLucroNosDoces(de, ate) {
+    return Math.round(resumoDosDoces(de, ate).lucro * divisaoDoLucro().meuPct / 100);
+  }
+
   function desenharResumoDoces(corpo) {
     var f = faixaDoMesAtivo();
     var mes = MESES[mesAtivo.mes];
     var r = resumoDosDoces(f.de, f.ate);
     var d = divisaoDoLucro();
-    var meuLucro = Math.round(r.lucro * d.meuPct / 100);
-
-    // ---- o que mais importa: o meu lucro ----
-    var cm = botao('cartao cartao-destaque cartao-meu-lucro', null, function () { abrirLucroDaEmpresa(); });
-    cm.appendChild(no('div', 'rotulo', 'Meu lucro · ' + mes));
-    cm.appendChild(no('div', 'valorao num ' + (meuLucro < 0 ? 'vermelho' : 'verde'), emReais(meuLucro)));
-    cm.appendChild(no('div', 'linha-nota', d.membros.length
-      ? 'Sua parte: ' + textoPct(d.meuPct) + ' do lucro da operação (' + emReais(r.lucro) + ') · ver a divisão ›'
-      : 'Você fica com 100% do lucro da operação. Adicione os membros da empresa para dividir ›'));
-    corpo.appendChild(cm);
+    var compart = cartaoCompartilhamentoDaArea('doces');
+    if (compart) corpo.appendChild(compart);
 
     // ---- a conta do mês, em % ----
     var t = cartao('resumo-doces');
@@ -13870,7 +13832,8 @@
 
     // ---- membros ----
     var cmb = cartao('liso');
-    var tm = topoDeCartao('Membros da empresa', null);
+    // O "Meu lucro" fica no Início do Empreendedor; aqui, a divisão.
+    var tm = topoDeCartao('Membros da empresa', 'Ver a divisão', function () { abrirLucroDaEmpresa(); });
     tm.style.padding = '16px 16px 0'; tm.style.marginBottom = '8px';
     cmb.appendChild(tm);
     cmb.appendChild(linhasDosMembros(r.lucro, d, function () { desenharInicio(); }, false));
@@ -13972,6 +13935,21 @@
     });
   }
 
+  // Quem mais vendeu um doce: unidades de cada vendedor e a % no total dele.
+  function vendedoresDoProduto(produtoId, de, ate) {
+    var porVendedor = {}, total = 0;
+    estado.doceAcertos.forEach(function (a) {
+      if (de && (a.data < de || a.data > ate)) return;
+      a.itens.forEach(function (i) {
+        if (i.produtoId !== produtoId || !i.vendidos) return;
+        porVendedor[a.vendedorId] = (porVendedor[a.vendedorId] || 0) + i.vendidos;
+        total += i.vendidos;
+      });
+    });
+    return Object.keys(porVendedor).map(function (k) { return { vendedorId: k, un: porVendedor[k], pct: total ? porVendedor[k] / total * 100 : 0 }; })
+      .sort(function (a, b) { return b.un - a.un; });
+  }
+
   function abrirMaisVendidos() {
     var f = faixaDoMesAtivo();
     var mes = MESES[mesAtivo.mes];
@@ -13982,19 +13960,44 @@
       c.appendChild(no('div', 'valorao pequeno num neutro', emReais(r.revendedores)));
       c.appendChild(no('div', 'linha-nota', textoPct(r.pct(r.revendedores)) + ' da venda total. Não sai como despesa: no acerto ele já fica com os revendedores.'));
       folha.appendChild(c);
-      [['Top 3 de todas as vendas', maisVendidos('', '')], ['Top 3 em ' + mes, maisVendidos(f.de, f.ate)]].forEach(function (bloco) {
+      [['Top 3 de todas as vendas', maisVendidos('', ''), '', ''], ['Top 3 em ' + mes, maisVendidos(f.de, f.ate), f.de, f.ate]].forEach(function (bloco) {
         var l = cartao('liso');
         var tt = topoDeCartao(bloco[0], null);
         tt.style.padding = '16px 16px 0'; tt.style.marginBottom = '8px';
         l.appendChild(tt);
         if (!bloco[1].lista.length) l.appendChild(estadoVazio('Nenhuma venda ainda', 'As prestações de contas dizem o que mais sai.'));
         bloco[1].lista.slice(0, 3).forEach(function (x, i) {
-          l.appendChild(linhaSimples({
+          // Tocando no doce, abre embaixo o top 5 dos vendedores dele
+          // (pedido de 07/11/2026).
+          var abre = no('div', 'top-vendedores');
+          abre.style.display = 'none';
+          var linhaDoce = linhaSimples({
             titulo: (i + 1) + 'º · ' + nomeDoProduto(x.produtoId),
             sub: textoPct(x.un / bloco[1].total * 100) + ' de tudo o que foi vendido',
-            valor: x.un + ' un.', cor: i === 0 ? 'ouro' : '',
-            selo: seloIcone('doce', '#F472B6')
-          }));
+            valor: x.un + ' un.', cor: i === 0 ? 'ouro' : '', nota: 'quem vendeu ▾',
+            selo: seloIcone('doce', '#F472B6'),
+            aoTocar: function () {
+              var abrir = abre.style.display === 'none';
+              if (abrir && !abre.childNodes.length) {
+                vendedoresDoProduto(x.produtoId, bloco[2], bloco[3]).slice(0, 5).forEach(function (v, k) {
+                  var lv = no('div', 'top-vendedor');
+                  var barra = no('div', 'top-barra');
+                  barra.style.width = Math.max(4, Math.round(v.pct)) + '%';
+                  juntar(lv, juntar(no('div', 'top-vendedor-linha'),
+                      no('span', 'top-pos', (k + 1) + 'º'),
+                      no('span', 'top-nome', nomeDoVendedor(v.vendedorId)),
+                      no('strong', 'num', v.un + ' un.'),
+                      no('span', 'num top-pct', textoPct(v.pct))),
+                    juntar(no('div', 'top-trilho'), barra));
+                  abre.appendChild(lv);
+                });
+              }
+              abre.style.display = abrir ? '' : 'none';
+              linhaDoce.classList.toggle('aberta', abrir);
+            }
+          });
+          l.appendChild(linhaDoce);
+          l.appendChild(abre);
         });
         folha.appendChild(l);
       });
@@ -14130,14 +14133,37 @@
         if (!m) estado.doceMembros.push(reg);
         salvar();
         fecharOuVoltar(deCima);
-        avisar('Membro salvo.');
+        var eu0 = meuEmailNaConta();
+        if (!reg.email || reg.email === eu0) { avisar('Membro salvo.'); return; }
+        if (donoDaArea('doces')) { avisar('Membro salvo. Quem convida para ver a Venda de Doces é o dono dela.'); return; }
+        garantirConviteDoces(reg.email).then(function (r) {
+          avisar(r === 'ja' ? 'Membro salvo.' : 'Membro salvo e convite enviado: ' + reg.nome + ' vê quando abrir o app e aceitar.');
+        }).catch(function () {
+          avisar('Membro salvo. O convite não foi agora (precisa da conta na nuvem e internet): abra o membro para enviar.');
+        });
       }));
       var eu = meuEmailNaConta();
-      if (m && m.email && m.email !== eu && !meusConvites.some(function (l) { return l.convidado_email === m.email; })) {
-        acoes.appendChild(botao('btn btn-fantasma', 'Convidar para ver a Venda de Doces', function () { abrirConvite(null, m.email); }));
+      // A situação do convite para a Venda de Doces, para o dono.
+      if (m && m.email && m.email !== eu && !donoDaArea('doces')) {
+        var cv = conviteDoEmail(m.email);
+        var temDoces = cv && Array.isArray(cv.areas) && cv.areas.indexOf('doces') >= 0;
+        var sit = !temDoces ? 'Ainda não vê a Venda de Doces.'
+          : cv.situacao === 'aceito' ? m.nome + ' vê e mexe na Venda de Doces junto com você.'
+          : cv.situacao === 'recusado' ? m.nome + ' recusou o convite.'
+          : 'Convite enviado: falta ' + m.nome + ' aceitar dentro do app.';
+        forma.insertBefore(no('div', 'linha-nota situacao-convite', sit), forma.firstChild);
+        if (!temDoces || cv.situacao === 'recusado') {
+          acoes.appendChild(botao('btn btn-fantasma', temDoces ? 'Convidar de novo' : 'Enviar convite para a Venda de Doces', function () {
+            garantirConviteDoces(m.email).then(function () { fecharOuVoltar(deCima); avisar('Convite enviado.'); })
+              .catch(function () { avisar('Não deu agora: precisa da conta na nuvem e internet.'); });
+          }));
+        }
       }
       if (m) acoes.appendChild(botao('btn btn-perigo', 'Tirar da empresa', function () {
-        perguntar({ titulo: 'Tirar ' + m.nome + '?', texto: 'A parte dele no lucro volta para a divisão.', ok: 'Tirar', tom: 'perigo' }, function () {
+        var comAcesso = !donoDaArea('doces') && m.email && conviteDoEmail(m.email);
+        perguntar({ titulo: 'Tirar ' + m.nome + '?', texto: 'A parte dele no lucro volta para a divisão' +
+            (comAcesso ? ', e ele deixa de ver a Venda de Doces.' : '.'), ok: 'Tirar', tom: 'perigo' }, function () {
+          if (comAcesso) tirarAcessoAosDoces(m.email).catch(function () { avisar('O acesso não foi tirado agora: tente de novo com internet.'); });
           marcarExcluido('empreendedor_registros', m.id);
           estado.doceMembros = estado.doceMembros.filter(function (y) { return y.id !== m.id; });
           salvar();
@@ -22629,11 +22655,6 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⇄', 'Compartilhar', 'Venda de Doces ou Uber com outra conta, os dois mexendo',
-        function () {
-          if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Precisa da conta na nuvem', 'Compartilhar depende da conta ligada: os dados ficam no servidor para os dois.', function () {}); return; }
-          abrirCompartilhar();
-        }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
