@@ -2346,7 +2346,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.52.0';
+  var VERSAO = '5.52.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2355,6 +2355,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.52.1',
+      data: '2026-11-07',
+      itens: [
+        'Acerto: botão "Mandar para" o revendedor. Abre a conversa dele no WhatsApp com o resumo escrito (vendidos, total da venda e a comissão dele) e salva o PDF para anexar, ou manda o arquivo pelo app que você escolher. Sem número cadastrado, dá para cadastrar ali mesmo.'
+      ]
+    },
     {
       versao: '5.52.0',
       data: '2026-11-07',
@@ -14985,6 +14992,41 @@
     }
   }
 
+  // O texto que vai junto com o PDF para o revendedor: o resumo, sem a sua parte.
+  function textoDoAcertoParaRevendedor(a) {
+    var r = vendaDoAcerto(acertosDaData(a));
+    var nome = nomeDoVendedor(a.vendedorId);
+    return 'Oi, ' + nome + '! Segue o acerto de ' + dataBr(a.data) + ':\n' +
+      '• ' + r.vendidos + ' doce(s) vendido(s)\n' +
+      '• Total da venda: ' + emReais(r.total) + '\n' +
+      '• Sua comissão: ' + emReais(r.comissao) + '\n\n' +
+      'O detalhamento de cada doce está no PDF.';
+  }
+
+  // Mandar para o revendedor (pedido de 07/11/2026): pela conversa dele no
+  // WhatsApp (o texto vai pronto e o PDF fica salvo para anexar) ou pela
+  // folha de compartilhar do celular, que leva o arquivo junto.
+  function mandarAcertoAoRevendedor(a) {
+    var v = achar(estado.doceVendedores, a.vendedorId);
+    var nome = nomeDoVendedor(a.vendedorId);
+    var numero = v ? numeroWhatsapp(v.telefone) : '';
+    var opcoes = [];
+    if (numero) opcoes.push({ valor: 'zap', rotulo: 'WhatsApp de ' + nome,
+      detalhe: 'abre a conversa com o resumo escrito; o PDF fica salvo para anexar' });
+    opcoes.push({ valor: 'app', rotulo: 'Escolher o app',
+      detalhe: 'manda o arquivo pelo WhatsApp, e-mail ou outro, e você escolhe o contato' });
+    if (!numero) opcoes.push({ valor: 'fone', rotulo: 'Cadastrar o WhatsApp de ' + nome,
+      detalhe: 'para mandar direto para a conversa dele da próxima vez' });
+    abrirEscolha({ titulo: 'Mandar para ' + nome, semMarca: true, opcoes: opcoes }, function (x) {
+      if (x === 'zap') {
+        try { baixarArquivo(nomeDoPdfDoAcerto(a), pdfDoAcertoDoce(a), 'application/pdf'); } catch (e) {}
+        window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(textoDoAcertoParaRevendedor(a)), '_blank', 'noopener');
+        avisar('PDF salvo em Downloads: na conversa, use o clipe para anexar.');
+      } else if (x === 'app') enviarPdfDoAcerto(a);
+      else if (x === 'fone') porCima(function () { abrirAcertoDoce(a.id, false); }, function () { abrirFolhaVendedor(a.vendedorId, true); });
+    });
+  }
+
   function enviarPdfDoAcerto(a) {
     var arquivo;
     try { arquivo = new File([pdfDoAcertoDoce(a)], nomeDoPdfDoAcerto(a), { type: 'application/pdf' }); } catch (e) {
@@ -14992,7 +15034,8 @@
       return;
     }
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
-      navigator.share({ files: [arquivo], title: 'Acerto ' + nomeDoVendedor(a.vendedorId) + ' ' + dataBr(a.data) }).catch(function () {});
+      navigator.share({ files: [arquivo], text: textoDoAcertoParaRevendedor(a),
+                        title: 'Acerto ' + nomeDoVendedor(a.vendedorId) + ' ' + dataBr(a.data) }).catch(function () {});
       return;
     }
     baixarArquivo(arquivo.name, pdfDoAcertoDoce(a), 'application/pdf');
@@ -15021,7 +15064,7 @@
       folha.appendChild(c);
       var pdfs = no('div', 'duas acoes-pdf');
       pdfs.appendChild(botao('btn btn-ouro', 'Ver o PDF', function () { verPdfDoAcerto(a); }));
-      pdfs.appendChild(botao('btn btn-fantasma', 'Enviar o PDF', function () { enviarPdfDoAcerto(a); }));
+      pdfs.appendChild(botao('btn btn-fantasma', 'Mandar para ' + nomeDoVendedor(a.vendedorId), function () { mandarAcertoAoRevendedor(a); }));
       folha.appendChild(pdfs);
       if (acertosDaData(a).length > 1) folha.appendChild(no('p', 'ajuda', 'O PDF junta todos os acertos de ' + nomeDoVendedor(a.vendedorId) + ' em ' + dataBr(a.data) + '.'));
       var lista = cartao('liso');

@@ -159,7 +159,8 @@ await page.waitForTimeout(16000);
 const aviso = await avisoDeSincronia();
 console.log('aviso em Mais:', aviso);
 conferir('1. a sincronização continua funcionando', /Sincronizar agora/.test(aviso), aviso);
-conferir('2. e não há 409 de chave estrangeira', !/409|foreign key/.test(aviso), aviso);
+// "409" solto: o e-mail de teste leva Date.now() e pode ter esses dígitos.
+conferir('2. e não há 409 de chave estrangeira', !/(^|\D)409(\D|$)|foreign key/.test(aviso), aviso);
 await page.screenshot({ path: dir+'/z17-sem-409.png', fullPage: true });
 
 const depois = await naConta();

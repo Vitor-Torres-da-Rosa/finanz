@@ -153,6 +153,23 @@ conferir('19. "Ver o PDF" abre o PDF com os itens, o total e a comissão',
   urlPdf.startsWith('blob:') && pdf.startsWith('%PDF') && /Pote de vidro/.test(pdf) && /R\$.125,00/.test(pdf) && /R\$.95,00/.test(pdf) && /Daniela/.test(pdf),
   urlPdf.slice(0, 30) + ' · ' + pdf.length + ' bytes');
 conferir('20. e sem a sua parte no PDF', !/R\$.6,00/.test(pdf) && !/R\$.30,00/.test(pdf));
+// ---- mandar para o revendedor ----
+await page.click('#folha button:has-text("Mandar para Daniela")'); await page.waitForTimeout(600);
+const opMandar = limpo(await page.textContent('#escolhaLista'));
+conferir('21. "Mandar para Daniela" oferece o app e, sem número, cadastrar o WhatsApp dela',
+  /Escolher o app/.test(opMandar) && /Cadastrar o WhatsApp de Daniela/.test(opMandar) && !/WhatsApp de Daniela\s*abre a conversa/.test(opMandar), opMandar);
+await page.click('#escolhaLista .escolha-item:has-text("Cadastrar o WhatsApp")'); await page.waitForTimeout(900);
+await folha().getByLabel('Telefone / WhatsApp (opcional)').fill('51999998888');
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1000);
+conferir('22. salvo o número, volta para o acerto', /Acerto sem estoque de/.test(await page.textContent('#folhaTitulo')), await page.textContent('#folhaTitulo'));
+await page.evaluate(() => { window.__abriu = []; window.open = (u) => { window.__abriu.push(u); return {}; }; });
+await page.click('#folha button:has-text("Mandar para Daniela")'); await page.waitForTimeout(600);
+await page.click('#escolhaLista .escolha-item:has-text("WhatsApp de Daniela")'); await page.waitForTimeout(800);
+const zap = await page.evaluate(() => window.__abriu.filter(u => /wa\.me/.test(u))[0] || '');
+const msg = decodeURIComponent((zap.split('text=')[1] || ''));
+conferir('23. abre a conversa dela com o resumo, sem a sua parte',
+  /^https:\/\/wa\.me\/5551999998888\?text=/.test(zap) && /Oi, Daniela! Segue o acerto/.test(msg) && /Total da venda: R\$.125,00/.test(msg) &&
+  /Sua comissão: R\$.95,00/.test(msg) && !/R\$.30,00|R\$.6,00/.test(msg), zap.slice(0, 60) + ' | ' + msg.replace(/\n/g, ' / '));
 await import('node:fs').then(fs => fs.writeFileSync(dir + '/z70-acerto.pdf', Buffer.from(pdf, 'latin1')));
 
 await browser.close();
