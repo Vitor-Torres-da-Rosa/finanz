@@ -1784,6 +1784,13 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .falta-compra { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px;
+    margin: -6px 0 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--borda); background: rgba(255,255,255,.03); font-size: 13.5px; }
+  .falta-compra:empty { display: none; }
+  .falta-compra span { color: var(--suave); }
+  .falta-compra strong { font-size: 15px; }
+  .falta-compra .falta-nota { flex-basis: 100%; font-size: 12px; color: var(--suave); }
+  .falta-compra.aviso { color: var(--suave); font-size: 12.5px; }
   .top-vendedores { padding: 4px 16px 12px 68px; border-bottom: 1px solid rgba(198,158,78,.14); display: grid; gap: 10px; }
   .top-vendedor-linha { display: grid; grid-template-columns: 24px 1fr auto 52px; gap: 8px; align-items: baseline; font-size: 13.5px; }
   .top-pos { color: var(--fraco); font-size: 12px; }
@@ -2371,7 +2378,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.54.0';
+  var VERSAO = '5.56.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2380,6 +2387,44 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.56.3',
+      data: '2026-11-08',
+      itens: [
+        'Compra do fornecedor sem divisão: cada doce mostra a conta "quantidade × valor de compra = total", e a diferença para o valor pago fica à vista lá em cima. Se os doces passarem do valor pago, o app pergunta antes de salvar.'
+      ]
+    },
+    {
+      versao: '5.56.2',
+      data: '2026-11-08',
+      itens: [
+        'Compra do fornecedor: logo abaixo do valor pago aparece quanto os doces marcados já somam e quanto ainda falta (ou se passou). Cada doce mostra o valor de compra dele: 15 × R$ 13,00 = R$ 195,00.'
+      ]
+    },
+    {
+      versao: '5.56.1',
+      data: '2026-11-08',
+      itens: [
+        'Compra do fornecedor: cada doce entra pelo valor de compra dele. Se o total pago passar da soma (ex.: doces somam R$ 750,00 e você pagou R$ 800,00), a diferença entra sozinha como "Taxa da compra" no custo operacional. Editar ou excluir a compra acerta a taxa junto.'
+      ]
+    },
+    {
+      versao: '5.56.0',
+      data: '2026-11-08',
+      itens: [
+        'Fornecedor: uma compra pode ter vários doces e um valor só para tudo. Marque a quantidade de cada doce da lista. O app divide o valor pago entre eles, pelo valor de compra de cada um (ou por unidade, se algum não tiver), e mostra quanto ficou cada unidade.',
+        'Na lista de compras, a compra de vários doces aparece numa linha só, com o total. Editar ou excluir mexe na compra inteira.'
+      ]
+    },
+    {
+      versao: '5.55.0',
+      data: '2026-11-07',
+      itens: [
+        'Venda de Doces: todos os valores e contas usam o cadastro de cada doce em Produtos. A entrega pede só o doce, a quantidade e as datas.',
+        'Entregas: o "+ Registrar entrega" saiu. Toque no cartão do vendedor para registrar, e use "+ Adicionar vendedor" embaixo. Vendedor sem entrega também aparece.',
+        'O "+ Membro" fica dentro de "Membros da empresa". Em "Ver a divisão" ficam só o lucro da operação e a parte de cada membro.'
+      ]
+    },
     {
       versao: '5.54.0',
       data: '2026-11-07',
@@ -4879,7 +4924,8 @@
     // cada um com a parte dele no lucro.
     limpo.doceCustos = lista('doceCustos').map(function (x) {
       return { id: x.id, descricao: texto(x.descricao).slice(0, 80) || 'Custo', valor: positivo(x.valor),
-               data: soData(x.data) || hojeTexto(), criadoEm: marca(x.criadoEm) || Date.now() };
+               data: soData(x.data) || hojeTexto(), compraId: texto(x.compraId).slice(0, 80),
+               criadoEm: marca(x.criadoEm) || Date.now() };
     }).filter(function (x) { return x.valor > 0; });
     limpo.doceMembros = lista('doceMembros').map(function (x) {
       var pc = Number(x.percentual);
@@ -4893,6 +4939,9 @@
       return { id: x.id, produtoId: texto(x.produtoId), quantidade: positivo(x.quantidade),
                valor: positivo(x.valor), fornecedor: texto(x.fornecedor).slice(0, 60),
                data: soData(x.data) || hojeTexto(), obs: texto(x.obs).slice(0, 200),
+               // Compra de vários doces com um valor só: cada doce vira uma
+               // linha com a parte dele, e todas levam o mesmo grupo.
+               grupoId: texto(x.grupoId).slice(0, 80),
                criadoEm: marca(x.criadoEm) || Date.now() };
     }).filter(function (x) { return x.produtoId && x.quantidade > 0; });
   }
@@ -13625,6 +13674,15 @@
   // com 5. Ele te repassa R$ 70,00, lucra R$ 70,00 e ainda tem 5 doces.
 
   // Tudo o que se sabe de um vendedor, e o recorte de um período (de/ate).
+  // Os valores de um doce vêm do cadastro em Produtos (pedido de
+  // 07/11/2026). A entrega guarda uma cópia só para o caso de o produto
+  // ter sido apagado.
+  function valoresDoDoce(produtoId, reserva) {
+    var p = achar(estado.doceProdutos, produtoId);
+    if (p) return { repasse: p.repasse, preco: p.preco, custo: p.custo || 0 };
+    return { repasse: reserva ? reserva.repasse || 0 : 0, preco: reserva ? reserva.preco || 0 : 0, custo: 0 };
+  }
+
   function contaDoVendedor(vid, de, ate) {
     var porProduto = {};
     function p(pid) {
@@ -13641,7 +13699,7 @@
       x.entregue += e.quantidade;
       r.entregue += e.quantidade;
       if (noPeriodo(e.data)) r.entreguePeriodo += e.quantidade;
-      if (e.data >= x.ultima) { x.ultima = e.data; x.repasse = e.repasse; x.preco = e.preco; }
+      if (e.data >= x.ultima) { x.ultima = e.data; var vd = valoresDoDoce(e.produtoId, e); x.repasse = vd.repasse; x.preco = vd.preco; }
     });
     estado.doceAcertos.forEach(function (a) {
       if (a.vendedorId !== vid) return;
@@ -13825,9 +13883,8 @@
     if (r.estoque) t.appendChild(no('div', 'linha-nota', r.estoque + ' doce(s) ainda com os vendedores.'));
     corpo.appendChild(t);
 
-    var ac = no('div', 'duas acoes-resumo-doces');
+    var ac = no('div', 'acoes acoes-resumo-doces');
     ac.appendChild(botao('btn btn-fantasma', '+ Custo operacional', function () { abrirCustoOperacional(null); }));
-    ac.appendChild(botao('btn btn-fantasma', '+ Membro', function () { abrirMembroDoces(null); }));
     corpo.appendChild(ac);
 
     // ---- membros ----
@@ -13837,6 +13894,7 @@
     tm.style.padding = '16px 16px 0'; tm.style.marginBottom = '8px';
     cmb.appendChild(tm);
     cmb.appendChild(linhasDosMembros(r.lucro, d, function () { desenharInicio(); }, false));
+    cmb.appendChild(botao('linha-mais', '+ Membro', function () { abrirMembroDoces(null); }));
     corpo.appendChild(cmb);
 
     // ---- vendedores, por último ----
@@ -13912,26 +13970,12 @@
       c.appendChild(no('div', 'valorao num ' + (r.lucro < 0 ? 'vermelho' : 'verde'), emReais(r.lucro)));
       c.appendChild(no('div', 'linha-nota', textoPct(r.pct(r.lucro)) + ' da venda total de ' + emReais(r.venda)));
       folha.appendChild(c);
-      var conta = cartao();
-      [['Venda total', emReais(r.venda), 'ouro', 100],
-       ['Lucro dos revendedores', '− ' + emReais(r.revendedores), 'neutro', r.pct(r.revendedores)],
-       ['Custo total', '− ' + emReais(r.custo), 'vermelho', r.pct(r.custo)],
-       ['Lucro da operação', emReais(r.lucro), r.lucro < 0 ? 'vermelho' : 'verde', r.pct(r.lucro)]].forEach(function (x, i) {
-        var l = no('div', 'parcela-linha' + (i === 3 ? ' total' : ''));
-        juntar(l, no('span', 'q', x[0]), juntar(no('span', 'v num ' + x[2], x[1]), no('span', 'pct', textoPct(x[3]))));
-        conta.appendChild(l);
-      });
-      conta.classList.add('detalhe-uber-lucro');
-      folha.appendChild(conta);
       var cm = cartao('liso');
       var tm = topoDeCartao('Divisão entre os membros', null);
       tm.style.padding = '16px 16px 0'; tm.style.marginBottom = '8px';
       cm.appendChild(tm);
       cm.appendChild(linhasDosMembros(r.lucro, d, reabrir, true));
       folha.appendChild(cm);
-      var ac = no('div', 'acoes');
-      ac.appendChild(botao('btn btn-fantasma', '+ Membro', function () { porCima(reabrir, function () { abrirMembroDoces(null, true); }); }));
-      folha.appendChild(ac);
     });
   }
 
@@ -14179,21 +14223,25 @@
 
 
   function desenharEntregasDoces(corpo) {
-    var acoes = no('div', 'acoes acoes-topo');
-    acoes.appendChild(botao('btn btn-ouro', '+ Registrar entrega', function () { abrirFolhaEntrega(null, ''); }));
-    corpo.appendChild(acoes);
+    // A entrega se registra tocando no vendedor (o "+ Registrar entrega"
+    // saiu, pedido de 07/11/2026); embaixo, "+ Adicionar vendedor".
     var lista = cartao('liso');
     var entregas = estado.doceEntregas.slice().sort(function (a, b) {
       if (a.data !== b.data) return a.data < b.data ? 1 : -1;
       return b.criadoEm - a.criadoEm;
     });
-    if (!entregas.length) lista.appendChild(estadoVazio('Nenhuma entrega ainda', 'Cada vez que você deixa doces com um vendedor, registre aqui.'));
+    if (!estado.doceVendedores.length) lista.appendChild(estadoVazio('Nenhum vendedor ainda', 'Adicione um vendedor e, tocando nele, registre o que deixou com ele.'));
     // Uma linha por vendedor (pedido de 03/11/2026); tocando, abrem os
     // doces que foram para ele.
     var porVendedor = {}, ordem = [];
     entregas.forEach(function (e) {
       if (!porVendedor[e.vendedorId]) { porVendedor[e.vendedorId] = []; ordem.push(e.vendedorId); }
       porVendedor[e.vendedorId].push(e);
+    });
+    // Vendedor ativo ainda sem entrega também ganha cartão: é por ele que a
+    // primeira entrega se registra.
+    estado.doceVendedores.forEach(function (v) {
+      if (v.ativo && !porVendedor[v.id]) { porVendedor[v.id] = []; ordem.push(v.id); }
     });
     // Um cartão por vendedor (pedido de 07/11/2026): as entregas deste mês
     // e do mês passado lado a lado, e o que está com ele agora: o custo da
@@ -14222,7 +14270,7 @@
       var card = botao('cartao cartao-vendedor-entregas', null, function () { abrirEntregasDoVendedor(vid); });
       var topo = no('div', 'cve-topo');
       juntar(topo, selo('#E9B44C', nome.charAt(0).toUpperCase()),
-        juntar(no('div', 'cve-nome'), no('strong', null, nome), no('span', null, 'última entrega ' + dataCurta(dele[0].data))),
+        juntar(no('div', 'cve-nome'), no('strong', null, nome), no('span', null, dele.length ? 'última entrega ' + dataCurta(dele[0].data) : 'nenhuma entrega ainda · toque para registrar')),
         no('span', 'cve-seta', '›'));
       card.appendChild(topo);
       var meses = no('div', 'cve-meses');
@@ -14243,6 +14291,9 @@
       lista.appendChild(card);
     });
     corpo.appendChild(lista);
+    var acoes = no('div', 'acoes');
+    acoes.appendChild(botao('btn btn-ouro', '+ Adicionar vendedor', function () { abrirFolhaVendedor(null); }));
+    corpo.appendChild(acoes);
   }
 
   function abrirEntregasDoVendedor(vid) {
@@ -14279,8 +14330,8 @@
       titulo: doVendedor ? nomeCurto(nomeDoProduto(e.produtoId), 18) : nomeDoVendedor(e.vendedorId) + ' · ' + e.quantidade + ' un.',
       qtd: doVendedor ? e.quantidade + ' un.' : '',
       sub: datas + (doVendedor ? '' : ' · ' + nomeDoProduto(e.produtoId)),
-      valor: emReais(e.quantidade * e.repasse), cor: 'ouro',
-      nota: 'venda ' + emReais(e.quantidade * e.preco),
+      valor: emReais(e.quantidade * valoresDoDoce(e.produtoId, e).repasse), cor: 'ouro',
+      nota: 'venda ' + emReais(e.quantidade * valoresDoDoce(e.produtoId, e).preco),
       selo: seloIcone('pacote', '#E9B44C'),
       aoTocar: function () {
         if (reabrir) porCima(reabrir, function () { abrirFolhaEntrega(e.id, '', true); });
@@ -14515,7 +14566,10 @@
       tile('Gasto em compras', emReais(gasto), 'vermelho'),
       tile('Unidades', String(un), '')
     ], 2));
-    cm.appendChild(no('div', 'linha-nota', 'O lucro dos doces já desconta o valor de compra de cada unidade vendida, então a compra não entra de novo como despesa.'));
+    var taxasMes = estado.doceCustos.filter(function (c) { return c.compraId && c.data >= f.de && c.data <= f.ate; })
+      .reduce(function (t, c) { return t + c.valor; }, 0);
+    cm.appendChild(no('div', 'linha-nota', (taxasMes ? 'Mais ' + emReais(taxasMes) + ' de taxas das compras, no custo operacional. ' : '') +
+      'As compras do mês entram no custo total do Resumo.'));
     corpo.appendChild(cm);
 
     var comCompra = {};
@@ -14547,12 +14601,24 @@
       if (a.data !== b.data) return a.data < b.data ? 1 : -1;
       return b.criadoEm - a.criadoEm;
     });
-    if (!todas.length) lista.appendChild(estadoVazio('Nenhuma compra ainda', 'Registre cada compra do fornecedor: o doce, a quantidade e quanto pagou.'));
-    todas.slice(0, 200).forEach(function (x) {
+    if (!todas.length) lista.appendChild(estadoVazio('Nenhuma compra ainda', 'Registre cada compra do fornecedor: os doces, as quantidades e quanto pagou.'));
+    // Uma linha por compra: a de vários doces aparece junta, com o total.
+    var vistos = {};
+    todas.forEach(function (x) {
+      var chave = x.grupoId || x.id;
+      if (vistos[chave]) return;
+      vistos[chave] = true;
+      var grupo = itensDaCompra(x);
+      var un = grupo.reduce(function (t, y) { return t + y.quantidade; }, 0);
+      var taxaL = x.grupoId ? taxaDaCompra(x.grupoId) : null;
+      var total = grupo.reduce(function (t, y) { return t + y.valor; }, 0) + (taxaL ? taxaL.valor : 0);
       lista.appendChild(linhaSimples({
-        titulo: nomeDoProduto(x.produtoId) + ' · ' + x.quantidade + ' un.',
-        sub: dataBr(x.data) + (x.fornecedor ? ' · ' + x.fornecedor : '') + ' · ' + emReais(Math.round(x.valor / x.quantidade)) + ' cada',
-        valor: '− ' + emReais(x.valor), cor: 'vermelho',
+        titulo: grupo.length === 1 ? nomeDoProduto(x.produtoId) + ' · ' + x.quantidade + ' un.' : grupo.length + ' doces · ' + un + ' un.',
+        sub: dataBr(x.data) + (x.fornecedor ? ' · ' + x.fornecedor : '') +
+          (grupo.length === 1 ? ' · ' + emReais(Math.round(x.valor / x.quantidade)) + ' cada'
+            : ' · ' + grupo.map(function (y) { return nomeDoProduto(y.produtoId); }).join(', ')) +
+          (taxaL ? ' · taxa ' + emReais(taxaL.valor) : ''),
+        valor: '− ' + emReais(total), cor: 'vermelho',
         selo: seloIcone('pacote', '#FF6B6B'),
         aoTocar: function () { abrirFolhaCompraDoce(x.id); }
       }));
@@ -14562,25 +14628,84 @@
 
   var ultimoFornecedor = '';
 
+  // As linhas de uma compra (o grupo dela, ou ela sozinha).
+  function itensDaCompra(x) {
+    if (!x.grupoId) return [x];
+    return estado.doceCompras.filter(function (y) { return y.grupoId === x.grupoId; });
+  }
+
+  // A conta da compra (pedido de 08/11/2026): nunca divide o valor pago.
+  // Cada doce entra por quantidade × valor de compra; o que o total pago
+  // passar da soma é taxa (vai para o custo operacional). Doce sem valor de
+  // compra fica com o que sobrar, por unidade. Se os doces passarem do valor
+  // pago, eles continuam pelo valor de compra e a diferença aparece.
+  function contaDaCompra(total, itens) {
+    var partes = itens.map(function (it) {
+      var p = achar(estado.doceProdutos, it.produtoId);
+      return p && p.custo > 0 ? it.quantidade * p.custo : null;
+    });
+    var base = partes.reduce(function (t, x) { return t + (x || 0); }, 0);
+    var sem = [];
+    partes.forEach(function (x, i) { if (x === null) sem.push(i); });
+    var taxa = 0, passou = 0;
+    if (sem.length) {
+      var resto = Math.max(total - base, 0);
+      var un = sem.reduce(function (t, i) { return t + itens[i].quantidade; }, 0);
+      var usado = 0;
+      sem.forEach(function (i, k) {
+        var v = k === sem.length - 1 ? resto - usado : Math.round(resto * itens[i].quantidade / (un || 1));
+        usado += v;
+        partes[i] = v;
+      });
+    } else {
+      taxa = Math.max(total - base, 0);
+      passou = Math.max(base - total, 0);
+    }
+    return { partes: partes, taxa: taxa, base: base, passou: passou, semCusto: sem.length };
+  }
+
+  function taxaDaCompra(chave) {
+    return estado.doceCustos.filter(function (c) { return c.compraId && c.compraId === chave; })[0] || null;
+  }
+
+  // Uma compra pode ter vários doces e um valor só para tudo.
   function abrirFolhaCompraDoce(id) {
     var x = id ? achar(estado.doceCompras, id) : null;
-    var produtos = estado.doceProdutos.filter(function (p) { return p.ativo || (x && p.id === x.produtoId); });
+    var grupo = x ? itensDaCompra(x) : [];
+    var noGrupo = {};
+    grupo.forEach(function (y) { noGrupo[y.produtoId] = y; });
+    var produtos = estado.doceProdutos.filter(function (p) { return p.ativo || noGrupo[p.id]; });
     if (!produtos.length) {
-      avisarCaixa('Cadastre o doce primeiro', 'A compra é de um produto: cadastre ele em Produtos e volte aqui.', function () {});
+      avisarCaixa('Cadastre o doce primeiro', 'A compra é dos seus produtos: cadastre eles em Produtos e volte aqui.', function () {});
       return;
     }
-    var d = { produtoId: x ? x.produtoId : produtos[0].id, quantidade: x ? x.quantidade : 0 };
+    var itens = produtos.map(function (p) { return { produtoId: p.id, quantidade: noGrupo[p.id] ? noGrupo[p.id].quantidade : 0 }; });
+    var chaveAntes = x ? (x.grupoId || x.id) : '';
+    var taxaAntes = chaveAntes ? taxaDaCompra(chaveAntes) : null;
+    var totalAntes = grupo.reduce(function (t, y) { return t + y.valor; }, 0) + (taxaAntes ? taxaAntes.valor : 0);
     abrirFolha(x ? 'Editar compra' : 'Nova compra', function (folha) {
       var forma = no('div', 'forma');
-      var valor = entradaValor(x ? x.valor : 0, true);
-      forma.appendChild(campo('Valor pago', valor));
-      var selP = entradaSelecao(produtos.map(function (p) {
-        return { valor: p.id, rotulo: p.nome, detalhe: p.custo ? 'compra ' + emReais(p.custo) + ' cada' : '' };
-      }), d.produtoId, 'Doce');
-      selP.aoMudar = function (v) { d.produtoId = v; pintar(); };
-      forma.appendChild(campo('Doce', selP));
-      var qtd = contadorDigitavel(d.quantidade, function (v) { d.quantidade = v; pintar(); });
-      forma.appendChild(campo('Quantidade comprada', qtd));
+      var valor = entradaValor(totalAntes, true);
+      forma.appendChild(campo('Valor pago (tudo junto)', valor));
+      // Logo abaixo do total: quanto os doces marcados já somam e quanto
+      // ainda falta para fechar o valor pago (pedido de 08/11/2026).
+      var faltaEl = no('div', 'falta-compra');
+      forma.appendChild(faltaEl);
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Marque quantas unidades de cada doce vieram. Cada um entra pelo valor de compra dele; o que sobrar do valor pago vira taxa da compra.'));
+      itens.forEach(function (it) {
+        var p = achar(estado.doceProdutos, it.produtoId);
+        var bloco = no('div', 'item-prestacao item-compra');
+        juntar(bloco, juntar(no('div', 'item-cabeca'),
+          no('strong', null, nomeDoProduto(it.produtoId)),
+          no('span', 'item-com', p && p.custo ? 'compra ' + emReais(p.custo) + ' cada' : '')));
+        var linha = no('div', 'config-linha');
+        var cont = contadorDigitavel(it.quantidade, function (n) { it.quantidade = n; pintar(); });
+        juntar(linha, no('span', 'config-rotulo', 'Quantidade'), cont);
+        bloco.appendChild(linha);
+        it.elParte = no('div', 'item-entrega');
+        bloco.appendChild(it.elParte);
+        forma.appendChild(bloco);
+      });
       var forn = entradaTexto(x ? x.fornecedor : ultimoFornecedor, 'Ex.: Atacadão', 60);
       forma.appendChild(campo('Fornecedor (opcional)', forn));
       var data = entradaData(x ? x.data : hojeTexto());
@@ -14598,43 +14723,118 @@
       });
       marcar.setAttribute('aria-pressed', 'true');
       marcar.appendChild(no('span', 'caixinha', '✓'));
-      var textoMarcar = no('span', null, '');
-      marcar.appendChild(textoMarcar);
+      marcar.appendChild(no('span', null, 'Guardar o valor de cada unidade como valor de compra dos doces que não têm'));
       forma.appendChild(marcar);
 
+      function escolhidos() { return itens.filter(function (it) { return it.quantidade > 0; }); }
+      var notaTaxa = no('div', 'linha-nota nota-taxa');
+      forma.insertBefore(notaTaxa, marcar);
       function pintar() {
-        var v = digitosParaCentavos(valor.value), q = d.quantidade;
-        var cada = q ? Math.round(v / q) : 0;
+        var v = digitosParaCentavos(valor.value);
+        var es = escolhidos();
+        var conta = contaDaCompra(v, es);
+        var partes = conta.partes;
+        itens.forEach(function (it) { it.elParte.textContent = ''; });
+        es.forEach(function (it, i) {
+          var p = achar(estado.doceProdutos, it.produtoId);
+          it.elParte.textContent = p && p.custo > 0
+            ? it.quantidade + ' × ' + emReais(p.custo) + ' = ' + emReais(partes[i])
+            : (v ? emReais(partes[i]) + ' (sem valor de compra: fica com o que sobra) · ' + emReais(Math.round(partes[i] / it.quantidade)) + ' cada' : 'sem valor de compra');
+        });
+        var un = es.reduce(function (t, it) { return t + it.quantidade; }, 0);
         resumo.textContent = '';
-        juntar(resumo, no('span', null, 'Custo de cada unidade'), no('strong', 'num', q ? emReais(cada) : '—'));
-        var p = achar(estado.doceProdutos, d.produtoId);
-        textoMarcar.textContent = 'Usar ' + (q ? emReais(cada) : 'esse valor') + ' como valor de compra de ' + (p ? p.nome : 'o doce');
+        juntar(resumo, no('span', null, es.length ? es.length + ' doce(s) · ' + un + ' un.' : 'Nenhum doce marcado'),
+          no('strong', 'num', es.length ? emReais(partes.reduce(function (t, x) { return t + x; }, 0)) : '—'));
+        // Quanto falta: o valor pago menos o que os doces marcados somam
+        // pelo valor de compra.
+        var semCusto = es.filter(function (it) { var p = achar(estado.doceProdutos, it.produtoId); return !p || !p.custo; });
+        var somaDoces = es.reduce(function (t, it) { var p = achar(estado.doceProdutos, it.produtoId); return t + it.quantidade * (p ? p.custo : 0); }, 0);
+        faltaEl.textContent = '';
+        faltaEl.className = 'falta-compra';
+        if (semCusto.length) {
+          faltaEl.classList.add('aviso');
+          faltaEl.textContent = nomeDoProduto(semCusto[0].produtoId) + (semCusto.length > 1 ? ' e mais ' + (semCusto.length - 1) : '') +
+            ' sem valor de compra: o valor pago se divide por unidade.';
+        } else if (v) {
+          var falta = v - somaDoces;
+          juntar(faltaEl, no('span', null, 'Doces marcados: ' + emReais(somaDoces)),
+            no('strong', 'num ' + (falta > 0 ? 'ouro' : falta < 0 ? 'vermelho' : 'verde'),
+              falta > 0 ? 'faltam ' + emReais(falta) : falta < 0 ? 'passou ' + emReais(-falta) : 'fechou certinho'));
+          if (falta < 0) faltaEl.appendChild(no('div', 'falta-nota', 'Os doces passam do valor pago: confira as quantidades. Salvando assim, cada um fica pelo valor de compra.'));
+        }
+        notaTaxa.textContent = conta.taxa > 0
+          ? 'Os doces somam ' + emReais(conta.base) + ' pelo valor de compra. A diferença de ' + emReais(conta.taxa) + ' entra como taxa da compra no custo operacional.'
+          : '';
+        notaTaxa.style.display = conta.taxa > 0 ? '' : 'none';
+        marcar.style.display = conta.semCusto ? '' : 'none';
       }
       valor.addEventListener('input', pintar);
       pintar();
 
       var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', x ? 'Salvar compra' : 'Registrar compra', function () {
+      var confirmouPassou = false;
+      var salvarCompra = botao('btn btn-ouro', x ? 'Salvar compra' : 'Registrar compra', function () {
         var v = digitosParaCentavos(valor.value);
+        var es = escolhidos();
         if (v <= 0) { mostrarErro(forma, 'Informe quanto pagou.'); return; }
-        if (d.quantidade <= 0) { mostrarErro(forma, 'Informe quantas unidades comprou.'); return; }
+        if (!es.length) { mostrarErro(forma, 'Marque a quantidade de pelo menos um doce.'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
-        var reg = x || { id: novoId(), criadoEm: Date.now() };
-        reg.produtoId = d.produtoId; reg.quantidade = d.quantidade; reg.valor = v;
-        reg.fornecedor = forn.value.trim().slice(0, 60); reg.data = data.value; reg.obs = obs.value.trim().slice(0, 200);
-        if (!x) estado.doceCompras.push(reg);
-        ultimoFornecedor = reg.fornecedor;
-        var p = achar(estado.doceProdutos, reg.produtoId);
-        if (atualizar && p) p.custo = Math.round(v / d.quantidade);
+        var conta = contaDaCompra(v, es);
+        if (conta.passou > 0 && !confirmouPassou) {
+          perguntar({ titulo: 'Os doces passam do valor pago', texto: 'Pelo valor de compra eles somam ' + emReais(conta.base) + ', ' +
+              emReais(conta.passou) + ' a mais do que os ' + emReais(v) + ' pagos. Salvar mesmo assim, cada doce pelo valor de compra?',
+            ok: 'Salvar assim', cancelar: 'Conferir' }, function () { confirmouPassou = true; salvarCompra.click(); });
+          return;
+        }
+        var partes = conta.partes;
+        // Com taxa, a compra ganha grupo mesmo com um doce só: é por ele que
+        // a taxa fica ligada à compra.
+        var grupoId = es.length > 1 || conta.taxa > 0 || (x && x.grupoId) ? ((x && x.grupoId) || novoId()) : '';
+        var fica = {};
+        es.forEach(function (it, i) {
+          var reg = noGrupo[it.produtoId] || { id: novoId(), criadoEm: Date.now() + i };
+          reg.produtoId = it.produtoId; reg.quantidade = it.quantidade; reg.valor = partes[i];
+          reg.fornecedor = forn.value.trim().slice(0, 60); reg.data = data.value; reg.obs = obs.value.trim().slice(0, 200);
+          reg.grupoId = grupoId;
+          if (!noGrupo[it.produtoId]) estado.doceCompras.push(reg);
+          fica[reg.id] = true;
+          var p = achar(estado.doceProdutos, it.produtoId);
+          if (atualizar && p && !p.custo) p.custo = Math.round(partes[i] / it.quantidade);
+        });
+        // Doce que saiu da compra ao editar: a linha dele sai.
+        grupo.forEach(function (y) {
+          if (fica[y.id]) return;
+          marcarExcluido('empreendedor_registros', y.id);
+          estado.doceCompras = estado.doceCompras.filter(function (z) { return z.id !== y.id; });
+        });
+        ultimoFornecedor = forn.value.trim().slice(0, 60);
+        // A taxa da compra, no custo operacional, ligada a ela.
+        var taxa = taxaDaCompra(grupoId) || (chaveAntes && chaveAntes !== grupoId ? taxaDaCompra(chaveAntes) : null);
+        if (conta.taxa > 0) {
+          if (!taxa) { taxa = { id: novoId(), criadoEm: Date.now() }; estado.doceCustos.push(taxa); }
+          taxa.compraId = grupoId; taxa.valor = conta.taxa; taxa.data = data.value;
+          taxa.descricao = ('Taxa da compra' + (forn.value.trim() ? ' · ' + forn.value.trim() : '')).slice(0, 80);
+        } else if (taxa) {
+          marcarExcluido('empreendedor_registros', taxa.id);
+          estado.doceCustos = estado.doceCustos.filter(function (c) { return c.id !== taxa.id; });
+        }
         salvar();
         fecharFolha();
         desenhar();
-        avisar(x ? 'Compra atualizada.' : 'Compra registrada: ' + reg.quantidade + ' un. de ' + nomeDoProduto(reg.produtoId) + '.');
-      }));
+        var un = es.reduce(function (t, it) { return t + it.quantidade; }, 0);
+        avisar((x ? 'Compra atualizada' : 'Compra registrada: ' + un + ' un. de ' + es.length + ' doce(s)') +
+          (conta.taxa > 0 ? '. Taxa de ' + emReais(conta.taxa) + ' no custo operacional.' : '.'));
+      });
+      acoes.appendChild(salvarCompra);
       if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
-        perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + x.quantidade + ' un.', ok: 'Excluir', tom: 'perigo' }, function () {
-          marcarExcluido('empreendedor_registros', x.id);
-          estado.doceCompras = estado.doceCompras.filter(function (y) { return y.id !== x.id; });
+        var un = grupo.reduce(function (t, y) { return t + y.quantidade; }, 0);
+        perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + un + ' un.' + (taxaAntes ? ' A taxa de ' + emReais(taxaAntes.valor) + ' sai do custo operacional.' : ''), ok: 'Excluir', tom: 'perigo' }, function () {
+          grupo.forEach(function (y) { marcarExcluido('empreendedor_registros', y.id); });
+          estado.doceCompras = estado.doceCompras.filter(function (z) { return grupo.indexOf(z) < 0; });
+          if (taxaAntes) {
+            marcarExcluido('empreendedor_registros', taxaAntes.id);
+            estado.doceCustos = estado.doceCustos.filter(function (c) { return c.id !== taxaAntes.id; });
+          }
           salvar();
           fecharFolha();
           desenhar();
@@ -14988,42 +15188,20 @@
           });
           return;
         }
-        var p = achar(estado.doceProdutos, v);
         d.produtoId = v;
-        if (p) {
-          repasse.value = emReais(p.repasse);
-          preco.value = emReais(p.preco);
-          pintar();
-        }
+        pintar();
       };
       forma.appendChild(campo('Doce', selP));
 
       var qtd = contadorDigitavel(d.quantidade, function (v) { d.quantidade = v; pintar(); });
       forma.appendChild(campo('Quantidade entregue', qtd));
 
-      var repasse = entradaValor(d.repasse, false);
-      var preco = entradaValor(d.preco, false);
-      var linha = no('div', 'duas');
-      juntar(linha, campo('Repasse para mim', repasse), campo('Venda ao cliente final', preco));
-      forma.appendChild(linha);
-      repasse.addEventListener('input', pintar);
-      preco.addEventListener('input', pintar);
-
-      var resumo = no('div', 'resumo-entrega');
+      // Só quantidade e datas: os valores vêm do cadastro em Produtos.
+      var resumo = no('p', 'ajuda ajuda-campo');
       forma.appendChild(resumo);
       function pintar() {
-        var q = d.quantidade, r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value);
-        resumo.textContent = '';
-        [['Total de venda', q * v, ''], ['Repasse para você', q * r, 'ouro'], ['Lucro estimado do vendedor', q * (v - r), q * (v - r) < 0 ? 'vermelho' : 'verde']]
-          .forEach(function (x) { juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, x[0]), no('strong', 'num ' + x[2], emReais(x[1])))); });
         var p = achar(estado.doceProdutos, d.produtoId);
-        // O preço de custo, só para saber quanto saiu do bolso nesta entrega.
-        if (p && p.custo) {
-          juntar(resumo, juntar(no('div', 'resumo-linha'),
-            no('span', null, 'Preço de custo (' + q + ' × ' + emReais(p.custo) + ')'),
-            no('strong', 'num vermelho', emReais(q * p.custo))));
-          juntar(resumo, juntar(no('div', 'resumo-linha'), no('span', null, 'Seu lucro se ele vender tudo'), no('strong', 'num verde', emReais(q * (r - p.custo)))));
-        }
+        resumo.textContent = p ? 'Valores do cadastro: venda ' + emReais(p.preco) + ' e repasse ' + emReais(p.repasse) + ' por doce. Para mudar, edite o doce em Produtos.' : '';
       }
       pintar();
 
@@ -15042,8 +15220,9 @@
       forma.appendChild(campo('Observação (opcional)', obs));
 
       function coletar() {
+        var vd = valoresDoDoce(d.produtoId, e);
         return { vendedorId: d.vendedorId, produtoId: d.produtoId, quantidade: d.quantidade,
-                 repasse: digitosParaCentavos(repasse.value), preco: digitosParaCentavos(preco.value),
+                 repasse: vd.repasse, preco: vd.preco,
                  data: data.value, acertoEm: acerto.value, obs: obs.value };
       }
 
@@ -15053,7 +15232,6 @@
         if (!achar(estado.doceVendedores, r.vendedorId)) { mostrarErro(forma, 'Escolha o vendedor (ou cadastre um).'); return; }
         if (!achar(estado.doceProdutos, r.produtoId)) { mostrarErro(forma, 'Escolha o doce (ou cadastre um).'); return; }
         if (r.quantidade <= 0) { mostrarErro(forma, 'Informe quantos doces entregou.'); return; }
-        if (r.repasse <= 0) { mostrarErro(forma, 'Informe o valor de repasse.'); return; }
         if (!ehData(r.data)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         if (ehData(r.acertoEm) && r.acertoEm < r.data) { mostrarErro(forma, 'O acerto não pode ser antes da entrega.'); return; }
         var reg = e || { id: novoId(), criadoEm: Date.now() };
@@ -15122,9 +15300,7 @@
       // Todos os doces ativos, com o preço da última entrega a este vendedor
       // (ou o do cadastro, se nunca entregou).
       var itensSem = estado.doceProdutos.filter(function (p) { return p.ativo; }).map(function (p) {
-        var x = c.produtos.filter(function (y) { return y.produtoId === p.id; })[0];
-        return { produtoId: p.id, vendidos: 0, repasse: x && x.repasse ? x.repasse : p.repasse,
-                 preco: x && x.preco ? x.preco : p.preco, custo: p.custo || 0 };
+        return { produtoId: p.id, vendidos: 0, repasse: p.repasse, preco: p.preco, custo: p.custo || 0 };
       });
       if (!itensSem.length) blocoSemEstoque.appendChild(no('p', 'ajuda', 'Nenhum doce cadastrado: use o valor abaixo.'));
       itensSem.forEach(function (it) {
