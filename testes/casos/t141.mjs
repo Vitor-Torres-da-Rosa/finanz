@@ -95,16 +95,16 @@ await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.wait
 // 07/11/2026: na Venda de Doces o "+" redondo saiu; a entrega abre pela aba.
 const fabOculto = await page.$eval('#fab', b => b.classList.contains('fab-oculto'));
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
-await page.click('#telaInicio button:has-text("+ Registrar entrega")'); await page.waitForTimeout(900);
-conferir('6. sem o "+" redondo, a aba Entregas abre a entrega', fabOculto && /Nova entrega/.test(await page.textContent('#folhaTitulo')));
+// 07/11/2026: o "+ Registrar entrega" saiu; a entrega abre pelo cartão do vendedor.
+await page.click('#telaInicio .cartao-vendedor-entregas:has-text("Mariana")'); await page.waitForTimeout(900);
+await page.click('#folha button:has-text("+ Nova entrega para Mariana")'); await page.waitForTimeout(900);
+conferir('6. sem o "+" redondo, a entrega abre pelo cartão do vendedor', fabOculto && /Nova entrega/.test(await page.textContent('#folhaTitulo')));
 await folha().locator('.contador-campo').fill('50'); await page.waitForTimeout(300);
 const prevEntrega = limpo(await folha().textContent());
-conferir('7. a entrega calcula venda, repasse e lucro do vendedor',
-  /Total de venda\s*R\$ 200,00/.test(prevEntrega) && /Repasse para você\s*R\$ 100,00/.test(prevEntrega) &&
-  /Lucro estimado do vendedor\s*R\$ 100,00/.test(prevEntrega));
-// 03/11/2026: "coloque tbm somente o preço de custo caso eu queira saber".
-conferir('8b. a entrega mostra o preço de custo (50 × R$ 1,00)',
-  /Preço de custo \(50 × R\$ 1,00\)\s*R\$ 50,00/.test(prevEntrega), (prevEntrega.match(/Preço de custo.{0,30}/) || [''])[0]);
+// 07/11/2026: a entrega pede só quantidade e datas; os valores vêm do cadastro.
+conferir('7. a entrega pede só quantidade e datas, com os valores do cadastro',
+  /Valores do cadastro: venda R\$ 4,00 e repasse R\$ 2,00 por doce/.test(prevEntrega) &&
+  !(await folha().getByLabel('Repasse para mim', { exact: true }).count()) && !(await folha().getByLabel('Venda ao cliente final').count()), prevEntrega.slice(0, 300));
 // 03/11/2026: a entrega tem a data do acerto, uma semana depois por padrão.
 const dEntrega = await folha().getByLabel('Data da entrega').inputValue();
 const dAcerto = await folha().getByLabel('Data do acerto').inputValue();
@@ -112,6 +112,7 @@ const semana = new Date(dEntrega + 'T12:00:00'); semana.setDate(semana.getDate()
 const esperado = semana.getFullYear() + '-' + String(semana.getMonth() + 1).padStart(2, '0') + '-' + String(semana.getDate()).padStart(2, '0');
 conferir('8c. a entrega tem a data do acerto, uma semana depois', dAcerto === esperado, dEntrega + ' → ' + dAcerto);
 await page.click('#folha .btn-ouro:has-text("Registrar entrega")'); await page.waitForTimeout(900);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 
 // ---- prestação de contas: vendeu 35, devolveu 10 ----
 await page.click('#telaInicio .abas-modulo button:has-text("Prestação")'); await page.waitForTimeout(600);

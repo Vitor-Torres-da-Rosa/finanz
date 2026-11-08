@@ -68,9 +68,12 @@ conferir('5. o produto ganhou o valor de compra da compra', /compra R\$ 1,50/i.t
 
 // Entrega de 30 para a Daniela: o seu estoque cai para 70.
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
-await page.click('#telaInicio button:has-text("+ Registrar entrega")'); await page.waitForTimeout(900);
+// 07/11/2026: o "+ Registrar entrega" saiu; a entrega abre pelo cartão do vendedor.
+await page.click('#telaInicio .cartao-vendedor-entregas:has-text("Daniela")'); await page.waitForTimeout(900);
+await page.click('#folha button:has-text("+ Nova entrega para Daniela")'); await page.waitForTimeout(900);
 await folha().locator('.contador-campo').fill('30'); await page.waitForTimeout(300);
 await page.click('#folha .btn-ouro:has-text("Registrar entrega")'); await page.waitForTimeout(1000);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
 await page.click('#telaInicio .sub-produtos button:has-text("Fornecedor")'); await page.waitForTimeout(700);
 conferir('6. entregando 30, ficam 70 com você', /Seu estoque.*Pote de vidro.*70 un\./.test(await tela()));
