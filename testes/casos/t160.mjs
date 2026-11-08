@@ -47,9 +47,15 @@ await page.click('#telaInicio button:has-text("+ Nova compra")'); await page.wai
 const itens = await page.$$eval('#folha .item-compra strong', ns => ns.map(n => n.textContent));
 conferir('1. a compra lista todos os doces cadastrados', itens.length === 3 && itens.includes('Tempero') && itens.includes('Pote'), itens.join(', '));
 await dinheiro(folha().locator('.valor-grande'), '6600');
+const faltas = [];
 for (const nome of ['Tempero', 'Doce de vidro', 'Pote']) {
   await folha().locator('.item-compra:has-text("' + nome + '") .contador-campo').fill('10'); await page.waitForTimeout(150);
+  faltas.push(limpo(await folha().locator('.falta-compra').textContent()));
 }
+// 08/11/2026: ao lado do total, quanto ainda falta conforme marca os doces.
+conferir('1b. conforme marca os doces, mostra quanto ainda falta do valor pago',
+  /Doces marcados: R\$ 10,00\s*faltam R\$ 56,00/.test(faltas[0]) && /Doces marcados: R\$ 40,00\s*faltam R\$ 26,00/.test(faltas[1]) &&
+  /Doces marcados: R\$ 60,00\s*faltam R\$ 6,00/.test(faltas[2]), faltas.join(' | '));
 await folha().getByLabel('Fornecedor (opcional)').fill('Paulo fornecedor');
 const prev = limpo(await folha().textContent());
 // Pelo valor de compra, os doces somam 10 + 30 + 20 = R$ 60,00; os R$ 6,00

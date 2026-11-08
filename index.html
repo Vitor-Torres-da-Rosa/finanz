@@ -1784,6 +1784,13 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .falta-compra { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px;
+    margin: -6px 0 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--borda); background: rgba(255,255,255,.03); font-size: 13.5px; }
+  .falta-compra:empty { display: none; }
+  .falta-compra span { color: var(--suave); }
+  .falta-compra strong { font-size: 15px; }
+  .falta-compra .falta-nota { flex-basis: 100%; font-size: 12px; color: var(--suave); }
+  .falta-compra.aviso { color: var(--suave); font-size: 12.5px; }
   .top-vendedores { padding: 4px 16px 12px 68px; border-bottom: 1px solid rgba(198,158,78,.14); display: grid; gap: 10px; }
   .top-vendedor-linha { display: grid; grid-template-columns: 24px 1fr auto 52px; gap: 8px; align-items: baseline; font-size: 13.5px; }
   .top-pos { color: var(--fraco); font-size: 12px; }
@@ -2371,7 +2378,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.56.1';
+  var VERSAO = '5.56.2';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2380,6 +2387,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.56.2',
+      data: '2026-11-08',
+      itens: [
+        'Compra do fornecedor: logo abaixo do valor pago aparece quanto os doces marcados já somam e quanto ainda falta (ou se passou). Cada doce mostra o valor de compra dele: 15 × R$ 13,00 = R$ 195,00.'
+      ]
+    },
     {
       versao: '5.56.1',
       data: '2026-11-08',
@@ -14669,7 +14683,11 @@
       var forma = no('div', 'forma');
       var valor = entradaValor(totalAntes, true);
       forma.appendChild(campo('Valor pago (tudo junto)', valor));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Marque quantas unidades de cada doce vieram. Cada um entra pelo valor de compra dele, e o que o total pago passar disso vira taxa da compra.'));
+      // Logo abaixo do total: quanto os doces marcados já somam e quanto
+      // ainda falta para fechar o valor pago (pedido de 08/11/2026).
+      var faltaEl = no('div', 'falta-compra');
+      forma.appendChild(faltaEl);
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Marque quantas unidades de cada doce vieram. Cada um entra pelo valor de compra dele; o que sobrar do valor pago vira taxa da compra.'));
       itens.forEach(function (it) {
         var p = achar(estado.doceProdutos, it.produtoId);
         var bloco = no('div', 'item-prestacao item-compra');
@@ -14720,6 +14738,23 @@
         resumo.textContent = '';
         juntar(resumo, no('span', null, es.length ? es.length + ' doce(s) · ' + un + ' un.' : 'Nenhum doce marcado'),
           no('strong', 'num', un && v ? emReais(Math.round((v - conta.taxa) / un)) + ' em média' : '—'));
+        // Quanto falta: o valor pago menos o que os doces marcados somam
+        // pelo valor de compra.
+        var semCusto = es.filter(function (it) { var p = achar(estado.doceProdutos, it.produtoId); return !p || !p.custo; });
+        var somaDoces = es.reduce(function (t, it) { var p = achar(estado.doceProdutos, it.produtoId); return t + it.quantidade * (p ? p.custo : 0); }, 0);
+        faltaEl.textContent = '';
+        faltaEl.className = 'falta-compra';
+        if (semCusto.length) {
+          faltaEl.classList.add('aviso');
+          faltaEl.textContent = nomeDoProduto(semCusto[0].produtoId) + (semCusto.length > 1 ? ' e mais ' + (semCusto.length - 1) : '') +
+            ' sem valor de compra: o valor pago se divide por unidade.';
+        } else if (v) {
+          var falta = v - somaDoces;
+          juntar(faltaEl, no('span', null, 'Doces marcados: ' + emReais(somaDoces)),
+            no('strong', 'num ' + (falta > 0 ? 'ouro' : falta < 0 ? 'vermelho' : 'verde'),
+              falta > 0 ? 'faltam ' + emReais(falta) : falta < 0 ? 'passou ' + emReais(-falta) : 'fechou certinho'));
+          if (falta < 0) faltaEl.appendChild(no('div', 'falta-nota', 'Os doces passam do valor pago: o valor de cada um baixa na mesma proporção.'));
+        }
         notaTaxa.textContent = conta.taxa > 0
           ? 'Os doces somam ' + emReais(conta.base) + ' pelo valor de compra. A diferença de ' + emReais(conta.taxa) + ' entra como taxa da compra no custo operacional.'
           : '';
