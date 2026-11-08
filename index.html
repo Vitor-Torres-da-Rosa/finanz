@@ -2378,7 +2378,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.56.2';
+  var VERSAO = '5.56.3';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2387,6 +2387,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.56.3',
+      data: '2026-11-08',
+      itens: [
+        'Compra do fornecedor sem divisão: cada doce mostra a conta "quantidade × valor de compra = total", e a diferença para o valor pago fica à vista lá em cima. Se os doces passarem do valor pago, o app pergunta antes de salvar.'
+      ]
+    },
     {
       versao: '5.56.2',
       data: '2026-11-08',
@@ -14627,37 +14634,34 @@
     return estado.doceCompras.filter(function (y) { return y.grupoId === x.grupoId; });
   }
 
-  // Divide o valor pago entre os doces da compra (pedido de 08/11/2026).
-  // Com o valor de compra de todos cadastrado, a divisão segue ele; senão,
-  // vai por unidade. O que sobrar dos centavos fica no último.
-  function dividirCompra(total, itens) {
-    var comCusto = itens.every(function (it) { var p = achar(estado.doceProdutos, it.produtoId); return p && p.custo > 0; });
-    var pesos = itens.map(function (it) {
-      var p = achar(estado.doceProdutos, it.produtoId);
-      return it.quantidade * (comCusto ? p.custo : 1);
-    });
-    var soma = pesos.reduce(function (t, x) { return t + x; }, 0);
-    var usado = 0;
-    return itens.map(function (it, i) {
-      var v = i === itens.length - 1 ? total - usado : Math.round(total * pesos[i] / (soma || 1));
-      usado += v;
-      return v;
-    });
-  }
-
-  // A conta da compra (pedido de 08/11/2026): com o valor de compra de todos
-  // os doces cadastrado, cada um entra pelo valor dele, e o que o total
-  // pago passar disso é taxa (frete, embalagem) e vai para o custo
-  // operacional. Pagando menos, ou sem o valor de compra de algum, o total
-  // se divide entre os doces.
+  // A conta da compra (pedido de 08/11/2026): nunca divide o valor pago.
+  // Cada doce entra por quantidade × valor de compra; o que o total pago
+  // passar da soma é taxa (vai para o custo operacional). Doce sem valor de
+  // compra fica com o que sobrar, por unidade. Se os doces passarem do valor
+  // pago, eles continuam pelo valor de compra e a diferença aparece.
   function contaDaCompra(total, itens) {
-    var comCusto = itens.length && itens.every(function (it) { var p = achar(estado.doceProdutos, it.produtoId); return p && p.custo > 0; });
-    if (comCusto) {
-      var partes = itens.map(function (it) { return it.quantidade * achar(estado.doceProdutos, it.produtoId).custo; });
-      var base = partes.reduce(function (t, x) { return t + x; }, 0);
-      if (total >= base) return { partes: partes, taxa: total - base, base: base };
+    var partes = itens.map(function (it) {
+      var p = achar(estado.doceProdutos, it.produtoId);
+      return p && p.custo > 0 ? it.quantidade * p.custo : null;
+    });
+    var base = partes.reduce(function (t, x) { return t + (x || 0); }, 0);
+    var sem = [];
+    partes.forEach(function (x, i) { if (x === null) sem.push(i); });
+    var taxa = 0, passou = 0;
+    if (sem.length) {
+      var resto = Math.max(total - base, 0);
+      var un = sem.reduce(function (t, i) { return t + itens[i].quantidade; }, 0);
+      var usado = 0;
+      sem.forEach(function (i, k) {
+        var v = k === sem.length - 1 ? resto - usado : Math.round(resto * itens[i].quantidade / (un || 1));
+        usado += v;
+        partes[i] = v;
+      });
+    } else {
+      taxa = Math.max(total - base, 0);
+      passou = Math.max(base - total, 0);
     }
-    return { partes: dividirCompra(total, itens), taxa: 0, base: 0 };
+    return { partes: partes, taxa: taxa, base: base, passou: passou, semCusto: sem.length };
   }
 
   function taxaDaCompra(chave) {
@@ -14719,7 +14723,7 @@
       });
       marcar.setAttribute('aria-pressed', 'true');
       marcar.appendChild(no('span', 'caixinha', '✓'));
-      marcar.appendChild(no('span', null, 'Usar o custo de cada unidade como valor de compra dos doces'));
+      marcar.appendChild(no('span', null, 'Guardar o valor de cada unidade como valor de compra dos doces que não têm'));
       forma.appendChild(marcar);
 
       function escolhidos() { return itens.filter(function (it) { return it.quantidade > 0; }); }
@@ -14732,12 +14736,15 @@
         var partes = conta.partes;
         itens.forEach(function (it) { it.elParte.textContent = ''; });
         es.forEach(function (it, i) {
-          it.elParte.textContent = v ? emReais(partes[i]) + ' desta compra · ' + emReais(Math.round(partes[i] / it.quantidade)) + ' cada' : '';
+          var p = achar(estado.doceProdutos, it.produtoId);
+          it.elParte.textContent = p && p.custo > 0
+            ? it.quantidade + ' × ' + emReais(p.custo) + ' = ' + emReais(partes[i])
+            : (v ? emReais(partes[i]) + ' (sem valor de compra: fica com o que sobra) · ' + emReais(Math.round(partes[i] / it.quantidade)) + ' cada' : 'sem valor de compra');
         });
         var un = es.reduce(function (t, it) { return t + it.quantidade; }, 0);
         resumo.textContent = '';
         juntar(resumo, no('span', null, es.length ? es.length + ' doce(s) · ' + un + ' un.' : 'Nenhum doce marcado'),
-          no('strong', 'num', un && v ? emReais(Math.round((v - conta.taxa) / un)) + ' em média' : '—'));
+          no('strong', 'num', es.length ? emReais(partes.reduce(function (t, x) { return t + x; }, 0)) : '—'));
         // Quanto falta: o valor pago menos o que os doces marcados somam
         // pelo valor de compra.
         var semCusto = es.filter(function (it) { var p = achar(estado.doceProdutos, it.produtoId); return !p || !p.custo; });
@@ -14753,24 +14760,32 @@
           juntar(faltaEl, no('span', null, 'Doces marcados: ' + emReais(somaDoces)),
             no('strong', 'num ' + (falta > 0 ? 'ouro' : falta < 0 ? 'vermelho' : 'verde'),
               falta > 0 ? 'faltam ' + emReais(falta) : falta < 0 ? 'passou ' + emReais(-falta) : 'fechou certinho'));
-          if (falta < 0) faltaEl.appendChild(no('div', 'falta-nota', 'Os doces passam do valor pago: o valor de cada um baixa na mesma proporção.'));
+          if (falta < 0) faltaEl.appendChild(no('div', 'falta-nota', 'Os doces passam do valor pago: confira as quantidades. Salvando assim, cada um fica pelo valor de compra.'));
         }
         notaTaxa.textContent = conta.taxa > 0
           ? 'Os doces somam ' + emReais(conta.base) + ' pelo valor de compra. A diferença de ' + emReais(conta.taxa) + ' entra como taxa da compra no custo operacional.'
           : '';
         notaTaxa.style.display = conta.taxa > 0 ? '' : 'none';
+        marcar.style.display = conta.semCusto ? '' : 'none';
       }
       valor.addEventListener('input', pintar);
       pintar();
 
       var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', x ? 'Salvar compra' : 'Registrar compra', function () {
+      var confirmouPassou = false;
+      var salvarCompra = botao('btn btn-ouro', x ? 'Salvar compra' : 'Registrar compra', function () {
         var v = digitosParaCentavos(valor.value);
         var es = escolhidos();
         if (v <= 0) { mostrarErro(forma, 'Informe quanto pagou.'); return; }
         if (!es.length) { mostrarErro(forma, 'Marque a quantidade de pelo menos um doce.'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         var conta = contaDaCompra(v, es);
+        if (conta.passou > 0 && !confirmouPassou) {
+          perguntar({ titulo: 'Os doces passam do valor pago', texto: 'Pelo valor de compra eles somam ' + emReais(conta.base) + ', ' +
+              emReais(conta.passou) + ' a mais do que os ' + emReais(v) + ' pagos. Salvar mesmo assim, cada doce pelo valor de compra?',
+            ok: 'Salvar assim', cancelar: 'Conferir' }, function () { confirmouPassou = true; salvarCompra.click(); });
+          return;
+        }
         var partes = conta.partes;
         // Com taxa, a compra ganha grupo mesmo com um doce só: é por ele que
         // a taxa fica ligada à compra.
@@ -14784,7 +14799,7 @@
           if (!noGrupo[it.produtoId]) estado.doceCompras.push(reg);
           fica[reg.id] = true;
           var p = achar(estado.doceProdutos, it.produtoId);
-          if (atualizar && p) p.custo = Math.round(partes[i] / it.quantidade);
+          if (atualizar && p && !p.custo) p.custo = Math.round(partes[i] / it.quantidade);
         });
         // Doce que saiu da compra ao editar: a linha dele sai.
         grupo.forEach(function (y) {
@@ -14809,7 +14824,8 @@
         var un = es.reduce(function (t, it) { return t + it.quantidade; }, 0);
         avisar((x ? 'Compra atualizada' : 'Compra registrada: ' + un + ' un. de ' + es.length + ' doce(s)') +
           (conta.taxa > 0 ? '. Taxa de ' + emReais(conta.taxa) + ' no custo operacional.' : '.'));
-      }));
+      });
+      acoes.appendChild(salvarCompra);
       if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
         var un = grupo.reduce(function (t, y) { return t + y.quantidade; }, 0);
         perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + un + ' un.' + (taxaAntes ? ' A taxa de ' + emReais(taxaAntes.valor) + ' sai do custo operacional.' : ''), ok: 'Excluir', tom: 'perigo' }, function () {

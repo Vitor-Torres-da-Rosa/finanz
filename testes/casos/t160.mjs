@@ -61,8 +61,8 @@ const prev = limpo(await folha().textContent());
 // Pelo valor de compra, os doces somam 10 + 30 + 20 = R$ 60,00; os R$ 6,00
 // que passam disso viram taxa da compra (08/11/2026).
 conferir('2. cada doce entra pelo valor de compra, e a diferença vira taxa',
-  /Tempero.*R\$ 10,00 desta compra · R\$ 1,00 cada/.test(prev) && /Doce de vidro.*R\$ 30,00 desta compra · R\$ 3,00 cada/.test(prev) &&
-  /Pote.*R\$ 20,00 desta compra · R\$ 2,00 cada/.test(prev) && /3 doce\(s\) · 30 un\.\s*R\$ 2,00 em média/.test(prev) &&
+  /Tempero.*10 × R\$ 1,00 = R\$ 10,00/.test(prev) && /Doce de vidro.*10 × R\$ 3,00 = R\$ 30,00/.test(prev) &&
+  /Pote.*10 × R\$ 2,00 = R\$ 20,00/.test(prev) && /3 doce\(s\) · 30 un\.\s*R\$ 60,00/.test(prev) &&
   /Os doces somam R\$ 60,00 pelo valor de compra\. A diferença de R\$ 6,00 entra como taxa da compra no custo operacional/.test(prev), prev.slice(0, 700));
 await page.screenshot({ path: dir + '/z76-compra-varios.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Registrar compra")'); await page.waitForTimeout(1000);
@@ -99,6 +99,17 @@ await page.click('#folha button:has-text("Excluir compra")'); await page.waitFor
 await page.click('#dialogoAcoes button:has-text("Excluir")'); await page.waitForTimeout(1000);
 t = await tela();
 conferir('7. excluindo, sai a compra toda, com a taxa', /Nenhuma compra ainda/.test(t) && /Gasto em compras\s*R\$ 0,00/.test(t) && !/de taxas das compras/.test(t), t.slice(0, 300));
+
+// ---- passando do valor pago: nada se divide, e o app pergunta ----
+await page.click('#telaInicio button:has-text("+ Nova compra")'); await page.waitForTimeout(800);
+await dinheiro(folha().locator('.valor-grande'), '5000');
+await folha().locator('.item-compra:has-text("Tempero") .contador-campo').fill('100'); await page.waitForTimeout(200);
+const pas = limpo(await folha().textContent());
+conferir('8. passando do valor pago, mostra quanto passou e não divide', /Doces marcados: R\$ 100,00\s*passou R\$ 50,00/.test(pas) && /100 × R\$ 1,00 = R\$ 100,00/.test(pas), pas.slice(0, 300));
+await page.click('#folha .btn-ouro:has-text("Registrar compra")'); await page.waitForTimeout(600);
+conferir('9. e pergunta antes de salvar', /Os doces passam do valor pago/.test(await page.textContent('#dialogoTitulo')));
+await page.click('#dialogoAcoes button:has-text("Conferir")'); await page.waitForTimeout(500);
+conferir('10. "Conferir" volta para a compra', /Nova compra/.test(await page.textContent('#folhaTitulo')));
 
 console.log(falhas ? `\n${falhas} verificação(ões) falharam` : '\ntudo certo: compra de vários doces');
 await browser.close();

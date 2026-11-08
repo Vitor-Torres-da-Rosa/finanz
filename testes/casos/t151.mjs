@@ -54,7 +54,8 @@ await dinheiro(folha().locator('.valor-grande'), '15000');
 await folha().locator('.contador-campo').fill('100'); await page.waitForTimeout(300);
 await folha().getByLabel('Fornecedor (opcional)').fill('Atacadão');
 const prev = limpo(await folha().textContent());
-conferir('2. a compra mostra o custo de cada unidade', /R\$ 150,00 desta compra · R\$ 1,50 cada/.test(prev) && /1 doce\(s\) · 100 un\.\s*R\$ 1,50 em média/.test(prev), (prev.match(/desta compra.{0,30}/) || [''])[0]);
+// Doce sem valor de compra: fica com o valor pago, e mostra quanto deu cada um.
+conferir('2. a compra mostra o custo de cada unidade', /R\$ 150,00 \(sem valor de compra: fica com o que sobra\) · R\$ 1,50 cada/.test(prev) && /1 doce\(s\) · 100 un\.\s*R\$ 150,00/.test(prev), (prev.match(/R\$ 150,00 \(.{0,60}/) || [''])[0]);
 await page.screenshot({ path: dir + '/z48-nova-compra.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Registrar compra")'); await page.waitForTimeout(1000);
 let t = await tela();
