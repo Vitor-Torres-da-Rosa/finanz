@@ -128,6 +128,18 @@ conferir('11. "Ver a divisão" em Membros mostra o lucro total da empresa e a di
   /Lucro da operação\s*R\$ 72,00/.test(f) && /Divisão entre os membros\s*V?Vitor \(você\).*Vitória/.test(f), f.slice(0, 300));
 await fechar();
 
+// ---- 08/11/2026: o período se escolhe no cabeçalho ----
+await page.click('#telaInicio .modulo-cabecalho .rotulo-periodo'); await page.waitForTimeout(500);
+const ops = limpo(await page.textContent('#escolhaLista'));
+conferir('12a. tocando no mês, dá para escolher o período', /Um mês/.test(ops) && /Últimos 3 meses/.test(ops) && /Último ano/.test(ops) && /Escolher as datas/.test(ops), ops);
+await page.click('#escolhaLista .escolha-item:has-text("Último ano")'); await page.waitForTimeout(900);
+t = await tela();
+conferir('12b. no último ano, o resumo segue o período', /1 ano/.test(limpo(await page.textContent('#telaInicio .modulo-cabecalho'))) &&
+  /Total dos últimos 12 meses/.test(t) && /Venda total\s*R\$ 240,00/.test(t), t.slice(0, 260));
+await page.click('#telaInicio .modulo-cabecalho .rotulo-periodo'); await page.waitForTimeout(500);
+await page.click('#escolhaLista .escolha-item:has-text("Um mês")'); await page.waitForTimeout(900);
+conferir('12c. e volta para o mês', /Total de novembro/.test(await tela()) && /Nov/.test(limpo(await page.textContent('#telaInicio .modulo-cabecalho'))));
+
 // ---- recarregar mantém tudo ----
 await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3500);
 await page.click('#telaInicio .segmentos button:has-text("Empreendedor")').catch(() => {}); await page.waitForTimeout(800);

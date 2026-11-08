@@ -1784,6 +1784,7 @@
   .tile-rotulo svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ouro); }
   .tile-valor { font-size: 15px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entrada.calculado { color: var(--ouro); }
+  .mes-seletor .rotulo-periodo { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; padding: 0 2px; white-space: nowrap; }
   .falta-compra { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px;
     margin: -6px 0 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--borda); background: rgba(255,255,255,.03); font-size: 13.5px; }
   .falta-compra:empty { display: none; }
@@ -2378,7 +2379,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.56.4';
+  var VERSAO = '5.57.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2387,6 +2388,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.57.0',
+      data: '2026-11-08',
+      itens: [
+        'Empreendedor: toque no mês do cabeçalho (ex.: "Nov") para escolher o período: um mês, os últimos 3 meses, o último ano ou as datas que quiser. As setas continuam trocando o mês. Os resumos, totais e listas seguem o período escolhido.'
+      ]
+    },
     {
       versao: '5.56.4',
       data: '2026-11-08',
@@ -11219,9 +11227,24 @@
     else if (moduloEmp === 'servicos') abrirFolhaCliente(null);
   }
 
+  // O Empreendedor segue o período escolhido no cabeçalho (pedido de
+  // 08/11/2026): o mês das setas, os últimos 3 meses, o último ano ou as
+  // datas que a pessoa escolher — o mesmo período das Transações.
   function faixaDoMesAtivo() {
-    return { de: prefixoMes(mesAtivo.ano, mesAtivo.mes) + '-01', ate: ultimoDiaDoMes(mesAtivo.ano, mesAtivo.mes) };
+    var f = faixaDoPeriodo();
+    return { de: f.de, ate: f.ate };
   }
+
+  function nomeDoPeriodoEmp() {
+    if (periodo.tipo === 'mes') return MESES[mesAtivo.mes];
+    if (periodo.tipo === 'tres') return 'últimos 3 meses';
+    if (periodo.tipo === 'ano') return 'últimos 12 meses';
+    var f = faixaDoPeriodo();
+    return dataCurta(f.de) + ' a ' + dataCurta(f.ate);
+  }
+  function dePeriodoEmp() { return periodo.tipo === 'mes' || periodo.tipo === 'escolhido' ? 'de ' + nomeDoPeriodoEmp() : 'dos ' + nomeDoPeriodoEmp(); }
+  function emPeriodoEmp() { return periodo.tipo === 'mes' ? 'em ' + nomeDoPeriodoEmp() : periodo.tipo === 'escolhido' ? 'de ' + nomeDoPeriodoEmp() : 'nos ' + nomeDoPeriodoEmp(); }
+  function noPeriodoCurto() { return periodo.tipo === 'mes' ? 'no mês' : 'no período'; }
 
   function faixaDoMes(ano, mes) {
     return { de: prefixoMes(ano, mes) + '-01', ate: ultimoDiaDoMes(ano, mes) };
@@ -11240,8 +11263,24 @@
     var depois = botao(null, '›', function () { mudarMes(1); });
     depois.setAttribute('aria-label', 'Mês seguinte');
     var rotulo = MESES[mesAtivo.mes].slice(0, 3);
-    var rotuloEl = no('div', 'rotulo', rotulo.charAt(0).toUpperCase() + rotulo.slice(1));
-    rotuloEl.setAttribute('aria-label', MESES[mesAtivo.mes] + ' de ' + mesAtivo.ano);
+    var curto = periodo.tipo === 'tres' ? '3 meses' : periodo.tipo === 'ano' ? '1 ano' : periodo.tipo === 'escolhido' ? 'Datas'
+      : rotulo.charAt(0).toUpperCase() + rotulo.slice(1);
+    var rotuloEl = botao('rotulo rotulo-periodo', curto, function () {
+      abrirEscolha({
+        titulo: 'Período', valor: periodo.tipo,
+        opcoes: [
+          { valor: 'mes', rotulo: 'Um mês', detalhe: MESES[mesAtivo.mes] + ' de ' + mesAtivo.ano + ' · as setas trocam o mês' },
+          { valor: 'tres', rotulo: 'Últimos 3 meses' },
+          { valor: 'ano', rotulo: 'Último ano', detalhe: 'os últimos 12 meses' },
+          { valor: 'escolhido', rotulo: 'Escolher as datas', detalhe: periodo.tipo === 'escolhido' ? faixaDoPeriodo().curto : 'início e fim' }
+        ]
+      }, function (esc) {
+        if (esc == null) return;
+        if (esc === 'mes') { periodo.tipo = 'mes'; desenhar(); return; }
+        trocarPeriodo(esc, function () { desenhar(); }, true);
+      });
+    });
+    rotuloEl.setAttribute('aria-label', 'Período: ' + nomeDoPeriodoEmp() + '. Toque para escolher');
     juntar(sel, antes, rotuloEl, depois);
     var tituloEl = no('h1', null, titulo);
     var areaAqui = moduloEmp === 'doces' ? 'doces' : moduloEmp === 'uber' ? 'uber' : '';
@@ -11460,7 +11499,7 @@
         .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.criadoEm || 0) - (a.criadoEm || 0); });
       var soma = lista.reduce(function (t, g) { return t + g.valor; }, 0);
       var c = cartao('cartao-destaque');
-      c.appendChild(no('div', 'rotulo', 'Recebido em ' + titulo));
+      c.appendChild(no('div', 'rotulo', 'Recebido · ' + titulo));
       c.appendChild(no('div', 'valorao num verde', emReais(soma)));
       var clientes = {};
       lista.forEach(function (g) { clientes[g.clienteId] = 1; });
@@ -11520,11 +11559,11 @@
       aberta
         ? { rotulo: aberta.pausaDesde ? 'Jornada pausada' : 'Em jornada', valor: formatarRelogio(duracaoJornada(aberta)),
             cor: aberta.pausaDesde ? 'ouro' : 'verde', relogio: !aberta.pausaDesde }
-        : { rotulo: 'Lucro no mês', valor: emReais(n.uber.lucro), cor: n.uber.lucro < 0 ? 'vermelho' : 'verde' }));
+        : { rotulo: 'Lucro ' + noPeriodoCurto(), valor: emReais(n.uber.lucro), cor: n.uber.lucro < 0 ? 'vermelho' : 'verde' }));
     // Doces: a sua parte no lucro do mês (pedido de 07/11/2026).
     var meuDoces = meuLucroNosDoces(faixa.de, faixa.ate);
     lista.appendChild(cartaoDeModulo('doces', 'Vendedores, entregas e prestação de contas',
-      { rotulo: 'Meu lucro no mês', valor: emReais(meuDoces), cor: meuDoces < 0 ? 'vermelho' : 'verde' }));
+      { rotulo: 'Meu lucro ' + noPeriodoCurto(), valor: emReais(meuDoces), cor: meuDoces < 0 ? 'vermelho' : 'verde' }));
     // O quarto quadro (Painel geral) saiu: ele repetia o resumo, que agora
     // é a primeira coisa da tela e continua abrindo o painel.
 
@@ -11534,7 +11573,7 @@
 
     var c = botao('cartao cartao-resumo-emp reflexo', null, function () { abrirModulo('painel'); });
     var topo = no('div', 'cartao-topo');
-    juntar(topo, no('div', 'cartao-titulo', 'Resumo de ' + MESES[mesAtivo.mes]), no('span', 'cartao-acao', 'Painel ›'));
+    juntar(topo, no('div', 'cartao-titulo', 'Resumo ' + dePeriodoEmp()), no('span', 'cartao-acao', 'Painel ›'));
     c.appendChild(topo);
     c.appendChild(no('div', 'rotulo', 'Faturamento dos três'));
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
@@ -11688,7 +11727,7 @@
     var nAnt = numerosDeServicos(fAnt.de, fAnt.ate);
 
     var c = cartao('cartao-destaque');
-    c.appendChild(no('div', 'rotulo', 'Faturamento de ' + MESES[mesAtivo.mes]));
+    c.appendChild(no('div', 'rotulo', 'Faturamento ' + dePeriodoEmp()));
     c.appendChild(no('div', 'valorao num ouro', emReais(n.faturamento)));
     c.appendChild(variacao(n.faturamento, nAnt.faturamento));
     var dl = no('div', 'despesa-lucro');
@@ -11717,7 +11756,7 @@
     var tRec = tile('Recebido', emReais(n.recebido), 'verde', 'mais');
     tRec.classList.add('tocavel');
     tRec.setAttribute('role', 'button');
-    tRec.addEventListener('click', function () { abrirRecebidosDoPeriodo(faixa.de, faixa.ate, MESES[mesAtivo.mes]); });
+    tRec.addEventListener('click', function () { abrirRecebidosDoPeriodo(faixa.de, faixa.ate, nomeDoPeriodoEmp()); });
     corpo.appendChild(gradeDeTiles([
       tile('Serviços', String(n.nServicos), '', 'ferramenta'),
       tile('Vendas', emReais(n.vendas), '', 'pacote'),
@@ -12633,7 +12672,7 @@
       if (alertas) corpo.appendChild(alertas);
       desenharHojeUber(corpo);
       var f = faixaDoMesAtivo();
-      corpo.appendChild(cartaoKmForaDoUber(f.de, f.ate, MESES[mesAtivo.mes]));
+      corpo.appendChild(cartaoKmForaDoUber(f.de, f.ate, nomeDoPeriodoEmp()));
       corpo.appendChild(no('div', 'secao-rotulo secao-historico', 'Histórico'));
       desenharHistoricoUber(corpo);
     }
@@ -13460,7 +13499,7 @@
     var t = numerosDoUber(de, ate);
 
     var c = cartao();
-    c.appendChild(topoDeCartao(escalaUber === 'dia' ? 'Dia a dia em ' + MESES[mesAtivo.mes]
+    c.appendChild(topoDeCartao(escalaUber === 'dia' ? 'Dia a dia ' + emPeriodoEmp()
       : escalaUber === 'semana' ? 'Últimas 8 semanas' : 'Últimos 6 meses', null));
     c.appendChild(graficoBarras(pedacos.map(function (p) {
       return { rotulo: p.rotulo, titulo: p.titulo, valor: p.n.faturamento, valor2: p.n.lucro };
@@ -13471,7 +13510,7 @@
     c.appendChild(leg);
     corpo.appendChild(c);
 
-    corpo.appendChild(tilesDoResultadoUber(t, de, ate, escalaUber === 'dia' ? MESES[mesAtivo.mes]
+    corpo.appendChild(tilesDoResultadoUber(t, de, ate, escalaUber === 'dia' ? nomeDoPeriodoEmp()
       : escalaUber === 'semana' ? 'últimas 8 semanas' : 'últimos 6 meses'));
     corpo.appendChild(gradeDeTiles([
       tile('Corridas', String(t.corridas), ''),
@@ -13622,7 +13661,7 @@
     if (abaGastosUber === 'extras') {
       var extras = doMes.filter(function (x) { return x.tipo === 'despesa'; }).sort(ordemUber);
       var c = cartao('cartao-destaque');
-      c.appendChild(no('div', 'rotulo', 'Despesas extras em ' + MESES[mesAtivo.mes]));
+      c.appendChild(no('div', 'rotulo', 'Despesas extras ' + emPeriodoEmp()));
       c.appendChild(no('div', 'valorao num vermelho', emReais(n.extras)));
       var porCat = {};
       extras.forEach(function (x) { porCat[x.categoria || 'Outros'] = (porCat[x.categoria || 'Outros'] || 0) + x.valor; });
@@ -13646,7 +13685,7 @@
     var arte = no('div', 'icone-grande');
     arte.appendChild(icone('bomba'));
     juntar(topo, arte, juntar(no('div'),
-      no('div', 'rotulo', 'Combustível em ' + MESES[mesAtivo.mes]),
+      no('div', 'rotulo', 'Combustível ' + emPeriodoEmp()),
       no('div', 'valorao num ouro', emReais(n.combustivel)),
       no('div', 'linha-nota', decimalBr(n.litros, 2) + ' litros' +
         (n.litros ? ' · média de ' + emReais(Math.round(n.combustivel / n.litros)) + ' o litro' : '') +
@@ -13850,7 +13889,7 @@
 
   function desenharResumoDoces(corpo) {
     var f = faixaDoMesAtivo();
-    var mes = MESES[mesAtivo.mes];
+    var mes = nomeDoPeriodoEmp();
     var r = resumoDosDoces(f.de, f.ate);
     var d = divisaoDoLucro();
     var compart = cartaoCompartilhamentoDaArea('doces');
@@ -13858,7 +13897,7 @@
 
     // ---- a conta do mês, em % ----
     var t = cartao('resumo-doces');
-    t.appendChild(topoDeCartao('Total de ' + mes, null));
+    t.appendChild(topoDeCartao('Total ' + dePeriodoEmp(), null));
     if (r.venda > 0 || r.custo > 0) {
       var seg = [
         { nome: 'Lucro da operação', valor: Math.max(r.lucro, 0), cor: '#3DDC84' },
@@ -13918,7 +13957,7 @@
       var c = contaDoVendedor(v.id, f.de, f.ate);
       var l = linhaSimples({
         titulo: v.nome + (v.ativo ? '' : ' (inativo)'),
-        sub: c.vendidosPeriodo + ' un. vendidas em ' + mes + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
+        sub: c.vendidosPeriodo + ' un. vendidas ' + emPeriodoEmp() + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
         valor: c.pendente > 0 ? emReais(c.pendente) : estimativaDoVendedor(c) ? '~' + emReais(estimativaDoVendedor(c)) : 'em dia',
         cor: c.pendente > 0 || estimativaDoVendedor(c) ? 'ouro' : 'verde',
         nota: 'lucro ' + emReais(c.lucroPeriodo), corNota: 'neutro',
@@ -13967,7 +14006,7 @@
 
   function abrirLucroDaEmpresa() {
     var f = faixaDoMesAtivo();
-    var mes = MESES[mesAtivo.mes];
+    var mes = nomeDoPeriodoEmp();
     function reabrir() { abrirLucroDaEmpresa(); }
     abrirFolha('Lucro da empresa · ' + mes, function (folha) {
       var r = resumoDosDoces(f.de, f.ate);
@@ -14003,7 +14042,7 @@
 
   function abrirMaisVendidos() {
     var f = faixaDoMesAtivo();
-    var mes = MESES[mesAtivo.mes];
+    var mes = nomeDoPeriodoEmp();
     abrirFolha('Mais vendidos', function (folha) {
       var r = resumoDosDoces(f.de, f.ate);
       var c = cartao();
@@ -14011,7 +14050,7 @@
       c.appendChild(no('div', 'valorao pequeno num neutro', emReais(r.revendedores)));
       c.appendChild(no('div', 'linha-nota', textoPct(r.pct(r.revendedores)) + ' da venda total. Não sai como despesa: no acerto ele já fica com os revendedores.'));
       folha.appendChild(c);
-      [['Top 3 de todas as vendas', maisVendidos('', ''), '', ''], ['Top 3 em ' + mes, maisVendidos(f.de, f.ate), f.de, f.ate]].forEach(function (bloco) {
+      [['Top 3 de todas as vendas', maisVendidos('', ''), '', ''], ['Top 3 ' + emPeriodoEmp(), maisVendidos(f.de, f.ate), f.de, f.ate]].forEach(function (bloco) {
         var l = cartao('liso');
         var tt = topoDeCartao(bloco[0], null);
         tt.style.padding = '16px 16px 0'; tt.style.marginBottom = '8px';
@@ -14057,7 +14096,7 @@
 
   function abrirCustoTotalDoces() {
     var f = faixaDoMesAtivo();
-    var mes = MESES[mesAtivo.mes];
+    var mes = nomeDoPeriodoEmp();
     function reabrir() { abrirCustoTotalDoces(); }
     abrirFolha('Custo total · ' + mes, function (folha) {
       var r = resumoDosDoces(f.de, f.ate);
@@ -14076,7 +14115,7 @@
       conta.appendChild(no('div', 'linha-nota', 'A % ao lado é a parte de cada um no custo total.'));
       folha.appendChild(conta);
       var lo = cartao('liso');
-      var to = topoDeCartao('Custos operacionais de ' + mes, null);
+      var to = topoDeCartao('Custos operacionais ' + dePeriodoEmp(), null);
       to.style.padding = '16px 16px 0'; to.style.marginBottom = '8px';
       lo.appendChild(to);
       var doMes = estado.doceCustos.filter(function (x) { return x.data >= f.de && x.data <= f.ate; })
@@ -14095,7 +14134,7 @@
       ac.appendChild(botao('btn btn-ouro', '+ Custo operacional', function () { porCima(reabrir, function () { abrirCustoOperacional(null, true); }); }));
       folha.appendChild(ac);
       var lc = cartao('liso');
-      var tc = topoDeCartao('Compras do fornecedor em ' + mes, null);
+      var tc = topoDeCartao('Compras do fornecedor ' + emPeriodoEmp(), null);
       tc.style.padding = '16px 16px 0'; tc.style.marginBottom = '8px';
       lc.appendChild(tc);
       var compras = estado.doceCompras.filter(function (x) { return x.data >= f.de && x.data <= f.ate; })
@@ -14568,7 +14607,7 @@
     var gasto = doMes.reduce(function (t, x) { return t + x.valor; }, 0);
     var un = doMes.reduce(function (t, x) { return t + x.quantidade; }, 0);
     var cm = cartao();
-    cm.appendChild(topoDeCartao('Compras de ' + MESES[mesAtivo.mes], null));
+    cm.appendChild(topoDeCartao('Compras ' + dePeriodoEmp(), null));
     cm.appendChild(gradeDeTiles([
       tile('Gasto em compras', emReais(gasto), 'vermelho'),
       tile('Unidades', String(un), '')
@@ -14928,7 +14967,7 @@
         no('span', 'etiqueta ' + (v.ativo ? 'hoje' : 'fora'), v.ativo ? 'Ativo' : 'Inativo'));
       topo.appendChild(cab);
       topo.appendChild(gradeDeTiles([
-        tile('Lucro em ' + MESES[mesAtivo.mes].slice(0, 3), emReais(c.lucroPeriodo), 'verde'),
+        tile(periodo.tipo === 'mes' ? 'Lucro em ' + MESES[mesAtivo.mes].slice(0, 3) : 'Lucro no período', emReais(c.lucroPeriodo), 'verde'),
         tile('A te repassar', emReais(Math.max(c.pendente, 0)), c.pendente > 0 ? 'ouro' : 'verde'),
         tile('Em estoque', Math.max(c.estoque, 0) + ' un.', '')
       ], 3));
