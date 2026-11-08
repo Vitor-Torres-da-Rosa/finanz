@@ -52,15 +52,29 @@ for (const nome of ['Tempero', 'Doce de vidro', 'Pote']) {
 }
 await folha().getByLabel('Fornecedor (opcional)').fill('Paulo fornecedor');
 const prev = limpo(await folha().textContent());
-// Pesos 10×1 + 10×3 + 10×2 = 60: 66 × 10/60 = 11, × 30/60 = 33, × 20/60 = 22.
-conferir('2. o valor pago se divide pelo valor de compra de cada um',
-  /Tempero.*R\$ 11,00 desta compra · R\$ 1,10 cada/.test(prev) && /Doce de vidro.*R\$ 33,00 desta compra · R\$ 3,30 cada/.test(prev) &&
-  /Pote.*R\$ 22,00 desta compra · R\$ 2,20 cada/.test(prev) && /3 doce\(s\) · 30 un\.\s*R\$ 2,20 em média/.test(prev), prev.slice(0, 500));
+// Pelo valor de compra, os doces somam 10 + 30 + 20 = R$ 60,00; os R$ 6,00
+// que passam disso viram taxa da compra (08/11/2026).
+conferir('2. cada doce entra pelo valor de compra, e a diferença vira taxa',
+  /Tempero.*R\$ 10,00 desta compra · R\$ 1,00 cada/.test(prev) && /Doce de vidro.*R\$ 30,00 desta compra · R\$ 3,00 cada/.test(prev) &&
+  /Pote.*R\$ 20,00 desta compra · R\$ 2,00 cada/.test(prev) && /3 doce\(s\) · 30 un\.\s*R\$ 2,00 em média/.test(prev) &&
+  /Os doces somam R\$ 60,00 pelo valor de compra\. A diferença de R\$ 6,00 entra como taxa da compra no custo operacional/.test(prev), prev.slice(0, 700));
 await page.screenshot({ path: dir + '/z76-compra-varios.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Registrar compra")'); await page.waitForTimeout(1000);
 let t = await tela();
-conferir('3. na lista, uma compra só com o total', /3 doces · 30 un\.\s*08\/11\/2026 · Paulo fornecedor · [^−]*Tempero[^−]*− R\$ 66,00/.test(t) && /Gasto em compras\s*R\$ 66,00/.test(t), t.slice(0, 500));
+conferir('3. na lista, uma compra só com o total pago e a taxa', /3 doces · 30 un\.\s*08\/11\/2026 · Paulo fornecedor · [^−]*Tempero[^−]*taxa R\$ 6,00\s*− R\$ 66,00/.test(t) &&
+  /Gasto em compras\s*R\$ 60,00/.test(t) && /Mais R\$ 6,00 de taxas das compras, no custo operacional/.test(t), t.slice(0, 500));
 conferir('4. e cada doce entra no seu estoque', /Tempero\s*com você agora\s*10 un\./.test(t) && /Doce de vidro\s*com você agora\s*10 un\./.test(t) && /Pote\s*com você agora\s*10 un\./.test(t));
+
+// A taxa está no custo operacional do Resumo.
+await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(700);
+t = await tela();
+conferir('3b. no Resumo, custo total = R$ 60,00 de mercadoria + R$ 6,00 de taxa', /Custo total\s*R\$ 66,00/.test(t), (t.match(/Custo total.{0,40}/) || [''])[0]);
+await page.click('#telaInicio .resumo-linha-doces:has-text("Custo total")'); await page.waitForTimeout(800);
+const ct = limpo(await folha().textContent());
+conferir('3c. abrindo, a taxa aparece nos custos operacionais', /Custo operacional\s*R\$ 6,00/.test(ct) && /Taxa da compra · Paulo fornecedor/.test(ct), ct.slice(0, 400));
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
+await page.click('#telaInicio .sub-produtos button:has-text("Fornecedor")'); await page.waitForTimeout(700);
 
 // ---- editar: tirar o pote ----
 await page.click('#telaInicio .linha:has-text("3 doces")'); await page.waitForTimeout(800);
@@ -70,14 +84,15 @@ await folha().locator('.item-compra:has-text("Pote") .contador-campo').fill('0')
 await dinheiro(folha().locator('.valor-grande'), '4400');
 await page.click('#folha .btn-ouro:has-text("Salvar compra")'); await page.waitForTimeout(1000);
 t = await tela();
-conferir('6. o doce que saiu deixa a compra', /2 doces · 20 un\..*− R\$ 44,00/.test(t) && !/Pote\s*com você agora\s*10 un/.test(t), t.slice(0, 500));
+// Sem o pote, os doces somam R$ 40,00: a taxa passa a ser R$ 4,00.
+conferir('6. o doce que saiu deixa a compra, e a taxa se refaz', /2 doces · 20 un\..*taxa R\$ 4,00\s*− R\$ 44,00/.test(t) && !/Pote\s*com você agora\s*10 un/.test(t), t.slice(0, 500));
 
 // ---- excluir apaga a compra inteira ----
 await page.click('#telaInicio .linha:has-text("2 doces")'); await page.waitForTimeout(800);
 await page.click('#folha button:has-text("Excluir compra")'); await page.waitForTimeout(500);
 await page.click('#dialogoAcoes button:has-text("Excluir")'); await page.waitForTimeout(1000);
 t = await tela();
-conferir('7. excluindo, sai a compra toda', /Nenhuma compra ainda/.test(t) && /Gasto em compras\s*R\$ 0,00/.test(t), t.slice(0, 300));
+conferir('7. excluindo, sai a compra toda, com a taxa', /Nenhuma compra ainda/.test(t) && /Gasto em compras\s*R\$ 0,00/.test(t) && !/de taxas das compras/.test(t), t.slice(0, 300));
 
 console.log(falhas ? `\n${falhas} verificação(ões) falharam` : '\ntudo certo: compra de vários doces');
 await browser.close();

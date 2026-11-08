@@ -2371,7 +2371,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.56.0';
+  var VERSAO = '5.56.1';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2380,6 +2380,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.56.1',
+      data: '2026-11-08',
+      itens: [
+        'Compra do fornecedor: cada doce entra pelo valor de compra dele. Se o total pago passar da soma (ex.: doces somam R$ 750,00 e você pagou R$ 800,00), a diferença entra sozinha como "Taxa da compra" no custo operacional. Editar ou excluir a compra acerta a taxa junto.'
+      ]
+    },
     {
       versao: '5.56.0',
       data: '2026-11-08',
@@ -4896,7 +4903,8 @@
     // cada um com a parte dele no lucro.
     limpo.doceCustos = lista('doceCustos').map(function (x) {
       return { id: x.id, descricao: texto(x.descricao).slice(0, 80) || 'Custo', valor: positivo(x.valor),
-               data: soData(x.data) || hojeTexto(), criadoEm: marca(x.criadoEm) || Date.now() };
+               data: soData(x.data) || hojeTexto(), compraId: texto(x.compraId).slice(0, 80),
+               criadoEm: marca(x.criadoEm) || Date.now() };
     }).filter(function (x) { return x.valor > 0; });
     limpo.doceMembros = lista('doceMembros').map(function (x) {
       var pc = Number(x.percentual);
@@ -14537,7 +14545,10 @@
       tile('Gasto em compras', emReais(gasto), 'vermelho'),
       tile('Unidades', String(un), '')
     ], 2));
-    cm.appendChild(no('div', 'linha-nota', 'As compras do mês entram no custo total do Resumo.'));
+    var taxasMes = estado.doceCustos.filter(function (c) { return c.compraId && c.data >= f.de && c.data <= f.ate; })
+      .reduce(function (t, c) { return t + c.valor; }, 0);
+    cm.appendChild(no('div', 'linha-nota', (taxasMes ? 'Mais ' + emReais(taxasMes) + ' de taxas das compras, no custo operacional. ' : '') +
+      'As compras do mês entram no custo total do Resumo.'));
     corpo.appendChild(cm);
 
     var comCompra = {};
@@ -14578,12 +14589,14 @@
       vistos[chave] = true;
       var grupo = itensDaCompra(x);
       var un = grupo.reduce(function (t, y) { return t + y.quantidade; }, 0);
-      var total = grupo.reduce(function (t, y) { return t + y.valor; }, 0);
+      var taxaL = x.grupoId ? taxaDaCompra(x.grupoId) : null;
+      var total = grupo.reduce(function (t, y) { return t + y.valor; }, 0) + (taxaL ? taxaL.valor : 0);
       lista.appendChild(linhaSimples({
         titulo: grupo.length === 1 ? nomeDoProduto(x.produtoId) + ' · ' + x.quantidade + ' un.' : grupo.length + ' doces · ' + un + ' un.',
         sub: dataBr(x.data) + (x.fornecedor ? ' · ' + x.fornecedor : '') +
           (grupo.length === 1 ? ' · ' + emReais(Math.round(x.valor / x.quantidade)) + ' cada'
-            : ' · ' + grupo.map(function (y) { return nomeDoProduto(y.produtoId); }).join(', ')),
+            : ' · ' + grupo.map(function (y) { return nomeDoProduto(y.produtoId); }).join(', ')) +
+          (taxaL ? ' · taxa ' + emReais(taxaL.valor) : ''),
         valor: '− ' + emReais(total), cor: 'vermelho',
         selo: seloIcone('pacote', '#FF6B6B'),
         aoTocar: function () { abrirFolhaCompraDoce(x.id); }
@@ -14618,6 +14631,25 @@
     });
   }
 
+  // A conta da compra (pedido de 08/11/2026): com o valor de compra de todos
+  // os doces cadastrado, cada um entra pelo valor dele, e o que o total
+  // pago passar disso é taxa (frete, embalagem) e vai para o custo
+  // operacional. Pagando menos, ou sem o valor de compra de algum, o total
+  // se divide entre os doces.
+  function contaDaCompra(total, itens) {
+    var comCusto = itens.length && itens.every(function (it) { var p = achar(estado.doceProdutos, it.produtoId); return p && p.custo > 0; });
+    if (comCusto) {
+      var partes = itens.map(function (it) { return it.quantidade * achar(estado.doceProdutos, it.produtoId).custo; });
+      var base = partes.reduce(function (t, x) { return t + x; }, 0);
+      if (total >= base) return { partes: partes, taxa: total - base, base: base };
+    }
+    return { partes: dividirCompra(total, itens), taxa: 0, base: 0 };
+  }
+
+  function taxaDaCompra(chave) {
+    return estado.doceCustos.filter(function (c) { return c.compraId && c.compraId === chave; })[0] || null;
+  }
+
   // Uma compra pode ter vários doces e um valor só para tudo.
   function abrirFolhaCompraDoce(id) {
     var x = id ? achar(estado.doceCompras, id) : null;
@@ -14630,12 +14662,14 @@
       return;
     }
     var itens = produtos.map(function (p) { return { produtoId: p.id, quantidade: noGrupo[p.id] ? noGrupo[p.id].quantidade : 0 }; });
-    var totalAntes = grupo.reduce(function (t, y) { return t + y.valor; }, 0);
+    var chaveAntes = x ? (x.grupoId || x.id) : '';
+    var taxaAntes = chaveAntes ? taxaDaCompra(chaveAntes) : null;
+    var totalAntes = grupo.reduce(function (t, y) { return t + y.valor; }, 0) + (taxaAntes ? taxaAntes.valor : 0);
     abrirFolha(x ? 'Editar compra' : 'Nova compra', function (folha) {
       var forma = no('div', 'forma');
       var valor = entradaValor(totalAntes, true);
       forma.appendChild(campo('Valor pago (tudo junto)', valor));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Marque quantas unidades de cada doce vieram nesta compra. O valor pago se divide entre eles.'));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Marque quantas unidades de cada doce vieram. Cada um entra pelo valor de compra dele, e o que o total pago passar disso vira taxa da compra.'));
       itens.forEach(function (it) {
         var p = achar(estado.doceProdutos, it.produtoId);
         var bloco = no('div', 'item-prestacao item-compra');
@@ -14671,10 +14705,13 @@
       forma.appendChild(marcar);
 
       function escolhidos() { return itens.filter(function (it) { return it.quantidade > 0; }); }
+      var notaTaxa = no('div', 'linha-nota nota-taxa');
+      forma.insertBefore(notaTaxa, marcar);
       function pintar() {
         var v = digitosParaCentavos(valor.value);
         var es = escolhidos();
-        var partes = dividirCompra(v, es);
+        var conta = contaDaCompra(v, es);
+        var partes = conta.partes;
         itens.forEach(function (it) { it.elParte.textContent = ''; });
         es.forEach(function (it, i) {
           it.elParte.textContent = v ? emReais(partes[i]) + ' desta compra · ' + emReais(Math.round(partes[i] / it.quantidade)) + ' cada' : '';
@@ -14682,7 +14719,11 @@
         var un = es.reduce(function (t, it) { return t + it.quantidade; }, 0);
         resumo.textContent = '';
         juntar(resumo, no('span', null, es.length ? es.length + ' doce(s) · ' + un + ' un.' : 'Nenhum doce marcado'),
-          no('strong', 'num', un && v ? emReais(Math.round(v / un)) + ' em média' : '—'));
+          no('strong', 'num', un && v ? emReais(Math.round((v - conta.taxa) / un)) + ' em média' : '—'));
+        notaTaxa.textContent = conta.taxa > 0
+          ? 'Os doces somam ' + emReais(conta.base) + ' pelo valor de compra. A diferença de ' + emReais(conta.taxa) + ' entra como taxa da compra no custo operacional.'
+          : '';
+        notaTaxa.style.display = conta.taxa > 0 ? '' : 'none';
       }
       valor.addEventListener('input', pintar);
       pintar();
@@ -14694,8 +14735,11 @@
         if (v <= 0) { mostrarErro(forma, 'Informe quanto pagou.'); return; }
         if (!es.length) { mostrarErro(forma, 'Marque a quantidade de pelo menos um doce.'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
-        var partes = dividirCompra(v, es);
-        var grupoId = es.length > 1 ? ((x && x.grupoId) || novoId()) : '';
+        var conta = contaDaCompra(v, es);
+        var partes = conta.partes;
+        // Com taxa, a compra ganha grupo mesmo com um doce só: é por ele que
+        // a taxa fica ligada à compra.
+        var grupoId = es.length > 1 || conta.taxa > 0 || (x && x.grupoId) ? ((x && x.grupoId) || novoId()) : '';
         var fica = {};
         es.forEach(function (it, i) {
           var reg = noGrupo[it.produtoId] || { id: novoId(), criadoEm: Date.now() + i };
@@ -14714,17 +14758,32 @@
           estado.doceCompras = estado.doceCompras.filter(function (z) { return z.id !== y.id; });
         });
         ultimoFornecedor = forn.value.trim().slice(0, 60);
+        // A taxa da compra, no custo operacional, ligada a ela.
+        var taxa = taxaDaCompra(grupoId) || (chaveAntes && chaveAntes !== grupoId ? taxaDaCompra(chaveAntes) : null);
+        if (conta.taxa > 0) {
+          if (!taxa) { taxa = { id: novoId(), criadoEm: Date.now() }; estado.doceCustos.push(taxa); }
+          taxa.compraId = grupoId; taxa.valor = conta.taxa; taxa.data = data.value;
+          taxa.descricao = ('Taxa da compra' + (forn.value.trim() ? ' · ' + forn.value.trim() : '')).slice(0, 80);
+        } else if (taxa) {
+          marcarExcluido('empreendedor_registros', taxa.id);
+          estado.doceCustos = estado.doceCustos.filter(function (c) { return c.id !== taxa.id; });
+        }
         salvar();
         fecharFolha();
         desenhar();
         var un = es.reduce(function (t, it) { return t + it.quantidade; }, 0);
-        avisar(x ? 'Compra atualizada.' : 'Compra registrada: ' + un + ' un. de ' + es.length + ' doce(s).');
+        avisar((x ? 'Compra atualizada' : 'Compra registrada: ' + un + ' un. de ' + es.length + ' doce(s)') +
+          (conta.taxa > 0 ? '. Taxa de ' + emReais(conta.taxa) + ' no custo operacional.' : '.'));
       }));
       if (x) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
         var un = grupo.reduce(function (t, y) { return t + y.quantidade; }, 0);
-        perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + un + ' un.', ok: 'Excluir', tom: 'perigo' }, function () {
+        perguntar({ titulo: 'Excluir esta compra?', texto: 'O seu estoque diminui em ' + un + ' un.' + (taxaAntes ? ' A taxa de ' + emReais(taxaAntes.valor) + ' sai do custo operacional.' : ''), ok: 'Excluir', tom: 'perigo' }, function () {
           grupo.forEach(function (y) { marcarExcluido('empreendedor_registros', y.id); });
           estado.doceCompras = estado.doceCompras.filter(function (z) { return grupo.indexOf(z) < 0; });
+          if (taxaAntes) {
+            marcarExcluido('empreendedor_registros', taxaAntes.id);
+            estado.doceCustos = estado.doceCustos.filter(function (c) { return c.id !== taxaAntes.id; });
+          }
           salvar();
           fecharFolha();
           desenhar();
