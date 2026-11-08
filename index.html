@@ -2378,7 +2378,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.56.3';
+  var VERSAO = '5.56.4';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2387,6 +2387,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.56.4',
+      data: '2026-11-08',
+      itens: [
+        'Prestação: em "Quem tem conta para prestar", o valor de cada vendedor vem com "estimativa de acerto" embaixo, no lugar de "estimativa · prestar".'
+      ]
+    },
     {
       versao: '5.56.3',
       data: '2026-11-08',
@@ -14395,11 +14402,11 @@
         : '';
       lista.appendChild(linhaSimples({
         titulo: v.nome,
-        sub: Math.max(c.estoque, 0) + ' doce(s) em estoque' + (quando ? ' · ' + quando : ''),
+        sub: (c.pendente > 0 ? emReais(c.pendente) + ' já devido · ' : '') + Math.max(c.estoque, 0) + ' doce(s) em estoque' + (quando ? ' · ' + quando : ''),
         // O que esses doces devem render para você se forem vendidos: o
         // repasse de cada um (custo + a sua comissão). Já devendo, soma.
         valor: emReais(estimativaDoVendedor(c) + Math.max(c.pendente, 0)), cor: 'ouro',
-        nota: (c.pendente > 0 ? emReais(c.pendente) + ' já devido · ' : 'estimativa · ') + 'prestar ›', corNota: 'ouro',
+        nota: 'estimativa de acerto',
         selo: selo('#E9B44C', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirPrestacaoDeContas(v.id); }
       }));

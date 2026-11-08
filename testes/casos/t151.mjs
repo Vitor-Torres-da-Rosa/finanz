@@ -134,7 +134,7 @@ await page.screenshot({ path: dir + '/z69-acerto-sem-estoque.png', fullPage: tru
 await page.click('#folha .btn-ouro:has-text("Registrar prestação de contas")'); await page.waitForTimeout(1100);
 t = await tela();
 conferir('14. o acerto aparece na lista, e a Daniela fica com R$ 30,00 pendente',
-  /Acerto sem estoque · Daniela/.test(t) && /Daniela.*R\$ 210,00\s*R\$ 30,00 já devido/.test(t), (t.match(/Daniela.{0,120}/) || [''])[0]);
+  /Acerto sem estoque · Daniela/.test(t) && /Daniela\s*R\$ 30,00 já devido · 30 doce\(s\) em estoque.*R\$ 210,00\s*estimativa de acerto/.test(t), (t.match(/Daniela.{0,120}/) || [''])[0]);
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(600);
 conferir('15. o estoque dela não mudou', /Com Daniela agora: 30 un\./.test(await tela()));
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
