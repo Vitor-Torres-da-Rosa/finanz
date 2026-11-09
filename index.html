@@ -1818,21 +1818,20 @@
   .acoes-resumo-doces .btn { margin: 0; }
   .nota-membros { padding: 8px 16px 12px; }
   .cartoes-vendedores { display: grid; gap: 12px; }
-  .cartao-vendedor-entregas { display: block; width: 100%; text-align: left; padding: 14px 16px; cursor: pointer; font: inherit; color: inherit; }
-  .cve-topo { display: flex; align-items: center; gap: 12px; }
-  .cve-nome { display: grid; gap: 2px; flex: 1 1 auto; min-width: 0; }
-  .cve-nome strong { font-size: 16px; }
-  .cve-nome span { font-size: 12.5px; color: var(--suave); }
+  .cartao-vendedor-entregas { display: block; width: 100%; text-align: left; padding: 12px 14px; cursor: pointer; font: inherit; color: inherit; }
+  .cve-topo { display: flex; align-items: center; gap: 10px; }
+  .cve-nome { display: grid; gap: 1px; flex: 1 1 auto; min-width: 0; }
+  .cve-nome strong { font-size: 15.5px; }
+  .cve-nome span { font-size: 12px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cve-seta { color: var(--ouro); font-size: 22px; line-height: 1; }
-  .cve-meses { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 10px; }
-  .cve-mes { display: grid; gap: 2px; padding: 9px 11px; border-radius: 12px; background: rgba(255,255,255,.035); border: 1px solid rgba(198,158,78,.16); }
-  .cve-mes .cve-rotulo { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fraco); }
-  .cve-mes strong { font-size: 14px; }
-  .cve-mes span.num { font-size: 12.5px; color: var(--suave); }
-  .cve-valores { display: grid; gap: 4px; }
-  .cve-com { font-size: 12px; color: var(--fraco); margin-bottom: 2px; }
-  .cve-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13.5px; }
-  .cve-linha span { color: var(--suave); }
+  .cve-meses { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 8px; }
+  .cve-mes { display: grid; gap: 1px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.035); border: 1px solid rgba(198,158,78,.16); min-width: 0; }
+  .cve-mes .cve-rotulo { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--fraco); }
+  .cve-mes strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cve-valores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 2px; }
+  .cve-valor { display: grid; gap: 1px; min-width: 0; }
+  .cve-valor span { font-size: 11px; color: var(--fraco); }
+  .cve-valor strong { font-size: 14px; }
   .lista-entregas-vendedor .linha-fim { min-width: 116px; }
   .linha-titulo.com-qtd { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
   .linha-titulo.com-qtd .linha-titulo-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2415,6 +2414,7 @@
         'Serviços e Vendas: o Resumo ficou mais limpo. Em cima, faturamento, despesas e lucro. Embaixo, linhas no mesmo padrão que abrem ao tocar: Serviços, Vendas, Recebido, A receber e o gráfico. Cada uma mostra os itens do período; "Abrir a lista" mostra todos.',
         'Resumo do Empreendedor: toque em Faturamento, Despesas, Lucro, Recebido ou A receber para ver cada item, separado por módulo. No "Por módulo" cada valor também abre os itens, e o nome abre o módulo.',
         'Venda de Doces: no Resumo, ao lado de cada vendedor aparece a venda total dele no período (o seu repasse mais o lucro dele).',
+        'Venda de Doces: o cartão de cada vendedor em Entregas ficou mais baixo: o que está com ele vai junto do nome, cada mês numa linha só e o custo e a estimativa de venda lado a lado.',
         'Resumo do Empreendedor: "Dinheiro" virou "Recebimentos" (vale dinheiro, Pix ou cartão) e "A receber hoje" virou só "A receber". Os valores de cima não cortam mais.',
         'Serviços e Vendas e Uber e Corridas: o botão redondo "+" embaixo saiu. Cada aba já tem os seus botões (Clientes tem "+ Novo"; o Uber tem "Novo registro", "Corrida avulsa", "Outras despesas" e "+ Abastecimento").'
       ]
@@ -14688,9 +14688,13 @@
         venda += x.estoque * x.preco;
       });
       var card = botao('cartao cartao-vendedor-entregas', null, function () { abrirEntregasDoVendedor(vid); });
+      // Mais enxuto (pedido de 08/11/2026): o que está com ele vai na linha
+      // do nome, cada mês numa linha só e os dois valores lado a lado.
       var topo = no('div', 'cve-topo');
       juntar(topo, selo('#E9B44C', nome.charAt(0).toUpperCase()),
-        juntar(no('div', 'cve-nome'), no('strong', null, nome), no('span', null, dele.length ? 'última entrega ' + dataCurta(dele[0].data) : 'nenhuma entrega ainda · toque para registrar')),
+        juntar(no('div', 'cve-nome'), no('strong', null, nome),
+          no('span', null, (dele.length ? 'última entrega ' + dataCurta(dele[0].data) : 'nenhuma entrega ainda · toque para registrar') +
+            (comEle ? ' · Com ' + nome + ' agora: ' + comEle + ' un.' : ''))),
         no('span', 'cve-seta', '›'));
       card.appendChild(topo);
       var meses = no('div', 'cve-meses');
@@ -14698,15 +14702,13 @@
       [[MESES[ant.mes], m0], [MESES[mesAtivo.mes], m1]].forEach(function (m) {
         juntar(meses, juntar(no('div', 'cve-mes'),
           no('span', 'cve-rotulo', m[0]),
-          no('strong', 'num', m[1].n ? m[1].n + (m[1].n === 1 ? ' entrega' : ' entregas') : 'nenhuma'),
-          no('span', 'num', m[1].un ? m[1].un + ' un.' : '—')));
+          no('strong', 'num', m[1].n ? m[1].n + (m[1].n === 1 ? ' entrega' : ' entregas') + ' · ' + m[1].un + ' un.' : 'nenhuma')));
       });
       card.appendChild(meses);
       var valores = no('div', 'cve-valores');
-      valores.appendChild(no('div', 'cve-com', comEle ? 'Com ' + nome + ' agora: ' + comEle + ' un.' : 'Nada com ' + nome + ' agora'));
       juntar(valores,
-        juntar(no('div', 'cve-linha'), no('span', null, 'Custo da mercadoria'), no('strong', 'num', emReais(custo))),
-        juntar(no('div', 'cve-linha'), no('span', null, 'Estimativa de venda'), no('strong', 'num verde', emReais(venda))));
+        juntar(no('div', 'cve-valor'), no('span', null, 'Custo da mercadoria'), no('strong', 'num', emReais(custo))),
+        juntar(no('div', 'cve-valor'), no('span', null, 'Estimativa de venda'), no('strong', 'num verde', emReais(venda))));
       card.appendChild(valores);
       lista.appendChild(card);
     });
