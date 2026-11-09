@@ -1972,6 +1972,10 @@
   .painel-num:active { background: var(--cartao-2); }
   .painel-num .v { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .painel-totais { margin-top: 12px; }
+  .casa-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; text-align: left; color: var(--texto); padding: 4px 0; }
+  .casa-resumo .r { font-size: 11px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .casa-resumo .v { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .casa-partes .config-linha input { width: 96px; text-align: right; }
   .painel-totais .v { font-size: 15px; }
   .painel-totais .r::after { content: ' ›'; color: var(--fraco); }
   .painel-ponto { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
@@ -2410,7 +2414,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.59.0';
+  var VERSAO = '5.60.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2419,6 +2423,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.60.0',
+      data: '2026-11-09',
+      itens: [
+        'Visão geral: novo cartão "Contas de casa". Cadastre quem divide as contas da casa e a parte padrão de cada um, e adicione as contas (aluguel, luz, internet...). Em cada conta dá para mudar a % de cada pessoa, e você fica com o que sobra.',
+        'Contas de casa mostra o total por mês, quanto cada pessoa paga e a sua parte. É só a base do cálculo: não entra nas despesas, que continuam sendo o que sai do extrato.'
+      ]
+    },
     {
       versao: '5.59.0',
       data: '2026-11-08',
@@ -4227,6 +4239,10 @@
       doceAjustes: [],
       doceCustos: [],
       doceMembros: [],
+      // Contas de casa (pedido de 09/11/2026): só a base para dividir as
+      // contas com quem mora junto. Não entra nas despesas.
+      casaMembros: [],
+      casaContas: [],
       excluidos: []
     };
   }
@@ -4898,6 +4914,22 @@
                valor: positivo(x.valor), obs: texto(x.obs).slice(0, 80), despesaId: texto(x.despesaId),
                criadoEm: marca(x.criadoEm) || Date.now() };
     }).filter(function (x) { return x.chave && x.km > 0; });
+    limpo.casaMembros = lista('casaMembros').map(function (x) {
+      var pc = Number(x.pct);
+      return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Pessoa',
+               pct: isFinite(pc) ? Math.max(0, Math.min(100, Math.round(pc * 10) / 10)) : 0,
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.casaContas = lista('casaContas').map(function (x) {
+      var partes = {};
+      if (x.partes && typeof x.partes === 'object') Object.keys(x.partes).forEach(function (k) {
+        var pc = Number(x.partes[k]);
+        if (k && isFinite(pc)) partes[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(pc * 10) / 10));
+      });
+      return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
+               dia: Math.max(0, Math.min(31, inteiro(x.dia))), partes: partes,
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    });
     limpo.uberNotas = lista('uberNotas').map(function (x) {
       return { id: x.id, texto: texto(x.texto).slice(0, 200), data: soData(x.data) || hojeTexto(), km: km(x.km),
                situacao: x.situacao === 'resolvida' ? 'resolvida' : 'pendente', resolvidaEm: soData(x.resolvidaEm) || '',
@@ -5771,7 +5803,8 @@
     uber_manutencao: 'uberManutencao', uber_troca: 'uberTrocas', uber_nota: 'uberNotas',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes',
-    doce_custo: 'doceCustos', doce_membro: 'doceMembros'
+    doce_custo: 'doceCustos', doce_membro: 'doceMembros',
+    casa_membro: 'casaMembros', casa_conta: 'casaContas'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -8281,6 +8314,7 @@
 
   var DESENHOS = {
     email: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5zM3.5 7.5l8.5 6 8.5-6',
+    casa: 'M3.5 11 12 4l8.5 7M5.5 9.5V20h13V9.5M10 20v-5.5h4V20',
     cadeado: 'M7 10V7.5a5 5 0 0 1 10 0V10M5.5 10h13a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z',
     pessoa: 'M12 11.5a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5zM4.5 20a7.5 7.5 0 0 1 15 0',
     telefone: 'M7 3.5h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16.5 16.5 0 0 1 3.5 5.5a2 2 0 0 1 2-2z',
@@ -10310,6 +10344,7 @@
       no('span', 'kpi-seta', '›'));
     kpis.appendChild(analises);
     tela.appendChild(kpis);
+    tela.appendChild(cartaoContasDeCasa());
 
     // Contas a pagar do mês e a sobra prevista, que já desconta o que
     // ainda vai vencer. Só aparece quando o radar achou alguma conta.
@@ -20439,6 +20474,237 @@
         }));
       }
 
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // ---------- Contas de casa (pedido de 09/11/2026) ----------
+  //
+  // Quem divide as contas da casa e com quanto cada um entra em cada conta.
+  // É só a base do cálculo: nada daqui entra nas despesas, que continuam
+  // sendo o que sai do extrato.
+  var ID_EU_NA_CASA = 'eu';
+
+  function pessoasDaCasa() {
+    var outros = estado.casaMembros.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
+    var dosOutros = outros.reduce(function (t, m) { return t + m.pct; }, 0);
+    return [{ id: ID_EU_NA_CASA, nome: 'Você', pct: Math.max(0, Math.round((100 - dosOutros) * 10) / 10), eu: true }].concat(outros);
+  }
+
+  // A % de cada pessoa numa conta: a combinada na conta, ou a padrão dela.
+  // Você fica com o que sobra.
+  function partesDaConta(conta) {
+    var pessoas = pessoasDaCasa();
+    var r = {}, outros = 0;
+    pessoas.forEach(function (p) {
+      if (p.eu) return;
+      var v = conta.partes && conta.partes[p.id] !== undefined ? conta.partes[p.id] : p.pct;
+      r[p.id] = v; outros += v;
+    });
+    r[ID_EU_NA_CASA] = Math.max(0, Math.round((100 - outros) * 10) / 10);
+    r.soma = outros + r[ID_EU_NA_CASA];
+    return r;
+  }
+
+  function totaisDaCasa() {
+    var pessoas = pessoasDaCasa();
+    var porPessoa = {};
+    pessoas.forEach(function (p) { porPessoa[p.id] = 0; });
+    var total = 0;
+    estado.casaContas.forEach(function (c) {
+      total += c.valor;
+      var pt = partesDaConta(c);
+      pessoas.forEach(function (p) { porPessoa[p.id] += Math.round(c.valor * (pt[p.id] || 0) / 100); });
+    });
+    return { total: total, porPessoa: porPessoa, pessoas: pessoas };
+  }
+
+  function cartaoContasDeCasa() {
+    var t = totaisDaCasa();
+    var c = cartao('cartao-casa');
+    c.appendChild(topoDeCartao('Contas de casa', estado.casaContas.length ? 'Abrir' : null, function () { abrirContasDeCasa(); }, 'casa'));
+    if (!estado.casaContas.length) {
+      c.appendChild(no('p', 'linha-nota', 'Divida as contas da casa com quem mora com você: quanto cada um entra em cada conta. É só para a conta, não entra nas despesas.'));
+      c.appendChild(botao('btn btn-fantasma', '+ Contas de casa', function () { abrirContasDeCasa(); }));
+      return c;
+    }
+    var alvo = botao('casa-resumo', null, function () { abrirContasDeCasa(); });
+    juntar(alvo,
+      juntar(no('div'), no('div', 'r', 'Total por mês'), no('div', 'v num', emReais(t.total))),
+      juntar(no('div'), no('div', 'r', 'Sua parte'), no('div', 'v num ouro', emReais(t.porPessoa[ID_EU_NA_CASA]))));
+    c.appendChild(alvo);
+    c.appendChild(no('div', 'linha-nota', estado.casaContas.length + ' conta(s) dividida(s) com ' +
+      (t.pessoas.length - 1) + ' pessoa(s). Não entra nas despesas.'));
+    return c;
+  }
+
+  function abrirContasDeCasa(deCima) {
+    function reabrir() { abrirContasDeCasa(deCima); }
+    abrirFolha('Contas de casa', function (folha) {
+      var t = totaisDaCasa();
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Total das contas por mês'));
+      c.appendChild(no('div', 'valorao num ouro', emReais(t.total)));
+      c.appendChild(no('div', 'linha-nota', 'Sua parte: ' + emReais(t.porPessoa[ID_EU_NA_CASA]) + '. Só a base para dividir: não entra nas despesas. Despesa é o que sai do extrato.'));
+      folha.appendChild(c);
+
+      // Quem divide.
+      var cp = cartao('liso');
+      var tp = topoDeCartao('Quem divide', '+ Pessoa', function () { porCima(reabrir, function () { abrirPessoaDaCasa(null); }); });
+      tp.style.padding = '16px 16px 0'; tp.style.marginBottom = '8px';
+      cp.appendChild(tp);
+      t.pessoas.forEach(function (p) {
+        cp.appendChild(linhaSimples({
+          titulo: p.nome,
+          sub: p.eu ? 'fica com o que sobra · ' + textoPct(p.pct) + ' padrão' : textoPct(p.pct) + ' padrão nas contas',
+          valor: emReais(t.porPessoa[p.id]), cor: p.eu ? 'ouro' : '', nota: 'por mês',
+          selo: selo(p.eu ? '#3DDC84' : '#E9B44C', p.nome.charAt(0).toUpperCase()),
+          aoTocar: p.eu ? null : function () { porCima(reabrir, function () { abrirPessoaDaCasa(p.id); }); }
+        }));
+      });
+      if (t.pessoas.length === 1) cp.appendChild(no('div', 'sanfona-vazio', 'Adicione quem divide as contas com você.'));
+      folha.appendChild(cp);
+
+      // As contas.
+      var cc = cartao('liso');
+      var tc = topoDeCartao('Contas', '+ Conta', function () { porCima(reabrir, function () { abrirContaDeCasa(null); }); });
+      tc.style.padding = '16px 16px 0'; tc.style.marginBottom = '8px';
+      cc.appendChild(tc);
+      if (!estado.casaContas.length) cc.appendChild(estadoVazio('Nenhuma conta ainda', 'Aluguel, luz, água, internet, mercado: o valor de cada uma e quanto cada pessoa entra.'));
+      estado.casaContas.slice().sort(function (a, b) { return b.valor - a.valor; }).forEach(function (conta) {
+        var pt = partesDaConta(conta);
+        cc.appendChild(linhaSimples({
+          titulo: conta.nome,
+          sub: t.pessoas.map(function (p) { return (p.eu ? 'Você' : p.nome) + ' ' + textoPct(pt[p.id] || 0); }).join(' · ') +
+            (conta.dia ? ' · vence dia ' + conta.dia : ''),
+          valor: emReais(conta.valor),
+          nota: 'sua parte ' + emReais(Math.round(conta.valor * pt[ID_EU_NA_CASA] / 100)),
+          corNota: Math.abs(pt.soma - 100) > 0.05 ? 'vermelho' : '',
+          selo: seloIcone('casa', '#E9B44C'),
+          aoTocar: function () { porCima(reabrir, function () { abrirContaDeCasa(conta.id); }); }
+        }));
+      });
+      folha.appendChild(cc);
+    });
+  }
+
+  function abrirPessoaDaCasa(id) {
+    var m = id ? achar(estado.casaMembros, id) : null;
+    abrirFolha(m ? m.nome : 'Nova pessoa', function (folha) {
+      var forma = no('div', 'forma');
+      var nome = entradaTexto(m ? m.nome : '', 'Ex.: Ana', 60);
+      forma.appendChild(campo('Nome', nome));
+      var pct = entradaDecimal(m ? m.pct : 0, 1, 'Ex.: 50');
+      forma.appendChild(campo('Quanto entra nas contas (%)', pct));
+      var dosOutros = estado.casaMembros.reduce(function (t, x) { return t + (m && x.id === m.id ? 0 : x.pct); }, 0);
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'É a parte padrão em cada conta; dá para mudar conta por conta. Os outros já somam ' +
+        textoPct(dosOutros) + ', e você fica com o que sobrar.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        var p = lerDecimal(pct.value);
+        if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome.'); return; }
+        if (!(p >= 0 && p <= 100)) { mostrarErro(forma, 'A parte vai de 0 a 100%.'); return; }
+        if (dosOutros + p > 100.001) { mostrarErro(forma, 'Com essa parte, a soma passa de 100% (' + textoPct(dosOutros + p) + ').'); return; }
+        var reg = m || { id: novoId(), criadoEm: Date.now() };
+        reg.nome = nome.value.trim().slice(0, 60); reg.pct = Math.round(p * 10) / 10;
+        if (!m) estado.casaMembros.push(reg);
+        salvar();
+        fecharOuVoltar(true);
+        desenhar();
+        avisar('Salvo.');
+      }));
+      if (m) acoes.appendChild(botao('btn btn-perigo', 'Tirar da divisão', function () {
+        perguntar({ titulo: 'Tirar ' + m.nome + '?', texto: 'A parte dele nas contas volta para você.', ok: 'Tirar', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', m.id);
+          estado.casaMembros = estado.casaMembros.filter(function (x) { return x.id !== m.id; });
+          estado.casaContas.forEach(function (c) { if (c.partes) delete c.partes[m.id]; });
+          salvar();
+          fecharOuVoltar(true);
+          desenhar();
+          avisar('Pronto.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function abrirContaDeCasa(id) {
+    var c = id ? achar(estado.casaContas, id) : null;
+    var pessoas = pessoasDaCasa();
+    var partes = {};
+    pessoas.forEach(function (p) {
+      if (!p.eu) partes[p.id] = c && c.partes && c.partes[p.id] !== undefined ? c.partes[p.id] : p.pct;
+    });
+    abrirFolha(c ? c.nome : 'Nova conta', function (folha) {
+      var forma = no('div', 'forma');
+      var nome = entradaTexto(c ? c.nome : '', 'Ex.: Aluguel, luz, internet', 60);
+      forma.appendChild(campo('Conta', nome));
+      var valor = entradaValor(c ? c.valor : 0, true);
+      forma.appendChild(campo('Valor por mês', valor));
+      var dia = entradaTexto(c && c.dia ? String(c.dia) : '', 'Ex.: 10', 2);
+      dia.inputMode = 'numeric';
+      forma.appendChild(campo('Vence no dia (opcional)', dia));
+      var caixa = no('div', 'casa-partes');
+      forma.appendChild(campo('Quanto cada um entra (%)', caixa));
+      var resumo = no('div', 'total-calculado');
+      function pintar() {
+        var v = digitosParaCentavos(valor.value);
+        var outros = 0;
+        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
+        var meu = Math.round((100 - outros) * 10) / 10;
+        resumo.textContent = '';
+        pessoas.forEach(function (p) {
+          var pc = p.eu ? meu : partes[p.id] || 0;
+          juntar(resumo, no('span', null, (p.eu ? 'Você' : p.nome) + ' · ' + textoPct(Math.max(pc, 0))),
+            no('strong', 'num ' + (p.eu ? (meu < 0 ? 'vermelho' : 'ouro') : ''), emReais(Math.round(v * Math.max(pc, 0) / 100))));
+        });
+        if (meu < 0) juntar(resumo, no('span', 'vermelho', 'As partes passam de 100%'), no('strong', 'num vermelho', textoPct(100 - meu)));
+      }
+      pessoas.forEach(function (p) {
+        if (p.eu) return;
+        var ent = entradaDecimal(partes[p.id], 1, '0');
+        ent.setAttribute('aria-label', 'Parte de ' + p.nome + ' (%)');
+        ent.addEventListener('input', function () { var n = lerDecimal(ent.value); partes[p.id] = isFinite(n) ? n : 0; pintar(); });
+        caixa.appendChild(juntar(no('div', 'config-linha'), no('span', 'config-rotulo', p.nome), ent));
+      });
+      if (pessoas.length === 1) caixa.appendChild(no('p', 'ajuda', 'Ninguém na divisão ainda: adicione as pessoas em "Quem divide". Por enquanto a conta é toda sua.'));
+      caixa.appendChild(no('p', 'ajuda', 'Você fica com o que sobrar.'));
+      valor.addEventListener('input', pintar);
+      forma.appendChild(resumo);
+      pintar();
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar conta', function () {
+        var v = digitosParaCentavos(valor.value);
+        var d = parseInt(dia.value, 10) || 0;
+        var outros = 0;
+        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
+        if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome da conta.'); return; }
+        if (v <= 0) { mostrarErro(forma, 'Informe o valor.'); return; }
+        if (d < 0 || d > 31) { mostrarErro(forma, 'O dia vai de 1 a 31.'); return; }
+        if (Object.keys(partes).some(function (k) { return partes[k] < 0 || partes[k] > 100; })) { mostrarErro(forma, 'Cada parte vai de 0 a 100%.'); return; }
+        if (outros > 100.001) { mostrarErro(forma, 'As partes passam de 100% (' + textoPct(outros) + ').'); return; }
+        var reg = c || { id: novoId(), criadoEm: Date.now() };
+        reg.nome = nome.value.trim().slice(0, 60); reg.valor = v; reg.dia = d;
+        reg.partes = {};
+        Object.keys(partes).forEach(function (k) { reg.partes[k] = Math.round((partes[k] || 0) * 10) / 10; });
+        if (!c) estado.casaContas.push(reg);
+        salvar();
+        fecharOuVoltar(true);
+        desenhar();
+        avisar(c ? 'Conta atualizada.' : 'Conta adicionada.');
+      }));
+      if (c) acoes.appendChild(botao('btn btn-perigo', 'Excluir conta', function () {
+        perguntar({ titulo: 'Excluir ' + c.nome + '?', texto: 'Ela sai da divisão. As despesas não mudam.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', c.id);
+          estado.casaContas = estado.casaContas.filter(function (x) { return x.id !== c.id; });
+          salvar();
+          fecharOuVoltar(true);
+          desenhar();
+          avisar('Conta excluída.');
+        });
+      }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
     });
