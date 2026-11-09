@@ -2414,6 +2414,7 @@
       itens: [
         'Serviços e Vendas: o Resumo ficou mais limpo. Em cima, faturamento, despesas e lucro. Embaixo, linhas no mesmo padrão que abrem ao tocar: Serviços, Vendas, Recebido, A receber e o gráfico. Cada uma mostra os itens do período; "Abrir a lista" mostra todos.',
         'Resumo do Empreendedor: toque em Faturamento, Despesas, Lucro, Recebido ou A receber para ver cada item, separado por módulo. No "Por módulo" cada valor também abre os itens, e o nome abre o módulo.',
+        'Venda de Doces: no Resumo, ao lado de cada vendedor aparece a venda total dele no período (o seu repasse mais o lucro dele).',
         'Resumo do Empreendedor: "Dinheiro" virou "Recebimentos" (vale dinheiro, Pix ou cartão) e "A receber hoje" virou só "A receber". Os valores de cima não cortam mais.',
         'Serviços e Vendas e Uber e Corridas: o botão redondo "+" embaixo saiu. Cada aba já tem os seus botões (Clientes tem "+ Novo"; o Uber tem "Novo registro", "Corrida avulsa", "Outras despesas" e "+ Abastecimento").'
       ]
@@ -14326,11 +14327,13 @@
       return a.nome.localeCompare(b.nome);
     }).forEach(function (v) {
       var c = contaDoVendedor(v.id, f.de, f.ate);
+      // Ao lado do nome, a venda inteira do período: o que vem para você
+      // mais o lucro do revendedor (pedido de 08/11/2026).
       var l = linhaSimples({
         titulo: v.nome + (v.ativo ? '' : ' (inativo)'),
         sub: c.vendidosPeriodo + ' un. vendidas ' + emPeriodoEmp() + ' · ' + Math.max(c.estoque, 0) + ' em estoque',
-        valor: c.pendente > 0 ? emReais(c.pendente) : estimativaDoVendedor(c) ? '~' + emReais(estimativaDoVendedor(c)) : 'em dia',
-        cor: c.pendente > 0 || estimativaDoVendedor(c) ? 'ouro' : 'verde',
+        valor: emReais(c.devidoPeriodo + c.lucroPeriodo),
+        cor: 'ouro',
         nota: 'lucro ' + emReais(c.lucroPeriodo), corNota: 'neutro',
         selo: selo(v.ativo ? '#E9B44C' : '#7C7362', v.nome.charAt(0).toUpperCase()),
         aoTocar: function () { abrirVendedorDoce(v.id); }
