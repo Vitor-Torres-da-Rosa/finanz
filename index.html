@@ -444,6 +444,11 @@
   }
   .folha-titulo .titulo-acao:active { background: var(--cartao-2); color: var(--ouro); }
   .folha-titulo .titulo-acao svg { width: 16px; height: 16px; }
+  .folha-titulo.com-lixeira { position: relative; padding: 0 44px; }
+  .folha-titulo .titulo-lixeira { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 36px; height: 36px;
+    border-radius: 11px; display: grid; place-items: center; color: var(--vermelho); background: rgba(255,107,107,.1); }
+  .folha-titulo .titulo-lixeira:active { background: rgba(255,107,107,.2); }
+  .folha-titulo .titulo-lixeira svg { width: 18px; height: 18px; }
 
   .campo { margin-bottom: 14px; }
   .campo > label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin-bottom: 7px; }
@@ -2414,6 +2419,7 @@
         'Serviços e Vendas: o Resumo ficou mais limpo. Em cima, faturamento, despesas e lucro. Embaixo, linhas no mesmo padrão que abrem ao tocar: Serviços, Vendas, Recebido, A receber e o gráfico. Cada uma mostra os itens do período; "Abrir a lista" mostra todos.',
         'Resumo do Empreendedor: toque em Faturamento, Despesas, Lucro, Recebido ou A receber para ver cada item, separado por módulo. No "Por módulo" cada valor também abre os itens, e o nome abre o módulo.',
         'Venda de Doces: no Resumo, ao lado de cada vendedor aparece a venda total dele no período (o seu repasse mais o lucro dele).',
+        'Venda de Doces: em Entregas, tocando no vendedor, tem uma lixeira no canto para excluí-lo (pergunta antes e avisa quanto histórico sai junto).',
         'Venda de Doces: o cartão de cada vendedor em Entregas ficou mais baixo: o que está com ele vai junto do nome, cada mês numa linha só e o custo e a estimativa de venda lado a lado.',
         'Resumo do Empreendedor: "Dinheiro" virou "Recebimentos" (vale dinheiro, Pix ou cartão) e "A receber hoje" virou só "A receber". Os valores de cima não cortam mais.',
         'Serviços e Vendas e Uber e Corridas: o botão redondo "+" embaixo saiu. Cada aba já tem os seus botões (Clientes tem "+ Novo"; o Uber tem "Novo registro", "Corrida avulsa", "Outras despesas" e "+ Abastecimento").'
@@ -14718,12 +14724,49 @@
     corpo.appendChild(acoes);
   }
 
+  // Excluir um vendedor leva junto o histórico dele; pergunta antes.
+  function excluirVendedorDoce(v) {
+    var ids = [];
+    ['doceEntregas', 'doceAcertos', 'docePagamentos'].forEach(function (k) {
+      estado[k].forEach(function (x) { if (x.vendedorId === v.id) ids.push(x.id); });
+    });
+    perguntar({
+      titulo: 'Excluir ' + v.nome + '?',
+      texto: ids.length
+        ? 'Sai junto todo o histórico dele: ' + ids.length + ' entrega(s), prestação(ões) e pagamento(s). Para só parar de usar, marque como inativo.'
+        : 'Não dá para desfazer.',
+      ok: 'Excluir', tom: 'perigo',
+      copiaAntes: 'antes de excluir o vendedor ' + v.nome
+    }, function () {
+      var fora = {};
+      ids.concat([v.id]).forEach(function (i) { fora[i] = true; marcarExcluido('empreendedor_registros', i); });
+      ['doceVendedores', 'doceEntregas', 'doceAcertos', 'docePagamentos'].forEach(function (k) {
+        estado[k] = estado[k].filter(function (x) { return !fora[x.id]; });
+      });
+      salvar();
+      // A ficha dele não existe mais: volta direto para a lista.
+      desenhar();
+      fecharFolha();
+      avisar('Vendedor excluído.');
+    });
+  }
+
   function abrirEntregasDoVendedor(vid) {
     var dele = estado.doceEntregas.filter(function (e) { return e.vendedorId === vid; }).sort(function (a, b) {
       if (a.data !== b.data) return a.data < b.data ? 1 : -1;
       return b.criadoEm - a.criadoEm;
     });
     abrirFolha('Entregas · ' + nomeDoVendedor(vid), function (folha) {
+      // A lixeira no canto exclui o vendedor (pedido de 08/11/2026).
+      var v = achar(estado.doceVendedores, vid);
+      if (v) {
+        var tituloEl = folha.querySelector('.folha-titulo');
+        tituloEl.classList.add('com-lixeira');
+        var lixo = botao('titulo-lixeira', null, function () { excluirVendedorDoce(v); });
+        lixo.setAttribute('aria-label', 'Excluir ' + v.nome);
+        lixo.appendChild(icone('lixo'));
+        tituloEl.appendChild(lixo);
+      }
       var lista = cartao('liso lista-entregas-vendedor');
       if (!dele.length) lista.appendChild(estadoVazio('Nenhuma entrega', 'As entregas deste vendedor aparecem aqui.'));
       dele.forEach(function (e) { lista.appendChild(linhaDeEntrega(e, function () { abrirEntregasDoVendedor(vid); }, true)); });
@@ -15429,31 +15472,7 @@
         avisar(v ? 'Vendedor atualizado.' : 'Vendedor cadastrado.');
       }));
       if (v) {
-        acoes.appendChild(botao('btn btn-perigo', 'Excluir vendedor', function () {
-          var ids = [];
-          ['doceEntregas', 'doceAcertos', 'docePagamentos'].forEach(function (k) {
-            estado[k].forEach(function (x) { if (x.vendedorId === v.id) ids.push(x.id); });
-          });
-          perguntar({
-            titulo: 'Excluir ' + v.nome + '?',
-            texto: ids.length
-              ? 'Sai junto todo o histórico dele: ' + ids.length + ' entrega(s), prestação(ões) e pagamento(s). Para só parar de usar, marque como inativo.'
-              : 'Não dá para desfazer.',
-            ok: 'Excluir', tom: 'perigo',
-            copiaAntes: 'antes de excluir o vendedor ' + v.nome
-          }, function () {
-            var fora = {};
-            ids.concat([v.id]).forEach(function (i) { fora[i] = true; marcarExcluido('empreendedor_registros', i); });
-            ['doceVendedores', 'doceEntregas', 'doceAcertos', 'docePagamentos'].forEach(function (k) {
-              estado[k] = estado[k].filter(function (x) { return !fora[x.id]; });
-            });
-            salvar();
-            // A ficha dele não existe mais: volta direto para a lista.
-            desenhar();
-            fecharFolha();
-            avisar('Vendedor excluído.');
-          });
-        }));
+        acoes.appendChild(botao('btn btn-perigo', 'Excluir vendedor', function () { excluirVendedorDoce(v); }));
       }
       forma.appendChild(acoes);
       folha.appendChild(forma);
