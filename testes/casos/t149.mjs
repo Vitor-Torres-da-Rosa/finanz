@@ -47,7 +47,6 @@ await page.click('#telaInicio [data-modulo="doces"]'); await page.waitForTimeout
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
 await page.click('#telaInicio button:has-text("+ Novo produto")'); await page.waitForTimeout(800);
 await folha().getByLabel('Nome do doce').fill('Pote de vidro');
-await dinheiro('Valor de venda ao cliente final', '2500');
 await dinheiro('Repasse para mim', '600');
 await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.waitForTimeout(1200);
 // Sincroniza com a tabela faltando: o resto sobe, o produto fica aqui.

@@ -43,7 +43,6 @@ const abas = await page.$$eval('#telaInicio .abas-modulo button', ns => ns.map(n
 conferir('1. as abas de cima continuam quatro', abas.length === 4, abas.join('|'));
 await page.click('#telaInicio button:has-text("+ Novo produto")'); await page.waitForTimeout(800);
 await folha().getByLabel('Nome do doce').fill('Pote de vidro');
-await dinheiro(folha().getByLabel('Valor de venda ao cliente final', { exact: true }), '2500');
 await dinheiro(folha().getByLabel('Repasse para mim', { exact: true }), '600');
 await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.waitForTimeout(1000);
 
@@ -65,7 +64,7 @@ await page.screenshot({ path: dir + '/z49-fornecedor.png', fullPage: true });
 
 // O valor de compra do produto passou a ser R$ 1,50.
 await page.click('#telaInicio .sub-produtos button:has-text("Produtos")'); await page.waitForTimeout(600);
-conferir('5. o produto ganhou o valor de compra da compra', /compra R\$ 1,50/i.test(await tela()));
+conferir('5. o produto ganhou o valor de compra da compra', /custo R\$ 1,50/i.test(await tela()));
 
 // Entrega de 30 para a Daniela: o seu estoque cai para 70.
 await page.click('#telaInicio .abas-modulo button:has-text("Entregas")'); await page.waitForTimeout(700);
@@ -121,6 +120,10 @@ let fsem = limpo(await folha().textContent());
 conferir('12. "+ Acerto sem estoque" abre o acerto só do dinheiro', /Prestação · Daniela/.test(await page.textContent('#folhaTitulo')) &&
   /a conta sai igual, mas o estoque dela e o seu ficam como estão/.test(fsem) && !(await folha().locator('.bloco-estoque').isVisible()), fsem.slice(0, 200));
 // Os doces com a conta inteira: 5 potes a R$ 6,00, mais R$ 20,00 fora.
+// 08/11/2026: o preço de venda vai ao lado do doce; ela vendeu a R$ 25,00.
+const precoSem = folha().locator('.bloco-sem-estoque .item-prestacao:has-text("Pote de vidro") input[data-campo="preco"]');
+await precoSem.click(); for (let i = 0; i < 12; i++) await precoSem.press('Backspace');
+await precoSem.type('2500'); await page.waitForTimeout(200);
 await folha().locator('.bloco-sem-estoque .item-prestacao:has-text("Pote de vidro") .contador-campo').fill('5'); await page.waitForTimeout(200);
 const vSem = folha().getByLabel('Outro valor, fora dos doces (opcional)');
 await vSem.click(); await vSem.type('2000'); await page.waitForTimeout(200);

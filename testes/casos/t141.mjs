@@ -73,21 +73,13 @@ await page.click('#folha .btn-ouro:has-text("Salvar vendedor")'); await page.wai
 await page.click('#telaInicio .abas-modulo button:has-text("Produtos")'); await page.waitForTimeout(600);
 await page.click('#telaInicio button:has-text("+ Novo produto")'); await page.waitForTimeout(800);
 await folha().getByLabel('Nome do doce').fill('Brigadeiro');
-// Desde 03/11/2026 o produto tem os quatro valores que o Vitor pediu:
-// compra, venda ao cliente final, repasse para o revendedor e para mim.
-// As duas partes do repasse fecham com o preço de venda.
-await dinheiro('Valor de compra do produto', '100');
-await dinheiro('Valor de venda ao cliente final', '400');
-await dinheiro('Repasse para o revendedor', '200');
-const paraMim = await folha().getByLabel('Repasse para mim', { exact: true }).inputValue();
-conferir('5a. repasse para o revendedor de R$ 2,00 deixa R$ 2,00 para mim', /2,00/.test(paraMim), paraMim);
-await dinheiro('Repasse para mim', '250');
-const paraRev = await folha().getByLabel('Repasse para o revendedor').inputValue();
-conferir('5b. e mexendo na minha parte, a do revendedor acompanha', /1,50/.test(paraRev), paraRev);
+// 08/11/2026: o produto tem só o custo e o repasse para mim; o preço de
+// venda cada vendedor informa na prestação.
+await dinheiro('Custo do produto', '100');
 await dinheiro('Repasse para mim', '200');
 const prevProduto = limpo(await folha().textContent());
-conferir('5. o produto mostra o lucro do revendedor e o seu por unidade',
-  /Lucro do revendedor por unidade\s*R\$ 2,00/.test(prevProduto) && /Seu lucro por unidade\s*R\$ 1,00/.test(prevProduto));
+conferir('5. o produto pede só o custo e o repasse, e mostra o seu lucro por unidade',
+  /Seu lucro por unidade\s*R\$ 1,00/.test(prevProduto) && !/Valor de venda ao cliente final|Repasse para o revendedor/.test(prevProduto), prevProduto.slice(0, 300));
 await page.screenshot({ path: dir + '/z42-produto.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.waitForTimeout(900);
 
@@ -103,7 +95,7 @@ await folha().locator('.contador-campo').fill('50'); await page.waitForTimeout(3
 const prevEntrega = limpo(await folha().textContent());
 // 07/11/2026: a entrega pede só quantidade e datas; os valores vêm do cadastro.
 conferir('7. a entrega pede só quantidade e datas, com os valores do cadastro',
-  /Valores do cadastro: venda R\$ 4,00 e repasse R\$ 2,00 por doce/.test(prevEntrega) &&
+  /Repasse para você: R\$ 2,00 por doce\. O preço de venda o vendedor informa na prestação de contas\./.test(prevEntrega) &&
   !(await folha().getByLabel('Repasse para mim', { exact: true }).count()) && !(await folha().getByLabel('Venda ao cliente final').count()), prevEntrega.slice(0, 300));
 // 03/11/2026: a entrega tem a data do acerto, uma semana depois por padrão.
 const dEntrega = await folha().getByLabel('Data da entrega').inputValue();
@@ -125,6 +117,12 @@ const pc = (await page.textContent('#folha')).replace(/\s+/g, ' ');
 conferir('8e. na prestação, o doce mostra a entrega e o acerto',
   new RegExp('Entregue em ' + dEntrega.split('-').reverse().join('/') + ' \\(50 un\\.\\) · acerto em ' + dAcerto.split('-').reverse().join('/')).test(pc),
   (pc.match(/Entregue em.{0,50}/) || [''])[0]);
+// 08/11/2026: ao lado do nome do doce, o preço por que ele vendeu. Sem
+// venda antes, vem o próprio repasse (lucro zero); ele vendeu a R$ 4,00.
+const precoEl = folha().locator('.bloco-estoque input[data-campo="preco"]');
+conferir('8f. ao lado do doce, o preço de venda, sugerindo o repasse', /2,00/.test(await precoEl.inputValue()), await precoEl.inputValue());
+await precoEl.click(); for (let i = 0; i < 12; i++) await precoEl.press('Backspace');
+await precoEl.type('400'); await page.waitForTimeout(200);
 await folha().locator('[data-campo="vendidos"] .contador-campo').fill('35');
 await folha().locator('[data-campo="devolvidos"] .contador-campo').fill('10');
 await page.waitForTimeout(300);

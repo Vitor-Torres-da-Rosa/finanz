@@ -1954,6 +1954,13 @@
     background: var(--cartao-2); border: 1px solid var(--borda); }
   .item-cabeca { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 4px 0 6px; }
   .item-com { font-size: 13px; color: var(--ouro); font-weight: 600; }
+  .item-cabeca .item-nome { display: grid; gap: 1px; min-width: 0; }
+  .item-cabeca .item-nome strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-cabeca .item-nome .item-com { font-size: 12px; }
+  .item-cabeca { align-items: center; }
+  .item-preco { display: grid; gap: 2px; flex: 0 0 auto; width: 118px; text-align: right; }
+  .item-preco span { font-size: 10.5px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .item-preco input { padding: 8px 10px; font-size: 15px; text-align: right; min-height: 0; }
   .item-pe { display: flex; justify-content: space-between; padding-top: 10px; font-size: 14px; color: var(--suave); }
   .item-fica { font-weight: 700; color: var(--texto); }
 
@@ -2403,7 +2410,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.58.0';
+  var VERSAO = '5.59.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2412,6 +2419,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.59.0',
+      data: '2026-11-08',
+      itens: [
+        'Venda de Doces: o produto agora pede só o custo e o repasse para você, e mostra o seu lucro por unidade.',
+        'Venda de Doces: tocando em "Você" em Membros da empresa, aparece a sua parte no lucro e dá para marcar que você também vende. Vendendo, o seu nome entra em Entregas e fica sempre na Prestação.',
+        'Venda de Doces: na prestação de contas, ao lado do nome de cada doce, vai o preço por que o vendedor vendeu. Cada vendedor vende pelo valor que quiser: o que passar do seu repasse é o lucro dele. O app já sugere o último preço que ele usou.'
+      ]
+    },
     {
       versao: '5.58.0',
       data: '2026-11-08',
@@ -14110,6 +14126,27 @@
     return { repasse: reserva ? reserva.repasse || 0 : 0, preco: reserva ? reserva.preco || 0 : 0, custo: 0 };
   }
 
+  // O preço de venda é do vendedor (pedido de 08/11/2026): o produto só
+  // tem o custo e o seu repasse, e cada vendedor diz na prestação por
+  // quanto vendeu. Sugestão: o último preço que ele usou para esse doce;
+  // nunca vendeu, o preço antigo do cadastro; sem nada, o próprio repasse.
+  function precoDeVenda(vid, produtoId) {
+    var melhor = null;
+    estado.doceAcertos.forEach(function (a) {
+      if (a.vendedorId !== vid) return;
+      (a.itens || []).forEach(function (i) {
+        if (i.produtoId !== produtoId || !i.preco) return;
+        if (!melhor || a.data > melhor.data || (a.data === melhor.data && (a.criadoEm || 0) > melhor.criadoEm)) {
+          melhor = { data: a.data, criadoEm: a.criadoEm || 0, preco: i.preco };
+        }
+      });
+    });
+    if (melhor) return melhor.preco;
+    var p = achar(estado.doceProdutos, produtoId);
+    if (!p) return 0;
+    return p.preco >= p.repasse ? p.preco : p.repasse;
+  }
+
   function contaDoVendedor(vid, de, ate) {
     var porProduto = {};
     function p(pid) {
@@ -14166,6 +14203,7 @@
     r.produtos = Object.keys(porProduto).map(function (k) {
       var x = porProduto[k];
       x.estoque = x.entregue - x.vendidos - x.devolvidos - x.perdidos;
+      x.preco = precoDeVenda(vid, x.produtoId) || x.preco;
       return x;
     });
     r.estoque = r.produtos.reduce(function (s, x) { return s + x.estoque; }, 0);
@@ -14364,7 +14402,13 @@
       box.appendChild(linhaSimples({
         titulo: 'Você' + (eu ? '' : ''), sub: 'dono da operação' + (d.membros.length ? ' · o que sobra dos outros' : ''),
         valor: emReais(Math.round(lucro * d.meuPct / 100)), cor: 'verde', nota: textoPct(d.meuPct),
-        selo: selo('#3DDC84', 'V')
+        selo: selo('#3DDC84', 'V'),
+        // Tocando em "Você" (pedido de 08/11/2026): a sua parte e se você
+        // também vende.
+        aoTocar: function () {
+          if (deCima) porCima(reabrir, function () { abrirVoceNosDoces(true); });
+          else abrirVoceNosDoces(false);
+        }
       }));
     }
     d.membros.forEach(function (m) {
@@ -14385,6 +14429,61 @@
       box.appendChild(no('div', 'linha-nota vermelho nota-membros', 'As partes somam ' + textoPct(d.soma) + ': ajuste para dar 100%.'));
     }
     return box;
+  }
+
+  // Você na Venda de Doces: a sua parte no lucro, o que vendeu e a opção
+  // de também vender, igual à de um sócio (pedido de 08/11/2026).
+  var ID_EU_NOS_DOCES = 'eu';
+  function abrirVoceNosDoces(deCima) {
+    var f = faixaDoMesAtivo();
+    var eu = { id: ID_EU_NOS_DOCES, nome: String(estado.perfil.nome || '').trim().slice(0, 60) || 'Você' };
+    var meuV = vendedorDoMembro(ID_EU_NOS_DOCES);
+    var vende = !!meuV;
+    abrirFolha('Você', function (folha) {
+      var r = resumoDosDoces(f.de, f.ate);
+      var d = divisaoDoLucro();
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Sua parte no lucro ' + dePeriodoEmp()));
+      var minha = Math.round(r.lucro * d.meuPct / 100);
+      c.appendChild(no('div', 'valorao num ' + (minha < 0 ? 'vermelho' : 'verde'), emReais(minha)));
+      c.appendChild(no('div', 'linha-nota', textoPct(d.meuPct) + ' do lucro da operação (' + emReais(r.lucro) + ')' +
+        (d.membros.length ? ': o que sobra depois da parte dos outros membros.' : '.')));
+      folha.appendChild(c);
+      var conta = cartao('detalhe-uber-lucro');
+      [['Venda total', emReais(r.venda), 'ouro'], ['Lucro da operação', emReais(r.lucro), r.lucro < 0 ? 'vermelho' : 'verde'],
+       ['Sua parte', textoPct(d.meuPct), '']].forEach(function (x) {
+        var l = no('div', 'parcela-linha');
+        juntar(l, no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1]));
+        conta.appendChild(l);
+      });
+      if (meuV) {
+        var cv = contaDoVendedor(meuV.id, f.de, f.ate);
+        [['Você vendeu', cv.vendidosPeriodo + ' un.', ''], ['Seu lucro como vendedor', emReais(cv.lucroPeriodo), 'verde'],
+         ['Com você agora', Math.max(cv.estoque, 0) + ' un.', '']].forEach(function (x) {
+          var l = no('div', 'parcela-linha');
+          juntar(l, no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1]));
+          conta.appendChild(l);
+        });
+      }
+      folha.appendChild(conta);
+      var forma = no('div', 'forma');
+      forma.appendChild(campo('Você também vende os doces?', segmentosLocais([{ valor: false, rotulo: 'Não' }, { valor: true, rotulo: 'Sim, vendo' }],
+        vende, function (v) { vende = v; })));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Vendendo, o seu nome aparece em Entregas e fica sempre na Prestação: dá para prestar contas direto, sem pegar doces.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        ajustarVendedorDoMembro(eu, vende);
+        salvar();
+        fecharOuVoltar(deCima);
+        desenhar();
+        avisar(vende ? 'Pronto: você aparece em Entregas e na Prestação.' : 'Salvo.');
+      }));
+      acoes.appendChild(botao('btn btn-fantasma', 'Ver a divisão do lucro', function () {
+        porCima(function () { abrirVoceNosDoces(deCima); }, function () { abrirLucroDaEmpresa(); });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
   }
 
   function abrirLucroDaEmpresa() {
@@ -14838,7 +14937,7 @@
       qtd: doVendedor ? e.quantidade + ' un.' : '',
       sub: datas + (doVendedor ? '' : ' · ' + nomeDoProduto(e.produtoId)),
       valor: emReais(e.quantidade * valoresDoDoce(e.produtoId, e).repasse), cor: 'ouro',
-      nota: 'venda ' + emReais(e.quantidade * valoresDoDoce(e.produtoId, e).preco),
+      nota: 'venda ~' + emReais(e.quantidade * (precoDeVenda(e.vendedorId, e.produtoId) || valoresDoDoce(e.produtoId, e).preco)),
       selo: seloIcone('pacote', '#E9B44C'),
       aoTocar: function () {
         if (reabrir) porCima(reabrir, function () { abrirFolhaEntrega(e.id, '', true); });
@@ -14895,7 +14994,7 @@
       var v = item.v;
       var c = contaDoVendedor(v.id);
       // O sócio que vende fica sempre aqui (pedido de 08/11/2026).
-      var socio = !!(v.membroId && v.ativo && achar(estado.doceMembros, v.membroId));
+      var socio = !!(v.membroId && v.ativo && (v.membroId === ID_EU_NOS_DOCES || achar(estado.doceMembros, v.membroId)));
       if (c.estoque <= 0 && c.pendente <= 0 && !socio) return;
       algum = true;
       var quando = item.acerto
@@ -14949,9 +15048,9 @@
       var est = meuEstoqueDoce(p.id);
       lista.appendChild(linhaSimples({
         titulo: p.nome + (p.ativo ? '' : ' (inativo)'),
-        sub: 'Estoque ' + est + ' un. · ' + (p.custo ? 'compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco),
-        valor: emReais(p.preco - p.repasse), cor: 'verde',
-        nota: 'lucro do vendedor',
+        sub: 'Estoque ' + est + ' un. · ' + (p.custo ? 'custo ' + emReais(p.custo) + ' · ' : '') + 'repasse ' + emReais(p.repasse),
+        valor: emReais(p.repasse - (p.custo || 0)), cor: p.repasse - (p.custo || 0) < 0 ? 'vermelho' : 'verde',
+        nota: 'seu lucro',
         selo: seloIcone('doce', '#F472B6'),
         aoTocar: function () { abrirFolhaProduto(p.id); }
       }));
@@ -15532,46 +15631,23 @@
       var forma = no('div', 'forma');
       var nome = entradaTexto(p ? p.nome : '', 'Ex.: Brigadeiro gourmet', 60);
       forma.appendChild(campo('Nome do doce', nome));
-      // Os quatro valores de cada doce, na ordem do dinheiro: quanto você
-      // paga, quanto o cliente final paga, e como esse preço se divide
-      // entre o revendedor e você. As duas partes andam juntas: mexendo
-      // numa, a outra fecha a conta com o preço de venda.
+      // Só o custo e o seu repasse (pedido de 08/11/2026): o preço de venda
+      // cada vendedor informa na prestação de contas, e o que passar do
+      // repasse é o lucro dele.
       var custo = entradaValor(p ? p.custo : 0, false);
-      forma.appendChild(campo('Valor de compra do produto', custo));
+      forma.appendChild(campo('Custo do produto', custo));
       forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto cada unidade custa para você.'));
-      var preco = entradaValor(p ? p.preco : 0, false);
-      forma.appendChild(campo('Valor de venda ao cliente final', preco));
-      var revendedor = entradaValor(p ? Math.max(p.preco - p.repasse, 0) : 0, false);
-      forma.appendChild(campo('Repasse para o revendedor', revendedor));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que fica com o revendedor por unidade vendida.'));
       var repasse = entradaValor(p ? p.repasse : 0, false);
       forma.appendChild(campo('Repasse para mim', repasse));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o revendedor te passa por unidade vendida.'));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o vendedor te passa por unidade vendida. O preço de venda ele escolhe na prestação de contas: o que passar disso é o lucro dele.'));
       var resumo = no('div', 'total-calculado');
       forma.appendChild(resumo);
       function pintar() {
-        var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value), c = digitosParaCentavos(custo.value);
+        var r = digitosParaCentavos(repasse.value), c = digitosParaCentavos(custo.value);
         resumo.textContent = '';
-        juntar(resumo, no('span', null, 'Lucro do revendedor por unidade'), no('strong', 'num ' + (v - r < 0 ? 'vermelho' : 'verde'), emReais(v - r)));
         juntar(resumo, no('span', null, 'Seu lucro por unidade'), no('strong', 'num ' + (r - c < 0 ? 'vermelho' : 'verde'), emReais(r - c)));
       }
-      preco.addEventListener('input', function () {
-        // Mudou o preço: a sua parte fica, a do revendedor acompanha.
-        var v = digitosParaCentavos(preco.value), r = digitosParaCentavos(repasse.value);
-        if (r) revendedor.value = emReais(Math.max(v - r, 0));
-        else if (digitosParaCentavos(revendedor.value)) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
-        pintar();
-      });
-      revendedor.addEventListener('input', function () {
-        var v = digitosParaCentavos(preco.value);
-        if (v) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
-        pintar();
-      });
-      repasse.addEventListener('input', function () {
-        var v = digitosParaCentavos(preco.value);
-        if (v) revendedor.value = emReais(Math.max(v - digitosParaCentavos(repasse.value), 0));
-        pintar();
-      });
+      repasse.addEventListener('input', pintar);
       custo.addEventListener('input', pintar);
       pintar();
       forma.appendChild(campo('Situação', segmentosLocais([{ valor: true, rotulo: 'Ativo' }, { valor: false, rotulo: 'Inativo' }], ativo, function (x) { ativo = x; })));
@@ -15587,15 +15663,14 @@
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar produto', function () {
         var n = nome.value.trim();
-        var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value);
+        var r = digitosParaCentavos(repasse.value);
         if (!n) { mostrarErro(forma, 'Informe o nome do doce.'); return; }
-        if (v <= 0) { mostrarErro(forma, 'Informe o valor de venda ao cliente final.'); return; }
         if (r <= 0) { mostrarErro(forma, 'Informe o repasse para você.'); return; }
-        if (r > v) { mostrarErro(forma, 'O repasse para você não pode passar do valor de venda.'); return; }
-        var reg = p || { id: novoId(), criadoEm: Date.now() };
+        var reg = p || { id: novoId(), criadoEm: Date.now(), preco: 0 };
         reg.nome = n.slice(0, 60);
         reg.repasse = r;
-        reg.preco = v;
+        // O preço antigo do cadastro só serve de sugestão, e nunca abaixo do repasse.
+        if (reg.preco && reg.preco < r) reg.preco = 0;
         reg.custo = digitosParaCentavos(custo.value);
         reg.ativo = ativo;
         if (!p) estado.doceProdutos.push(reg);
@@ -15661,7 +15736,7 @@
       };
       forma.appendChild(campo('Vendedor', selV));
 
-      var opP = produtos.map(function (p) { return { valor: p.id, rotulo: p.nome, detalhe: 'repasse ' + emReais(p.repasse) + ' · venda ' + emReais(p.preco) }; });
+      var opP = produtos.map(function (p) { return { valor: p.id, rotulo: p.nome, detalhe: 'repasse ' + emReais(p.repasse) + (p.custo ? ' · custo ' + emReais(p.custo) : '') }; });
       opP.push({ valor: '__novo__', rotulo: '+ Novo produto' });
       var selP = entradaSelecao(opP, d.produtoId, 'Qual doce?');
       selP.aoMudar = function (v) {
@@ -15687,7 +15762,7 @@
       forma.appendChild(resumo);
       function pintar() {
         var p = achar(estado.doceProdutos, d.produtoId);
-        resumo.textContent = p ? 'Valores do cadastro: venda ' + emReais(p.preco) + ' e repasse ' + emReais(p.repasse) + ' por doce. Para mudar, edite o doce em Produtos.' : '';
+        resumo.textContent = p ? 'Repasse para você: ' + emReais(p.repasse) + ' por doce. O preço de venda o vendedor informa na prestação de contas.' : '';
       }
       pintar();
 
@@ -15766,6 +15841,18 @@
     var recebidoTocado = false;
 
     var semEstoque = !!comecarSemEstoque;
+    // Ao lado do nome do doce, o preço por que o vendedor vendeu (pedido de
+    // 08/11/2026). Vem o último que ele usou; a diferença para o seu
+    // repasse é o lucro dele.
+    function campoDePreco(it, aoMudar) {
+      var caixa = no('label', 'item-preco');
+      var ent = entradaValor(it.preco, false);
+      ent.setAttribute('aria-label', 'Preço de venda de ' + nomeDoProduto(it.produtoId));
+      ent.setAttribute('data-campo', 'preco');
+      ent.addEventListener('input', function () { it.preco = digitosParaCentavos(ent.value); aoMudar(); });
+      juntar(caixa, no('span', null, 'vendeu a'), ent);
+      return caixa;
+    }
     abrirFolha('Prestação · ' + v.nome, function (folha) {
       var forma = no('div', 'forma');
 
@@ -15786,14 +15873,15 @@
       // Todos os doces ativos, com o preço da última entrega a este vendedor
       // (ou o do cadastro, se nunca entregou).
       var itensSem = estado.doceProdutos.filter(function (p) { return p.ativo; }).map(function (p) {
-        return { produtoId: p.id, vendidos: 0, repasse: p.repasse, preco: p.preco, custo: p.custo || 0 };
+        return { produtoId: p.id, vendidos: 0, repasse: p.repasse, preco: precoDeVenda(vid, p.id), custo: p.custo || 0 };
       });
       if (!itensSem.length) blocoSemEstoque.appendChild(no('p', 'ajuda', 'Nenhum doce cadastrado: use o valor abaixo.'));
       itensSem.forEach(function (it) {
         var bloco = no('div', 'item-prestacao');
         juntar(bloco, juntar(no('div', 'item-cabeca'),
-          no('strong', null, nomeDoProduto(it.produtoId)),
-          no('span', 'item-com', emReais(it.repasse) + ' por doce')));
+          juntar(no('div', 'item-nome'), no('strong', null, nomeDoProduto(it.produtoId)),
+            no('span', 'item-com', 'repasse ' + emReais(it.repasse))),
+          campoDePreco(it, function () { pintar(); })));
         var linha = no('div', 'config-linha');
         var cont = contadorDigitavel(0, function (n) { it.vendidos = n; pintar(); });
         cont.setAttribute('data-campo', 'vendidos-sem');
@@ -15816,8 +15904,9 @@
         var bloco = no('div', 'item-prestacao');
         var fica = no('span', 'item-fica num');
         juntar(bloco, juntar(no('div', 'item-cabeca'),
-          no('strong', null, nomeDoProduto(it.produtoId)),
-          no('span', 'item-com', 'Em estoque: ' + it.estoque)));
+          juntar(no('div', 'item-nome'), no('strong', null, nomeDoProduto(it.produtoId)),
+            no('span', 'item-com', 'Em estoque: ' + it.estoque + ' · repasse ' + emReais(it.repasse))),
+          campoDePreco(it, function () { pintar(); })));
         // De que entregas este estoque veio: a data de cada uma e o dia
         // combinado para o acerto.
         entregasDesdeOAcerto(vid, it.produtoId).forEach(function (e) {
@@ -15901,6 +15990,8 @@
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Registrar prestação de contas', function () {
         if (totais.erro) { mostrarErro(forma, 'Vendidos, devolvidos e perdidos passam do que ele tem. Confira os números em vermelho.'); return; }
+        var baixo = (semEstoque ? itensSem : itens).filter(function (it) { return it.vendidos > 0 && it.preco < it.repasse; })[0];
+        if (baixo) { mostrarErro(forma, 'O preço de venda de ' + nomeDoProduto(baixo.produtoId) + ' está abaixo do seu repasse (' + emReais(baixo.repasse) + ').'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         var r = digitosParaCentavos(recebido.value);
         var usados = semEstoque ? [] : itens.filter(function (it) { return it.vendidos || it.devolvidos || it.perdidos; });

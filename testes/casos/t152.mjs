@@ -42,7 +42,7 @@ async function irParaProdutos(page) {
 async function novoProduto(page, nome) {
   await page.click('#telaInicio button:has-text("+ Novo produto")'); await page.waitForTimeout(800);
   await page.locator('#folha').getByLabel('Nome do doce').fill(nome);
-  for (const [rot, dig] of [['Valor de venda ao cliente final', '400'], ['Repasse para mim', '200']]) {
+  for (const [rot, dig] of [['Repasse para mim', '200']]) {
     const c = page.locator('#folha').getByLabel(rot, { exact: true });
     await c.click(); for (let i = 0; i < 10; i++) await c.press('Backspace'); await c.type(dig);
   }

@@ -48,9 +48,8 @@ const dinheiro = async (loc, digitos) => {
   await loc.click(); for (let i = 0; i < 14; i++) await loc.press('Backspace');
   await loc.type(digitos); await page.waitForTimeout(200);
 };
-await dinheiro(folha().getByLabel('Valor de compra do produto', { exact: true }), '100');
-await dinheiro(folha().getByLabel('Valor de venda ao cliente final', { exact: true }), '400');
-await dinheiro(folha().getByLabel('Repasse para o revendedor', { exact: true }), '200');
+await dinheiro(folha().getByLabel('Custo do produto', { exact: true }), '100');
+await dinheiro(folha().getByLabel('Repasse para mim', { exact: true }), '200');
 await page.click('#folha .btn-ouro:has-text("Salvar produto")'); await page.waitForTimeout(900);
 await fechar();
 
@@ -101,6 +100,21 @@ await page.click('#folha .titulo-lixeira'); await page.waitForTimeout(700);
 const dlg = limpo(await page.textContent('#dialogoAcoes').catch(() => '')) + ' ' + limpo(await page.locator('.dialogo, #dialogo').first().textContent().catch(() => ''));
 await page.click('#dialogoAcoes button:has-text("Excluir")'); await page.waitForTimeout(1000);
 conferir('9. pergunta e exclui', /Excluir/.test(dlg) && !(await page.locator('#telaInicio .cartao-vendedor-entregas:has-text("Carlos")').count()), dlg.slice(0, 120));
+
+// ---- "Você" também pode vender ----
+await aba('Resumo');
+await page.click('#telaInicio .linha:has-text("Você")'); await page.waitForTimeout(900);
+const fv = limpo(await folha().textContent());
+conferir('10. tocando em "Você", aparece a sua parte e a opção de vender',
+  (await page.textContent('#folhaTitulo')) === 'Você' && /Sua parte no lucro/.test(fv) && /Você também vende os doces\?\s*Não\s*Sim, vendo/.test(fv), fv.slice(0, 200));
+await page.screenshot({ path: dir + '/z66-voce-nos-doces.png' });
+await page.click('#folha button:has-text("Sim, vendo")'); await page.waitForTimeout(300);
+await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(900);
+await fechar();
+await aba('Prestação');
+conferir('11. vendendo, o seu nome fica na Prestação', /Vitor\s*sócio\(a\) · vende direto/.test(await tela()), (await tela()).slice(0, 200));
+await aba('Entregas');
+conferir('12. e em Entregas', await page.locator('#telaInicio .cartao-vendedor-entregas:has-text("Vitor")').count() === 1);
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();
