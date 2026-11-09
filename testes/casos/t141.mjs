@@ -150,7 +150,8 @@ await page.click('#folha .btn-ouro:has-text("Registrar prestação")'); await pa
 // do fornecedor mais o operacional (aqui, nenhum), e tudo em % da venda.
 await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(700);
 const linhaMariana = limpo(await page.textContent('#telaInicio .linha-vendedor'));
-conferir('13. na lista, R$ 20,00 a receber e o lucro dela', /R\$ 20,00/.test(linhaMariana) && /lucro R\$ 70,00/.test(linhaMariana), linhaMariana);
+// 08/11/2026: ao lado do nome, a venda total dela (repasse + lucro dela).
+conferir('13. na lista, a venda total dela e o lucro dela', /R\$ 140,00/.test(linhaMariana) && /lucro R\$ 70,00/.test(linhaMariana), linhaMariana);
 const totalMes = limpo(await page.textContent('#telaInicio .resumo-doces'));
 conferir('14. o total do mês: venda, lucro dos revendedores, custo e lucro da operação, em %',
   /Venda total\s*R\$ 140,00\s*100,0%/.test(totalMes) && /Lucro dos revendedores\s*R\$ 70,00\s*50,0%/.test(totalMes) &&

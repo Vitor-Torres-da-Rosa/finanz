@@ -84,7 +84,9 @@ await page.screenshot({ path: dir + '/z56-pagamentos-da-parcela.png', fullPage: 
 // ---- 05/11/2026: tocar em "Recebido" mostra o que entrou ----
 for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await page.waitForTimeout(900);
-await page.click('#telaInicio .tile.tocavel:has-text("Recebido")'); await page.waitForTimeout(900);
+// 08/11/2026: Recebido virou uma linha que abre; "Abrir a lista" mostra tudo.
+await page.click('#telaInicio .sanfona-topo:has-text("Recebido")'); await page.waitForTimeout(500);
+await page.click('#telaInicio .sanfona.aberta .sanfona-ver'); await page.waitForTimeout(900);
 const rec = limpo(await folha().textContent());
 conferir('8. Recebido abre os pagamentos do mês, de quem e de qual registro',
   /Recebido ·/.test(await page.textContent('#folhaTitulo')) && /R\$ 1\.200,00/.test(rec) && /2 pagamento\(s\) de 1 cliente\(s\)/.test(rec) &&

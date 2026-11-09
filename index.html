@@ -2419,6 +2419,7 @@
         'Serviços e Vendas: o Resumo ficou mais limpo. Em cima, faturamento, despesas e lucro. Embaixo, linhas no mesmo padrão que abrem ao tocar: Serviços, Vendas, Recebido, A receber e o gráfico. Cada uma mostra os itens do período; "Abrir a lista" mostra todos.',
         'Resumo do Empreendedor: toque em Faturamento, Despesas, Lucro, Recebido ou A receber para ver cada item, separado por módulo. No "Por módulo" cada valor também abre os itens, e o nome abre o módulo.',
         'Venda de Doces: no Resumo, ao lado de cada vendedor aparece a venda total dele no período (o seu repasse mais o lucro dele).',
+        'Venda de Doces: na edição do membro, marque "Sim, é vendedor(a)" para o sócio também vender. O nome aparece em Entregas como qualquer vendedor e fica sempre na Prestação, mesmo sem doces com ele: tocando, já abre o acerto sem estoque. Só sai das listas desmarcando ali.',
         'Venda de Doces: em Entregas, tocando no vendedor, tem uma lixeira no canto para excluí-lo (pergunta antes e avisa quanto histórico sai junto).',
         'Venda de Doces: o cartão de cada vendedor em Entregas ficou mais baixo: o que está com ele vai junto do nome, cada mês numa linha só e o custo e a estimativa de venda lado a lado.',
         'Resumo do Empreendedor: "Dinheiro" virou "Recebimentos" (vale dinheiro, Pix ou cartão) e "A receber hoje" virou só "A receber". Os valores de cima não cortam mais.',
@@ -4921,7 +4922,9 @@
     limpo.doceVendedores = lista('doceVendedores').map(function (v) {
       return { id: v.id, nome: texto(v.nome).slice(0, 60) || 'Vendedor',
                telefone: texto(v.telefone).slice(0, 20), obs: texto(v.obs).slice(0, 200),
-               ativo: v.ativo !== false, criadoEm: marca(v.criadoEm) || Date.now() };
+               ativo: v.ativo !== false, criadoEm: marca(v.criadoEm) || Date.now(),
+               // Sócio que também vende: o vendedor fica ligado ao membro.
+               membroId: texto(v.membroId).slice(0, 80) };
     });
 
     limpo.doceProdutos = lista('doceProdutos').map(function (p) {
@@ -14369,7 +14372,7 @@
       var souEu = eu && m.email === eu;
       box.appendChild(linhaSimples({
         titulo: m.nome + (souEu ? ' (você)' : ''),
-        sub: [m.papel, m.funcao].filter(Boolean).join(' · ') + (convite ? ' · ' + (convite.situacao === 'aceito' ? 'vê a Venda de Doces' : 'convite enviado') : ''),
+        sub: [m.papel, m.funcao, vendedorDoMembro(m.id) ? 'também vende' : ''].filter(Boolean).join(' · ') + (convite ? ' · ' + (convite.situacao === 'aceito' ? 'vê a Venda de Doces' : 'convite enviado') : ''),
         valor: emReais(Math.round(lucro * m.percentual / 100)), cor: souEu ? 'verde' : '', nota: textoPct(m.percentual),
         selo: selo(souEu ? '#3DDC84' : '#E9B44C', (m.nome || '?').charAt(0).toUpperCase()),
         aoTocar: function () {
@@ -14570,9 +14573,42 @@
 
   var PAPEIS_MEMBRO = ['Sócio(a)', 'Investidor(a)', 'Funcionário(a)', 'Outro'];
 
+  // Sócio que também vende (pedido de 08/11/2026): ligado, ele vira um
+  // vendedor que aparece em Entregas como qualquer outro e fica sempre na
+  // Prestação, mesmo sem doces com ele, para prestar contas direto.
+  function vendedorDoMembro(membroId) {
+    if (!membroId) return null;
+    for (var i = 0; i < estado.doceVendedores.length; i++) {
+      if (estado.doceVendedores[i].membroId === membroId) return estado.doceVendedores[i];
+    }
+    return null;
+  }
+  function temHistoricoDeVendedor(vid) {
+    return ['doceEntregas', 'doceAcertos', 'docePagamentos'].some(function (k) {
+      return estado[k].some(function (x) { return x.vendedorId === vid; });
+    });
+  }
+  // Liga ou desliga o "também vende". Desligando, quem não tem nada
+  // registrado sai; quem tem histórico continua como vendedor comum.
+  function ajustarVendedorDoMembro(m, vende) {
+    var v = vendedorDoMembro(m.id);
+    if (vende) {
+      if (!v) {
+        v = { id: novoId(), criadoEm: Date.now(), nome: m.nome, telefone: '', obs: '', ativo: true, membroId: m.id };
+        estado.doceVendedores.push(v);
+      } else { v.nome = m.nome; v.ativo = true; }
+      return;
+    }
+    if (!v) return;
+    if (temHistoricoDeVendedor(v.id)) { v.membroId = ''; return; }
+    marcarExcluido('empreendedor_registros', v.id);
+    estado.doceVendedores = estado.doceVendedores.filter(function (x) { return x.id !== v.id; });
+  }
+
   function abrirMembroDoces(id, deCima) {
     var m = id ? achar(estado.doceMembros, id) : null;
     var papel = m ? m.papel : 'Sócio(a)';
+    var vende = !!(m && vendedorDoMembro(m.id));
     abrirFolha(m ? m.nome : 'Novo membro', function (folha) {
       var forma = no('div', 'forma');
       var nome = entradaTexto(m ? m.nome : '', 'Ex.: Vitória', 60);
@@ -14584,6 +14620,9 @@
       forma.appendChild(campo('O que é na empresa', grupoChips(PAPEIS_MEMBRO, papel, function (p) { papel = p; })));
       var funcao = entradaTexto(m ? m.funcao : '', 'Ex.: produção, vendas, entregas', 80);
       forma.appendChild(campo('Função', funcao));
+      forma.appendChild(campo('Também vende os doces?', segmentosLocais([{ valor: false, rotulo: 'Não' }, { valor: true, rotulo: 'Sim, é vendedor(a)' }],
+        vende, function (v) { vende = v; })));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Sendo vendedor, o nome aparece em Entregas e fica sempre na Prestação: dá para prestar contas direto, sem pegar doces. Se pegar doces, é igual a qualquer vendedor.'));
       var pct = entradaDecimal(m ? m.percentual : 0, 1, 'Ex.: 50');
       forma.appendChild(campo('Parte do lucro (%)', pct));
       var d = divisaoDoLucro();
@@ -14601,8 +14640,10 @@
         reg.nome = nome.value.trim().slice(0, 60); reg.email = e.slice(0, 200); reg.papel = papel;
         reg.funcao = funcao.value.trim().slice(0, 80); reg.percentual = Math.round(p * 10) / 10;
         if (!m) estado.doceMembros.push(reg);
+        ajustarVendedorDoMembro(reg, vende);
         salvar();
         fecharOuVoltar(deCima);
+        desenhar();
         var eu0 = meuEmailNaConta();
         if (!reg.email || reg.email === eu0) { avisar('Membro salvo.'); return; }
         if (donoDaArea('doces')) { avisar('Membro salvo. Quem convida para ver a Venda de Doces é o dono dela.'); return; }
@@ -14634,6 +14675,7 @@
         perguntar({ titulo: 'Tirar ' + m.nome + '?', texto: 'A parte dele no lucro volta para a divisão' +
             (comAcesso ? ', e ele deixa de ver a Venda de Doces.' : '.'), ok: 'Tirar', tom: 'perigo' }, function () {
           if (comAcesso) tirarAcessoAosDoces(m.email).catch(function () { avisar('O acesso não foi tirado agora: tente de novo com internet.'); });
+          ajustarVendedorDoMembro(m, false);
           marcarExcluido('empreendedor_registros', m.id);
           estado.doceMembros = estado.doceMembros.filter(function (y) { return y.id !== m.id; });
           salvar();
@@ -14852,7 +14894,9 @@
       .forEach(function (item) {
       var v = item.v;
       var c = contaDoVendedor(v.id);
-      if (c.estoque <= 0 && c.pendente <= 0) return;
+      // O sócio que vende fica sempre aqui (pedido de 08/11/2026).
+      var socio = !!(v.membroId && v.ativo && achar(estado.doceMembros, v.membroId));
+      if (c.estoque <= 0 && c.pendente <= 0 && !socio) return;
       algum = true;
       var quando = item.acerto
         ? (item.acerto < hojeD ? 'acerto atrasado desde ' + dataCurta(item.acerto)
@@ -14860,13 +14904,14 @@
         : '';
       lista.appendChild(linhaSimples({
         titulo: v.nome,
-        sub: (c.pendente > 0 ? emReais(c.pendente) + ' já devido · ' : '') + Math.max(c.estoque, 0) + ' doce(s) em estoque' + (quando ? ' · ' + quando : ''),
+        sub: (socio ? 'sócio(a) · ' : '') + (c.pendente > 0 ? emReais(c.pendente) + ' já devido · ' : '') +
+          (socio && c.estoque <= 0 ? 'vende direto' : Math.max(c.estoque, 0) + ' doce(s) em estoque') + (quando ? ' · ' + quando : ''),
         // O que esses doces devem render para você se forem vendidos: o
         // repasse de cada um (custo + a sua comissão). Já devendo, soma.
         valor: emReais(estimativaDoVendedor(c) + Math.max(c.pendente, 0)), cor: 'ouro',
         nota: 'estimativa de acerto',
         selo: selo('#E9B44C', v.nome.charAt(0).toUpperCase()),
-        aoTocar: function () { abrirPrestacaoDeContas(v.id); }
+        aoTocar: function () { abrirPrestacaoDeContas(v.id, false, socio && c.estoque <= 0); }
       }));
     });
     if (!algum) lista.appendChild(estadoVazio('Tudo acertado', 'Nenhum vendedor com doces ou com valor para repassar.'));

@@ -30,6 +30,13 @@ export const chromium = await acharChromium();
 // fora do Empreendedor. No Empreendedor ele continua abrindo o cliente.
 // `opcao` é o data-opcao do item: 'saida', 'entrada', 'transferencia', 'cartao'.
 export async function tocarFab(page, opcao = 'saida') {
+  // 08/11/2026: no Empreendedor o "+" redondo saiu; o cliente novo é o
+  // "+ Novo" da aba Clientes.
+  if (await page.$eval('#fab', b => b.classList.contains('fab-oculto')).catch(() => false)) {
+    await page.click('#telaInicio .cartao-acao:has-text("+ Novo")');
+    await page.locator('#folha.aberta').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+    return;
+  }
   await page.click('#fab');
   const item = page.locator('#menuNovo.aberto button[data-opcao="' + opcao + '"]');
   try { await item.waitFor({ state: 'visible', timeout: 700 }); } catch (e) { return; }

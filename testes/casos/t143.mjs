@@ -76,7 +76,11 @@ await page.click('#telaInicio .abas-modulo button:has-text("Resumo")'); await pa
 const resumo = limpo(await page.textContent('#telaInicio'));
 conferir('6. o resumo de Serviços mostra despesas e lucro',
   /Despesas\s*R\$ 1\.500,00/.test(resumo) && /Lucro\s*R\$ 300,00/.test(resumo), (resumo.match(/Despesas.{0,40}/) || [''])[0]);
-conferir('7. e o registro na lista também', /Poco f5.*lucro R\$ 300,00/.test(resumo));
+// 08/11/2026: os registros moram na linha "Serviços", que abre ao tocar.
+await page.click('#telaInicio .sanfona-topo:has-text("Serviços")'); await page.waitForTimeout(500);
+const abertos = limpo(await page.locator('#telaInicio .sanfona.aberta .sanfona-corpo').textContent());
+conferir('7. e o registro na lista também', /Poco f5.*lucro R\$ 300,00/.test(abertos), abertos.slice(0, 120));
+await page.click('#telaInicio .sanfona-topo:has-text("Serviços")'); await page.waitForTimeout(300);
 await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(700);
 await page.click('#telaInicio .cartao-resumo-emp'); await page.waitForTimeout(900);
 const painel = limpo(await page.textContent('#telaInicio .painel-modulo'));
