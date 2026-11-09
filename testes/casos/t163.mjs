@@ -85,8 +85,8 @@ const f2 = limpo(await folha().textContent());
 conferir('6. o total e a sua parte', /Total das contas por mês\s*R\$ 2\.100,00/.test(f2) && /Sua parte: R\$ 1\.250,00/.test(f2), f2.slice(0, 200));
 conferir('7. quanto cada pessoa paga por mês', /Você.*R\$ 1\.250,00\s*por mês/.test(f2) && /Ana\s*40,0% padrão nas contas\s*R\$ 850,00\s*por mês/.test(f2), f2.slice(0, 500));
 conferir('8. cada conta com a divisão e a sua parte',
-  /Aluguel\s*Você 60,0% · Ana 40,0% · vence dia 10\s*R\$ 2\.000,00\s*sua parte R\$ 1\.200,00/.test(f2) &&
-  /Internet\s*Você 50,0% · Ana 50,0%\s*R\$ 100,00\s*sua parte R\$ 50,00/.test(f2), f2.slice(300, 800));
+  /Aluguel\s*Você 60,0% · Ana 40,0% · vence dia 10 · por Vitor\s*R\$ 2\.000,00\s*sua parte R\$ 1\.200,00/.test(f2) &&
+  /Internet\s*Você 50,0% · Ana 50,0% · por Vitor\s*R\$ 100,00\s*sua parte R\$ 50,00/.test(f2), f2.slice(300, 800));
 await page.screenshot({ path: dir + '/z67-contas-de-casa.png', fullPage: true });
 
 for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }

@@ -653,6 +653,7 @@ as $$
   select case
     when p_tipo like 'doce\_%' then 'doces'
     when p_tipo like 'uber\_%' then 'uber'
+    when p_tipo like 'casa\_%' then 'casa'
     else ''
   end
 $$;

@@ -90,12 +90,12 @@ await page.waitForTimeout(300);
 const r2 = limpo(await folha().locator('.total-calculado').textContent());
 conferir('6. corrigindo, a conta acompanha e avisa a diferença para a nota',
   /Soma dos itens\s*R\$ 90,74/.test(r2) && /Total da compra\s*R\$ 88,74/.test(r2) && /Total na nota\s*R\$ 94,73 \(falta R\$ 5,99\)/.test(r2) &&
-  /Você · 50,0%\s*R\$ 44,37/.test(r2) && /Ana · 50,0%\s*R\$ 44,37/.test(r2), r2);
+  /Você paga\s*R\$ 44,38/.test(r2) && /Ana paga\s*R\$ 44,36/.test(r2), r2);
 await page.click('#folha .btn-ouro:has-text("Salvar compra")'); await page.waitForTimeout(1000);
 
 const f2 = limpo(await folha().textContent());
-conferir('7. a compra entra no Mercado do mês com a sua parte', /Mercado em novembro\s*R\$ 88,74/.test(f2) && /Sua parte: R\$ 44,37/.test(f2) &&
-  /Supermercado Bom Preco Ltda\s*09\/11\/2026 · 6 item\(ns\) · você 50,0%\s*R\$ 88,74\s*sua parte R\$ 44,37/.test(f2), f2.slice(0, 400));
+conferir('7. a compra entra no Mercado do mês com a sua parte', /Mercado em novembro\s*R\$ 88,74/.test(f2) && /Sua parte: R\$ 44,38/.test(f2) &&
+  /Supermercado Bom Preco Ltda\s*09\/11\/2026 · 6 item\(ns\) · por Vitor\s*R\$ 88,74\s*sua parte R\$ 44,38/.test(f2), f2.slice(0, 400));
 await page.screenshot({ path: dir + '/z71-mercado.png' });
 
 // Abrindo de novo, os itens corrigidos estão lá.
@@ -105,7 +105,7 @@ conferir('8. abrindo a compra, os itens corrigidos', nomes.length === 6 && nomes
 for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 
 const cc = limpo(await page.locator('#telaInicio .cartao-casa').textContent());
-conferir('9. o cartão da Visão geral mostra o mercado do mês', /Mercado em novembro: R\$ 88,74 · sua parte R\$ 44,37/.test(cc), cc);
+conferir('9. o cartão da Visão geral mostra o mercado do mês', /Mercado em novembro: R\$ 88,74 · sua parte R\$ 44,38/.test(cc), cc);
 const desp = limpo(await page.locator('#telaInicio .kpi:has-text("Despesas")').first().textContent());
 conferir('10. e as despesas não mudam', /R\$ 0,00/.test(desp), desp);
 
