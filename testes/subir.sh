@@ -12,6 +12,7 @@ PGBIN=/usr/lib/postgresql/16/bin
 mkdir -p appteste
 cp ../index.html ../sw.js ../manifest.webmanifest ../icon.svg appteste/ 2>/dev/null
 cp ../icon-*.png ../*.webp appteste/ 2>/dev/null
+rm -rf appteste/leitor; cp -r ../leitor appteste/ 2>/dev/null
 cp config-teste.js appteste/config.js
 
 if ! su postgres -c "$PGBIN/pg_isready -h /tmp -p 55433" >/dev/null 2>&1; then

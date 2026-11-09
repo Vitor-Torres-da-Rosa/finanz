@@ -1976,6 +1976,14 @@
   .casa-resumo .r { font-size: 11px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
   .casa-resumo .v { font-size: 18px; font-weight: 700; margin-top: 2px; }
   .casa-partes .config-linha input { width: 96px; text-align: right; }
+  .abas-casa { margin-bottom: 14px; }
+  .itens-nota { display: grid; gap: 8px; }
+  .item-nota { display: grid; grid-template-columns: 1fr 112px 36px; gap: 6px; align-items: center; }
+  .item-nota input { min-width: 0; padding: 10px 10px; font-size: 14.5px; }
+  .item-nota input:nth-child(2) { text-align: right; }
+  .item-nota .linha-acao { color: var(--vermelho); }
+  .mais-item { margin-top: 2px; }
+  .casa-mercado { color: var(--suave); }
   .painel-totais .v { font-size: 15px; }
   .painel-totais .r::after { content: ' ›'; color: var(--fraco); }
   .painel-ponto { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
@@ -2428,6 +2436,7 @@
       data: '2026-11-09',
       itens: [
         'Visão geral: novo cartão "Contas de casa". Cadastre quem divide as contas da casa e a parte padrão de cada um, e adicione as contas (aluguel, luz, internet...). Em cada conta dá para mudar a % de cada pessoa, e você fica com o que sobra.',
+        'Contas de casa › Mercado: tire uma foto da nota e o app lê item por item, com nome e valor. Você corrige o que estiver errado, apaga o que não for item e escolhe quanto cada pessoa entra na compra. O leitor roda no próprio celular: a foto não sai dele.',
         'Contas de casa mostra o total por mês, quanto cada pessoa paga e a sua parte. É só a base do cálculo: não entra nas despesas, que continuam sendo o que sai do extrato.'
       ]
     },
@@ -4243,6 +4252,7 @@
       // contas com quem mora junto. Não entra nas despesas.
       casaMembros: [],
       casaContas: [],
+      casaCompras: [],
       excluidos: []
     };
   }
@@ -4929,6 +4939,18 @@
       return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
                dia: Math.max(0, Math.min(31, inteiro(x.dia))), partes: partes,
                criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.casaCompras = lista('casaCompras').map(function (x) {
+      var partes = {};
+      if (x.partes && typeof x.partes === 'object') Object.keys(x.partes).forEach(function (k) {
+        var pc = Number(x.partes[k]);
+        if (k && isFinite(pc)) partes[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(pc * 10) / 10));
+      });
+      var itens = (Array.isArray(x.itens) ? x.itens : []).slice(0, 300).map(function (i) {
+        return { nome: texto(i && i.nome).slice(0, 80) || 'Item', valor: positivo(i && i.valor) };
+      });
+      return { id: x.id, local: texto(x.local).slice(0, 80), data: soData(x.data) || hojeTexto(), itens: itens,
+               desconto: positivo(x.desconto), partes: partes, criadoEm: marca(x.criadoEm) || Date.now() };
     });
     limpo.uberNotas = lista('uberNotas').map(function (x) {
       return { id: x.id, texto: texto(x.texto).slice(0, 200), data: soData(x.data) || hojeTexto(), km: km(x.km),
@@ -5804,7 +5826,7 @@
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes',
     doce_custo: 'doceCustos', doce_membro: 'doceMembros',
-    casa_membro: 'casaMembros', casa_conta: 'casaContas'
+    casa_membro: 'casaMembros', casa_conta: 'casaContas', casa_compra: 'casaCompras'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -20520,11 +20542,331 @@
     return { total: total, porPessoa: porPessoa, pessoas: pessoas };
   }
 
+  // ---------- Mercado: a nota fotografada, item por item ----------
+
+  function valorDaCompra(c) {
+    return Math.max(c.itens.reduce(function (t, i) { return t + i.valor; }, 0) - (c.desconto || 0), 0);
+  }
+  function mercadoDoMes(ano, mes) {
+    var f = faixaDoMes(ano, mes);
+    var lista = estado.casaCompras.filter(function (c) { return c.data >= f.de && c.data <= f.ate; })
+      .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.criadoEm || 0) - (a.criadoEm || 0); });
+    var total = 0, meu = 0;
+    lista.forEach(function (c) {
+      var v = valorDaCompra(c);
+      total += v; meu += Math.round(v * partesDaConta(c)[ID_EU_NA_CASA] / 100);
+    });
+    return { lista: lista, total: total, meu: meu };
+  }
+
+  // O leitor de texto (Tesseract) mora junto com o app, em leitor/, e só
+  // carrega quando a pessoa fotografa uma nota. A foto não sai do aparelho.
+  var leitorCarregando = null;
+  function baseDoLeitor() {
+    var ate = /\/versoes\/[^/]+\//.test(location.pathname) ? '../../leitor/' : 'leitor/';
+    return new URL(ate, location.href).href;
+  }
+  function carregarLeitor() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (leitorCarregando) return leitorCarregando;
+    leitorCarregando = new Promise(function (ok, falha) {
+      var sc = document.createElement('script');
+      sc.src = baseDoLeitor() + 'tesseract.min.js';
+      sc.onload = function () { window.Tesseract ? ok(window.Tesseract) : falha(new Error('leitor')); };
+      sc.onerror = function () { leitorCarregando = null; falha(new Error('leitor')); };
+      document.head.appendChild(sc);
+    });
+    return leitorCarregando;
+  }
+
+  // A foto vai para um quadro menor e em tons de cinza: o leitor acerta
+  // mais e é mais rápido.
+  function prepararFotoDaNota(arquivo) {
+    return new Promise(function (ok, falha) {
+      var url = URL.createObjectURL(arquivo);
+      var img = new Image();
+      img.onload = function () {
+        var max = 1800, esc = Math.min(1, max / Math.max(img.width, img.height));
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * esc); cv.height = Math.round(img.height * esc);
+        var cx = cv.getContext('2d');
+        cx.drawImage(img, 0, 0, cv.width, cv.height);
+        try {
+          var d = cx.getImageData(0, 0, cv.width, cv.height), px = d.data;
+          for (var i = 0; i < px.length; i += 4) {
+            var y = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+            y = Math.max(0, Math.min(255, (y - 128) * 1.35 + 140));
+            px[i] = px[i + 1] = px[i + 2] = y;
+          }
+          cx.putImageData(d, 0, 0);
+        } catch (e) { /* sem acesso aos pixels: vai a foto como está */ }
+        URL.revokeObjectURL(url);
+        ok(cv);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); falha(new Error('imagem')); };
+      img.src = url;
+    });
+  }
+
+  function lerFotoDaNota(arquivo, aoProgresso) {
+    return carregarLeitor().then(function (T) {
+      var base = baseDoLeitor();
+      return prepararFotoDaNota(arquivo).then(function (cv) {
+        return T.createWorker('por', 1, {
+          workerPath: base + 'worker.min.js', corePath: base, langPath: base, gzip: true, workerBlobURL: false,
+          logger: function (m) { if (m && m.status === 'recognizing text' && aoProgresso) aoProgresso(m.progress || 0); }
+        }).then(function (w) {
+          return w.recognize(cv).then(function (r) { w.terminate(); return r.data.text || ''; },
+            function (e) { w.terminate(); throw e; });
+        });
+      });
+    });
+  }
+
+  // Do texto da nota para os itens: cada linha que termina num valor é um
+  // item; o nome vem antes (ou da linha de cima, quando a nota quebra o
+  // item em duas). Códigos, quantidade e preço unitário saem do nome.
+  var DINHEIRO_NA_NOTA = /(\d{1,3}(?:\.\d{3})*[,.]\s?\d{2})(?:\s*[A-Z]{1,2})?\s*$/;
+  var NAO_E_ITEM = /TOTAL|SUBTOTAL|TROCO|DINHEIRO|CART[AÃ]O|CR[EÉ]DITO|D[EÉ]BITO|\bPIX\b|PAGAMENTO|VALOR PAGO|A PAGAR|DESCONTO|ACR[EÉ]SCIMO|TRIBUTO|IMPOSTO|CNPJ|CPF|\bQTD|\bITENS\b|CHAVE|CONSULT|PROTOCOLO|S[EÉ]RIE|EMISS|\bLEI\b|APROX|SEFAZ|NFC|DANFE|DOCUMENTO|CONSUMIDOR/i;
+  function centavosDaNota(t) {
+    var limpo = String(t).replace(/\s/g, '');
+    var m = /^(\d+(?:[.]\d{3})*|\d+)[,.](\d{2})$/.exec(limpo.replace(/[.](?=\d{3}[,.])/g, ''));
+    if (!m) return 0;
+    return parseInt(m[1].replace(/\D/g, ''), 10) * 100 + parseInt(m[2], 10);
+  }
+  function nomeDoItemDaNota(t) {
+    var n = String(t)
+      .replace(/\b\d+(?:[,.]\d{1,3})?\s*(?:UN|UND|UNID|KG|G|L|LT|ML|PC|PCT|CX)?\s*[Xx*]\s*\d+[,.]\d{2}\b/g, ' ')
+      .replace(/^\s*\d{1,4}\s+/, ' ')
+      .replace(/\b\d{6,14}\b/g, ' ')
+      .replace(/\s+(?:UN|UND|KG|X)\s*$/i, ' ')
+      .replace(/[|_~]+/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    if ((n.match(/[A-Za-zÀ-ú]/g) || []).length < 3) return '';
+    return n.toLowerCase().replace(/(^|\s)([a-zà-ú])/g, function (x, a, b) { return a + b.toUpperCase(); }).slice(0, 80);
+  }
+  function lerTextoDaNota(texto) {
+    var linhas = String(texto || '').split(/\r?\n/).map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+    var r = { local: '', itens: [], total: 0, desconto: 0, aPagar: 0 };
+    for (var a = 0; a < Math.min(linhas.length, 4); a++) {
+      if (/[A-Za-z]{4}/.test(linhas[a]) && !NAO_E_ITEM.test(linhas[a]) && !DINHEIRO_NA_NOTA.test(linhas[a])) { r.local = nomeDoItemDaNota(linhas[a]) || ''; break; }
+    }
+    var inicio = 0;
+    linhas.forEach(function (l, i) { if (!inicio && /DESCRI/i.test(l)) inicio = i + 1; });
+    var pendente = '';
+    for (var i = inicio; i < linhas.length; i++) {
+      var l = linhas[i];
+      var m = DINHEIRO_NA_NOTA.exec(l);
+      if (/A PAGAR/i.test(l) && m) { r.aPagar = centavosDaNota(m[1]); continue; }
+      if (/TOTAL/i.test(l) && !/QTD|ITENS|TRIBUT|IMPOST/i.test(l) && m) { if (!r.total) r.total = centavosDaNota(m[1]); continue; }
+      if (/DESCONTO/i.test(l) && m) { r.desconto += centavosDaNota(m[1]); continue; }
+      if (NAO_E_ITEM.test(l)) { pendente = ''; continue; }
+      if (r.total) continue;
+      if (!m) { var p = nomeDoItemDaNota(l); if (p) pendente = p; continue; }
+      var valor = centavosDaNota(m[1]);
+      var nome = nomeDoItemDaNota(l.slice(0, m.index));
+      if (!nome && pendente) nome = pendente;
+      pendente = '';
+      if (!nome || valor <= 0) continue;
+      r.itens.push({ nome: nome, valor: valor });
+    }
+    return r;
+  }
+
+  function abrirLeituraDaNota(arquivo) {
+    var cancelado = false;
+    abrirFolha('Lendo a nota', function (folha) {
+      var c = cartao('cartao-destaque leitura-nota');
+      c.appendChild(no('div', 'rotulo', 'Lendo item por item'));
+      var pct = no('div', 'valorao num ouro', '0%');
+      c.appendChild(pct);
+      c.appendChild(no('div', 'linha-nota', 'Na primeira vez o leitor é baixado (uns 9 MB) e fica guardado. A foto não sai do seu celular.'));
+      folha.appendChild(c);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Cancelar', function () { cancelado = true; fecharOuVoltar(true); }));
+      folha.appendChild(acoes);
+      lerFotoDaNota(arquivo, function (p) { pct.textContent = Math.round(p * 100) + '%'; }).then(function (texto) {
+        if (cancelado) return;
+        var lido = lerTextoDaNota(texto);
+        fecharOuVoltar(true);
+        setTimeout(function () {
+          porCima(function () { abrirContasDeCasa(); }, function () { abrirCompraDeMercado(null, lido); });
+        }, 50);
+      }, function () {
+        if (cancelado) return;
+        fecharOuVoltar(true);
+        avisarCaixa('Não deu para ler a nota', 'Confira a internet na primeira vez (o leitor precisa ser baixado) e tente uma foto reta, com boa luz. Dá para lançar a compra à mão.', function () {});
+      });
+    });
+  }
+
+  function escolherFotoDaNota() {
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.setAttribute('capture', 'environment');
+    inp.className = 'input-arquivo';
+    inp.id = 'fotoDaNota';
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      inp.remove();
+      if (f) porCima(function () { abrirContasDeCasa(); }, function () { abrirLeituraDaNota(f); });
+    });
+    document.body.appendChild(inp);
+    inp.click();
+  }
+
+  function abrirCompraDeMercado(id, lido) {
+    var c = id ? achar(estado.casaCompras, id) : null;
+    var pessoas = pessoasDaCasa();
+    var itens = (c ? c.itens : lido ? lido.itens : []).map(function (i) { return { nome: i.nome, valor: i.valor }; });
+    if (!itens.length) itens.push({ nome: '', valor: 0 });
+    var partes = {};
+    pessoas.forEach(function (p) {
+      if (!p.eu) partes[p.id] = c && c.partes && c.partes[p.id] !== undefined ? c.partes[p.id] : p.pct;
+    });
+    var totalDaNota = lido ? (lido.aPagar || (lido.total ? lido.total - (lido.desconto || 0) : 0)) : 0;
+    abrirFolha(c ? 'Compra de mercado' : lido ? 'Confira a nota' : 'Nova compra de mercado', function (folha) {
+      var forma = no('div', 'forma');
+      if (lido) forma.appendChild(no('p', 'ajuda', lido.itens.length
+        ? 'O app leu ' + lido.itens.length + ' item(ns). Confira: corrija o nome ou o valor e apague o que não for item.'
+        : 'Não deu para achar os itens nessa foto. Lance à mão ou tire outra foto, reta e com boa luz.'));
+      var local = entradaTexto(c ? c.local : lido ? lido.local : '', 'Ex.: Supermercado', 80);
+      forma.appendChild(campo('Onde', local));
+      var data = entradaData(c ? c.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+
+      var lista = no('div', 'itens-nota');
+      forma.appendChild(campo('Itens', lista));
+      function desenharItens() {
+        lista.textContent = '';
+        itens.forEach(function (it, n) {
+          var linha = no('div', 'item-nota');
+          var nome = entradaTexto(it.nome, 'Item', 80);
+          nome.setAttribute('aria-label', 'Item ' + (n + 1));
+          nome.addEventListener('input', function () { it.nome = nome.value; });
+          var valor = entradaValor(it.valor, false);
+          valor.setAttribute('aria-label', 'Valor do item ' + (n + 1));
+          valor.addEventListener('input', function () { it.valor = digitosParaCentavos(valor.value); pintar(); });
+          var tirar = botao('linha-acao', null, function () { itens.splice(n, 1); desenharItens(); pintar(); });
+          tirar.setAttribute('aria-label', 'Apagar o item ' + (n + 1));
+          tirar.appendChild(icone('lixo'));
+          juntar(linha, nome, valor, tirar);
+          lista.appendChild(linha);
+        });
+        lista.appendChild(botao('btn btn-fantasma mais-item', '+ Item', function () { itens.push({ nome: '', valor: 0 }); desenharItens(); pintar(); }));
+      }
+      desenharItens();
+      var desconto = entradaValor(c ? c.desconto : lido ? lido.desconto : 0, false);
+      desconto.addEventListener('input', function () { pintar(); });
+      forma.appendChild(campo('Desconto (opcional)', desconto));
+
+      var caixa = no('div', 'casa-partes');
+      pessoas.forEach(function (p) {
+        if (p.eu) return;
+        var ent = entradaDecimal(partes[p.id], 1, '0');
+        ent.setAttribute('aria-label', 'Parte de ' + p.nome + ' (%)');
+        ent.addEventListener('input', function () { var x = lerDecimal(ent.value); partes[p.id] = isFinite(x) ? x : 0; pintar(); });
+        caixa.appendChild(juntar(no('div', 'config-linha'), no('span', 'config-rotulo', p.nome), ent));
+      });
+      if (pessoas.length === 1) caixa.appendChild(no('p', 'ajuda', 'Ninguém na divisão ainda: adicione em Contas de casa › Quem divide. Por enquanto a compra é toda sua.'));
+      else caixa.appendChild(no('p', 'ajuda', 'Você fica com o que sobrar.'));
+      forma.appendChild(campo('Quanto cada um entra (%)', caixa));
+
+      var resumo = no('div', 'total-calculado');
+      forma.appendChild(resumo);
+      function pintar() {
+        var soma = itens.reduce(function (t, i) { return t + (i.valor || 0); }, 0);
+        var d = digitosParaCentavos(desconto.value);
+        var total = Math.max(soma - d, 0);
+        var outros = 0;
+        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
+        var meu = Math.round((100 - outros) * 10) / 10;
+        resumo.textContent = '';
+        juntar(resumo, no('span', null, 'Soma dos itens'), no('strong', 'num', emReais(soma)));
+        if (d) juntar(resumo, no('span', null, 'Desconto'), no('strong', 'num verde', '− ' + emReais(d)));
+        juntar(resumo, no('span', null, 'Total da compra'), no('strong', 'num ouro', emReais(total)));
+        if (totalDaNota) {
+          var dif = total - totalDaNota;
+          juntar(resumo, no('span', Math.abs(dif) ? 'vermelho' : 'verde', 'Total na nota'),
+            no('strong', 'num ' + (Math.abs(dif) ? 'vermelho' : 'verde'), emReais(totalDaNota) + (dif ? (dif > 0 ? ' (sobra ' : ' (falta ') + emReais(Math.abs(dif)) + ')' : ' ✓')));
+        }
+        pessoas.forEach(function (p) {
+          var pc = p.eu ? meu : partes[p.id] || 0;
+          juntar(resumo, no('span', null, (p.eu ? 'Você' : p.nome) + ' · ' + textoPct(Math.max(pc, 0))),
+            no('strong', 'num ' + (p.eu ? (meu < 0 ? 'vermelho' : 'ouro') : ''), emReais(Math.round(total * Math.max(pc, 0) / 100))));
+        });
+      }
+      pintar();
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar compra', function () {
+        var bons = itens.filter(function (i) { return i.valor > 0 || String(i.nome || '').trim(); });
+        var outros = 0;
+        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
+        if (!bons.length) { mostrarErro(forma, 'Adicione pelo menos um item.'); return; }
+        if (bons.some(function (i) { return i.valor <= 0; })) { mostrarErro(forma, 'Tem item sem valor: corrija ou apague.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        if (outros > 100.001) { mostrarErro(forma, 'As partes passam de 100% (' + textoPct(outros) + ').'); return; }
+        var reg = c || { id: novoId(), criadoEm: Date.now() };
+        reg.local = local.value.trim().slice(0, 80);
+        reg.data = data.value;
+        reg.itens = bons.map(function (i) { return { nome: String(i.nome || '').trim().slice(0, 80) || 'Item', valor: i.valor }; });
+        reg.desconto = digitosParaCentavos(desconto.value);
+        reg.partes = {};
+        Object.keys(partes).forEach(function (k) { reg.partes[k] = Math.round((partes[k] || 0) * 10) / 10; });
+        if (!c) estado.casaCompras.push(reg);
+        abaCasa = 'mercado';
+        salvar();
+        fecharOuVoltar(true);
+        desenhar();
+        avisar(c ? 'Compra atualizada.' : 'Compra salva.');
+      }));
+      if (c) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
+        perguntar({ titulo: 'Excluir esta compra?', texto: 'Ela sai da divisão. As despesas não mudam.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', c.id);
+          estado.casaCompras = estado.casaCompras.filter(function (x) { return x.id !== c.id; });
+          salvar();
+          fecharOuVoltar(true);
+          desenhar();
+          avisar('Compra excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function desenharMercadoDaCasa(folha, reabrir) {
+    var m = mercadoDoMes(mesAtivo.ano, mesAtivo.mes);
+    var c = cartao('cartao-destaque');
+    c.appendChild(no('div', 'rotulo', 'Mercado em ' + MESES[mesAtivo.mes]));
+    c.appendChild(no('div', 'valorao num ouro', emReais(m.total)));
+    c.appendChild(no('div', 'linha-nota', 'Sua parte: ' + emReais(m.meu) + '. Só a base para dividir: não entra nas despesas.'));
+    folha.appendChild(c);
+    var ac = no('div', 'acoes');
+    ac.appendChild(botao('btn btn-ouro', 'Foto da nota', function () { escolherFotoDaNota(); }));
+    ac.appendChild(botao('btn btn-fantasma', '+ Compra sem foto', function () { porCima(reabrir, function () { abrirCompraDeMercado(null, null); }); }));
+    folha.appendChild(ac);
+    var cl = cartao('liso');
+    if (!m.lista.length) cl.appendChild(estadoVazio('Nenhuma compra em ' + MESES[mesAtivo.mes], 'Tire uma foto da nota: o app lê item por item e você confere antes de salvar.'));
+    m.lista.forEach(function (compra) {
+      var v = valorDaCompra(compra), pt = partesDaConta(compra);
+      cl.appendChild(linhaSimples({
+        titulo: compra.local || 'Mercado',
+        sub: dataBr(compra.data) + ' · ' + compra.itens.length + ' item(ns)' + (pessoasDaCasa().length > 1 ? ' · você ' + textoPct(pt[ID_EU_NA_CASA]) : ''),
+        valor: emReais(v), nota: 'sua parte ' + emReais(Math.round(v * pt[ID_EU_NA_CASA] / 100)),
+        selo: seloIcone('pacote', '#E9B44C'),
+        aoTocar: function () { porCima(reabrir, function () { abrirCompraDeMercado(compra.id, null); }); }
+      }));
+    });
+    folha.appendChild(cl);
+  }
+
   function cartaoContasDeCasa() {
     var t = totaisDaCasa();
     var c = cartao('cartao-casa');
-    c.appendChild(topoDeCartao('Contas de casa', estado.casaContas.length ? 'Abrir' : null, function () { abrirContasDeCasa(); }, 'casa'));
-    if (!estado.casaContas.length) {
+    c.appendChild(topoDeCartao('Contas de casa', estado.casaContas.length || estado.casaCompras.length ? 'Abrir' : null, function () { abrirContasDeCasa(); }, 'casa'));
+    if (!estado.casaContas.length && !estado.casaCompras.length) {
       c.appendChild(no('p', 'linha-nota', 'Divida as contas da casa com quem mora com você: quanto cada um entra em cada conta. É só para a conta, não entra nas despesas.'));
       c.appendChild(botao('btn btn-fantasma', '+ Contas de casa', function () { abrirContasDeCasa(); }));
       return c;
@@ -20534,14 +20876,23 @@
       juntar(no('div'), no('div', 'r', 'Total por mês'), no('div', 'v num', emReais(t.total))),
       juntar(no('div'), no('div', 'r', 'Sua parte'), no('div', 'v num ouro', emReais(t.porPessoa[ID_EU_NA_CASA]))));
     c.appendChild(alvo);
+    var mm = mercadoDoMes(mesAtivo.ano, mesAtivo.mes);
+    if (mm.lista.length) c.appendChild(no('div', 'linha-nota casa-mercado', 'Mercado em ' + MESES[mesAtivo.mes] + ': ' + emReais(mm.total) + ' · sua parte ' + emReais(mm.meu) + '.'));
     c.appendChild(no('div', 'linha-nota', estado.casaContas.length + ' conta(s) dividida(s) com ' +
       (t.pessoas.length - 1) + ' pessoa(s). Não entra nas despesas.'));
     return c;
   }
 
+  var abaCasa = 'contas';
   function abrirContasDeCasa(deCima) {
     function reabrir() { abrirContasDeCasa(deCima); }
     abrirFolha('Contas de casa', function (folha) {
+      // Duas abas (pedido de 09/11/2026): as contas fixas e o mercado.
+      var abas = segmentosLocais([{ valor: 'contas', rotulo: 'Contas' }, { valor: 'mercado', rotulo: 'Mercado' }], abaCasa,
+        function (v) { if (v === abaCasa) return; abaCasa = v; reabrir(); });
+      abas.classList.add('abas-casa');
+      folha.appendChild(abas);
+      if (abaCasa === 'mercado') { desenharMercadoDaCasa(folha, reabrir); return; }
       var t = totaisDaCasa();
       var c = cartao('cartao-destaque');
       c.appendChild(no('div', 'rotulo', 'Total das contas por mês'));

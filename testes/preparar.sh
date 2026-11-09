@@ -61,6 +61,7 @@ passo "cópia do app para os testes"
 mkdir -p appteste
 cp ../index.html ../sw.js ../manifest.webmanifest ../icon.svg appteste/ 2>/dev/null
 cp ../icon-*.png ../*.webp appteste/ 2>/dev/null
+rm -rf appteste/leitor; cp -r ../leitor appteste/ 2>/dev/null
 cp config-teste.js appteste/config.js
 echo "appteste/ atualizado"
 
