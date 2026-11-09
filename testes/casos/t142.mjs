@@ -58,15 +58,14 @@ conferir('2. não há mais cronômetro na tela', !(await page.locator('#telaInic
 conferir('3. a jornada antiga que ficou ligada aparece para desligar', /Ficou um cronômetro ligado/.test(await tela()));
 
 // ---- duas corridas: R$ 50 em 12 km e R$ 40 em 8 km (o "+" do módulo) ----
-// Desde a 5.37.0 o "+" do Uber fecha o dia; a corrida avulsa tem botão.
-await page.click('#fab'); await page.waitForTimeout(700);
-const opcoesFab = limpo(await page.textContent('#escolhaLista'));
-await page.click('#escolhaLista .escolha-item:has-text("Novo registro")'); await page.waitForTimeout(900);
-const tituloFab = await page.textContent('#folhaTitulo') + ' · ' + opcoesFab;
+// 08/11/2026: o "+" redondo saiu do Uber; cada coisa tem o seu botão.
+const fabSomeUber = await page.$eval('#fab', b => b.classList.contains('fab-oculto'));
+await page.click('#telaInicio .acoes-uber button:has-text("Novo registro")'); await page.waitForTimeout(900);
+const tituloFab = await page.textContent('#folhaTitulo') + ' · ' + limpo(await page.textContent('#telaInicio .acoes-uber'));
 await page.goBack(); await page.waitForTimeout(700);
 await page.click('#telaInicio button:has-text("Corrida avulsa")'); await page.waitForTimeout(900);
-conferir('4. o "+" pergunta o que registrar e "Corrida avulsa" abre a corrida',
-  /Novo registro/.test(tituloFab) && /Abastecimento/.test(tituloFab) && /Outras despesas/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
+conferir('4. sem o "+", os botões abrem o registro e a corrida avulsa',
+  fabSomeUber && /Novo registro/.test(tituloFab) && /Corrida avulsa/.test(tituloFab) && /Outras despesas/.test(tituloFab) && /Nova corrida/.test(await page.textContent('#folhaTitulo')), tituloFab);
 await dinheiro(folha().locator('.valor-grande'), '5000');
 await folha().getByLabel('Distância (km)').fill('12');
 await page.click('#folha .btn-ouro:has-text("Salvar corrida")'); await page.waitForTimeout(900);

@@ -70,11 +70,11 @@ conferir('2. dá para corrigir o tempo trabalhado', /Tempo de hoje: 5h 4min/.tes
 // ---- o registro do dia pelo "+" ----
 // 05/11/2026: "Novo fechamento" virou "Novo registro", e o combustível saiu
 // dele: abastecimento entra só pelo Abastecimento.
-await page.click('#fab'); await page.waitForTimeout(700);
-const menu = limpo(await page.textContent('#escolhaLista'));
-await page.click('#escolhaLista .escolha-item:has-text("Novo registro")'); await page.waitForTimeout(900);
+// 08/11/2026: o "+" redondo saiu; é o botão "Novo registro".
+const menu = limpo(await page.textContent('#telaInicio .acoes-uber'));
+await page.click('#telaInicio .acoes-uber button:has-text("Novo registro")'); await page.waitForTimeout(900);
 const formTxt = limpo(await folha().textContent());
-conferir('3. o "+" abre o "Novo registro", com o tempo vazio e sem combustível',
+conferir('3. o botão abre o "Novo registro", com o tempo vazio e sem combustível',
   /Novo registro/.test(menu) && !/combustível/i.test(menu) &&
   /Novo registro/.test(await page.textContent('#folhaTitulo')) &&
   (await folha().getByLabel('Tempo online (horas:minutos)').inputValue()) === '' &&
@@ -86,7 +86,7 @@ await folha().getByLabel('Km rodados').fill('1200');
 const prev = limpo(await folha().locator('.fechamento-resumo').textContent());
 conferir('4. sem abastecimento no dia, o lucro é o ganho inteiro',
   /Lucro do dia\s*R\$ 250,33/.test(prev) && /Ganho por km\s*R\$ 2,09/.test(prev) && !/Combustível/.test(prev), prev);
-conferir('5. e lembra onde lançar o abastecimento', /Abasteceu\? Lance em "\+" › Abastecimento/.test(prev));
+conferir('5. e lembra onde lançar o abastecimento', /Abasteceu\? Lance em Gastos › \+ Abastecimento/.test(prev));
 await page.screenshot({ path: dir + '/z44-fechar-o-dia.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1200);
 

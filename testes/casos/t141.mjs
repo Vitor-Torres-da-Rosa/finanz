@@ -183,7 +183,7 @@ await page.click('#telaInicio .modulo-voltar'); await page.waitForTimeout(800);
 await page.click('#telaInicio .cartao-resumo-emp'); await page.waitForTimeout(900);
 const painel = limpo(await page.textContent('#telaInicio'));
 conferir('21. o painel soma o recebido sem misturar com o a receber',
-  /Recebido no período\s*R\$ 70,00/.test(painel) && /A receber hoje\s*R\$ 0,00/.test(painel), painel.slice(0, 300));
+  /Recebido no período\s*R\$ 70,00/.test(painel) && /A receber\s*R\$ 0,00/.test(painel), painel.slice(0, 300));
 await page.screenshot({ path: dir + '/z29-painel.png', fullPage: true });
 
 // ---- recarregar não perde nada ----

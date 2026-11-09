@@ -43,7 +43,7 @@ await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeou
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
 
 await irParaClientes(page);
-await page.click('#fab'); await page.waitForTimeout(800);
+await page.click('#telaInicio .cartao-acao:has-text("+ Novo")'); await page.waitForTimeout(800);
 await folha().locator('input.entrada[type=text]').first().fill('Diego Schena');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1200);
 await page.click('#telaInicio .linha-alvo:has-text("Diego Schena")'); await page.waitForTimeout(900);

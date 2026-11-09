@@ -32,7 +32,7 @@ await page.click('.btn-dourado:has-text("Continuar")'); await page.waitForTimeou
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(3000);
 
 await irParaClientes(page);
-await page.click('#fab'); await page.waitForTimeout(800);
+await page.click('#telaInicio .cartao-acao:has-text("+ Novo")'); await page.waitForTimeout(800);
 await page.locator('#folha input.entrada[type=text]').first().fill('Fabi do juliano');
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1200);
 await page.click('#telaInicio .linha-alvo:has-text("Fabi do juliano")'); await page.waitForTimeout(900);

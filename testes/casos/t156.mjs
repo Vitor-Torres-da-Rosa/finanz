@@ -59,8 +59,7 @@ await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); awai
 await page.click('#telaInicio [data-modulo="uber"]'); await page.waitForTimeout(900);
 
 // ---- hoje: rodou sem abastecer ----
-await page.click('#fab'); await page.waitForTimeout(700);
-await page.click('#escolhaLista .escolha-item:has-text("Novo registro")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .acoes-uber button:has-text("Novo registro")'); await page.waitForTimeout(900);
 await dinheiro(folha().locator('.valor-grande'), '7659');
 await folha().locator('.contador-campo').fill('6');
 await folha().getByLabel('Tempo online (horas:minutos)').fill('201');
@@ -124,8 +123,8 @@ for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { awa
 conferir('16. e as despesas do mês ficam só com a lavagem', /Despesas\s*R\$ 15,00/.test(await tela()), (await tela()).slice(0, 300));
 
 // ---- 05/11/2026: no abastecimento, dois dos três calculam o outro ----
-await page.click('#fab'); await page.waitForTimeout(700);
-await page.click('#escolhaLista .escolha-item:has-text("Abastecimento")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .abas-modulo button:has-text("Gastos")'); await page.waitForTimeout(800);
+await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
 const L0 = folha().getByLabel('Litros'), P0 = folha().getByLabel('Preço por litro'), T0 = folha().getByLabel('Total do abastecimento');
 const valorDe = (loc) => ({ inputValue: async () => limpo((await loc.inputValue()).replace(/\u00a0/g, ' ')), click: () => loc.click(), fill: (v) => loc.fill(v), press: (k) => loc.press(k), type: (v) => loc.type(v) });
 const L = valorDe(L0), P = valorDe(P0), T = valorDe(T0);

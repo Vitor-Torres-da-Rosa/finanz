@@ -94,11 +94,12 @@ await page.evaluate(() => new Promise(res => {
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1000);
 
-// ---- no Empreendedor o "+" continua sendo cliente novo ----
+// ---- 08/11/2026: no Empreendedor o "+" redondo some; o cliente novo é "+ Novo" ----
 await irParaClientes(page); await page.waitForTimeout(800);
-await page.click('#fab'); await page.waitForTimeout(800);
-conferir('3. no Empreendedor não tem menu: abre o cliente novo',
-  !(await page.locator('#menuNovo.aberto').count()) && /cliente/i.test(await page.textContent('#folhaTitulo')),
+const fabSomeEmp = await page.$eval('#fab', b => b.classList.contains('fab-oculto'));
+await page.click('#telaInicio .cartao-acao:has-text("+ Novo")'); await page.waitForTimeout(800);
+conferir('3. no Empreendedor o "+" some e "+ Novo" abre o cliente novo',
+  fabSomeEmp && !(await page.locator('#menuNovo.aberto').count()) && /cliente/i.test(await page.textContent('#folhaTitulo')),
   await page.textContent('#folhaTitulo'));
 await fecharTudo();
 await irParaVisaoGeral(page); await page.waitForTimeout(800);
