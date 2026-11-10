@@ -67,18 +67,28 @@ await page.click('#folha .cartao-acao:has-text("+ Conta")'); await page.waitForT
 await folha().getByLabel('Conta', { exact: true }).fill('Aluguel');
 await dinheiro(folha().getByLabel('Valor por mês'), '200000');
 await folha().getByLabel('Vence no dia (opcional)').fill('10');
-const prev = limpo(await folha().locator('.total-calculado').textContent());
-conferir('4. a conta mostra quanto cada um paga', /Você · 60,0%\s*R\$ 1\.200,00/.test(prev) && /Ana · 40,0%\s*R\$ 800,00/.test(prev), prev);
+// 10/11/2026: quem divide é escolhido tocando no nome; sem tocar, é só sua.
+const so = limpo(await folha().locator('.seletor-quem .item-divide').textContent());
+await folha().locator('.seletor-quem .chip-quem:has-text("Ana")').click(); await page.waitForTimeout(200);
+const igual = limpo(await folha().locator('.seletor-quem .item-divide').textContent());
+await folha().locator('.seletor-quem .chip-ajustar').click(); await page.waitForTimeout(200);
+await folha().getByLabel('% de Ana').fill('40'); await page.waitForTimeout(200);
+const prev = limpo(await folha().locator('.seletor-quem .item-divide').textContent());
+const pctVoce = await folha().getByLabel('% de Você').inputValue();
+conferir('4. tocando no nome divide igual; ajustando a % dela, a sua completa',
+  so === 'Só sua.' && /Você R\$ 1\.000,00 · Ana R\$ 1\.000,00 · partes iguais/.test(igual) &&
+  /Você R\$ 1\.200,00 · Ana R\$ 800,00 · ajustado/.test(prev) && pctVoce === '60,0', so + ' | ' + igual + ' | ' + prev + ' | ' + pctVoce);
+await page.screenshot({ path: dir + '/z74-conta-quem-divide.png' });
 await page.click('#folha .btn-ouro:has-text("Salvar conta")'); await page.waitForTimeout(900);
 
 // ---- internet de R$ 100, meio a meio ----
 await page.click('#folha .cartao-acao:has-text("+ Conta")'); await page.waitForTimeout(800);
 await folha().getByLabel('Conta', { exact: true }).fill('Internet');
 await dinheiro(folha().getByLabel('Valor por mês'), '10000');
-await folha().getByLabel('Parte de Ana (%)').fill('50');
+await folha().locator('.seletor-quem .chip-quem:has-text("Ana")').click();
 await page.waitForTimeout(200);
-const prev2 = limpo(await folha().locator('.total-calculado').textContent());
-conferir('5. dá para mudar a % de cada um na conta', /Você · 50,0%\s*R\$ 50,00/.test(prev2) && /Ana · 50,0%\s*R\$ 50,00/.test(prev2), prev2);
+const prev2 = limpo(await folha().locator('.seletor-quem .item-divide').textContent());
+conferir('5. outra conta, meio a meio', /Você R\$ 50,00 · Ana R\$ 50,00 · partes iguais/.test(prev2), prev2);
 await page.click('#folha .btn-ouro:has-text("Salvar conta")'); await page.waitForTimeout(900);
 
 const f2 = limpo(await folha().textContent());

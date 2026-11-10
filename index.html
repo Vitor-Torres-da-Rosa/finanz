@@ -1996,6 +1996,9 @@
   .ajuste-sinal { color: var(--fraco); font-size: 12px; }
   .btn-texto { background: transparent; color: var(--ouro); font-size: 13px; padding: 4px 0; text-align: left; }
   .autoria { color: var(--fraco); font-size: 12.5px; }
+  .seletor-quem { display: grid; gap: 8px; }
+  .seletor-quem .chip-quem { padding: 8px 14px; font-size: 14px; }
+  .seletor-quem .chip-ajustar { font-size: 13px; }
   .painel-totais .v { font-size: 15px; }
   .painel-totais .r::after { content: ' ›'; color: var(--fraco); }
   .painel-ponto { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
@@ -2434,7 +2437,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.61.0';
+  var VERSAO = '5.62.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2443,6 +2446,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.62.0',
+      data: '2026-11-10',
+      itens: [
+        'Contas de casa: na conta, em vez de digitar a %, toque nos nomes de quem divide. Só você marcado, a conta é só sua; marcando outra pessoa, divide em partes iguais.',
+        'Contas de casa: "Ajustar valor ou %" abre a parte de cada um. Digite a % ou o valor de uma pessoa e o resto se completa sozinho para fechar a conta.'
+      ]
+    },
     {
       versao: '5.61.0',
       data: '2026-11-10',
@@ -4961,11 +4972,26 @@
         var pc = Number(x.partes[k]);
         if (k && isFinite(pc)) partes[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(pc * 10) / 10));
       });
-      return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
+      // Desde 10/11/2026 a conta diz quem divide (quem) e, se ajustada, a
+      // % de cada um (divisao). Conta antiga, sem "quem", segue as partes.
+      var quem = Array.isArray(x.quem) ? x.quem.filter(function (k) { return typeof k === 'string' && k; }).map(function (k) { return k.slice(0, 80); }).slice(0, 30) : null;
+      var divisao = null;
+      if (x.divisao && typeof x.divisao === 'object') {
+        divisao = {};
+        Object.keys(x.divisao).slice(0, 30).forEach(function (k) {
+          var n = Number(x.divisao[k]);
+          if (k && isFinite(n)) divisao[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+        });
+        if (!Object.keys(divisao).length) divisao = null;
+      }
+      var conta = { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
                dia: Math.max(0, Math.min(31, inteiro(x.dia))), partes: partes,
                por: texto(x.por).slice(0, 60), porEm: marca(x.porEm) || 0,
                alteradoPor: texto(x.alteradoPor).slice(0, 60), alteradoEm: marca(x.alteradoEm) || 0,
                criadoEm: marca(x.criadoEm) || Date.now() };
+      if (quem && quem.length) conta.quem = quem;
+      if (divisao) conta.divisao = divisao;
+      return conta;
     });
     limpo.casaCompras = lista('casaCompras').map(function (x) {
       var partes = {};
@@ -20586,7 +20612,9 @@
   }
 
   function pessoasDaCasa() {
-    var outros = estado.casaMembros.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
+    var outros = estado.casaMembros.slice().sort(function (a, b) {
+      return (a.criadoEm || 0) - (b.criadoEm || 0) || a.nome.localeCompare(b.nome) || (a.id < b.id ? -1 : 1);
+    });
     var dosOutros = outros.reduce(function (t, m) { return t + m.pct; }, 0);
     var meu = meuIdNaCasa();
     var dono = { id: ID_EU_NA_CASA, nome: souDonoDaCasa() ? 'Você' : (quemCompartilhou('casa') || 'Dono'),
@@ -20597,10 +20625,39 @@
   }
   function nomeNaCasa(p) { return p.voce && !p.eu ? p.nome + ' (você)' : p.nome; }
 
+  // Conta nova (10/11/2026): só quem foi escolhido divide; igual, ou na %
+  // ajustada. Sem ninguém escolhido além de quem lançou, a conta é só dele.
+  function quemNaConta(conta, pessoas) {
+    var ids = pessoas.map(function (p) { return p.id; });
+    var q = (conta.quem || []).filter(function (x) { return ids.indexOf(x) >= 0; });
+    return q.length ? q : [ID_EU_NA_CASA];
+  }
+  function pesosDaConta(conta, pessoas) {
+    var q = quemNaConta(conta, pessoas), pesos = {};
+    q.forEach(function (id) { pesos[id] = conta.divisao ? Math.max(0, Number(conta.divisao[id]) || 0) : 1; });
+    if (!q.some(function (id) { return pesos[id] > 0; })) q.forEach(function (id) { pesos[id] = 1; });
+    return pesos;
+  }
+  // Em centavos, quanto cada pessoa paga desta conta.
+  function divisaoDaConta(conta, pessoas) {
+    pessoas = pessoas || pessoasDaCasa();
+    if (Array.isArray(conta.quem)) return dividirCentavos(conta.valor, pesosDaConta(conta, pessoas));
+    var pt = partesDaConta(conta), r = {};
+    pessoas.forEach(function (p) { r[p.id] = Math.round(conta.valor * (pt[p.id] || 0) / 100); });
+    return r;
+  }
+
   // A % de cada pessoa numa conta: a combinada na conta, ou a padrão dela.
   // O dono fica com o que sobra.
   function partesDaConta(conta) {
     var pessoas = pessoasDaCasa();
+    if (Array.isArray(conta.quem)) {
+      var pesos = pesosDaConta(conta, pessoas), tot = 0, rr = {};
+      Object.keys(pesos).forEach(function (k) { tot += pesos[k]; });
+      pessoas.forEach(function (p) { rr[p.id] = pesos[p.id] ? Math.round(pesos[p.id] / tot * 1000) / 10 : 0; });
+      rr.soma = 100;
+      return rr;
+    }
     var r = {}, outros = 0;
     pessoas.forEach(function (p) {
       if (p.eu) return;
@@ -20619,8 +20676,8 @@
     var total = 0;
     estado.casaContas.forEach(function (c) {
       total += c.valor;
-      var pt = partesDaConta(c);
-      pessoas.forEach(function (p) { porPessoa[p.id] += Math.round(c.valor * (pt[p.id] || 0) / 100); });
+      var d = divisaoDaConta(c, pessoas);
+      pessoas.forEach(function (p) { porPessoa[p.id] += d[p.id] || 0; });
     });
     return { total: total, porPessoa: porPessoa, pessoas: pessoas, meu: porPessoa[meuIdNaCasa()] || 0 };
   }
@@ -21228,12 +21285,15 @@
       var eu = meuIdNaCasa();
       estado.casaContas.slice().sort(function (a, b) { return b.valor - a.valor; }).forEach(function (conta) {
         var pt = partesDaConta(conta);
+        var dv = divisaoDaConta(conta, t.pessoas);
+        var dela = t.pessoas.filter(function (p) { return (pt[p.id] || 0) > 0; });
         cc.appendChild(linhaSimples({
           titulo: conta.nome,
-          sub: t.pessoas.map(function (p) { return (p.voce ? 'Você' : p.nome) + ' ' + textoPct(pt[p.id] || 0); }).join(' · ') +
+          sub: (dela.length === 1 ? (dela[0].voce ? 'só sua' : 'só de ' + dela[0].nome)
+            : dela.map(function (p) { return (p.voce ? 'Você' : p.nome) + ' ' + textoPct(pt[p.id] || 0); }).join(' · ')) +
             (conta.dia ? ' · vence dia ' + conta.dia : '') + (conta.por ? ' · por ' + conta.por : ''),
           valor: emReais(conta.valor),
-          nota: 'sua parte ' + emReais(Math.round(conta.valor * (pt[eu] || 0) / 100)),
+          nota: 'sua parte ' + emReais(dv[eu] || 0),
           corNota: Math.abs(pt.soma - 100) > 0.05 ? 'vermelho' : '',
           selo: seloIcone('casa', '#E9B44C'),
           aoTocar: function () { porCima(reabrir, function () { abrirContaDeCasa(conta.id); }); }
@@ -21315,13 +21375,121 @@
     });
   }
 
+  // Os nomes de quem divide, para tocar (pedido de 10/11/2026): quem está
+  // marcado divide; um só, é só dele. Com dois ou mais, "Ajustar" abre a %
+  // e o valor de cada um, e mexendo num o resto se completa.
+  function seletorDeQuem(pessoas, sel, valorAtual, aoMudar) {
+    var caixa = no('div', 'seletor-quem');
+    var chips = no('div', 'item-quem');
+    var resumo = no('div', 'item-divide');
+    var ajuste = no('div', 'item-ajuste');
+    function q() { var ids = pessoas.map(function (p) { return p.id; }); return sel.quem.filter(function (x) { return ids.indexOf(x) >= 0; }); }
+    function pesos() {
+      var r = {};
+      q().forEach(function (id) { r[id] = sel.partes ? Math.max(0, Number(sel.partes[id]) || 0) : 1; });
+      return r;
+    }
+    function nomeDe(id) { var p = pessoas.filter(function (x) { return x.id === id; })[0]; return p ? (p.voce ? 'Você' : p.nome) : '?'; }
+    function pintar() {
+      var lista = q();
+      Array.prototype.forEach.call(chips.querySelectorAll('.chip-quem'), function (b) {
+        var ativo = lista.indexOf(b.getAttribute('data-id')) >= 0;
+        b.classList.toggle('ativo', ativo); b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+      });
+      bAj.style.display = lista.length > 1 ? '' : 'none';
+      if (lista.length < 2) { sel.aberto = false; ajuste.style.display = 'none'; }
+      if (lista.length === 1) resumo.textContent = lista[0] === meuIdNaCasa() ? 'Só sua.' : 'Só de ' + nomeDe(lista[0]) + '.';
+      else {
+        var d = dividirCentavos(valorAtual(), pesos());
+        resumo.textContent = lista.map(function (id) { return nomeDe(id) + ' ' + emReais(d[id] || 0); }).join(' · ') + (sel.partes ? ' · ajustado' : ' · partes iguais');
+      }
+      if (sel.aberto) desenharAjuste();
+    }
+    pessoas.forEach(function (p) {
+      var ch = botao('chip-quem', p.voce ? 'Você' : p.nome, function () {
+        var lista = q().slice(), i = lista.indexOf(p.id);
+        if (i >= 0) { if (lista.length === 1) return; lista.splice(i, 1); } else lista.push(p.id);
+        sel.quem = lista; sel.partes = null;
+        pintar(); aoMudar();
+      });
+      ch.setAttribute('data-id', p.id);
+      chips.appendChild(ch);
+    });
+    var bAj = botao('chip-ajustar', 'Ajustar valor ou %', function () { sel.aberto = !sel.aberto; ajuste.style.display = sel.aberto ? '' : 'none'; if (sel.aberto) desenharAjuste(); });
+    chips.appendChild(bAj);
+    function desenharAjuste() {
+      ajuste.textContent = '';
+      var lista = q(), ps = pesos(), soma = 0;
+      lista.forEach(function (id) { soma += ps[id]; });
+      var atual = {};
+      lista.forEach(function (id) { atual[id] = sel.partes ? (Number(sel.partes[id]) || 0) : Math.round(ps[id] / (soma || 1) * 1000) / 10; });
+      var nota = no('div', 'linha-nota');
+      var campos = {};
+      function somar() {
+        var t = lista.reduce(function (x, id) { return x + (atual[id] || 0); }, 0);
+        nota.textContent = Math.abs(t - 100) < 0.05 ? 'Soma 100%.' : 'Soma ' + textoPct(t) + '.';
+        nota.classList.toggle('vermelho', Math.abs(t - 100) >= 0.05);
+      }
+      function mudou(id) {
+        var outro = lista.filter(function (x) { return x !== id; }).slice(-1)[0];
+        if (outro) {
+          var resto = 100 - lista.reduce(function (x, k) { return x + (k === outro ? 0 : (atual[k] || 0)); }, 0);
+          atual[outro] = Math.max(0, Math.round(resto * 10) / 10);
+          campos[outro].pct.value = decimalBr(atual[outro], 1);
+          campos[outro].rs.value = emReais(Math.round(valorAtual() * atual[outro] / 100));
+        }
+        sel.partes = JSON.parse(JSON.stringify(atual));
+        somar();
+        var d = dividirCentavos(valorAtual(), pesos());
+        resumo.textContent = lista.map(function (k) { return nomeDe(k) + ' ' + emReais(d[k] || 0); }).join(' · ') + ' · ajustado';
+        aoMudar();
+      }
+      lista.forEach(function (id) {
+        var pct = entradaDecimal(atual[id], 1, '0');
+        pct.setAttribute('aria-label', '% de ' + nomeDe(id));
+        var rs = entradaValor(Math.round(valorAtual() * atual[id] / 100), false);
+        rs.setAttribute('aria-label', 'Valor de ' + nomeDe(id));
+        campos[id] = { pct: pct, rs: rs };
+        pct.addEventListener('input', function () {
+          var x = lerDecimal(pct.value); atual[id] = isFinite(x) ? Math.max(0, Math.min(100, x)) : 0;
+          rs.value = emReais(Math.round(valorAtual() * atual[id] / 100));
+          mudou(id);
+        });
+        rs.addEventListener('input', function () {
+          var v = Math.min(digitosParaCentavos(rs.value), valorAtual());
+          atual[id] = valorAtual() ? Math.round(v / valorAtual() * 1000) / 10 : 0;
+          pct.value = decimalBr(atual[id], 1);
+          mudou(id);
+        });
+        ajuste.appendChild(juntar(no('div', 'ajuste-linha'), no('span', null, nomeDe(id)), pct, no('span', 'ajuste-sinal', '%'), rs));
+      });
+      ajuste.appendChild(nota);
+      ajuste.appendChild(botao('btn-texto', 'Voltar a partes iguais', function () { sel.partes = null; desenharAjuste(); pintar(); aoMudar(); }));
+      somar();
+    }
+    ajuste.style.display = 'none';
+    juntar(caixa, chips, resumo, ajuste);
+    caixa.repintar = pintar;
+    pintar();
+    return caixa;
+  }
+
   function abrirContaDeCasa(id) {
     var c = id ? achar(estado.casaContas, id) : null;
     var pessoas = pessoasDaCasa();
-    var partes = {};
-    pessoas.forEach(function (p) {
-      if (!p.eu) partes[p.id] = c && c.partes && c.partes[p.id] !== undefined ? c.partes[p.id] : p.pct;
-    });
+    // Quem divide: conta nova começa só com quem lança; conta antiga
+    // traz as % que tinha.
+    var sel = { quem: [], partes: null, aberto: false };
+    if (c && Array.isArray(c.quem)) {
+      sel.quem = quemNaConta(c, pessoas);
+      sel.partes = c.divisao ? JSON.parse(JSON.stringify(c.divisao)) : null;
+    } else if (c) {
+      var pt0 = partesDaConta(c);
+      sel.quem = pessoas.filter(function (p) { return (pt0[p.id] || 0) > 0; }).map(function (p) { return p.id; });
+      if (!sel.quem.length) sel.quem = [meuIdNaCasa() || ID_EU_NA_CASA];
+      var iguais = sel.quem.every(function (x) { return Math.abs((pt0[x] || 0) - 100 / sel.quem.length) < 0.06; });
+      if (!iguais) { sel.partes = {}; sel.quem.forEach(function (x) { sel.partes[x] = pt0[x] || 0; }); }
+    } else sel.quem = [meuIdNaCasa() || ID_EU_NA_CASA];
     abrirFolha(c ? c.nome : 'Nova conta', function (folha) {
       var forma = no('div', 'forma');
       if (c && textoDeAutoria(c)) forma.appendChild(no('p', 'ajuda autoria', textoDeAutoria(c) + '.'));
@@ -21332,50 +21500,30 @@
       var dia = entradaTexto(c && c.dia ? String(c.dia) : '', 'Ex.: 10', 2);
       dia.inputMode = 'numeric';
       forma.appendChild(campo('Vence no dia (opcional)', dia));
-      var caixa = no('div', 'casa-partes');
-      forma.appendChild(campo('Quanto cada um entra (%)', caixa));
-      var resumo = no('div', 'total-calculado');
-      function pintar() {
-        var v = digitosParaCentavos(valor.value);
-        var outros = 0;
-        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
-        var dono = Math.round((100 - outros) * 10) / 10;
-        resumo.textContent = '';
-        pessoas.forEach(function (p) {
-          var pc = p.eu ? dono : partes[p.id] || 0;
-          juntar(resumo, no('span', null, (p.voce ? 'Você' : p.nome) + ' · ' + textoPct(Math.max(pc, 0))),
-            no('strong', 'num ' + (p.voce ? (dono < 0 && p.eu ? 'vermelho' : 'ouro') : ''), emReais(Math.round(v * Math.max(pc, 0) / 100))));
-        });
-        if (dono < 0) juntar(resumo, no('span', 'vermelho', 'As partes passam de 100%'), no('strong', 'num vermelho', textoPct(100 - dono)));
-      }
-      pessoas.forEach(function (p) {
-        if (p.eu) return;
-        var ent = entradaDecimal(partes[p.id], 1, '0');
-        ent.setAttribute('aria-label', 'Parte de ' + p.nome + ' (%)');
-        ent.addEventListener('input', function () { var n = lerDecimal(ent.value); partes[p.id] = isFinite(n) ? n : 0; pintar(); });
-        caixa.appendChild(juntar(no('div', 'config-linha'), no('span', 'config-rotulo', nomeNaCasa(p)), ent));
-      });
-      if (pessoas.length === 1) caixa.appendChild(no('p', 'ajuda', 'Ninguém na divisão ainda: adicione as pessoas em "Quem divide". Por enquanto a conta é toda sua.'));
-      caixa.appendChild(no('p', 'ajuda', pessoas[0].nome + ' fica com o que sobrar.'));
-      valor.addEventListener('input', pintar);
-      forma.appendChild(resumo);
-      pintar();
+      var seletor = seletorDeQuem(pessoas, sel, function () { return digitosParaCentavos(valor.value); }, function () {});
+      forma.appendChild(campo('Quem divide esta conta', seletor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', pessoas.length > 1
+        ? 'Toque nos nomes: marcado divide a conta. Só você marcado, a conta é só sua.'
+        : 'Ninguém na divisão ainda: adicione as pessoas em "Quem divide". Por enquanto a conta é toda sua.'));
+      valor.addEventListener('input', function () { seletor.repintar(); });
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar conta', function () {
         var v = digitosParaCentavos(valor.value);
         var d = parseInt(dia.value, 10) || 0;
-        var outros = 0;
-        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
         if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome da conta.'); return; }
         if (v <= 0) { mostrarErro(forma, 'Informe o valor.'); return; }
         if (d < 0 || d > 31) { mostrarErro(forma, 'O dia vai de 1 a 31.'); return; }
-        if (Object.keys(partes).some(function (k) { return partes[k] < 0 || partes[k] > 100; })) { mostrarErro(forma, 'Cada parte vai de 0 a 100%.'); return; }
-        if (outros > 100.001) { mostrarErro(forma, 'As partes passam de 100% (' + textoPct(outros) + ').'); return; }
+        if (sel.partes) {
+          var tot = sel.quem.reduce(function (x, k) { return x + (Number(sel.partes[k]) || 0); }, 0);
+          if (Math.abs(tot - 100) >= 0.05) { mostrarErro(forma, 'As partes somam ' + textoPct(tot) + ': ajuste para dar 100%.'); return; }
+        }
         var reg = c || { id: novoId(), criadoEm: Date.now() };
         carimbarAutor(reg, !c);
         reg.nome = nome.value.trim().slice(0, 60); reg.valor = v; reg.dia = d;
         reg.partes = {};
-        Object.keys(partes).forEach(function (k) { reg.partes[k] = Math.round((partes[k] || 0) * 10) / 10; });
+        reg.quem = sel.quem.slice();
+        if (sel.partes) { reg.divisao = {}; sel.quem.forEach(function (k) { reg.divisao[k] = Math.round((Number(sel.partes[k]) || 0) * 10) / 10; }); }
+        else delete reg.divisao;
         if (!c) estado.casaContas.push(reg);
         salvar();
         fecharOuVoltar(true);

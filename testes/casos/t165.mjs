@@ -73,6 +73,7 @@ conferir('2. Ana aparece com o convite enviado', /Ana\s*50,0% padrão nas contas
 await vitor.click('#folha .cartao-acao:has-text("+ Conta")'); await vitor.waitForTimeout(800);
 await vitor.locator('#folha').getByLabel('Conta', { exact: true }).fill('Internet');
 await dinheiro(vitor, vitor.locator('#folha').getByLabel('Valor por mês'), '10000');
+await vitor.locator('#folha .seletor-quem .chip-quem:has-text("Ana")').click(); await vitor.waitForTimeout(200);
 await vitor.click('#folha .btn-ouro:has-text("Salvar conta")'); await vitor.waitForTimeout(1000);
 await fechar(vitor);
 await sincronizar(vitor);
@@ -88,7 +89,7 @@ conferir('4. aceitando, ela vê as contas do Vitor, com a parte dela', /Total po
 await abrirCasa(ana);
 const fa = limpo(await ana.textContent('#folha'));
 conferir('5. para ela, o Vitor é o dono e ela é "você"', /Vitor\s*fica com o que sobra · 25,0% padrão/.test(fa) && /Ana \(você\)\s*50,0% padrão/.test(fa) &&
-  /Internet\s*Vitor 25,0% · Você 50,0% · João 25,0% · por Vitor/.test(fa), fa.slice(0, 600));
+  /Internet\s*Vitor 50,0% · Você 50,0% · por Vitor/.test(fa), fa.slice(0, 600));
 
 // ---- Ana lança uma compra com três itens, cada um de um jeito ----
 await ana.click('#folha .abas-casa button:has-text("Mercado")'); await ana.waitForTimeout(700);
