@@ -1954,6 +1954,13 @@
     background: var(--cartao-2); border: 1px solid var(--borda); }
   .item-cabeca { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 4px 0 6px; }
   .item-com { font-size: 13px; color: var(--ouro); font-weight: 600; }
+  .item-cabeca .item-nome { display: grid; gap: 1px; min-width: 0; }
+  .item-cabeca .item-nome strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-cabeca .item-nome .item-com { font-size: 12px; }
+  .item-cabeca { align-items: center; }
+  .item-preco { display: grid; gap: 2px; flex: 0 0 auto; width: 118px; text-align: right; }
+  .item-preco span { font-size: 10.5px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .item-preco input { padding: 8px 10px; font-size: 15px; text-align: right; min-height: 0; }
   .item-pe { display: flex; justify-content: space-between; padding-top: 10px; font-size: 14px; color: var(--suave); }
   .item-fica { font-weight: 700; color: var(--texto); }
 
@@ -1965,6 +1972,33 @@
   .painel-num:active { background: var(--cartao-2); }
   .painel-num .v { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .painel-totais { margin-top: 12px; }
+  .casa-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; text-align: left; color: var(--texto); padding: 4px 0; }
+  .casa-resumo .r { font-size: 11px; color: var(--fraco); text-transform: uppercase; letter-spacing: .04em; }
+  .casa-resumo .v { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .casa-partes .config-linha input { width: 96px; text-align: right; }
+  .abas-casa { margin-bottom: 14px; }
+  .itens-nota { display: grid; gap: 8px; }
+  .item-nota { display: grid; grid-template-columns: 1fr 112px 36px; gap: 6px; align-items: center; }
+  .item-nota input { min-width: 0; padding: 10px 10px; font-size: 14.5px; }
+  .item-nota input:nth-child(2) { text-align: right; }
+  .item-nota .linha-acao { color: var(--vermelho); }
+  .mais-item { margin-top: 2px; }
+  .casa-mercado { color: var(--suave); }
+  .item-bloco { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borda); }
+  .item-quem { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip-quem { padding: 5px 11px; border-radius: 999px; font-size: 12.5px; border: 1px solid var(--borda); color: var(--fraco); background: transparent; }
+  .chip-quem.ativo { color: #1a1408; background: var(--ouro); border-color: var(--ouro); font-weight: 600; }
+  .chip-ajustar { margin-left: auto; padding: 5px 10px; font-size: 12.5px; color: var(--ouro); background: transparent; }
+  .item-divide { font-size: 12px; color: var(--suave); }
+  .item-ajuste { display: grid; gap: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.03); }
+  .ajuste-linha { display: grid; grid-template-columns: 1fr 64px 14px 104px; gap: 6px; align-items: center; font-size: 13.5px; }
+  .ajuste-linha input { padding: 8px 8px; font-size: 14px; text-align: right; min-width: 0; }
+  .ajuste-sinal { color: var(--fraco); font-size: 12px; }
+  .btn-texto { background: transparent; color: var(--ouro); font-size: 13px; padding: 4px 0; text-align: left; }
+  .autoria { color: var(--fraco); font-size: 12.5px; }
+  .seletor-quem { display: grid; gap: 8px; }
+  .seletor-quem .chip-quem { padding: 8px 14px; font-size: 14px; }
+  .seletor-quem .chip-ajustar { font-size: 13px; }
   .painel-totais .v { font-size: 15px; }
   .painel-totais .r::after { content: ' ›'; color: var(--fraco); }
   .painel-ponto { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
@@ -2403,7 +2437,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.58.0';
+  var VERSAO = '5.63.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2412,6 +2446,49 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.63.0',
+      data: '2026-11-11',
+      itens: [
+        'Parcelas: mudando a data ou o valor de uma parcela, o app pergunta "Esta e as próximas" ou "Só esta parcela". Escolhendo as próximas, elas passam a vencer no mesmo dia (um mês depois da outra) e/ou com o mesmo valor; as anteriores não mudam.'
+      ]
+    },
+    {
+      versao: '5.62.0',
+      data: '2026-11-10',
+      itens: [
+        'Contas de casa: na conta, em vez de digitar a %, toque nos nomes de quem divide. Só você marcado, a conta é só sua; marcando outra pessoa, divide em partes iguais.',
+        'Contas de casa: "Ajustar valor ou %" abre a parte de cada um. Digite a % ou o valor de uma pessoa e o resto se completa sozinho para fechar a conta.'
+      ]
+    },
+    {
+      versao: '5.61.0',
+      data: '2026-11-10',
+      itens: [
+        'Contas de casa: a pessoa que divide pode ter e-mail. Quem tem o Finanz recebe um convite e, aceitando, vê e mexe nas mesmas contas e compras de mercado.',
+        'Contas de casa: cada conta, compra e pessoa guarda quem lançou e quem alterou por último, com a data. Nas listas aparece "por Fulano".',
+        'Mercado: cada item é de quem participa. Toque nos nomes embaixo do item: um só é item individual; dois ou mais dividem igual. "Ajustar" muda a % ou o valor de cada um, e o resto se completa sozinho. Item de todos segue a divisão padrão da compra.',
+        'Mercado: a compra mostra quanto cada pessoa paga, e o mês mostra quanto cada um gastou no mercado.'
+      ]
+    },
+    {
+      versao: '5.60.0',
+      data: '2026-11-09',
+      itens: [
+        'Visão geral: novo cartão "Contas de casa". Cadastre quem divide as contas da casa e a parte padrão de cada um, e adicione as contas (aluguel, luz, internet...). Em cada conta dá para mudar a % de cada pessoa, e você fica com o que sobra.',
+        'Contas de casa › Mercado: tire uma foto da nota e o app lê item por item, com nome e valor. Você corrige o que estiver errado, apaga o que não for item e escolhe quanto cada pessoa entra na compra. O leitor roda no próprio celular: a foto não sai dele.',
+        'Contas de casa mostra o total por mês, quanto cada pessoa paga e a sua parte. É só a base do cálculo: não entra nas despesas, que continuam sendo o que sai do extrato.'
+      ]
+    },
+    {
+      versao: '5.59.0',
+      data: '2026-11-08',
+      itens: [
+        'Venda de Doces: o produto agora pede só o custo e o repasse para você, e mostra o seu lucro por unidade.',
+        'Venda de Doces: tocando em "Você" em Membros da empresa, aparece a sua parte no lucro e dá para marcar que você também vende. Vendendo, o seu nome entra em Entregas e fica sempre na Prestação.',
+        'Venda de Doces: na prestação de contas, ao lado do nome de cada doce, vai o preço por que o vendedor vendeu. Cada vendedor vende pelo valor que quiser: o que passar do seu repasse é o lucro dele. O app já sugere o último preço que ele usou.'
+      ]
+    },
     {
       versao: '5.58.0',
       data: '2026-11-08',
@@ -4211,6 +4288,11 @@
       doceAjustes: [],
       doceCustos: [],
       doceMembros: [],
+      // Contas de casa (pedido de 09/11/2026): só a base para dividir as
+      // contas com quem mora junto. Não entra nas despesas.
+      casaMembros: [],
+      casaContas: [],
+      casaCompras: [],
       excluidos: []
     };
   }
@@ -4882,6 +4964,71 @@
                valor: positivo(x.valor), obs: texto(x.obs).slice(0, 80), despesaId: texto(x.despesaId),
                criadoEm: marca(x.criadoEm) || Date.now() };
     }).filter(function (x) { return x.chave && x.km > 0; });
+    limpo.casaMembros = lista('casaMembros').map(function (x) {
+      var pc = Number(x.pct);
+      return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Pessoa',
+               email: texto(x.email).trim().toLowerCase().slice(0, 200),
+               pct: isFinite(pc) ? Math.max(0, Math.min(100, Math.round(pc * 10) / 10)) : 0,
+               por: texto(x.por).slice(0, 60), porEm: marca(x.porEm) || 0,
+               alteradoPor: texto(x.alteradoPor).slice(0, 60), alteradoEm: marca(x.alteradoEm) || 0,
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.casaContas = lista('casaContas').map(function (x) {
+      var partes = {};
+      if (x.partes && typeof x.partes === 'object') Object.keys(x.partes).forEach(function (k) {
+        var pc = Number(x.partes[k]);
+        if (k && isFinite(pc)) partes[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(pc * 10) / 10));
+      });
+      // Desde 10/11/2026 a conta diz quem divide (quem) e, se ajustada, a
+      // % de cada um (divisao). Conta antiga, sem "quem", segue as partes.
+      var quem = Array.isArray(x.quem) ? x.quem.filter(function (k) { return typeof k === 'string' && k; }).map(function (k) { return k.slice(0, 80); }).slice(0, 30) : null;
+      var divisao = null;
+      if (x.divisao && typeof x.divisao === 'object') {
+        divisao = {};
+        Object.keys(x.divisao).slice(0, 30).forEach(function (k) {
+          var n = Number(x.divisao[k]);
+          if (k && isFinite(n)) divisao[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+        });
+        if (!Object.keys(divisao).length) divisao = null;
+      }
+      var conta = { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
+               dia: Math.max(0, Math.min(31, inteiro(x.dia))), partes: partes,
+               por: texto(x.por).slice(0, 60), porEm: marca(x.porEm) || 0,
+               alteradoPor: texto(x.alteradoPor).slice(0, 60), alteradoEm: marca(x.alteradoEm) || 0,
+               criadoEm: marca(x.criadoEm) || Date.now() };
+      if (quem && quem.length) conta.quem = quem;
+      if (divisao) conta.divisao = divisao;
+      return conta;
+    });
+    limpo.casaCompras = lista('casaCompras').map(function (x) {
+      var partes = {};
+      if (x.partes && typeof x.partes === 'object') Object.keys(x.partes).forEach(function (k) {
+        var pc = Number(x.partes[k]);
+        if (k && isFinite(pc)) partes[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(pc * 10) / 10));
+      });
+      var itens = (Array.isArray(x.itens) ? x.itens : []).slice(0, 300).filter(function (i) { return i && typeof i === 'object'; }).map(function (i) {
+        var item = { nome: texto(i.nome).slice(0, 80) || 'Item', valor: positivo(i.valor) };
+        // De quem é o item (vazio: de todos) e a % de cada um, se ajustada.
+        if (Array.isArray(i.quem)) {
+          var q = i.quem.filter(function (k) { return typeof k === 'string' && k; }).map(function (k) { return k.slice(0, 80); }).slice(0, 30);
+          if (q.length) item.quem = q;
+        }
+        if (i.partes && typeof i.partes === 'object') {
+          var pi = {};
+          Object.keys(i.partes).slice(0, 30).forEach(function (k) {
+            var n = Number(i.partes[k]);
+            if (k && isFinite(n)) pi[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+          });
+          if (Object.keys(pi).length) item.partes = pi;
+        }
+        return item;
+      });
+      return { id: x.id, local: texto(x.local).slice(0, 80), data: soData(x.data) || hojeTexto(), itens: itens,
+               desconto: positivo(x.desconto), partes: partes,
+               por: texto(x.por).slice(0, 60), porEm: marca(x.porEm) || 0,
+               alteradoPor: texto(x.alteradoPor).slice(0, 60), alteradoEm: marca(x.alteradoEm) || 0,
+               criadoEm: marca(x.criadoEm) || Date.now() };
+    });
     limpo.uberNotas = lista('uberNotas').map(function (x) {
       return { id: x.id, texto: texto(x.texto).slice(0, 200), data: soData(x.data) || hojeTexto(), km: km(x.km),
                situacao: x.situacao === 'resolvida' ? 'resolvida' : 'pendente', resolvidaEm: soData(x.resolvidaEm) || '',
@@ -5755,7 +5902,8 @@
     uber_manutencao: 'uberManutencao', uber_troca: 'uberTrocas', uber_nota: 'uberNotas',
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes',
-    doce_custo: 'doceCustos', doce_membro: 'doceMembros'
+    doce_custo: 'doceCustos', doce_membro: 'doceMembros',
+    casa_membro: 'casaMembros', casa_conta: 'casaContas', casa_compra: 'casaCompras'
   };
 
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
@@ -5792,12 +5940,14 @@
   // guardado na conta dela e volta se ela sair.
   var AREAS_COMPARTILHAVEIS = [
     { id: 'doces', nome: 'Venda de Doces' },
-    { id: 'uber', nome: 'Uber e Corridas' }
+    { id: 'uber', nome: 'Uber e Corridas' },
+    { id: 'casa', nome: 'Contas de casa' }
   ];
 
   function areaDoTipo(tipo) {
     if (String(tipo).indexOf('doce_') === 0) return 'doces';
     if (String(tipo).indexOf('uber_') === 0) return 'uber';
+    if (String(tipo).indexOf('casa_') === 0) return 'casa';
     return '';
   }
 
@@ -5902,28 +6052,33 @@
     return meusConvites.filter(function (l) { return l.convidado_email === email; })[0] || null;
   }
 
-  function garantirConviteDoces(email) {
+  function garantirConviteDoces(email) { return garantirConviteDaArea(email, 'doces'); }
+  function tirarAcessoAosDoces(email) { return tirarAcessoDaArea(email, 'doces'); }
+
+  // O mesmo convite serve para qualquer área: a pessoa já convidada para
+  // uma ganha a outra no mesmo convite.
+  function garantirConviteDaArea(email, area) {
     if (!NUVEM.ligada || !sessaoNuvem) return Promise.reject(new Error('sem conta na nuvem'));
     var l = conviteDoEmail(email);
     var pedido;
     if (l) {
       var areas = Array.isArray(l.areas) ? l.areas.slice() : [];
-      if (areas.indexOf('doces') >= 0 && l.situacao !== 'recusado') return Promise.resolve('ja');
-      if (areas.indexOf('doces') < 0) areas.push('doces');
+      if (areas.indexOf(area) >= 0 && l.situacao !== 'recusado') return Promise.resolve('ja');
+      if (areas.indexOf(area) < 0) areas.push(area);
       pedido = pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH',
         corpo: { areas: areas, situacao: l.situacao === 'recusado' ? 'pendente' : l.situacao }, cabecalhos: { 'Prefer': 'return=minimal' } });
     } else {
       pedido = pedirNuvem('/rest/v1/compartilhamentos', { metodo: 'POST', cabecalhos: { 'Prefer': 'return=minimal' },
         corpo: [{ id: novoId(), dono_id: sessaoNuvem.usuario.id, dono_nome: String(estado.perfil.nome || '').slice(0, 80),
-                  convidado_email: email, areas: ['doces'], situacao: 'pendente' }] });
+                  convidado_email: email, areas: [area], situacao: 'pendente' }] });
     }
     return pedido.then(function () { carregarCompartilhamentos(); return 'enviado'; });
   }
 
-  function tirarAcessoAosDoces(email) {
+  function tirarAcessoDaArea(email, area) {
     var l = conviteDoEmail(email);
     if (!l || !NUVEM.ligada || !sessaoNuvem) return Promise.resolve();
-    var resto = (Array.isArray(l.areas) ? l.areas : []).filter(function (a) { return a !== 'doces'; });
+    var resto = (Array.isArray(l.areas) ? l.areas : []).filter(function (a) { return a !== area; });
     var pedido = resto.length
       ? pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'PATCH', corpo: { areas: resto }, cabecalhos: { 'Prefer': 'return=minimal' } })
       : pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), { metodo: 'DELETE' });
@@ -8265,6 +8420,7 @@
 
   var DESENHOS = {
     email: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5zM3.5 7.5l8.5 6 8.5-6',
+    casa: 'M3.5 11 12 4l8.5 7M5.5 9.5V20h13V9.5M10 20v-5.5h4V20',
     cadeado: 'M7 10V7.5a5 5 0 0 1 10 0V10M5.5 10h13a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z',
     pessoa: 'M12 11.5a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5zM4.5 20a7.5 7.5 0 0 1 15 0',
     telefone: 'M7 3.5h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16.5 16.5 0 0 1 3.5 5.5a2 2 0 0 1 2-2z',
@@ -9793,10 +9949,13 @@
     var foco = {};
     if (parcelaBase && parcelaBase.servicoId) foco[parcelaBase.servicoId] = true;
     [].concat(focoServicoId || []).forEach(function (sid) { if (sid) foco[sid] = true; });
-    if (fixaId) {
-      var fixaParcela = achar(estado.parcelas, fixaId);
+    // `fixaId` pode ser uma lista (11/11/2026): mudando "esta e as
+    // próximas", as anteriores em aberto também ficam como estão.
+    var fixasIds = [].concat(fixaId || []);
+    fixasIds.forEach(function (fid) {
+      var fixaParcela = achar(estado.parcelas, fid);
       if (fixaParcela && fixaParcela.servicoId) foco[fixaParcela.servicoId] = true;
-    }
+    });
 
     Object.keys(porServico).forEach(function (servicoId) {
       var todas = porServico[servicoId];
@@ -9820,15 +9979,13 @@
       });
       var restante = Math.max(totalServico - pagoServico, 0);
 
-      var fixa = null;
-      if (fixaId) {
-        fixa = achar(abertas, fixaId);
-        if (fixa && (fixa.servicoId || '') !== servicoId) fixa = null;
-      }
-      if (fixa) {
-        restante = Math.max(restante - Math.max(fixa.valor - pagoNaParcela(fixa), 0), 0);
-        abertas = abertas.filter(function (p) { return p.id !== fixa.id; });
-      }
+      var fixas = abertas.filter(function (p) { return fixasIds.indexOf(p.id) >= 0; });
+      var ehFixa = {};
+      fixas.forEach(function (f) {
+        ehFixa[f.id] = true;
+        restante = Math.max(restante - Math.max(f.valor - pagoNaParcela(f), 0), 0);
+      });
+      abertas = abertas.filter(function (p) { return !ehFixa[p.id]; });
       // Parcela aberta que já recebeu parte: o que entrou nela está no
       // "pago" do registro, mas ela continua com o valor cheio. Somo de
       // volta para a conta das abertas fechar com o valor cheio delas.
@@ -9846,7 +10003,7 @@
 
       var padrao = 0;
       todas.forEach(function (p) {
-        if (fixa && p.id === fixa.id) return;
+        if (ehFixa[p.id]) return;
         if (p.valor > padrao) padrao = p.valor;
       });
       if (padrao <= 0) padrao = restante;
@@ -10294,6 +10451,7 @@
       no('span', 'kpi-seta', '›'));
     kpis.appendChild(analises);
     tela.appendChild(kpis);
+    tela.appendChild(cartaoContasDeCasa());
 
     // Contas a pagar do mês e a sobra prevista, que já desconta o que
     // ainda vai vencer. Só aparece quando o radar achou alguma conta.
@@ -14110,6 +14268,27 @@
     return { repasse: reserva ? reserva.repasse || 0 : 0, preco: reserva ? reserva.preco || 0 : 0, custo: 0 };
   }
 
+  // O preço de venda é do vendedor (pedido de 08/11/2026): o produto só
+  // tem o custo e o seu repasse, e cada vendedor diz na prestação por
+  // quanto vendeu. Sugestão: o último preço que ele usou para esse doce;
+  // nunca vendeu, o preço antigo do cadastro; sem nada, o próprio repasse.
+  function precoDeVenda(vid, produtoId) {
+    var melhor = null;
+    estado.doceAcertos.forEach(function (a) {
+      if (a.vendedorId !== vid) return;
+      (a.itens || []).forEach(function (i) {
+        if (i.produtoId !== produtoId || !i.preco) return;
+        if (!melhor || a.data > melhor.data || (a.data === melhor.data && (a.criadoEm || 0) > melhor.criadoEm)) {
+          melhor = { data: a.data, criadoEm: a.criadoEm || 0, preco: i.preco };
+        }
+      });
+    });
+    if (melhor) return melhor.preco;
+    var p = achar(estado.doceProdutos, produtoId);
+    if (!p) return 0;
+    return p.preco >= p.repasse ? p.preco : p.repasse;
+  }
+
   function contaDoVendedor(vid, de, ate) {
     var porProduto = {};
     function p(pid) {
@@ -14166,6 +14345,7 @@
     r.produtos = Object.keys(porProduto).map(function (k) {
       var x = porProduto[k];
       x.estoque = x.entregue - x.vendidos - x.devolvidos - x.perdidos;
+      x.preco = precoDeVenda(vid, x.produtoId) || x.preco;
       return x;
     });
     r.estoque = r.produtos.reduce(function (s, x) { return s + x.estoque; }, 0);
@@ -14364,7 +14544,13 @@
       box.appendChild(linhaSimples({
         titulo: 'Você' + (eu ? '' : ''), sub: 'dono da operação' + (d.membros.length ? ' · o que sobra dos outros' : ''),
         valor: emReais(Math.round(lucro * d.meuPct / 100)), cor: 'verde', nota: textoPct(d.meuPct),
-        selo: selo('#3DDC84', 'V')
+        selo: selo('#3DDC84', 'V'),
+        // Tocando em "Você" (pedido de 08/11/2026): a sua parte e se você
+        // também vende.
+        aoTocar: function () {
+          if (deCima) porCima(reabrir, function () { abrirVoceNosDoces(true); });
+          else abrirVoceNosDoces(false);
+        }
       }));
     }
     d.membros.forEach(function (m) {
@@ -14385,6 +14571,61 @@
       box.appendChild(no('div', 'linha-nota vermelho nota-membros', 'As partes somam ' + textoPct(d.soma) + ': ajuste para dar 100%.'));
     }
     return box;
+  }
+
+  // Você na Venda de Doces: a sua parte no lucro, o que vendeu e a opção
+  // de também vender, igual à de um sócio (pedido de 08/11/2026).
+  var ID_EU_NOS_DOCES = 'eu';
+  function abrirVoceNosDoces(deCima) {
+    var f = faixaDoMesAtivo();
+    var eu = { id: ID_EU_NOS_DOCES, nome: String(estado.perfil.nome || '').trim().slice(0, 60) || 'Você' };
+    var meuV = vendedorDoMembro(ID_EU_NOS_DOCES);
+    var vende = !!meuV;
+    abrirFolha('Você', function (folha) {
+      var r = resumoDosDoces(f.de, f.ate);
+      var d = divisaoDoLucro();
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Sua parte no lucro ' + dePeriodoEmp()));
+      var minha = Math.round(r.lucro * d.meuPct / 100);
+      c.appendChild(no('div', 'valorao num ' + (minha < 0 ? 'vermelho' : 'verde'), emReais(minha)));
+      c.appendChild(no('div', 'linha-nota', textoPct(d.meuPct) + ' do lucro da operação (' + emReais(r.lucro) + ')' +
+        (d.membros.length ? ': o que sobra depois da parte dos outros membros.' : '.')));
+      folha.appendChild(c);
+      var conta = cartao('detalhe-uber-lucro');
+      [['Venda total', emReais(r.venda), 'ouro'], ['Lucro da operação', emReais(r.lucro), r.lucro < 0 ? 'vermelho' : 'verde'],
+       ['Sua parte', textoPct(d.meuPct), '']].forEach(function (x) {
+        var l = no('div', 'parcela-linha');
+        juntar(l, no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1]));
+        conta.appendChild(l);
+      });
+      if (meuV) {
+        var cv = contaDoVendedor(meuV.id, f.de, f.ate);
+        [['Você vendeu', cv.vendidosPeriodo + ' un.', ''], ['Seu lucro como vendedor', emReais(cv.lucroPeriodo), 'verde'],
+         ['Com você agora', Math.max(cv.estoque, 0) + ' un.', '']].forEach(function (x) {
+          var l = no('div', 'parcela-linha');
+          juntar(l, no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1]));
+          conta.appendChild(l);
+        });
+      }
+      folha.appendChild(conta);
+      var forma = no('div', 'forma');
+      forma.appendChild(campo('Você também vende os doces?', segmentosLocais([{ valor: false, rotulo: 'Não' }, { valor: true, rotulo: 'Sim, vendo' }],
+        vende, function (v) { vende = v; })));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Vendendo, o seu nome aparece em Entregas e fica sempre na Prestação: dá para prestar contas direto, sem pegar doces.'));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        ajustarVendedorDoMembro(eu, vende);
+        salvar();
+        fecharOuVoltar(deCima);
+        desenhar();
+        avisar(vende ? 'Pronto: você aparece em Entregas e na Prestação.' : 'Salvo.');
+      }));
+      acoes.appendChild(botao('btn btn-fantasma', 'Ver a divisão do lucro', function () {
+        porCima(function () { abrirVoceNosDoces(deCima); }, function () { abrirLucroDaEmpresa(); });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
   }
 
   function abrirLucroDaEmpresa() {
@@ -14838,7 +15079,7 @@
       qtd: doVendedor ? e.quantidade + ' un.' : '',
       sub: datas + (doVendedor ? '' : ' · ' + nomeDoProduto(e.produtoId)),
       valor: emReais(e.quantidade * valoresDoDoce(e.produtoId, e).repasse), cor: 'ouro',
-      nota: 'venda ' + emReais(e.quantidade * valoresDoDoce(e.produtoId, e).preco),
+      nota: 'venda ~' + emReais(e.quantidade * (precoDeVenda(e.vendedorId, e.produtoId) || valoresDoDoce(e.produtoId, e).preco)),
       selo: seloIcone('pacote', '#E9B44C'),
       aoTocar: function () {
         if (reabrir) porCima(reabrir, function () { abrirFolhaEntrega(e.id, '', true); });
@@ -14895,7 +15136,7 @@
       var v = item.v;
       var c = contaDoVendedor(v.id);
       // O sócio que vende fica sempre aqui (pedido de 08/11/2026).
-      var socio = !!(v.membroId && v.ativo && achar(estado.doceMembros, v.membroId));
+      var socio = !!(v.membroId && v.ativo && (v.membroId === ID_EU_NOS_DOCES || achar(estado.doceMembros, v.membroId)));
       if (c.estoque <= 0 && c.pendente <= 0 && !socio) return;
       algum = true;
       var quando = item.acerto
@@ -14949,9 +15190,9 @@
       var est = meuEstoqueDoce(p.id);
       lista.appendChild(linhaSimples({
         titulo: p.nome + (p.ativo ? '' : ' (inativo)'),
-        sub: 'Estoque ' + est + ' un. · ' + (p.custo ? 'compra ' + emReais(p.custo) + ' · ' : '') + 'venda ' + emReais(p.preco),
-        valor: emReais(p.preco - p.repasse), cor: 'verde',
-        nota: 'lucro do vendedor',
+        sub: 'Estoque ' + est + ' un. · ' + (p.custo ? 'custo ' + emReais(p.custo) + ' · ' : '') + 'repasse ' + emReais(p.repasse),
+        valor: emReais(p.repasse - (p.custo || 0)), cor: p.repasse - (p.custo || 0) < 0 ? 'vermelho' : 'verde',
+        nota: 'seu lucro',
         selo: seloIcone('doce', '#F472B6'),
         aoTocar: function () { abrirFolhaProduto(p.id); }
       }));
@@ -15532,46 +15773,23 @@
       var forma = no('div', 'forma');
       var nome = entradaTexto(p ? p.nome : '', 'Ex.: Brigadeiro gourmet', 60);
       forma.appendChild(campo('Nome do doce', nome));
-      // Os quatro valores de cada doce, na ordem do dinheiro: quanto você
-      // paga, quanto o cliente final paga, e como esse preço se divide
-      // entre o revendedor e você. As duas partes andam juntas: mexendo
-      // numa, a outra fecha a conta com o preço de venda.
+      // Só o custo e o seu repasse (pedido de 08/11/2026): o preço de venda
+      // cada vendedor informa na prestação de contas, e o que passar do
+      // repasse é o lucro dele.
       var custo = entradaValor(p ? p.custo : 0, false);
-      forma.appendChild(campo('Valor de compra do produto', custo));
+      forma.appendChild(campo('Custo do produto', custo));
       forma.appendChild(no('p', 'ajuda ajuda-campo', 'Quanto cada unidade custa para você.'));
-      var preco = entradaValor(p ? p.preco : 0, false);
-      forma.appendChild(campo('Valor de venda ao cliente final', preco));
-      var revendedor = entradaValor(p ? Math.max(p.preco - p.repasse, 0) : 0, false);
-      forma.appendChild(campo('Repasse para o revendedor', revendedor));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que fica com o revendedor por unidade vendida.'));
       var repasse = entradaValor(p ? p.repasse : 0, false);
       forma.appendChild(campo('Repasse para mim', repasse));
-      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o revendedor te passa por unidade vendida.'));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'O que o vendedor te passa por unidade vendida. O preço de venda ele escolhe na prestação de contas: o que passar disso é o lucro dele.'));
       var resumo = no('div', 'total-calculado');
       forma.appendChild(resumo);
       function pintar() {
-        var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value), c = digitosParaCentavos(custo.value);
+        var r = digitosParaCentavos(repasse.value), c = digitosParaCentavos(custo.value);
         resumo.textContent = '';
-        juntar(resumo, no('span', null, 'Lucro do revendedor por unidade'), no('strong', 'num ' + (v - r < 0 ? 'vermelho' : 'verde'), emReais(v - r)));
         juntar(resumo, no('span', null, 'Seu lucro por unidade'), no('strong', 'num ' + (r - c < 0 ? 'vermelho' : 'verde'), emReais(r - c)));
       }
-      preco.addEventListener('input', function () {
-        // Mudou o preço: a sua parte fica, a do revendedor acompanha.
-        var v = digitosParaCentavos(preco.value), r = digitosParaCentavos(repasse.value);
-        if (r) revendedor.value = emReais(Math.max(v - r, 0));
-        else if (digitosParaCentavos(revendedor.value)) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
-        pintar();
-      });
-      revendedor.addEventListener('input', function () {
-        var v = digitosParaCentavos(preco.value);
-        if (v) repasse.value = emReais(Math.max(v - digitosParaCentavos(revendedor.value), 0));
-        pintar();
-      });
-      repasse.addEventListener('input', function () {
-        var v = digitosParaCentavos(preco.value);
-        if (v) revendedor.value = emReais(Math.max(v - digitosParaCentavos(repasse.value), 0));
-        pintar();
-      });
+      repasse.addEventListener('input', pintar);
       custo.addEventListener('input', pintar);
       pintar();
       forma.appendChild(campo('Situação', segmentosLocais([{ valor: true, rotulo: 'Ativo' }, { valor: false, rotulo: 'Inativo' }], ativo, function (x) { ativo = x; })));
@@ -15587,15 +15805,14 @@
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar produto', function () {
         var n = nome.value.trim();
-        var r = digitosParaCentavos(repasse.value), v = digitosParaCentavos(preco.value);
+        var r = digitosParaCentavos(repasse.value);
         if (!n) { mostrarErro(forma, 'Informe o nome do doce.'); return; }
-        if (v <= 0) { mostrarErro(forma, 'Informe o valor de venda ao cliente final.'); return; }
         if (r <= 0) { mostrarErro(forma, 'Informe o repasse para você.'); return; }
-        if (r > v) { mostrarErro(forma, 'O repasse para você não pode passar do valor de venda.'); return; }
-        var reg = p || { id: novoId(), criadoEm: Date.now() };
+        var reg = p || { id: novoId(), criadoEm: Date.now(), preco: 0 };
         reg.nome = n.slice(0, 60);
         reg.repasse = r;
-        reg.preco = v;
+        // O preço antigo do cadastro só serve de sugestão, e nunca abaixo do repasse.
+        if (reg.preco && reg.preco < r) reg.preco = 0;
         reg.custo = digitosParaCentavos(custo.value);
         reg.ativo = ativo;
         if (!p) estado.doceProdutos.push(reg);
@@ -15661,7 +15878,7 @@
       };
       forma.appendChild(campo('Vendedor', selV));
 
-      var opP = produtos.map(function (p) { return { valor: p.id, rotulo: p.nome, detalhe: 'repasse ' + emReais(p.repasse) + ' · venda ' + emReais(p.preco) }; });
+      var opP = produtos.map(function (p) { return { valor: p.id, rotulo: p.nome, detalhe: 'repasse ' + emReais(p.repasse) + (p.custo ? ' · custo ' + emReais(p.custo) : '') }; });
       opP.push({ valor: '__novo__', rotulo: '+ Novo produto' });
       var selP = entradaSelecao(opP, d.produtoId, 'Qual doce?');
       selP.aoMudar = function (v) {
@@ -15687,7 +15904,7 @@
       forma.appendChild(resumo);
       function pintar() {
         var p = achar(estado.doceProdutos, d.produtoId);
-        resumo.textContent = p ? 'Valores do cadastro: venda ' + emReais(p.preco) + ' e repasse ' + emReais(p.repasse) + ' por doce. Para mudar, edite o doce em Produtos.' : '';
+        resumo.textContent = p ? 'Repasse para você: ' + emReais(p.repasse) + ' por doce. O preço de venda o vendedor informa na prestação de contas.' : '';
       }
       pintar();
 
@@ -15766,6 +15983,18 @@
     var recebidoTocado = false;
 
     var semEstoque = !!comecarSemEstoque;
+    // Ao lado do nome do doce, o preço por que o vendedor vendeu (pedido de
+    // 08/11/2026). Vem o último que ele usou; a diferença para o seu
+    // repasse é o lucro dele.
+    function campoDePreco(it, aoMudar) {
+      var caixa = no('label', 'item-preco');
+      var ent = entradaValor(it.preco, false);
+      ent.setAttribute('aria-label', 'Preço de venda de ' + nomeDoProduto(it.produtoId));
+      ent.setAttribute('data-campo', 'preco');
+      ent.addEventListener('input', function () { it.preco = digitosParaCentavos(ent.value); aoMudar(); });
+      juntar(caixa, no('span', null, 'vendeu a'), ent);
+      return caixa;
+    }
     abrirFolha('Prestação · ' + v.nome, function (folha) {
       var forma = no('div', 'forma');
 
@@ -15786,14 +16015,15 @@
       // Todos os doces ativos, com o preço da última entrega a este vendedor
       // (ou o do cadastro, se nunca entregou).
       var itensSem = estado.doceProdutos.filter(function (p) { return p.ativo; }).map(function (p) {
-        return { produtoId: p.id, vendidos: 0, repasse: p.repasse, preco: p.preco, custo: p.custo || 0 };
+        return { produtoId: p.id, vendidos: 0, repasse: p.repasse, preco: precoDeVenda(vid, p.id), custo: p.custo || 0 };
       });
       if (!itensSem.length) blocoSemEstoque.appendChild(no('p', 'ajuda', 'Nenhum doce cadastrado: use o valor abaixo.'));
       itensSem.forEach(function (it) {
         var bloco = no('div', 'item-prestacao');
         juntar(bloco, juntar(no('div', 'item-cabeca'),
-          no('strong', null, nomeDoProduto(it.produtoId)),
-          no('span', 'item-com', emReais(it.repasse) + ' por doce')));
+          juntar(no('div', 'item-nome'), no('strong', null, nomeDoProduto(it.produtoId)),
+            no('span', 'item-com', 'repasse ' + emReais(it.repasse))),
+          campoDePreco(it, function () { pintar(); })));
         var linha = no('div', 'config-linha');
         var cont = contadorDigitavel(0, function (n) { it.vendidos = n; pintar(); });
         cont.setAttribute('data-campo', 'vendidos-sem');
@@ -15816,8 +16046,9 @@
         var bloco = no('div', 'item-prestacao');
         var fica = no('span', 'item-fica num');
         juntar(bloco, juntar(no('div', 'item-cabeca'),
-          no('strong', null, nomeDoProduto(it.produtoId)),
-          no('span', 'item-com', 'Em estoque: ' + it.estoque)));
+          juntar(no('div', 'item-nome'), no('strong', null, nomeDoProduto(it.produtoId)),
+            no('span', 'item-com', 'Em estoque: ' + it.estoque + ' · repasse ' + emReais(it.repasse))),
+          campoDePreco(it, function () { pintar(); })));
         // De que entregas este estoque veio: a data de cada uma e o dia
         // combinado para o acerto.
         entregasDesdeOAcerto(vid, it.produtoId).forEach(function (e) {
@@ -15901,6 +16132,8 @@
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Registrar prestação de contas', function () {
         if (totais.erro) { mostrarErro(forma, 'Vendidos, devolvidos e perdidos passam do que ele tem. Confira os números em vermelho.'); return; }
+        var baixo = (semEstoque ? itensSem : itens).filter(function (it) { return it.vendidos > 0 && it.preco < it.repasse; })[0];
+        if (baixo) { mostrarErro(forma, 'O preço de venda de ' + nomeDoProduto(baixo.produtoId) + ' está abaixo do seu repasse (' + emReais(baixo.repasse) + ').'); return; }
         if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
         var r = digitosParaCentavos(recebido.value);
         var usados = semEstoque ? [] : itens.filter(function (it) { return it.vendidos || it.devolvidos || it.perdidos; });
@@ -19762,6 +19995,43 @@
         var valor = digitosParaCentavos(campoValorEl.value);
         if (valor <= 0) { mostrarErro(forma, 'Informe o valor da parcela.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        // Mudou a data ou o valor e há parcelas em aberto depois desta, do
+        // mesmo registro? Pergunta se vale para elas também (pedido de
+        // 11/11/2026). A data das próximas anda junto, mantendo um mês
+        // entre cada uma; o valor passa a ser o mesmo.
+        var mudouData = campoData.value !== parcela.vencimento;
+        var mudouValor = valor !== parcela.valor;
+        var proximas = parcelasDoCliente(clienteId).filter(function (p) {
+          return p.id !== parcela.id && (p.servicoId || '') === (parcela.servicoId || '') && !parcelaPaga(p) &&
+            (p.vencimento > parcela.vencimento || (p.vencimento === parcela.vencimento && p.numero > parcela.numero));
+        });
+        if ((mudouData || mudouValor) && proximas.length) {
+          var dia = Number(campoData.value.slice(8, 10));
+          var nums = proximas.map(function (p) { return p.numero; });
+          var faixa = nums.length === 1 ? 'a parcela ' + nums[0] : 'as parcelas ' + Math.min.apply(null, nums) + ' a ' + Math.max.apply(null, nums);
+          var oque = [mudouData ? 'vencendo todo dia ' + dia : '', mudouValor ? emReais(valor) + ' cada' : ''].filter(Boolean).join(' e ');
+          abrirEscolha({ titulo: 'Mudar as próximas também?', semMarca: true, opcoes: [
+            { valor: 'todas', rotulo: 'Esta e as próximas', detalhe: 'muda também ' + faixa + ': ' + oque },
+            { valor: 'so', rotulo: 'Só esta parcela', detalhe: 'as outras continuam como estão' }
+          ] }, function (v) {
+            if (!v) return;
+            salvarParcela(valor, v === 'todas' ? proximas : [], mudouData, mudouValor);
+          });
+          return;
+        }
+        salvarParcela(valor, [], false, false);
+      }));
+      function salvarParcela(valor, junto, mudouData, mudouValor) {
+        var base = parcela.vencimento;
+        var nova = campoData.value;
+        junto.forEach(function (p) {
+          if (mudouData) {
+            // Quantos meses depois desta ela vinha: continua vindo, no dia novo.
+            var a = partes(base), b = partes(p.vencimento);
+            p.vencimento = somaMeses(nova, (b.ano - a.ano) * 12 + (b.mes - a.mes));
+          }
+          if (mudouValor) { p.valor = valor; p.minimo = 0; }
+        });
         parcela.valor = valor;
         parcela.vencimento = campoData.value;
         parcela.servicoId = campoServico.value;
@@ -19772,15 +20042,25 @@
         // o que faltar vira parcela nova no fim, do mesmo jeito que acontece
         // quando alguém paga menos do que estava combinado.
         var antesDe = parcelasDoCliente(clienteId).length;
-        acertarParcelas(clienteId, null, parcela.id);
+        var fixas = [parcela.id];
+        if (junto.length && mudouValor) {
+          // As de antes desta continuam como estão; só as seguintes se ajustam.
+          var deJunto = {};
+          junto.forEach(function (p) { deJunto[p.id] = true; });
+          parcelasDoCliente(clienteId).forEach(function (p) {
+            if (p.id !== parcela.id && !deJunto[p.id] && (p.servicoId || '') === (parcela.servicoId || '') && !parcelaPaga(p)) fixas.push(p.id);
+          });
+        }
+        acertarParcelas(clienteId, null, fixas.length === 1 ? fixas[0] : fixas);
         var depoisDe = parcelasDoCliente(clienteId).length;
         salvar();
         voltarNavegacao();
-        avisar(depoisDe === antesDe ? 'Parcela atualizada.'
+        var oque = junto.length ? 'Parcela e as ' + junto.length + ' seguintes atualizadas.' : 'Parcela atualizada.';
+        avisar(depoisDe === antesDe ? oque
           : depoisDe > antesDe
-            ? 'Parcela atualizada. O plano cresceu para ' + depoisDe + ' parcelas.'
-            : 'Parcela atualizada. O plano fechou em ' + depoisDe + ' parcelas.');
-      }));
+            ? oque + ' O plano cresceu para ' + depoisDe + ' parcelas.'
+            : oque + ' O plano fechou em ' + depoisDe + ' parcelas.');
+      }
       acoes.appendChild(botao('btn btn-perigo', 'Excluir esta parcela', function () {
         perguntar({
           titulo: 'Excluir a parcela ' + parcela.numero + ' de ' + parcela.total + '?',
@@ -20348,6 +20628,973 @@
         }));
       }
 
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // ---------- Contas de casa (pedido de 09/11/2026) ----------
+  //
+  // Quem divide as contas da casa e com quanto cada um entra em cada conta.
+  // É só a base do cálculo: nada daqui entra nas despesas, que continuam
+  // sendo o que sai do extrato.
+  //
+  // Compartilhada (10/11/2026): a pessoa com e-mail recebe o convite e,
+  // aceitando, vê e mexe nas mesmas contas — as do dono. Por isso "eu" é
+  // sempre o dono da área, e "você" é quem está olhando: o dono, ou o
+  // membro com o e-mail desta conta.
+  var ID_EU_NA_CASA = 'eu';
+
+  function souDonoDaCasa() { return !donoDaArea('casa'); }
+  function meuIdNaCasa() {
+    if (souDonoDaCasa()) return ID_EU_NA_CASA;
+    var eu = meuEmailNaConta();
+    var m = eu && estado.casaMembros.filter(function (x) { return x.email === eu; })[0];
+    return m ? m.id : '';
+  }
+  function meuNomeNaCasa() { return String(estado.perfil.nome || '').trim().slice(0, 60) || meuEmailNaConta() || 'Você'; }
+  // Quem lançou e quem mexeu por último (pedido de 10/11/2026).
+  function carimbarAutor(reg, novo) {
+    var quem = meuNomeNaCasa();
+    if (novo) { reg.por = quem; reg.porEm = Date.now(); }
+    else { reg.alteradoPor = quem; reg.alteradoEm = Date.now(); }
+  }
+  function textoDeAutoria(reg) {
+    var partes = [];
+    if (reg.por) partes.push('Lançado por ' + reg.por + (reg.porEm ? ' em ' + dataBr(deData(new Date(reg.porEm))) : ''));
+    if (reg.alteradoPor) partes.push('alterado por ' + reg.alteradoPor + (reg.alteradoEm ? ' em ' + dataBr(deData(new Date(reg.alteradoEm))) : ''));
+    return partes.join(' · ');
+  }
+
+  function pessoasDaCasa() {
+    var outros = estado.casaMembros.slice().sort(function (a, b) {
+      return (a.criadoEm || 0) - (b.criadoEm || 0) || a.nome.localeCompare(b.nome) || (a.id < b.id ? -1 : 1);
+    });
+    var dosOutros = outros.reduce(function (t, m) { return t + m.pct; }, 0);
+    var meu = meuIdNaCasa();
+    var dono = { id: ID_EU_NA_CASA, nome: souDonoDaCasa() ? 'Você' : (quemCompartilhou('casa') || 'Dono'),
+                 pct: Math.max(0, Math.round((100 - dosOutros) * 10) / 10), eu: true, voce: meu === ID_EU_NA_CASA };
+    return [dono].concat(outros.map(function (m) {
+      return { id: m.id, nome: m.nome, pct: m.pct, email: m.email, voce: m.id === meu };
+    }));
+  }
+  function nomeNaCasa(p) { return p.voce && !p.eu ? p.nome + ' (você)' : p.nome; }
+
+  // Conta nova (10/11/2026): só quem foi escolhido divide; igual, ou na %
+  // ajustada. Sem ninguém escolhido além de quem lançou, a conta é só dele.
+  function quemNaConta(conta, pessoas) {
+    var ids = pessoas.map(function (p) { return p.id; });
+    var q = (conta.quem || []).filter(function (x) { return ids.indexOf(x) >= 0; });
+    return q.length ? q : [ID_EU_NA_CASA];
+  }
+  function pesosDaConta(conta, pessoas) {
+    var q = quemNaConta(conta, pessoas), pesos = {};
+    q.forEach(function (id) { pesos[id] = conta.divisao ? Math.max(0, Number(conta.divisao[id]) || 0) : 1; });
+    if (!q.some(function (id) { return pesos[id] > 0; })) q.forEach(function (id) { pesos[id] = 1; });
+    return pesos;
+  }
+  // Em centavos, quanto cada pessoa paga desta conta.
+  function divisaoDaConta(conta, pessoas) {
+    pessoas = pessoas || pessoasDaCasa();
+    if (Array.isArray(conta.quem)) return dividirCentavos(conta.valor, pesosDaConta(conta, pessoas));
+    var pt = partesDaConta(conta), r = {};
+    pessoas.forEach(function (p) { r[p.id] = Math.round(conta.valor * (pt[p.id] || 0) / 100); });
+    return r;
+  }
+
+  // A % de cada pessoa numa conta: a combinada na conta, ou a padrão dela.
+  // O dono fica com o que sobra.
+  function partesDaConta(conta) {
+    var pessoas = pessoasDaCasa();
+    if (Array.isArray(conta.quem)) {
+      var pesos = pesosDaConta(conta, pessoas), tot = 0, rr = {};
+      Object.keys(pesos).forEach(function (k) { tot += pesos[k]; });
+      pessoas.forEach(function (p) { rr[p.id] = pesos[p.id] ? Math.round(pesos[p.id] / tot * 1000) / 10 : 0; });
+      rr.soma = 100;
+      return rr;
+    }
+    var r = {}, outros = 0;
+    pessoas.forEach(function (p) {
+      if (p.eu) return;
+      var v = conta.partes && conta.partes[p.id] !== undefined ? conta.partes[p.id] : p.pct;
+      r[p.id] = v; outros += v;
+    });
+    r[ID_EU_NA_CASA] = Math.max(0, Math.round((100 - outros) * 10) / 10);
+    r.soma = outros + r[ID_EU_NA_CASA];
+    return r;
+  }
+
+  function totaisDaCasa() {
+    var pessoas = pessoasDaCasa();
+    var porPessoa = {};
+    pessoas.forEach(function (p) { porPessoa[p.id] = 0; });
+    var total = 0;
+    estado.casaContas.forEach(function (c) {
+      total += c.valor;
+      var d = divisaoDaConta(c, pessoas);
+      pessoas.forEach(function (p) { porPessoa[p.id] += d[p.id] || 0; });
+    });
+    return { total: total, porPessoa: porPessoa, pessoas: pessoas, meu: porPessoa[meuIdNaCasa()] || 0 };
+  }
+
+  // ---------- Mercado: a nota fotografada, item por item ----------
+  //
+  // Cada item é de quem participa dele (pedido de 10/11/2026): de uma
+  // pessoa só, de algumas, ou de todos. Sem ajuste, os que participam
+  // dividem na proporção padrão da compra; com ajuste, cada um entra com a
+  // % (ou o valor) combinado naquele item. O desconto da nota se divide na
+  // proporção do que cada um comprou.
+  function valorDaCompra(c) {
+    return Math.max(c.itens.reduce(function (t, i) { return t + i.valor; }, 0) - (c.desconto || 0), 0);
+  }
+
+  // Divide `valor` em centavos pelos pesos, sem perder centavo.
+  function dividirCentavos(valor, pesos) {
+    var ids = Object.keys(pesos).filter(function (k) { return pesos[k] > 0; });
+    var soma = ids.reduce(function (t, k) { return t + pesos[k]; }, 0);
+    var r = {};
+    if (!ids.length || soma <= 0) return r;
+    var usado = 0;
+    var restos = ids.map(function (k) {
+      var exato = valor * pesos[k] / soma;
+      r[k] = Math.floor(exato); usado += r[k];
+      return { k: k, resto: exato - r[k] };
+    }).sort(function (a, b) { return b.resto - a.resto; });
+    for (var i = 0; usado < valor && i < restos.length; i++, usado++) r[restos[i].k] += 1;
+    return r;
+  }
+
+  function quemNoItem(item, pessoas) {
+    var ids = pessoas.map(function (p) { return p.id; });
+    var q = Array.isArray(item.quem) ? item.quem.filter(function (x) { return ids.indexOf(x) >= 0; }) : [];
+    return q.length ? q : ids;
+  }
+
+  // Os pesos do item: o ajuste dele; sem ajuste, item de todos segue a
+  // divisão padrão da compra, e item de só algumas pessoas divide igual
+  // entre elas.
+  function pesosDoItem(item, base, pessoas) {
+    var q = quemNoItem(item, pessoas);
+    var pesos = {};
+    if (item.partes && Object.keys(item.partes).length) {
+      q.forEach(function (id) { pesos[id] = Math.max(0, Number(item.partes[id]) || 0); });
+    } else if (q.length === pessoas.length) {
+      q.forEach(function (id) { pesos[id] = Math.max(0, base[id] || 0); });
+    } else {
+      q.forEach(function (id) { pesos[id] = 1; });
+    }
+    if (!q.some(function (id) { return pesos[id] > 0; })) q.forEach(function (id) { pesos[id] = 1; });
+    return pesos;
+  }
+
+  function divisaoDaCompra(c, pessoas) {
+    pessoas = pessoas || pessoasDaCasa();
+    var base = partesDaConta(c);
+    var porPessoa = {};
+    pessoas.forEach(function (p) { porPessoa[p.id] = 0; });
+    var soma = 0;
+    c.itens.forEach(function (it) {
+      var d = dividirCentavos(it.valor || 0, pesosDoItem(it, base, pessoas));
+      Object.keys(d).forEach(function (k) { porPessoa[k] = (porPessoa[k] || 0) + d[k]; });
+      soma += it.valor || 0;
+    });
+    var desconto = Math.min(c.desconto || 0, soma);
+    if (desconto) {
+      var tira = dividirCentavos(desconto, porPessoa);
+      Object.keys(tira).forEach(function (k) { porPessoa[k] -= tira[k]; });
+    }
+    return { porPessoa: porPessoa, total: Math.max(soma - desconto, 0) };
+  }
+
+  function mercadoDoMes(ano, mes) {
+    var f = faixaDoMes(ano, mes);
+    var lista = estado.casaCompras.filter(function (c) { return c.data >= f.de && c.data <= f.ate; })
+      .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : (b.criadoEm || 0) - (a.criadoEm || 0); });
+    var total = 0, meu = 0, eu = meuIdNaCasa(), pessoas = pessoasDaCasa();
+    lista.forEach(function (c) {
+      var d = divisaoDaCompra(c, pessoas);
+      total += d.total; meu += d.porPessoa[eu] || 0;
+    });
+    return { lista: lista, total: total, meu: meu };
+  }
+
+  // O leitor de texto (Tesseract) mora junto com o app, em leitor/, e só
+  // carrega quando a pessoa fotografa uma nota. A foto não sai do aparelho.
+  var leitorCarregando = null;
+  function baseDoLeitor() {
+    var ate = /\/versoes\/[^/]+\//.test(location.pathname) ? '../../leitor/' : 'leitor/';
+    return new URL(ate, location.href).href;
+  }
+  function carregarLeitor() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (leitorCarregando) return leitorCarregando;
+    leitorCarregando = new Promise(function (ok, falha) {
+      var sc = document.createElement('script');
+      sc.src = baseDoLeitor() + 'tesseract.min.js';
+      sc.onload = function () { window.Tesseract ? ok(window.Tesseract) : falha(new Error('leitor')); };
+      sc.onerror = function () { leitorCarregando = null; falha(new Error('leitor')); };
+      document.head.appendChild(sc);
+    });
+    return leitorCarregando;
+  }
+
+  // A foto vai para um quadro menor e em tons de cinza: o leitor acerta
+  // mais e é mais rápido.
+  function prepararFotoDaNota(arquivo) {
+    return new Promise(function (ok, falha) {
+      var url = URL.createObjectURL(arquivo);
+      var img = new Image();
+      img.onload = function () {
+        var max = 1800, esc = Math.min(1, max / Math.max(img.width, img.height));
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * esc); cv.height = Math.round(img.height * esc);
+        var cx = cv.getContext('2d');
+        cx.drawImage(img, 0, 0, cv.width, cv.height);
+        try {
+          var d = cx.getImageData(0, 0, cv.width, cv.height), px = d.data;
+          for (var i = 0; i < px.length; i += 4) {
+            var y = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+            y = Math.max(0, Math.min(255, (y - 128) * 1.35 + 140));
+            px[i] = px[i + 1] = px[i + 2] = y;
+          }
+          cx.putImageData(d, 0, 0);
+        } catch (e) { /* sem acesso aos pixels: vai a foto como está */ }
+        URL.revokeObjectURL(url);
+        ok(cv);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); falha(new Error('imagem')); };
+      img.src = url;
+    });
+  }
+
+  function lerFotoDaNota(arquivo, aoProgresso) {
+    return carregarLeitor().then(function (T) {
+      var base = baseDoLeitor();
+      return prepararFotoDaNota(arquivo).then(function (cv) {
+        return T.createWorker('por', 1, {
+          workerPath: base + 'worker.min.js', corePath: base, langPath: base, gzip: true, workerBlobURL: false,
+          logger: function (m) { if (m && m.status === 'recognizing text' && aoProgresso) aoProgresso(m.progress || 0); }
+        }).then(function (w) {
+          return w.recognize(cv).then(function (r) { w.terminate(); return r.data.text || ''; },
+            function (e) { w.terminate(); throw e; });
+        });
+      });
+    });
+  }
+
+  // Do texto da nota para os itens: cada linha que termina num valor é um
+  // item; o nome vem antes (ou da linha de cima, quando a nota quebra o
+  // item em duas). Códigos, quantidade e preço unitário saem do nome.
+  var DINHEIRO_NA_NOTA = /(\d{1,3}(?:\.\d{3})*[,.]\s?\d{2})(?:\s*[A-Z]{1,2})?\s*$/;
+  var NAO_E_ITEM = /TOTAL|SUBTOTAL|TROCO|DINHEIRO|CART[AÃ]O|CR[EÉ]DITO|D[EÉ]BITO|\bPIX\b|PAGAMENTO|VALOR PAGO|A PAGAR|DESCONTO|ACR[EÉ]SCIMO|TRIBUTO|IMPOSTO|CNPJ|CPF|\bQTD|\bITENS\b|CHAVE|CONSULT|PROTOCOLO|S[EÉ]RIE|EMISS|\bLEI\b|APROX|SEFAZ|NFC|DANFE|DOCUMENTO|CONSUMIDOR/i;
+  function centavosDaNota(t) {
+    var limpo = String(t).replace(/\s/g, '');
+    var m = /^(\d+(?:[.]\d{3})*|\d+)[,.](\d{2})$/.exec(limpo.replace(/[.](?=\d{3}[,.])/g, ''));
+    if (!m) return 0;
+    return parseInt(m[1].replace(/\D/g, ''), 10) * 100 + parseInt(m[2], 10);
+  }
+  function nomeDoItemDaNota(t) {
+    var n = String(t)
+      .replace(/\b\d+(?:[,.]\d{1,3})?\s*(?:UN|UND|UNID|KG|G|L|LT|ML|PC|PCT|CX)?\s*[Xx*]\s*\d+[,.]\d{2}\b/g, ' ')
+      .replace(/^\s*\d{1,4}\s+/, ' ')
+      .replace(/\b\d{6,14}\b/g, ' ')
+      .replace(/\s+(?:UN|UND|KG|X)\s*$/i, ' ')
+      .replace(/[|_~]+/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    if ((n.match(/[A-Za-zÀ-ú]/g) || []).length < 3) return '';
+    return n.toLowerCase().replace(/(^|\s)([a-zà-ú])/g, function (x, a, b) { return a + b.toUpperCase(); }).slice(0, 80);
+  }
+  function lerTextoDaNota(texto) {
+    var linhas = String(texto || '').split(/\r?\n/).map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+    var r = { local: '', itens: [], total: 0, desconto: 0, aPagar: 0 };
+    for (var a = 0; a < Math.min(linhas.length, 4); a++) {
+      if (/[A-Za-z]{4}/.test(linhas[a]) && !NAO_E_ITEM.test(linhas[a]) && !DINHEIRO_NA_NOTA.test(linhas[a])) { r.local = nomeDoItemDaNota(linhas[a]) || ''; break; }
+    }
+    var inicio = 0;
+    linhas.forEach(function (l, i) { if (!inicio && /DESCRI/i.test(l)) inicio = i + 1; });
+    var pendente = '';
+    for (var i = inicio; i < linhas.length; i++) {
+      var l = linhas[i];
+      var m = DINHEIRO_NA_NOTA.exec(l);
+      if (/A PAGAR/i.test(l) && m) { r.aPagar = centavosDaNota(m[1]); continue; }
+      if (/TOTAL/i.test(l) && !/QTD|ITENS|TRIBUT|IMPOST/i.test(l) && m) { if (!r.total) r.total = centavosDaNota(m[1]); continue; }
+      if (/DESCONTO/i.test(l) && m) { r.desconto += centavosDaNota(m[1]); continue; }
+      if (NAO_E_ITEM.test(l)) { pendente = ''; continue; }
+      if (r.total) continue;
+      if (!m) { var p = nomeDoItemDaNota(l); if (p) pendente = p; continue; }
+      var valor = centavosDaNota(m[1]);
+      var nome = nomeDoItemDaNota(l.slice(0, m.index));
+      if (!nome && pendente) nome = pendente;
+      pendente = '';
+      if (!nome || valor <= 0) continue;
+      r.itens.push({ nome: nome, valor: valor });
+    }
+    return r;
+  }
+
+  function abrirLeituraDaNota(arquivo) {
+    var cancelado = false;
+    abrirFolha('Lendo a nota', function (folha) {
+      var c = cartao('cartao-destaque leitura-nota');
+      c.appendChild(no('div', 'rotulo', 'Lendo item por item'));
+      var pct = no('div', 'valorao num ouro', '0%');
+      c.appendChild(pct);
+      c.appendChild(no('div', 'linha-nota', 'Na primeira vez o leitor é baixado (uns 9 MB) e fica guardado. A foto não sai do seu celular.'));
+      folha.appendChild(c);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Cancelar', function () { cancelado = true; fecharOuVoltar(true); }));
+      folha.appendChild(acoes);
+      lerFotoDaNota(arquivo, function (p) { pct.textContent = Math.round(p * 100) + '%'; }).then(function (texto) {
+        if (cancelado) return;
+        var lido = lerTextoDaNota(texto);
+        fecharOuVoltar(true);
+        setTimeout(function () {
+          porCima(function () { abrirContasDeCasa(); }, function () { abrirCompraDeMercado(null, lido); });
+        }, 50);
+      }, function () {
+        if (cancelado) return;
+        fecharOuVoltar(true);
+        avisarCaixa('Não deu para ler a nota', 'Confira a internet na primeira vez (o leitor precisa ser baixado) e tente uma foto reta, com boa luz. Dá para lançar a compra à mão.', function () {});
+      });
+    });
+  }
+
+  function escolherFotoDaNota() {
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.setAttribute('capture', 'environment');
+    inp.className = 'input-arquivo';
+    inp.id = 'fotoDaNota';
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      inp.remove();
+      if (f) porCima(function () { abrirContasDeCasa(); }, function () { abrirLeituraDaNota(f); });
+    });
+    document.body.appendChild(inp);
+    inp.click();
+  }
+
+  function abrirCompraDeMercado(id, lido) {
+    var c = id ? achar(estado.casaCompras, id) : null;
+    var pessoas = pessoasDaCasa();
+    var varias = pessoas.length > 1;
+    var itens = (c ? c.itens : lido ? lido.itens : []).map(function (i) {
+      return { nome: i.nome, valor: i.valor, quem: Array.isArray(i.quem) ? i.quem.slice() : [],
+               partes: i.partes && Object.keys(i.partes).length ? JSON.parse(JSON.stringify(i.partes)) : null, aberto: false };
+    });
+    if (!itens.length) itens.push({ nome: '', valor: 0, quem: [], partes: null, aberto: false });
+    var partes = {};
+    pessoas.forEach(function (p) {
+      if (!p.eu) partes[p.id] = c && c.partes && c.partes[p.id] !== undefined ? c.partes[p.id] : p.pct;
+    });
+    function base() {
+      var outros = 0, r = {};
+      Object.keys(partes).forEach(function (k) { r[k] = partes[k] || 0; outros += r[k]; });
+      r[ID_EU_NA_CASA] = Math.max(0, 100 - outros);
+      return r;
+    }
+    function compraAgora() {
+      return { itens: itens.map(function (i) { return { nome: i.nome, valor: i.valor, quem: i.quem, partes: i.partes }; }),
+               desconto: digitosParaCentavos(desconto.value), partes: base() };
+    }
+    var totalDaNota = lido ? (lido.aPagar || (lido.total ? lido.total - (lido.desconto || 0) : 0)) : 0;
+    var desconto;
+    abrirFolha(c ? 'Compra de mercado' : lido ? 'Confira a nota' : 'Nova compra de mercado', function (folha) {
+      var forma = no('div', 'forma');
+      if (lido) forma.appendChild(no('p', 'ajuda', lido.itens.length
+        ? 'O app leu ' + lido.itens.length + ' item(ns). Confira: corrija o nome ou o valor e apague o que não for item.'
+        : 'Não deu para achar os itens nessa foto. Lance à mão ou tire outra foto, reta e com boa luz.'));
+      if (c && textoDeAutoria(c)) forma.appendChild(no('p', 'ajuda autoria', textoDeAutoria(c) + '.'));
+      var local = entradaTexto(c ? c.local : lido ? lido.local : '', 'Ex.: Supermercado', 80);
+      forma.appendChild(campo('Onde', local));
+      var data = entradaData(c ? c.data : hojeTexto());
+      forma.appendChild(campo('Data', data));
+      if (varias) forma.appendChild(no('p', 'ajuda', 'Em cada item, toque nos nomes de quem participa: um só é item individual; dois ou mais dividem. "Ajustar" muda a % ou o valor de cada um naquele item.'));
+
+      var lista = no('div', 'itens-nota');
+      forma.appendChild(campo('Itens', lista));
+
+      function resumoDoItem(it) {
+        var q = quemNoItem(it, pessoas);
+        if (q.length === 1) return 'só de ' + nomeNaCasa(pessoas.filter(function (p) { return p.id === q[0]; })[0]);
+        var pesos = pesosDoItem(it, base(), pessoas);
+        var d = dividirCentavos(it.valor || 0, pesos);
+        return q.map(function (id) {
+          var p = pessoas.filter(function (x) { return x.id === id; })[0];
+          return p.nome + ' ' + emReais(d[id] || 0);
+        }).join(' · ');
+      }
+
+      function desenharItens() {
+        lista.textContent = '';
+        itens.forEach(function (it, n) {
+          var bloco = no('div', 'item-bloco');
+          var linha = no('div', 'item-nota');
+          var nome = entradaTexto(it.nome, 'Item', 80);
+          nome.setAttribute('aria-label', 'Item ' + (n + 1));
+          nome.addEventListener('input', function () { it.nome = nome.value; });
+          var valor = entradaValor(it.valor, false);
+          valor.setAttribute('aria-label', 'Valor do item ' + (n + 1));
+          valor.addEventListener('input', function () { it.valor = digitosParaCentavos(valor.value); pintarItem(); pintar(); });
+          var tirar = botao('linha-acao', null, function () { itens.splice(n, 1); desenharItens(); pintar(); });
+          tirar.setAttribute('aria-label', 'Apagar o item ' + (n + 1));
+          tirar.appendChild(icone('lixo'));
+          juntar(linha, nome, valor, tirar);
+          bloco.appendChild(linha);
+          if (!varias) { lista.appendChild(bloco); return; }
+
+          var quem = no('div', 'item-quem');
+          quem.setAttribute('data-item', String(n + 1));
+          var resumo = no('div', 'item-divide');
+          var ajuste = no('div', 'item-ajuste');
+          function pintarItem() {
+            var q = quemNoItem(it, pessoas);
+            Array.prototype.forEach.call(quem.querySelectorAll('.chip-quem'), function (b) {
+              b.classList.toggle('ativo', q.indexOf(b.getAttribute('data-id')) >= 0);
+              b.setAttribute('aria-pressed', q.indexOf(b.getAttribute('data-id')) >= 0 ? 'true' : 'false');
+            });
+            resumo.textContent = resumoDoItem(it) + (it.partes ? ' · ajustado' : '');
+            if (it.aberto) desenharAjuste();
+          }
+          pessoas.forEach(function (p) {
+            var ch = botao('chip-quem', p.voce ? 'Você' : p.nome, function () {
+              var q = quemNoItem(it, pessoas).slice();
+              var i = q.indexOf(p.id);
+              if (i >= 0) { if (q.length === 1) return; q.splice(i, 1); } else q.push(p.id);
+              it.quem = q.length === pessoas.length ? [] : q;
+              it.partes = null;
+              pintarItem(); pintar();
+            });
+            ch.setAttribute('data-id', p.id);
+            quem.appendChild(ch);
+          });
+          var bAj = botao('chip-ajustar', 'Ajustar', function () { it.aberto = !it.aberto; ajuste.style.display = it.aberto ? '' : 'none'; if (it.aberto) desenharAjuste(); });
+          bAj.setAttribute('aria-label', 'Ajustar a divisão do item ' + (n + 1));
+          quem.appendChild(bAj);
+          // % e valor andam juntos: mexeu num, o outro acompanha.
+          function desenharAjuste() {
+            ajuste.textContent = '';
+            var q = quemNoItem(it, pessoas);
+            var pesos = pesosDoItem(it, base(), pessoas);
+            var somaP = q.reduce(function (t, id) { return t + (pesos[id] || 0); }, 0) || 1;
+            var atual = {};
+            q.forEach(function (id) { atual[id] = it.partes ? (Number(it.partes[id]) || 0) : Math.round(pesos[id] / somaP * 1000) / 10; });
+            var nota = no('div', 'linha-nota');
+            function somar() {
+              var t = q.reduce(function (s, id) { return s + (atual[id] || 0); }, 0);
+              nota.textContent = Math.abs(t - 100) < 0.05 ? 'Soma 100%.' : 'Soma ' + textoPct(t) + (t < 100 ? ': falta ' + textoPct(100 - t) : ': passa ' + textoPct(t - 100)) + '.';
+              nota.classList.toggle('vermelho', Math.abs(t - 100) >= 0.05);
+            }
+            // Mexeu numa pessoa, a última das outras completa os 100%.
+            var campos = {};
+            function completar(id) {
+              var outro = q.filter(function (x) { return x !== id; }).slice(-1)[0];
+              if (!outro) return;
+              var resto = 100 - q.reduce(function (t, x) { return t + (x === outro ? 0 : (atual[x] || 0)); }, 0);
+              atual[outro] = Math.max(0, Math.round(resto * 10) / 10);
+              campos[outro].pct.value = decimalBr(atual[outro], 1);
+              campos[outro].rs.value = emReais(Math.round((it.valor || 0) * atual[outro] / 100));
+            }
+            function mudou(id) {
+              completar(id);
+              it.partes = JSON.parse(JSON.stringify(atual));
+              somar(); resumo.textContent = resumoDoItem(it) + ' · ajustado'; pintar();
+            }
+            q.forEach(function (id) {
+              var p = pessoas.filter(function (x) { return x.id === id; })[0];
+              var pct = entradaDecimal(atual[id], 1, '0');
+              pct.setAttribute('aria-label', '% de ' + p.nome + ' no item ' + (n + 1));
+              var rs = entradaValor(Math.round((it.valor || 0) * atual[id] / 100), false);
+              rs.setAttribute('aria-label', 'Valor de ' + p.nome + ' no item ' + (n + 1));
+              campos[id] = { pct: pct, rs: rs };
+              pct.addEventListener('input', function () {
+                var x = lerDecimal(pct.value); atual[id] = isFinite(x) ? Math.max(0, Math.min(100, x)) : 0;
+                rs.value = emReais(Math.round((it.valor || 0) * atual[id] / 100));
+                mudou(id);
+              });
+              rs.addEventListener('input', function () {
+                var v = Math.min(digitosParaCentavos(rs.value), it.valor || 0);
+                atual[id] = it.valor ? Math.round(v / it.valor * 1000) / 10 : 0;
+                pct.value = decimalBr(atual[id], 1);
+                mudou(id);
+              });
+              ajuste.appendChild(juntar(no('div', 'ajuste-linha'), no('span', null, p.voce ? 'Você' : p.nome), pct, no('span', 'ajuste-sinal', '%'), rs));
+            });
+            ajuste.appendChild(nota);
+            ajuste.appendChild(botao('btn-texto', 'Voltar à divisão padrão', function () { it.partes = null; desenharAjuste(); pintarItem(); pintar(); }));
+            somar();
+          }
+          ajuste.style.display = it.aberto ? '' : 'none';
+          juntar(bloco, quem, resumo, ajuste);
+          pintarItem();
+          lista.appendChild(bloco);
+        });
+        lista.appendChild(botao('btn btn-fantasma mais-item', '+ Item', function () {
+          itens.push({ nome: '', valor: 0, quem: [], partes: null, aberto: false }); desenharItens(); pintar();
+        }));
+      }
+      desconto = entradaValor(c ? c.desconto : lido ? lido.desconto : 0, false);
+      desconto.addEventListener('input', function () { pintar(); });
+
+      var caixa = no('div', 'casa-partes');
+      pessoas.forEach(function (p) {
+        if (p.eu) return;
+        var ent = entradaDecimal(partes[p.id], 1, '0');
+        ent.setAttribute('aria-label', 'Parte de ' + p.nome + ' (%)');
+        ent.addEventListener('input', function () { var x = lerDecimal(ent.value); partes[p.id] = isFinite(x) ? x : 0; desenharItens(); pintar(); });
+        caixa.appendChild(juntar(no('div', 'config-linha'), no('span', 'config-rotulo', nomeNaCasa(p)), ent));
+      });
+      if (!varias) caixa.appendChild(no('p', 'ajuda', 'Ninguém na divisão ainda: adicione em Contas de casa › Quem divide. Por enquanto a compra é toda sua.'));
+      else caixa.appendChild(no('p', 'ajuda', 'Vale para os itens divididos sem ajuste. ' + pessoas[0].nome + ' fica com o que sobrar.'));
+
+      desenharItens();
+      forma.appendChild(campo('Desconto (opcional)', desconto));
+      forma.appendChild(campo('Divisão padrão (%)', caixa));
+
+      var resumo = no('div', 'total-calculado');
+      forma.appendChild(resumo);
+      function pintar() {
+        var soma = itens.reduce(function (t, i) { return t + (i.valor || 0); }, 0);
+        var d = digitosParaCentavos(desconto.value);
+        var div = divisaoDaCompra(compraAgora(), pessoas);
+        resumo.textContent = '';
+        juntar(resumo, no('span', null, 'Soma dos itens'), no('strong', 'num', emReais(soma)));
+        if (d) juntar(resumo, no('span', null, 'Desconto'), no('strong', 'num verde', '− ' + emReais(d)));
+        juntar(resumo, no('span', null, 'Total da compra'), no('strong', 'num ouro', emReais(div.total)));
+        if (totalDaNota) {
+          var dif = div.total - totalDaNota;
+          juntar(resumo, no('span', Math.abs(dif) ? 'vermelho' : 'verde', 'Total na nota'),
+            no('strong', 'num ' + (Math.abs(dif) ? 'vermelho' : 'verde'), emReais(totalDaNota) + (dif ? (dif > 0 ? ' (sobra ' : ' (falta ') + emReais(Math.abs(dif)) + ')' : ' ✓')));
+        }
+        pessoas.forEach(function (p) {
+          juntar(resumo, no('span', null, (p.voce ? 'Você' : p.nome) + ' paga'),
+            no('strong', 'num ' + (p.voce ? 'ouro' : ''), emReais(div.porPessoa[p.id] || 0)));
+        });
+      }
+      pintar();
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar compra', function () {
+        var bons = itens.filter(function (i) { return i.valor > 0 || String(i.nome || '').trim(); });
+        var outros = 0;
+        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
+        if (!bons.length) { mostrarErro(forma, 'Adicione pelo menos um item.'); return; }
+        if (bons.some(function (i) { return i.valor <= 0; })) { mostrarErro(forma, 'Tem item sem valor: corrija ou apague.'); return; }
+        if (!ehData(data.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        if (outros > 100.001) { mostrarErro(forma, 'A divisão padrão passa de 100% (' + textoPct(outros) + ').'); return; }
+        var torto = bons.filter(function (i) {
+          if (!i.partes) return false;
+          var t = quemNoItem(i, pessoas).reduce(function (s, id) { return s + (Number(i.partes[id]) || 0); }, 0);
+          return Math.abs(t - 100) >= 0.05;
+        })[0];
+        if (torto) { mostrarErro(forma, 'No item "' + (torto.nome || 'sem nome') + '", as partes não somam 100%.'); return; }
+        var reg = c || { id: novoId(), criadoEm: Date.now() };
+        carimbarAutor(reg, !c);
+        reg.local = local.value.trim().slice(0, 80);
+        reg.data = data.value;
+        reg.itens = bons.map(function (i) {
+          var item = { nome: String(i.nome || '').trim().slice(0, 80) || 'Item', valor: i.valor };
+          var q = quemNoItem(i, pessoas);
+          if (q.length < pessoas.length) item.quem = q;
+          if (i.partes) {
+            item.partes = {};
+            q.forEach(function (id) { item.partes[id] = Math.round((Number(i.partes[id]) || 0) * 10) / 10; });
+          }
+          return item;
+        });
+        reg.desconto = digitosParaCentavos(desconto.value);
+        reg.partes = {};
+        Object.keys(partes).forEach(function (k) { reg.partes[k] = Math.round((partes[k] || 0) * 10) / 10; });
+        if (!c) estado.casaCompras.push(reg);
+        abaCasa = 'mercado';
+        salvar();
+        fecharOuVoltar(true);
+        desenhar();
+        avisar(c ? 'Compra atualizada.' : 'Compra salva.');
+      }));
+      if (c) acoes.appendChild(botao('btn btn-perigo', 'Excluir compra', function () {
+        perguntar({ titulo: 'Excluir esta compra?', texto: 'Ela sai da divisão. As despesas não mudam.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', c.id);
+          estado.casaCompras = estado.casaCompras.filter(function (x) { return x.id !== c.id; });
+          salvar();
+          fecharOuVoltar(true);
+          desenhar();
+          avisar('Compra excluída.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function desenharMercadoDaCasa(folha, reabrir) {
+    var m = mercadoDoMes(mesAtivo.ano, mesAtivo.mes);
+    var pessoas = pessoasDaCasa(), eu = meuIdNaCasa();
+    var c = cartao('cartao-destaque');
+    c.appendChild(no('div', 'rotulo', 'Mercado em ' + MESES[mesAtivo.mes]));
+    c.appendChild(no('div', 'valorao num ouro', emReais(m.total)));
+    c.appendChild(no('div', 'linha-nota', 'Sua parte: ' + emReais(m.meu) + '. Só a base para dividir: não entra nas despesas.'));
+    folha.appendChild(c);
+    var ac = no('div', 'acoes');
+    ac.appendChild(botao('btn btn-ouro', 'Foto da nota', function () { escolherFotoDaNota(); }));
+    ac.appendChild(botao('btn btn-fantasma', '+ Compra sem foto', function () { porCima(reabrir, function () { abrirCompraDeMercado(null, null); }); }));
+    folha.appendChild(ac);
+    var cl = cartao('liso');
+    if (!m.lista.length) cl.appendChild(estadoVazio('Nenhuma compra em ' + MESES[mesAtivo.mes], 'Tire uma foto da nota: o app lê item por item e você confere antes de salvar.'));
+    m.lista.forEach(function (compra) {
+      var d = divisaoDaCompra(compra, pessoas);
+      cl.appendChild(linhaSimples({
+        titulo: compra.local || 'Mercado',
+        sub: dataBr(compra.data) + ' · ' + compra.itens.length + ' item(ns)' + (compra.por ? ' · por ' + compra.por : ''),
+        valor: emReais(d.total), nota: 'sua parte ' + emReais(d.porPessoa[eu] || 0),
+        selo: seloIcone('pacote', '#E9B44C'),
+        aoTocar: function () { porCima(reabrir, function () { abrirCompraDeMercado(compra.id, null); }); }
+      }));
+    });
+    folha.appendChild(cl);
+    // Quanto cada um gastou no mercado no mês.
+    if (m.lista.length && pessoas.length > 1) {
+      var porPessoa = {};
+      m.lista.forEach(function (compra) {
+        var d = divisaoDaCompra(compra, pessoas);
+        Object.keys(d.porPessoa).forEach(function (k) { porPessoa[k] = (porPessoa[k] || 0) + d.porPessoa[k]; });
+      });
+      var cp = cartao('detalhe-uber-lucro');
+      cp.appendChild(topoDeCartao('Cada um no mês', null));
+      pessoas.forEach(function (p) {
+        var l = no('div', 'parcela-linha');
+        juntar(l, no('span', 'q', nomeNaCasa(p)), no('span', 'v num ' + (p.id === eu ? 'ouro' : ''), emReais(porPessoa[p.id] || 0)));
+        cp.appendChild(l);
+      });
+      folha.appendChild(cp);
+    }
+  }
+
+  function cartaoContasDeCasa() {
+    var t = totaisDaCasa();
+    var c = cartao('cartao-casa');
+    c.appendChild(topoDeCartao('Contas de casa', estado.casaContas.length || estado.casaCompras.length ? 'Abrir' : null, function () { abrirContasDeCasa(); }, 'casa'));
+    var conv = cartaoCompartilhamentoDaArea('casa');
+    if (!estado.casaContas.length && !estado.casaCompras.length) {
+      c.appendChild(no('p', 'linha-nota', 'Divida as contas da casa com quem mora com você: quanto cada um entra em cada conta. É só para a conta, não entra nas despesas.'));
+      if (conv) c.appendChild(conv);
+      c.appendChild(botao('btn btn-fantasma', '+ Contas de casa', function () { abrirContasDeCasa(); }));
+      return c;
+    }
+    var alvo = botao('casa-resumo', null, function () { abrirContasDeCasa(); });
+    juntar(alvo,
+      juntar(no('div'), no('div', 'r', 'Total por mês'), no('div', 'v num', emReais(t.total))),
+      juntar(no('div'), no('div', 'r', 'Sua parte'), no('div', 'v num ouro', emReais(t.meu))));
+    c.appendChild(alvo);
+    var mm = mercadoDoMes(mesAtivo.ano, mesAtivo.mes);
+    if (mm.lista.length) c.appendChild(no('div', 'linha-nota casa-mercado', 'Mercado em ' + MESES[mesAtivo.mes] + ': ' + emReais(mm.total) + ' · sua parte ' + emReais(mm.meu) + '.'));
+    c.appendChild(no('div', 'linha-nota', (souDonoDaCasa() ? '' : 'Compartilhadas por ' + (quemCompartilhou('casa') || 'outra conta') + '. ') +
+      estado.casaContas.length + ' conta(s) dividida(s) entre ' + t.pessoas.length + ' pessoa(s). Não entra nas despesas.'));
+    if (conv) c.appendChild(conv);
+    return c;
+  }
+
+  var abaCasa = 'contas';
+  function abrirContasDeCasa(deCima) {
+    function reabrir() { abrirContasDeCasa(deCima); }
+    abrirFolha('Contas de casa', function (folha) {
+      // Duas abas (pedido de 09/11/2026): as contas fixas e o mercado.
+      var abas = segmentosLocais([{ valor: 'contas', rotulo: 'Contas' }, { valor: 'mercado', rotulo: 'Mercado' }], abaCasa,
+        function (v) { if (v === abaCasa) return; abaCasa = v; reabrir(); });
+      abas.classList.add('abas-casa');
+      folha.appendChild(abas);
+      if (abaCasa === 'mercado') { desenharMercadoDaCasa(folha, reabrir); return; }
+      var t = totaisDaCasa();
+      var c = cartao('cartao-destaque');
+      c.appendChild(no('div', 'rotulo', 'Total das contas por mês'));
+      c.appendChild(no('div', 'valorao num ouro', emReais(t.total)));
+      c.appendChild(no('div', 'linha-nota', 'Sua parte: ' + emReais(t.meu) + '. Só a base para dividir: não entra nas despesas. Despesa é o que sai do extrato.'));
+      folha.appendChild(c);
+
+      // Quem divide.
+      var cp = cartao('liso');
+      var tp = topoDeCartao('Quem divide', '+ Pessoa', function () { porCima(reabrir, function () { abrirPessoaDaCasa(null); }); });
+      tp.style.padding = '16px 16px 0'; tp.style.marginBottom = '8px';
+      cp.appendChild(tp);
+      t.pessoas.forEach(function (p) {
+        var conv = p.email && souDonoDaCasa() ? conviteDoEmail(p.email) : null;
+        var sit = conv && Array.isArray(conv.areas) && conv.areas.indexOf('casa') >= 0
+          ? (conv.situacao === 'aceito' ? ' · no app' : conv.situacao === 'recusado' ? ' · recusou o convite' : ' · convite enviado') : '';
+        cp.appendChild(linhaSimples({
+          titulo: nomeNaCasa(p),
+          sub: (p.eu ? 'fica com o que sobra · ' + textoPct(p.pct) + ' padrão' : textoPct(p.pct) + ' padrão nas contas') + sit,
+          valor: emReais(t.porPessoa[p.id]), cor: p.voce ? 'ouro' : '', nota: 'por mês',
+          selo: selo(p.voce ? '#3DDC84' : '#E9B44C', p.nome.charAt(0).toUpperCase()),
+          aoTocar: p.eu ? null : function () { porCima(reabrir, function () { abrirPessoaDaCasa(p.id); }); }
+        }));
+      });
+      if (t.pessoas.length === 1) cp.appendChild(no('div', 'sanfona-vazio', 'Adicione quem divide as contas com você.'));
+      folha.appendChild(cp);
+
+      // As contas.
+      var cc = cartao('liso');
+      var tc = topoDeCartao('Contas', '+ Conta', function () { porCima(reabrir, function () { abrirContaDeCasa(null); }); });
+      tc.style.padding = '16px 16px 0'; tc.style.marginBottom = '8px';
+      cc.appendChild(tc);
+      if (!estado.casaContas.length) cc.appendChild(estadoVazio('Nenhuma conta ainda', 'Aluguel, luz, água, internet, mercado: o valor de cada uma e quanto cada pessoa entra.'));
+      var eu = meuIdNaCasa();
+      estado.casaContas.slice().sort(function (a, b) { return b.valor - a.valor; }).forEach(function (conta) {
+        var pt = partesDaConta(conta);
+        var dv = divisaoDaConta(conta, t.pessoas);
+        var dela = t.pessoas.filter(function (p) { return (pt[p.id] || 0) > 0; });
+        cc.appendChild(linhaSimples({
+          titulo: conta.nome,
+          sub: (dela.length === 1 ? (dela[0].voce ? 'só sua' : 'só de ' + dela[0].nome)
+            : dela.map(function (p) { return (p.voce ? 'Você' : p.nome) + ' ' + textoPct(pt[p.id] || 0); }).join(' · ')) +
+            (conta.dia ? ' · vence dia ' + conta.dia : '') + (conta.por ? ' · por ' + conta.por : ''),
+          valor: emReais(conta.valor),
+          nota: 'sua parte ' + emReais(dv[eu] || 0),
+          corNota: Math.abs(pt.soma - 100) > 0.05 ? 'vermelho' : '',
+          selo: seloIcone('casa', '#E9B44C'),
+          aoTocar: function () { porCima(reabrir, function () { abrirContaDeCasa(conta.id); }); }
+        }));
+      });
+      folha.appendChild(cc);
+      var conv = cartaoCompartilhamentoDaArea('casa');
+      if (conv) folha.appendChild(conv);
+    });
+  }
+
+  function abrirPessoaDaCasa(id) {
+    var m = id ? achar(estado.casaMembros, id) : null;
+    abrirFolha(m ? m.nome : 'Nova pessoa', function (folha) {
+      var forma = no('div', 'forma');
+      if (m && textoDeAutoria(m)) forma.appendChild(no('p', 'ajuda autoria', textoDeAutoria(m) + '.'));
+      var nome = entradaTexto(m ? m.nome : '', 'Ex.: Ana', 60);
+      forma.appendChild(campo('Nome', nome));
+      var email = entradaTexto(m ? m.email : '', 'email@da-conta.com (opcional)', 200);
+      email.type = 'email'; email.autocapitalize = 'off'; email.inputMode = 'email';
+      forma.appendChild(campo('E-mail', email));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'Com o e-mail, quem tem o Finanz recebe um convite para entrar nos cálculos: vê e mexe nas mesmas contas e compras, e cada coisa fica com o nome de quem lançou.'));
+      var pct = entradaDecimal(m ? m.pct : 0, 1, 'Ex.: 50');
+      forma.appendChild(campo('Quanto entra nas contas (%)', pct));
+      var dosOutros = estado.casaMembros.reduce(function (t, x) { return t + (m && x.id === m.id ? 0 : x.pct); }, 0);
+      forma.appendChild(no('p', 'ajuda ajuda-campo', 'É a parte padrão em cada conta; dá para mudar conta por conta e item por item. Os outros já somam ' +
+        textoPct(dosOutros) + ', e ' + (souDonoDaCasa() ? 'você' : pessoasDaCasa()[0].nome) + ' fica com o que sobrar.'));
+      if (m && m.email && souDonoDaCasa()) {
+        var cv = conviteDoEmail(m.email);
+        var tem = cv && Array.isArray(cv.areas) && cv.areas.indexOf('casa') >= 0;
+        forma.insertBefore(no('div', 'linha-nota situacao-convite', !tem ? 'Ainda não está nos cálculos pelo app.'
+          : cv.situacao === 'aceito' ? m.nome + ' vê e mexe nas contas de casa junto com você.'
+          : cv.situacao === 'recusado' ? m.nome + ' recusou o convite.' : 'Convite enviado: falta ' + m.nome + ' aceitar dentro do app.'), forma.firstChild);
+      }
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        var p = lerDecimal(pct.value);
+        var e = email.value.trim().toLowerCase();
+        if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome.'); return; }
+        if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { mostrarErro(forma, 'Esse e-mail não parece certo.'); return; }
+        if (e && e === meuEmailNaConta()) { mostrarErro(forma, 'Esse é o e-mail desta conta.'); return; }
+        if (!(p >= 0 && p <= 100)) { mostrarErro(forma, 'A parte vai de 0 a 100%.'); return; }
+        if (dosOutros + p > 100.001) { mostrarErro(forma, 'Com essa parte, a soma passa de 100% (' + textoPct(dosOutros + p) + ').'); return; }
+        var reg = m || { id: novoId(), criadoEm: Date.now() };
+        var emailAntes = m ? m.email : '';
+        carimbarAutor(reg, !m);
+        reg.nome = nome.value.trim().slice(0, 60); reg.pct = Math.round(p * 10) / 10; reg.email = e.slice(0, 200);
+        if (!m) estado.casaMembros.push(reg);
+        salvar();
+        fecharOuVoltar(true);
+        desenhar();
+        if (!souDonoDaCasa() || !reg.email) {
+          if (emailAntes && !reg.email && souDonoDaCasa()) tirarAcessoDaArea(emailAntes, 'casa').catch(function () {});
+          avisar(!souDonoDaCasa() && reg.email && reg.email !== emailAntes ? 'Salvo. Quem convida para os cálculos é o dono das contas.' : 'Salvo.');
+          return;
+        }
+        if (emailAntes && emailAntes !== reg.email) tirarAcessoDaArea(emailAntes, 'casa').catch(function () {});
+        garantirConviteDaArea(reg.email, 'casa').then(function (r) {
+          avisar(r === 'ja' ? 'Salvo.' : 'Salvo e convite enviado: ' + reg.nome + ' entra nos cálculos quando aceitar no app.');
+        }).catch(function () {
+          avisar('Salvo. O convite não foi agora (precisa da conta na nuvem e internet): abra a pessoa e salve de novo.');
+        });
+      }));
+      if (m) acoes.appendChild(botao('btn btn-perigo', 'Tirar da divisão', function () {
+        perguntar({ titulo: 'Tirar ' + m.nome + '?', texto: 'A parte dele nas contas volta para ' + (souDonoDaCasa() ? 'você' : pessoasDaCasa()[0].nome) + '.' +
+          (m.email && souDonoDaCasa() ? ' E ele deixa de ver as contas de casa.' : ''), ok: 'Tirar', tom: 'perigo' }, function () {
+          if (m.email && souDonoDaCasa()) tirarAcessoDaArea(m.email, 'casa').catch(function () { avisar('O acesso não foi tirado agora: tente de novo com internet.'); });
+          marcarExcluido('empreendedor_registros', m.id);
+          estado.casaMembros = estado.casaMembros.filter(function (x) { return x.id !== m.id; });
+          estado.casaContas.forEach(function (c) { if (c.partes) delete c.partes[m.id]; });
+          salvar();
+          fecharOuVoltar(true);
+          desenhar();
+          avisar('Pronto.');
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // Os nomes de quem divide, para tocar (pedido de 10/11/2026): quem está
+  // marcado divide; um só, é só dele. Com dois ou mais, "Ajustar" abre a %
+  // e o valor de cada um, e mexendo num o resto se completa.
+  function seletorDeQuem(pessoas, sel, valorAtual, aoMudar) {
+    var caixa = no('div', 'seletor-quem');
+    var chips = no('div', 'item-quem');
+    var resumo = no('div', 'item-divide');
+    var ajuste = no('div', 'item-ajuste');
+    function q() { var ids = pessoas.map(function (p) { return p.id; }); return sel.quem.filter(function (x) { return ids.indexOf(x) >= 0; }); }
+    function pesos() {
+      var r = {};
+      q().forEach(function (id) { r[id] = sel.partes ? Math.max(0, Number(sel.partes[id]) || 0) : 1; });
+      return r;
+    }
+    function nomeDe(id) { var p = pessoas.filter(function (x) { return x.id === id; })[0]; return p ? (p.voce ? 'Você' : p.nome) : '?'; }
+    function pintar() {
+      var lista = q();
+      Array.prototype.forEach.call(chips.querySelectorAll('.chip-quem'), function (b) {
+        var ativo = lista.indexOf(b.getAttribute('data-id')) >= 0;
+        b.classList.toggle('ativo', ativo); b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+      });
+      bAj.style.display = lista.length > 1 ? '' : 'none';
+      if (lista.length < 2) { sel.aberto = false; ajuste.style.display = 'none'; }
+      if (lista.length === 1) resumo.textContent = lista[0] === meuIdNaCasa() ? 'Só sua.' : 'Só de ' + nomeDe(lista[0]) + '.';
+      else {
+        var d = dividirCentavos(valorAtual(), pesos());
+        resumo.textContent = lista.map(function (id) { return nomeDe(id) + ' ' + emReais(d[id] || 0); }).join(' · ') + (sel.partes ? ' · ajustado' : ' · partes iguais');
+      }
+      if (sel.aberto) desenharAjuste();
+    }
+    pessoas.forEach(function (p) {
+      var ch = botao('chip-quem', p.voce ? 'Você' : p.nome, function () {
+        var lista = q().slice(), i = lista.indexOf(p.id);
+        if (i >= 0) { if (lista.length === 1) return; lista.splice(i, 1); } else lista.push(p.id);
+        sel.quem = lista; sel.partes = null;
+        pintar(); aoMudar();
+      });
+      ch.setAttribute('data-id', p.id);
+      chips.appendChild(ch);
+    });
+    var bAj = botao('chip-ajustar', 'Ajustar valor ou %', function () { sel.aberto = !sel.aberto; ajuste.style.display = sel.aberto ? '' : 'none'; if (sel.aberto) desenharAjuste(); });
+    chips.appendChild(bAj);
+    function desenharAjuste() {
+      ajuste.textContent = '';
+      var lista = q(), ps = pesos(), soma = 0;
+      lista.forEach(function (id) { soma += ps[id]; });
+      var atual = {};
+      lista.forEach(function (id) { atual[id] = sel.partes ? (Number(sel.partes[id]) || 0) : Math.round(ps[id] / (soma || 1) * 1000) / 10; });
+      var nota = no('div', 'linha-nota');
+      var campos = {};
+      function somar() {
+        var t = lista.reduce(function (x, id) { return x + (atual[id] || 0); }, 0);
+        nota.textContent = Math.abs(t - 100) < 0.05 ? 'Soma 100%.' : 'Soma ' + textoPct(t) + '.';
+        nota.classList.toggle('vermelho', Math.abs(t - 100) >= 0.05);
+      }
+      function mudou(id) {
+        var outro = lista.filter(function (x) { return x !== id; }).slice(-1)[0];
+        if (outro) {
+          var resto = 100 - lista.reduce(function (x, k) { return x + (k === outro ? 0 : (atual[k] || 0)); }, 0);
+          atual[outro] = Math.max(0, Math.round(resto * 10) / 10);
+          campos[outro].pct.value = decimalBr(atual[outro], 1);
+          campos[outro].rs.value = emReais(Math.round(valorAtual() * atual[outro] / 100));
+        }
+        sel.partes = JSON.parse(JSON.stringify(atual));
+        somar();
+        var d = dividirCentavos(valorAtual(), pesos());
+        resumo.textContent = lista.map(function (k) { return nomeDe(k) + ' ' + emReais(d[k] || 0); }).join(' · ') + ' · ajustado';
+        aoMudar();
+      }
+      lista.forEach(function (id) {
+        var pct = entradaDecimal(atual[id], 1, '0');
+        pct.setAttribute('aria-label', '% de ' + nomeDe(id));
+        var rs = entradaValor(Math.round(valorAtual() * atual[id] / 100), false);
+        rs.setAttribute('aria-label', 'Valor de ' + nomeDe(id));
+        campos[id] = { pct: pct, rs: rs };
+        pct.addEventListener('input', function () {
+          var x = lerDecimal(pct.value); atual[id] = isFinite(x) ? Math.max(0, Math.min(100, x)) : 0;
+          rs.value = emReais(Math.round(valorAtual() * atual[id] / 100));
+          mudou(id);
+        });
+        rs.addEventListener('input', function () {
+          var v = Math.min(digitosParaCentavos(rs.value), valorAtual());
+          atual[id] = valorAtual() ? Math.round(v / valorAtual() * 1000) / 10 : 0;
+          pct.value = decimalBr(atual[id], 1);
+          mudou(id);
+        });
+        ajuste.appendChild(juntar(no('div', 'ajuste-linha'), no('span', null, nomeDe(id)), pct, no('span', 'ajuste-sinal', '%'), rs));
+      });
+      ajuste.appendChild(nota);
+      ajuste.appendChild(botao('btn-texto', 'Voltar a partes iguais', function () { sel.partes = null; desenharAjuste(); pintar(); aoMudar(); }));
+      somar();
+    }
+    ajuste.style.display = 'none';
+    juntar(caixa, chips, resumo, ajuste);
+    caixa.repintar = pintar;
+    pintar();
+    return caixa;
+  }
+
+  function abrirContaDeCasa(id) {
+    var c = id ? achar(estado.casaContas, id) : null;
+    var pessoas = pessoasDaCasa();
+    // Quem divide: conta nova começa só com quem lança; conta antiga
+    // traz as % que tinha.
+    var sel = { quem: [], partes: null, aberto: false };
+    if (c && Array.isArray(c.quem)) {
+      sel.quem = quemNaConta(c, pessoas);
+      sel.partes = c.divisao ? JSON.parse(JSON.stringify(c.divisao)) : null;
+    } else if (c) {
+      var pt0 = partesDaConta(c);
+      sel.quem = pessoas.filter(function (p) { return (pt0[p.id] || 0) > 0; }).map(function (p) { return p.id; });
+      if (!sel.quem.length) sel.quem = [meuIdNaCasa() || ID_EU_NA_CASA];
+      var iguais = sel.quem.every(function (x) { return Math.abs((pt0[x] || 0) - 100 / sel.quem.length) < 0.06; });
+      if (!iguais) { sel.partes = {}; sel.quem.forEach(function (x) { sel.partes[x] = pt0[x] || 0; }); }
+    } else sel.quem = [meuIdNaCasa() || ID_EU_NA_CASA];
+    abrirFolha(c ? c.nome : 'Nova conta', function (folha) {
+      var forma = no('div', 'forma');
+      if (c && textoDeAutoria(c)) forma.appendChild(no('p', 'ajuda autoria', textoDeAutoria(c) + '.'));
+      var nome = entradaTexto(c ? c.nome : '', 'Ex.: Aluguel, luz, internet', 60);
+      forma.appendChild(campo('Conta', nome));
+      var valor = entradaValor(c ? c.valor : 0, true);
+      forma.appendChild(campo('Valor por mês', valor));
+      var dia = entradaTexto(c && c.dia ? String(c.dia) : '', 'Ex.: 10', 2);
+      dia.inputMode = 'numeric';
+      forma.appendChild(campo('Vence no dia (opcional)', dia));
+      var seletor = seletorDeQuem(pessoas, sel, function () { return digitosParaCentavos(valor.value); }, function () {});
+      forma.appendChild(campo('Quem divide esta conta', seletor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', pessoas.length > 1
+        ? 'Toque nos nomes: marcado divide a conta. Só você marcado, a conta é só sua.'
+        : 'Ninguém na divisão ainda: adicione as pessoas em "Quem divide". Por enquanto a conta é toda sua.'));
+      valor.addEventListener('input', function () { seletor.repintar(); });
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar conta', function () {
+        var v = digitosParaCentavos(valor.value);
+        var d = parseInt(dia.value, 10) || 0;
+        if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome da conta.'); return; }
+        if (v <= 0) { mostrarErro(forma, 'Informe o valor.'); return; }
+        if (d < 0 || d > 31) { mostrarErro(forma, 'O dia vai de 1 a 31.'); return; }
+        if (sel.partes) {
+          var tot = sel.quem.reduce(function (x, k) { return x + (Number(sel.partes[k]) || 0); }, 0);
+          if (Math.abs(tot - 100) >= 0.05) { mostrarErro(forma, 'As partes somam ' + textoPct(tot) + ': ajuste para dar 100%.'); return; }
+        }
+        var reg = c || { id: novoId(), criadoEm: Date.now() };
+        carimbarAutor(reg, !c);
+        reg.nome = nome.value.trim().slice(0, 60); reg.valor = v; reg.dia = d;
+        reg.partes = {};
+        reg.quem = sel.quem.slice();
+        if (sel.partes) { reg.divisao = {}; sel.quem.forEach(function (k) { reg.divisao[k] = Math.round((Number(sel.partes[k]) || 0) * 10) / 10; }); }
+        else delete reg.divisao;
+        if (!c) estado.casaContas.push(reg);
+        salvar();
+        fecharOuVoltar(true);
+        desenhar();
+        avisar(c ? 'Conta atualizada.' : 'Conta adicionada.');
+      }));
+      if (c) acoes.appendChild(botao('btn btn-perigo', 'Excluir conta', function () {
+        perguntar({ titulo: 'Excluir ' + c.nome + '?', texto: 'Ela sai da divisão. As despesas não mudam.', ok: 'Excluir', tom: 'perigo' }, function () {
+          marcarExcluido('empreendedor_registros', c.id);
+          estado.casaContas = estado.casaContas.filter(function (x) { return x.id !== c.id; });
+          salvar();
+          fecharOuVoltar(true);
+          desenhar();
+          avisar('Conta excluída.');
+        });
+      }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
     });
