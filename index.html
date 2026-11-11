@@ -2437,7 +2437,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.62.0';
+  var VERSAO = '5.63.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2446,6 +2446,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.63.0',
+      data: '2026-11-11',
+      itens: [
+        'Parcelas: mudando a data ou o valor de uma parcela, o app pergunta "Esta e as próximas" ou "Só esta parcela". Escolhendo as próximas, elas passam a vencer no mesmo dia (um mês depois da outra) e/ou com o mesmo valor; as anteriores não mudam.'
+      ]
+    },
     {
       versao: '5.62.0',
       data: '2026-11-10',
@@ -9942,10 +9949,13 @@
     var foco = {};
     if (parcelaBase && parcelaBase.servicoId) foco[parcelaBase.servicoId] = true;
     [].concat(focoServicoId || []).forEach(function (sid) { if (sid) foco[sid] = true; });
-    if (fixaId) {
-      var fixaParcela = achar(estado.parcelas, fixaId);
+    // `fixaId` pode ser uma lista (11/11/2026): mudando "esta e as
+    // próximas", as anteriores em aberto também ficam como estão.
+    var fixasIds = [].concat(fixaId || []);
+    fixasIds.forEach(function (fid) {
+      var fixaParcela = achar(estado.parcelas, fid);
       if (fixaParcela && fixaParcela.servicoId) foco[fixaParcela.servicoId] = true;
-    }
+    });
 
     Object.keys(porServico).forEach(function (servicoId) {
       var todas = porServico[servicoId];
@@ -9969,15 +9979,13 @@
       });
       var restante = Math.max(totalServico - pagoServico, 0);
 
-      var fixa = null;
-      if (fixaId) {
-        fixa = achar(abertas, fixaId);
-        if (fixa && (fixa.servicoId || '') !== servicoId) fixa = null;
-      }
-      if (fixa) {
-        restante = Math.max(restante - Math.max(fixa.valor - pagoNaParcela(fixa), 0), 0);
-        abertas = abertas.filter(function (p) { return p.id !== fixa.id; });
-      }
+      var fixas = abertas.filter(function (p) { return fixasIds.indexOf(p.id) >= 0; });
+      var ehFixa = {};
+      fixas.forEach(function (f) {
+        ehFixa[f.id] = true;
+        restante = Math.max(restante - Math.max(f.valor - pagoNaParcela(f), 0), 0);
+      });
+      abertas = abertas.filter(function (p) { return !ehFixa[p.id]; });
       // Parcela aberta que já recebeu parte: o que entrou nela está no
       // "pago" do registro, mas ela continua com o valor cheio. Somo de
       // volta para a conta das abertas fechar com o valor cheio delas.
@@ -9995,7 +10003,7 @@
 
       var padrao = 0;
       todas.forEach(function (p) {
-        if (fixa && p.id === fixa.id) return;
+        if (ehFixa[p.id]) return;
         if (p.valor > padrao) padrao = p.valor;
       });
       if (padrao <= 0) padrao = restante;
@@ -19987,6 +19995,43 @@
         var valor = digitosParaCentavos(campoValorEl.value);
         if (valor <= 0) { mostrarErro(forma, 'Informe o valor da parcela.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        // Mudou a data ou o valor e há parcelas em aberto depois desta, do
+        // mesmo registro? Pergunta se vale para elas também (pedido de
+        // 11/11/2026). A data das próximas anda junto, mantendo um mês
+        // entre cada uma; o valor passa a ser o mesmo.
+        var mudouData = campoData.value !== parcela.vencimento;
+        var mudouValor = valor !== parcela.valor;
+        var proximas = parcelasDoCliente(clienteId).filter(function (p) {
+          return p.id !== parcela.id && (p.servicoId || '') === (parcela.servicoId || '') && !parcelaPaga(p) &&
+            (p.vencimento > parcela.vencimento || (p.vencimento === parcela.vencimento && p.numero > parcela.numero));
+        });
+        if ((mudouData || mudouValor) && proximas.length) {
+          var dia = Number(campoData.value.slice(8, 10));
+          var nums = proximas.map(function (p) { return p.numero; });
+          var faixa = nums.length === 1 ? 'a parcela ' + nums[0] : 'as parcelas ' + Math.min.apply(null, nums) + ' a ' + Math.max.apply(null, nums);
+          var oque = [mudouData ? 'vencendo todo dia ' + dia : '', mudouValor ? emReais(valor) + ' cada' : ''].filter(Boolean).join(' e ');
+          abrirEscolha({ titulo: 'Mudar as próximas também?', semMarca: true, opcoes: [
+            { valor: 'todas', rotulo: 'Esta e as próximas', detalhe: 'muda também ' + faixa + ': ' + oque },
+            { valor: 'so', rotulo: 'Só esta parcela', detalhe: 'as outras continuam como estão' }
+          ] }, function (v) {
+            if (!v) return;
+            salvarParcela(valor, v === 'todas' ? proximas : [], mudouData, mudouValor);
+          });
+          return;
+        }
+        salvarParcela(valor, [], false, false);
+      }));
+      function salvarParcela(valor, junto, mudouData, mudouValor) {
+        var base = parcela.vencimento;
+        var nova = campoData.value;
+        junto.forEach(function (p) {
+          if (mudouData) {
+            // Quantos meses depois desta ela vinha: continua vindo, no dia novo.
+            var a = partes(base), b = partes(p.vencimento);
+            p.vencimento = somaMeses(nova, (b.ano - a.ano) * 12 + (b.mes - a.mes));
+          }
+          if (mudouValor) { p.valor = valor; p.minimo = 0; }
+        });
         parcela.valor = valor;
         parcela.vencimento = campoData.value;
         parcela.servicoId = campoServico.value;
@@ -19997,15 +20042,25 @@
         // o que faltar vira parcela nova no fim, do mesmo jeito que acontece
         // quando alguém paga menos do que estava combinado.
         var antesDe = parcelasDoCliente(clienteId).length;
-        acertarParcelas(clienteId, null, parcela.id);
+        var fixas = [parcela.id];
+        if (junto.length && mudouValor) {
+          // As de antes desta continuam como estão; só as seguintes se ajustam.
+          var deJunto = {};
+          junto.forEach(function (p) { deJunto[p.id] = true; });
+          parcelasDoCliente(clienteId).forEach(function (p) {
+            if (p.id !== parcela.id && !deJunto[p.id] && (p.servicoId || '') === (parcela.servicoId || '') && !parcelaPaga(p)) fixas.push(p.id);
+          });
+        }
+        acertarParcelas(clienteId, null, fixas.length === 1 ? fixas[0] : fixas);
         var depoisDe = parcelasDoCliente(clienteId).length;
         salvar();
         voltarNavegacao();
-        avisar(depoisDe === antesDe ? 'Parcela atualizada.'
+        var oque = junto.length ? 'Parcela e as ' + junto.length + ' seguintes atualizadas.' : 'Parcela atualizada.';
+        avisar(depoisDe === antesDe ? oque
           : depoisDe > antesDe
-            ? 'Parcela atualizada. O plano cresceu para ' + depoisDe + ' parcelas.'
-            : 'Parcela atualizada. O plano fechou em ' + depoisDe + ' parcelas.');
-      }));
+            ? oque + ' O plano cresceu para ' + depoisDe + ' parcelas.'
+            : oque + ' O plano fechou em ' + depoisDe + ' parcelas.');
+      }
       acoes.appendChild(botao('btn btn-perigo', 'Excluir esta parcela', function () {
         perguntar({
           titulo: 'Excluir a parcela ' + parcela.numero + ' de ' + parcela.total + '?',
