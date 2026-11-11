@@ -101,7 +101,9 @@ conferir('6. 4x de R$ 250 fecha em R$ 1.000,00', /1\.000,00/.test(await totalDoC
 // reajusta em volta, virando uma parcela a mais no fim.
 await page.click('#folha .linha:has-text("Parcela 1 de 4")'); await page.waitForTimeout(1200);
 await digitar(page.locator('#folha .campo:has-text("Valor da parcela") input'), '10000');
-await page.click('#folha .btn-fantasma:has-text("Salvar alterações")'); await page.waitForTimeout(2000);
+await page.click('#folha .btn-fantasma:has-text("Salvar alterações")'); await page.waitForTimeout(700);
+// 11/11/2026: mudando o valor, o app pergunta se muda as próximas; aqui é só esta.
+await page.click('#escolhaLista .escolha-item:has-text("Só esta parcela")'); await page.waitForTimeout(1500);
 conferir('7. baixar a parcela 1 para R$ 100 não mexe no total do cliente',
   /1\.000,00/.test(await totalDoCliente()), await totalDoCliente());
 const plano = await page.$$eval('#folha .linha', ns => ns
