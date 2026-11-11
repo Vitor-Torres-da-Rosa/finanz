@@ -2261,6 +2261,8 @@
   .grupo-parcelas { padding: 2px 16px 10px; }
   .escolha-falta { margin: 10px 0 6px; }
   .pagamentos-da-parcela { margin-top: 14px; }
+  .linha-sub-2.verde { color: var(--verde); }
+  .linha-sub-2.azul-claro { color: #38BDF8; }
   .lista-parcelas.com-rolagem {
     max-height: 430px; overflow-y: auto; overscroll-behavior: contain;
     scrollbar-width: thin; scrollbar-color: var(--ouro) rgba(255,255,255,.06);
@@ -2437,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.63.0';
+  var VERSAO = '5.64.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2446,6 +2448,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.64.0',
+      data: '2026-11-11',
+      itens: [
+        'Parcelas do cliente: o vencimento aparece sempre na primeira linha, e embaixo, em outra linha, a data em que foi paga (ou quanto falta). Antes o vencimento ia no fim e o celular cortava.'
+      ]
+    },
     {
       versao: '5.63.0',
       data: '2026-11-11',
@@ -17205,15 +17214,16 @@
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
             var pagaEm = paga ? dataDaParcelaPaga(p) : '';
 
-            var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
-              dataBr(paga ? pagaEm : p.vencimento);
-            if (paga && p.vencimento && pagaEm !== p.vencimento) {
-              sub += ' · vencia ' + dataBr(p.vencimento);
-            }
-            if (parcial) sub = 'Faltam ' + emReais(faltaNaParcela(p)) + ' · ' + sub.toLowerCase();
-            if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
-            if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
-            if (jurosP > 0) sub += ' · ' + emReais(jurosP) + ' de juros';
+            // O vencimento sempre na primeira linha; embaixo, quando foi paga
+            // ou quanto falta (pedido de 11/11/2026: antes o vencimento ia
+            // no fim e o celular cortava).
+            var sub = (paga ? 'Vencimento ' : vencida ? 'Venceu em ' : 'Vence em ') + dataBr(p.vencimento);
+            var sub2 = [];
+            if (paga) sub2.push('Paga em ' + dataBr(pagaEm));
+            if (parcial) sub2.push('Faltam ' + emReais(faltaNaParcela(p)));
+            if (comDinheiro && recebido !== p.valor) sub2.push('combinada em ' + emReais(p.valor));
+            if (paga && !comDinheiro) sub2.push('coberta por outro pagamento');
+            if (jurosP > 0) sub2.push(emReais(jurosP) + ' de juros');
 
             var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
               if (!paga) { abrirFolhaParcela(id, p.id); return; }
@@ -17229,7 +17239,8 @@
                 paga ? '✓' : String(p.numero)),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', 'Parcela ' + p.numero + ' de ' + p.total),
-                no('div', 'linha-sub', sub)),
+                no('div', 'linha-sub', sub),
+                sub2.length ? no('div', 'linha-sub linha-sub-2' + (paga ? ' verde' : parcial ? ' azul-claro' : ''), sub2.join(' · ')) : null),
               juntar(no('div', 'linha-fim'),
                 no('div', 'linha-valor num' + (paga ? ' verde' : vencida ? ' vermelho' : ''),
                   emReais(mostrar)))

@@ -58,7 +58,7 @@ await page.screenshot({ path: dir + '/z55-pagar-parte.png', fullPage: true });
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1400);
 let ls = await linhas();
 conferir('2. a parcela 1 fica aberta, faltando R$ 600,00, e o combinado não muda',
-  ls.length === 3 && /Parcela 1 de 3Faltam R\$ 600,00/.test(ls[0]) && /Parcela 3 de 3.*R\$ 1\.000,00/.test(ls[2]), JSON.stringify(ls));
+  ls.length === 3 && /Parcela 1 de 3(Vence|Venceu) em \d\d\/\d\d\/\d{4}Faltam R\$ 600,00/.test(ls[0]) && /Parcela 3 de 3.*R\$ 1\.000,00/.test(ls[2]), JSON.stringify(ls));
 
 // ---- 2º pagamento: R$ 800 — fecha a 1 e sobra R$ 200 para a 2 ----
 await page.click('#folha .linha:has-text("Parcela 1 de 3")'); await page.waitForTimeout(800);

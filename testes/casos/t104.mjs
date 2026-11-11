@@ -166,8 +166,8 @@ console.log('parcelas (inteira):', listaParcelas);
 // depois do "vencia", justamente porque uma data só não responde se
 // pagou em dia.
 conferir('9. a lista mostra as duas datas na parcela paga',
-  /Paga em .* · vencia 25\/12\/2026/.test(listaParcelas),
-  (listaParcelas.match(/Paga em[^R]*/) || ['(não achei)'])[0]);
+  /Vencimento 25\/12\/2026\s*Paga em \d\d\/\d\d\/\d{4}/.test(listaParcelas),
+  (listaParcelas.match(/Vencimento[^R]*/) || ['(não achei)'])[0]);
 
 // E a prova de que gravou mesmo: reabrir e ler o campo.
 await page.click('#folha .linha:has-text("Paga em")'); await page.waitForTimeout(1600);

@@ -106,8 +106,9 @@ await aba('Parcelas');
 await chip('Venda de celular');
 ls = await linhas();
 conferir('6. o pagamento solto fechou a 3ª parcela em vez de apagar a última',
-  ls.length === 4 && ls.filter(t => /^✓Parcela \d de 4Paga em/.test(t)).length === 3 && /Parcela 4 de 4Vence/.test(ls[3]),
+  ls.length === 4 && ls.filter(t => /^✓Parcela \d de 4Vencimento \d\d\/\d\d\/\d{4}Paga em/.test(t)).length === 3 && /Parcela 4 de 4Vence/.test(ls[3]),
   JSON.stringify(ls));
+await page.locator('#folha .lista-parcelas').first().screenshot({ path: dir + '/z76-parcelas-vencimento.png' }).catch(() => {});
 
 // ---- 4ª pela parcela: o registro é todo pago e vai para Finalizados ----
 await page.click('#folha .linha:has-text("Parcela 4 de 4")'); await page.waitForTimeout(800);
@@ -132,7 +133,7 @@ conferir('10. em Finalizados não há botão de apagar', !(await page.locator('#
 await page.click('#folha .linha-finalizado:has-text("Venda de celular")'); await page.waitForTimeout(800);
 const aberto = limpo(await page.textContent('#folha .cartao.liso'));
 conferir('11. tocando no nome, abrem as parcelas e os pagamentos recebidos',
-  (aberto.match(/✓Parcela \d de 4Paga/g) || []).length === 4 && /Pagamentos recebidos/.test(aberto) &&
+  (aberto.match(/✓Parcela \d de 4Vencimento \d\d\/\d\d\/\d{4}Paga/g) || []).length === 4 && /Pagamentos recebidos/.test(aberto) &&
   (aberto.match(/\+ R\$ 425,00/g) || []).length === 4, aberto.slice(0, 120));
 await page.click('#folha .linha:has-text("Parcela 2 de 4")'); await page.waitForTimeout(1000);
 conferir('12. a parcela paga abre o pagamento dela', /Editar pagamento/.test(limpo(await page.textContent('#folha'))));
