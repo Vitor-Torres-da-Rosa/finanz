@@ -100,6 +100,15 @@ await page.click('#folha button:has-text("Salvar alterações")'); await page.wa
 conferir('6. sem mudar data nem valor, salva sem perguntar', !(await page.locator('#escolhaLista .escolha-item:has-text("Esta e as próximas")').isVisible().catch(() => false)) &&
   !(await page.locator('#folha.aberta .parcela-linha:has(.q:text-is("Vence em"))').count()));
 
+// ---- 12/11/2026: o atraso vira uma linha no resumo, sem o aviso grande ----
+for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+await page.clock.setFixedTime(new Date(2026, 11, 1, 9, 0, 0));
+await page.click('#telaInicio .linha-alvo:has-text("Diego")'); await page.waitForTimeout(1000);
+const notaAtraso = limpo(await folha().locator('.nota-atraso').textContent().catch(() => ''));
+conferir('7. o atraso aparece numa linha do resumo, sem o aviso grande',
+  !(await folha().locator('.aviso-atraso').count()) && /^1 parcela em atraso: R\$ 300,00 desde 20\/11\/2026\.$/.test(notaAtraso), notaAtraso);
+await page.screenshot({ path: dir + '/z77-ficha-sem-alerta.png' });
+
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();
 process.exit(falhas ? 1 : 0);

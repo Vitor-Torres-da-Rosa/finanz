@@ -2439,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.64.0';
+  var VERSAO = '5.65.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2448,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.65.0',
+      data: '2026-11-12',
+      itens: [
+        'Ficha do cliente: o aviso grande de atraso (com o triângulo) saiu. O atraso aparece numa linha vermelha dentro do resumo (Total, Pago e Falta), e as parcelas sobem na tela.'
+      ]
+    },
     {
       versao: '5.64.0',
       data: '2026-11-11',
@@ -17075,17 +17082,6 @@
         folha.appendChild(end);
       }
 
-      if (atraso.vencidas.length) {
-        var faixa = no('div', 'aviso-atraso');
-        faixa.style.marginTop = '14px';
-        faixa.appendChild(icone('alerta'));
-        var txtAtraso = no('div');
-        txtAtraso.appendChild(no('div', null, atraso.vencidas.length + ' pagamento(s) em atraso'));
-        txtAtraso.appendChild(no('div', 'n', emReais(atraso.total) + ' desde ' + dataBr(atraso.desde)));
-        faixa.appendChild(txtAtraso);
-        folha.appendChild(faixa);
-      }
-
       var cResumo = cartao();
       var grade = no('div', 'resumo-grade');
       grade.style.marginTop = '0';
@@ -17097,6 +17093,13 @@
       });
       cResumo.appendChild(grade);
       cResumo.appendChild(progresso(r.pago, r.total || 1, 'var(--verde)'));
+      // O atraso numa linha só, aqui no resumo (pedido de 12/11/2026): o
+      // aviso grande com o triângulo tomava o lugar das parcelas.
+      if (atraso.vencidas.length) {
+        cResumo.appendChild(no('div', 'linha-nota vermelho nota-atraso',
+          (atraso.vencidas.length === 1 ? '1 parcela em atraso: ' : atraso.vencidas.length + ' parcelas em atraso: ') +
+          emReais(atraso.total) + ' desde ' + dataBr(atraso.desde) + '.'));
+      }
       var proximaData = proximoVencimento(id);
       if (proximaData && r.restante > 0) {
         cResumo.appendChild(no('div', 'linha-nota',
