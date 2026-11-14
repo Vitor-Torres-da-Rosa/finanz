@@ -2439,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.65.0';
+  var VERSAO = '5.66.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2448,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.66.0',
+      data: '2026-11-14',
+      itens: [
+        'Uber e Corridas: no abastecimento, "Gasolina aditivada" entrou nas opções de combustível.'
+      ]
+    },
     {
       versao: '5.65.0',
       data: '2026-11-12',
@@ -12465,7 +12472,8 @@
   // ---------- Uber e Corridas ----------
 
   var PLATAFORMAS = ['Uber', '99', 'inDrive', 'Particular', 'Outra'];
-  var COMBUSTIVEIS = ['Gasolina', 'Etanol', 'Diesel', 'GNV'];
+  // Gasolina aditivada entrou em 14/11/2026, a pedido do Vitor.
+  var COMBUSTIVEIS = ['Gasolina', 'Gasolina aditivada', 'Etanol', 'Diesel', 'GNV'];
   var GASTOS_UBER = ['Manutenção', 'Lavagem', 'Alimentação', 'Pedágio e estacionamento',
                      'Aluguel do carro', 'Seguro e documentos', 'Outros'];
 
