@@ -1996,6 +1996,9 @@
   .ajuste-sinal { color: var(--fraco); font-size: 12px; }
   .btn-texto { background: transparent; color: var(--ouro); font-size: 13px; padding: 4px 0; text-align: left; }
   .autoria { color: var(--fraco); font-size: 12.5px; }
+  .seletor-quem { display: grid; gap: 8px; }
+  .seletor-quem .chip-quem { padding: 8px 14px; font-size: 14px; }
+  .seletor-quem .chip-ajustar { font-size: 13px; }
   .painel-totais .v { font-size: 15px; }
   .painel-totais .r::after { content: ' ›'; color: var(--fraco); }
   .painel-ponto { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
@@ -2258,6 +2261,8 @@
   .grupo-parcelas { padding: 2px 16px 10px; }
   .escolha-falta { margin: 10px 0 6px; }
   .pagamentos-da-parcela { margin-top: 14px; }
+  .linha-sub-2.verde { color: var(--verde); }
+  .linha-sub-2.azul-claro { color: #38BDF8; }
   .lista-parcelas.com-rolagem {
     max-height: 430px; overflow-y: auto; overscroll-behavior: contain;
     scrollbar-width: thin; scrollbar-color: var(--ouro) rgba(255,255,255,.06);
@@ -2434,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.61.0';
+  var VERSAO = '5.66.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2443,6 +2448,43 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.66.0',
+      data: '2026-11-14',
+      itens: [
+        'Uber e Corridas: no abastecimento, "Gasolina aditivada" entrou nas opções de combustível.',
+        'Uber › Manutenção: a troca de óleo e o filtro de óleo viraram um item só, "Troca de óleo e filtro", já que são trocados juntos. As trocas antigas do filtro continuam no histórico.'
+      ]
+    },
+    {
+      versao: '5.65.0',
+      data: '2026-11-12',
+      itens: [
+        'Ficha do cliente: o aviso grande de atraso (com o triângulo) saiu. O atraso aparece numa linha vermelha dentro do resumo (Total, Pago e Falta), e as parcelas sobem na tela.'
+      ]
+    },
+    {
+      versao: '5.64.0',
+      data: '2026-11-11',
+      itens: [
+        'Parcelas do cliente: o vencimento aparece sempre na primeira linha, e embaixo, em outra linha, a data em que foi paga (ou quanto falta). Antes o vencimento ia no fim e o celular cortava.'
+      ]
+    },
+    {
+      versao: '5.63.0',
+      data: '2026-11-11',
+      itens: [
+        'Parcelas: mudando a data ou o valor de uma parcela, o app pergunta "Esta e as próximas" ou "Só esta parcela". Escolhendo as próximas, elas passam a vencer no mesmo dia (um mês depois da outra) e/ou com o mesmo valor; as anteriores não mudam.'
+      ]
+    },
+    {
+      versao: '5.62.0',
+      data: '2026-11-10',
+      itens: [
+        'Contas de casa: na conta, em vez de digitar a %, toque nos nomes de quem divide. Só você marcado, a conta é só sua; marcando outra pessoa, divide em partes iguais.',
+        'Contas de casa: "Ajustar valor ou %" abre a parte de cada um. Digite a % ou o valor de uma pessoa e o resto se completa sozinho para fechar a conta.'
+      ]
+    },
     {
       versao: '5.61.0',
       data: '2026-11-10',
@@ -4961,11 +5003,26 @@
         var pc = Number(x.partes[k]);
         if (k && isFinite(pc)) partes[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(pc * 10) / 10));
       });
-      return { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
+      // Desde 10/11/2026 a conta diz quem divide (quem) e, se ajustada, a
+      // % de cada um (divisao). Conta antiga, sem "quem", segue as partes.
+      var quem = Array.isArray(x.quem) ? x.quem.filter(function (k) { return typeof k === 'string' && k; }).map(function (k) { return k.slice(0, 80); }).slice(0, 30) : null;
+      var divisao = null;
+      if (x.divisao && typeof x.divisao === 'object') {
+        divisao = {};
+        Object.keys(x.divisao).slice(0, 30).forEach(function (k) {
+          var n = Number(x.divisao[k]);
+          if (k && isFinite(n)) divisao[String(k).slice(0, 80)] = Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+        });
+        if (!Object.keys(divisao).length) divisao = null;
+      }
+      var conta = { id: x.id, nome: texto(x.nome).slice(0, 60) || 'Conta', valor: positivo(x.valor),
                dia: Math.max(0, Math.min(31, inteiro(x.dia))), partes: partes,
                por: texto(x.por).slice(0, 60), porEm: marca(x.porEm) || 0,
                alteradoPor: texto(x.alteradoPor).slice(0, 60), alteradoEm: marca(x.alteradoEm) || 0,
                criadoEm: marca(x.criadoEm) || Date.now() };
+      if (quem && quem.length) conta.quem = quem;
+      if (divisao) conta.divisao = divisao;
+      return conta;
     });
     limpo.casaCompras = lista('casaCompras').map(function (x) {
       var partes = {};
@@ -9916,10 +9973,13 @@
     var foco = {};
     if (parcelaBase && parcelaBase.servicoId) foco[parcelaBase.servicoId] = true;
     [].concat(focoServicoId || []).forEach(function (sid) { if (sid) foco[sid] = true; });
-    if (fixaId) {
-      var fixaParcela = achar(estado.parcelas, fixaId);
+    // `fixaId` pode ser uma lista (11/11/2026): mudando "esta e as
+    // próximas", as anteriores em aberto também ficam como estão.
+    var fixasIds = [].concat(fixaId || []);
+    fixasIds.forEach(function (fid) {
+      var fixaParcela = achar(estado.parcelas, fid);
       if (fixaParcela && fixaParcela.servicoId) foco[fixaParcela.servicoId] = true;
-    }
+    });
 
     Object.keys(porServico).forEach(function (servicoId) {
       var todas = porServico[servicoId];
@@ -9943,15 +10003,13 @@
       });
       var restante = Math.max(totalServico - pagoServico, 0);
 
-      var fixa = null;
-      if (fixaId) {
-        fixa = achar(abertas, fixaId);
-        if (fixa && (fixa.servicoId || '') !== servicoId) fixa = null;
-      }
-      if (fixa) {
-        restante = Math.max(restante - Math.max(fixa.valor - pagoNaParcela(fixa), 0), 0);
-        abertas = abertas.filter(function (p) { return p.id !== fixa.id; });
-      }
+      var fixas = abertas.filter(function (p) { return fixasIds.indexOf(p.id) >= 0; });
+      var ehFixa = {};
+      fixas.forEach(function (f) {
+        ehFixa[f.id] = true;
+        restante = Math.max(restante - Math.max(f.valor - pagoNaParcela(f), 0), 0);
+      });
+      abertas = abertas.filter(function (p) { return !ehFixa[p.id]; });
       // Parcela aberta que já recebeu parte: o que entrou nela está no
       // "pago" do registro, mas ela continua com o valor cheio. Somo de
       // volta para a conta das abertas fechar com o valor cheio delas.
@@ -9969,7 +10027,7 @@
 
       var padrao = 0;
       todas.forEach(function (p) {
-        if (fixa && p.id === fixa.id) return;
+        if (ehFixa[p.id]) return;
         if (p.valor > padrao) padrao = p.valor;
       });
       if (padrao <= 0) padrao = restante;
@@ -12415,7 +12473,8 @@
   // ---------- Uber e Corridas ----------
 
   var PLATAFORMAS = ['Uber', '99', 'inDrive', 'Particular', 'Outra'];
-  var COMBUSTIVEIS = ['Gasolina', 'Etanol', 'Diesel', 'GNV'];
+  // Gasolina aditivada entrou em 14/11/2026, a pedido do Vitor.
+  var COMBUSTIVEIS = ['Gasolina', 'Gasolina aditivada', 'Etanol', 'Diesel', 'GNV'];
   var GASTOS_UBER = ['Manutenção', 'Lavagem', 'Alimentação', 'Pedágio e estacionamento',
                      'Aluguel do carro', 'Seguro e documentos', 'Outros'];
 
@@ -12603,8 +12662,9 @@
   // guardados até a pessoa mexer neles: assim a conta de quem compartilha
   // o Uber não ganha uma cópia de cada.
   var ITENS_MANUTENCAO_PADRAO = [
-    { chave: 'oleo', nome: 'Troca de óleo', intervaloKm: 5000 },
-    { chave: 'filtro_oleo', nome: 'Filtro de óleo', intervaloKm: 5000 },
+    // Óleo e filtro de óleo se trocam juntos (pedido de 14/11/2026): um
+    // item só.
+    { chave: 'oleo', nome: 'Troca de óleo e filtro', intervaloKm: 5000 },
     { chave: 'filtro_ar', nome: 'Filtro de ar do motor', intervaloKm: 10000 },
     { chave: 'filtro_combustivel', nome: 'Filtro de combustível', intervaloKm: 15000 },
     { chave: 'filtro_cabine', nome: 'Filtro do ar-condicionado', intervaloKm: 10000 }
@@ -12612,7 +12672,7 @@
 
   // Por que não adiar, item por item, nas mensagens.
   var RISCO_DE_ADIAR = {
-    oleo: 'o óleo vencido perde a capacidade de lubrificar e proteger o motor',
+    oleo: 'o óleo vencido perde a capacidade de lubrificar e proteger o motor, e o filtro saturado deixa passar impurezas',
     filtro_oleo: 'o filtro de óleo saturado deixa passar impurezas que desgastam o motor',
     filtro_ar: 'o filtro de ar sujo tira desempenho e aumenta o consumo de combustível',
     filtro_combustivel: 'o filtro de combustível saturado pode prejudicar a injeção e o rendimento',
@@ -12628,13 +12688,16 @@
     });
     guardados.forEach(function (r) {
       if (ITENS_MANUTENCAO_PADRAO.some(function (p) { return p.chave === r.chave; })) return;
+      // O filtro de óleo agora vai junto com a troca de óleo.
+      if (r.chave === 'filtro_oleo') return;
       itens.push(itemDeRegistro(r));
     });
     return itens;
   }
 
   function itemDeRegistro(r) {
-    return { id: r.id, chave: r.chave, nome: r.nome, detalhe: r.detalhe, intervaloKm: r.intervaloKm, registro: r };
+    var nome = r.chave === 'oleo' && r.nome === 'Troca de óleo' ? 'Troca de óleo e filtro' : r.nome;
+    return { id: r.id, chave: r.chave, nome: nome, detalhe: r.detalhe, intervaloKm: r.intervaloKm, registro: r };
   }
 
   // O item vira registro na primeira vez que a pessoa mexe nele.
@@ -12885,7 +12948,7 @@
   function linhaDaTroca(tr, reabrir) {
     var item = itemPorChave(tr.chave);
     return linhaSimples({
-      titulo: item ? item.nome : 'Manutenção',
+      titulo: item ? item.nome : tr.chave === 'filtro_oleo' ? 'Filtro de óleo' : 'Manutenção',
       sub: dataBr(tr.data) + ' · ' + milharBr(tr.km) + ' km' + (tr.obs ? ' · ' + tr.obs : ''),
       valor: tr.valor ? '− ' + emReais(tr.valor) : '', cor: 'vermelho',
       selo: seloIcone('ferramenta', '#E9B44C'),
@@ -17032,17 +17095,6 @@
         folha.appendChild(end);
       }
 
-      if (atraso.vencidas.length) {
-        var faixa = no('div', 'aviso-atraso');
-        faixa.style.marginTop = '14px';
-        faixa.appendChild(icone('alerta'));
-        var txtAtraso = no('div');
-        txtAtraso.appendChild(no('div', null, atraso.vencidas.length + ' pagamento(s) em atraso'));
-        txtAtraso.appendChild(no('div', 'n', emReais(atraso.total) + ' desde ' + dataBr(atraso.desde)));
-        faixa.appendChild(txtAtraso);
-        folha.appendChild(faixa);
-      }
-
       var cResumo = cartao();
       var grade = no('div', 'resumo-grade');
       grade.style.marginTop = '0';
@@ -17054,6 +17106,13 @@
       });
       cResumo.appendChild(grade);
       cResumo.appendChild(progresso(r.pago, r.total || 1, 'var(--verde)'));
+      // O atraso numa linha só, aqui no resumo (pedido de 12/11/2026): o
+      // aviso grande com o triângulo tomava o lugar das parcelas.
+      if (atraso.vencidas.length) {
+        cResumo.appendChild(no('div', 'linha-nota vermelho nota-atraso',
+          (atraso.vencidas.length === 1 ? '1 parcela em atraso: ' : atraso.vencidas.length + ' parcelas em atraso: ') +
+          emReais(atraso.total) + ' desde ' + dataBr(atraso.desde) + '.'));
+      }
       var proximaData = proximoVencimento(id);
       if (proximaData && r.restante > 0) {
         cResumo.appendChild(no('div', 'linha-nota',
@@ -17171,15 +17230,16 @@
             var mostrar = paga ? (comDinheiro ? recebido : p.valor) : p.valor + jurosP;
             var pagaEm = paga ? dataDaParcelaPaga(p) : '';
 
-            var sub = (paga ? 'Paga' : vencida ? 'Venceu' : 'Vence') + ' em ' +
-              dataBr(paga ? pagaEm : p.vencimento);
-            if (paga && p.vencimento && pagaEm !== p.vencimento) {
-              sub += ' · vencia ' + dataBr(p.vencimento);
-            }
-            if (parcial) sub = 'Faltam ' + emReais(faltaNaParcela(p)) + ' · ' + sub.toLowerCase();
-            if (comDinheiro && recebido !== p.valor) sub += ' · combinada em ' + emReais(p.valor);
-            if (paga && !comDinheiro) sub += ' · coberta por outro pagamento';
-            if (jurosP > 0) sub += ' · ' + emReais(jurosP) + ' de juros';
+            // O vencimento sempre na primeira linha; embaixo, quando foi paga
+            // ou quanto falta (pedido de 11/11/2026: antes o vencimento ia
+            // no fim e o celular cortava).
+            var sub = (paga ? 'Vencimento ' : vencida ? 'Venceu em ' : 'Vence em ') + dataBr(p.vencimento);
+            var sub2 = [];
+            if (paga) sub2.push('Paga em ' + dataBr(pagaEm));
+            if (parcial) sub2.push('Faltam ' + emReais(faltaNaParcela(p)));
+            if (comDinheiro && recebido !== p.valor) sub2.push('combinada em ' + emReais(p.valor));
+            if (paga && !comDinheiro) sub2.push('coberta por outro pagamento');
+            if (jurosP > 0) sub2.push(emReais(jurosP) + ' de juros');
 
             var linha = botao('linha' + (vencida ? ' atrasada' : ''), null, function () {
               if (!paga) { abrirFolhaParcela(id, p.id); return; }
@@ -17195,7 +17255,8 @@
                 paga ? '✓' : String(p.numero)),
               juntar(no('div', 'linha-texto'),
                 no('div', 'linha-titulo', 'Parcela ' + p.numero + ' de ' + p.total),
-                no('div', 'linha-sub', sub)),
+                no('div', 'linha-sub', sub),
+                sub2.length ? no('div', 'linha-sub linha-sub-2' + (paga ? ' verde' : parcial ? ' azul-claro' : ''), sub2.join(' · ')) : null),
               juntar(no('div', 'linha-fim'),
                 no('div', 'linha-valor num' + (paga ? ' verde' : vencida ? ' vermelho' : ''),
                   emReais(mostrar)))
@@ -19961,6 +20022,43 @@
         var valor = digitosParaCentavos(campoValorEl.value);
         if (valor <= 0) { mostrarErro(forma, 'Informe o valor da parcela.'); return; }
         if (!ehData(campoData.value)) { mostrarErro(forma, 'Escolha uma data válida.'); return; }
+        // Mudou a data ou o valor e há parcelas em aberto depois desta, do
+        // mesmo registro? Pergunta se vale para elas também (pedido de
+        // 11/11/2026). A data das próximas anda junto, mantendo um mês
+        // entre cada uma; o valor passa a ser o mesmo.
+        var mudouData = campoData.value !== parcela.vencimento;
+        var mudouValor = valor !== parcela.valor;
+        var proximas = parcelasDoCliente(clienteId).filter(function (p) {
+          return p.id !== parcela.id && (p.servicoId || '') === (parcela.servicoId || '') && !parcelaPaga(p) &&
+            (p.vencimento > parcela.vencimento || (p.vencimento === parcela.vencimento && p.numero > parcela.numero));
+        });
+        if ((mudouData || mudouValor) && proximas.length) {
+          var dia = Number(campoData.value.slice(8, 10));
+          var nums = proximas.map(function (p) { return p.numero; });
+          var faixa = nums.length === 1 ? 'a parcela ' + nums[0] : 'as parcelas ' + Math.min.apply(null, nums) + ' a ' + Math.max.apply(null, nums);
+          var oque = [mudouData ? 'vencendo todo dia ' + dia : '', mudouValor ? emReais(valor) + ' cada' : ''].filter(Boolean).join(' e ');
+          abrirEscolha({ titulo: 'Mudar as próximas também?', semMarca: true, opcoes: [
+            { valor: 'todas', rotulo: 'Esta e as próximas', detalhe: 'muda também ' + faixa + ': ' + oque },
+            { valor: 'so', rotulo: 'Só esta parcela', detalhe: 'as outras continuam como estão' }
+          ] }, function (v) {
+            if (!v) return;
+            salvarParcela(valor, v === 'todas' ? proximas : [], mudouData, mudouValor);
+          });
+          return;
+        }
+        salvarParcela(valor, [], false, false);
+      }));
+      function salvarParcela(valor, junto, mudouData, mudouValor) {
+        var base = parcela.vencimento;
+        var nova = campoData.value;
+        junto.forEach(function (p) {
+          if (mudouData) {
+            // Quantos meses depois desta ela vinha: continua vindo, no dia novo.
+            var a = partes(base), b = partes(p.vencimento);
+            p.vencimento = somaMeses(nova, (b.ano - a.ano) * 12 + (b.mes - a.mes));
+          }
+          if (mudouValor) { p.valor = valor; p.minimo = 0; }
+        });
         parcela.valor = valor;
         parcela.vencimento = campoData.value;
         parcela.servicoId = campoServico.value;
@@ -19971,15 +20069,25 @@
         // o que faltar vira parcela nova no fim, do mesmo jeito que acontece
         // quando alguém paga menos do que estava combinado.
         var antesDe = parcelasDoCliente(clienteId).length;
-        acertarParcelas(clienteId, null, parcela.id);
+        var fixas = [parcela.id];
+        if (junto.length && mudouValor) {
+          // As de antes desta continuam como estão; só as seguintes se ajustam.
+          var deJunto = {};
+          junto.forEach(function (p) { deJunto[p.id] = true; });
+          parcelasDoCliente(clienteId).forEach(function (p) {
+            if (p.id !== parcela.id && !deJunto[p.id] && (p.servicoId || '') === (parcela.servicoId || '') && !parcelaPaga(p)) fixas.push(p.id);
+          });
+        }
+        acertarParcelas(clienteId, null, fixas.length === 1 ? fixas[0] : fixas);
         var depoisDe = parcelasDoCliente(clienteId).length;
         salvar();
         voltarNavegacao();
-        avisar(depoisDe === antesDe ? 'Parcela atualizada.'
+        var oque = junto.length ? 'Parcela e as ' + junto.length + ' seguintes atualizadas.' : 'Parcela atualizada.';
+        avisar(depoisDe === antesDe ? oque
           : depoisDe > antesDe
-            ? 'Parcela atualizada. O plano cresceu para ' + depoisDe + ' parcelas.'
-            : 'Parcela atualizada. O plano fechou em ' + depoisDe + ' parcelas.');
-      }));
+            ? oque + ' O plano cresceu para ' + depoisDe + ' parcelas.'
+            : oque + ' O plano fechou em ' + depoisDe + ' parcelas.');
+      }
       acoes.appendChild(botao('btn btn-perigo', 'Excluir esta parcela', function () {
         perguntar({
           titulo: 'Excluir a parcela ' + parcela.numero + ' de ' + parcela.total + '?',
@@ -20586,7 +20694,9 @@
   }
 
   function pessoasDaCasa() {
-    var outros = estado.casaMembros.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
+    var outros = estado.casaMembros.slice().sort(function (a, b) {
+      return (a.criadoEm || 0) - (b.criadoEm || 0) || a.nome.localeCompare(b.nome) || (a.id < b.id ? -1 : 1);
+    });
     var dosOutros = outros.reduce(function (t, m) { return t + m.pct; }, 0);
     var meu = meuIdNaCasa();
     var dono = { id: ID_EU_NA_CASA, nome: souDonoDaCasa() ? 'Você' : (quemCompartilhou('casa') || 'Dono'),
@@ -20597,10 +20707,39 @@
   }
   function nomeNaCasa(p) { return p.voce && !p.eu ? p.nome + ' (você)' : p.nome; }
 
+  // Conta nova (10/11/2026): só quem foi escolhido divide; igual, ou na %
+  // ajustada. Sem ninguém escolhido além de quem lançou, a conta é só dele.
+  function quemNaConta(conta, pessoas) {
+    var ids = pessoas.map(function (p) { return p.id; });
+    var q = (conta.quem || []).filter(function (x) { return ids.indexOf(x) >= 0; });
+    return q.length ? q : [ID_EU_NA_CASA];
+  }
+  function pesosDaConta(conta, pessoas) {
+    var q = quemNaConta(conta, pessoas), pesos = {};
+    q.forEach(function (id) { pesos[id] = conta.divisao ? Math.max(0, Number(conta.divisao[id]) || 0) : 1; });
+    if (!q.some(function (id) { return pesos[id] > 0; })) q.forEach(function (id) { pesos[id] = 1; });
+    return pesos;
+  }
+  // Em centavos, quanto cada pessoa paga desta conta.
+  function divisaoDaConta(conta, pessoas) {
+    pessoas = pessoas || pessoasDaCasa();
+    if (Array.isArray(conta.quem)) return dividirCentavos(conta.valor, pesosDaConta(conta, pessoas));
+    var pt = partesDaConta(conta), r = {};
+    pessoas.forEach(function (p) { r[p.id] = Math.round(conta.valor * (pt[p.id] || 0) / 100); });
+    return r;
+  }
+
   // A % de cada pessoa numa conta: a combinada na conta, ou a padrão dela.
   // O dono fica com o que sobra.
   function partesDaConta(conta) {
     var pessoas = pessoasDaCasa();
+    if (Array.isArray(conta.quem)) {
+      var pesos = pesosDaConta(conta, pessoas), tot = 0, rr = {};
+      Object.keys(pesos).forEach(function (k) { tot += pesos[k]; });
+      pessoas.forEach(function (p) { rr[p.id] = pesos[p.id] ? Math.round(pesos[p.id] / tot * 1000) / 10 : 0; });
+      rr.soma = 100;
+      return rr;
+    }
     var r = {}, outros = 0;
     pessoas.forEach(function (p) {
       if (p.eu) return;
@@ -20619,8 +20758,8 @@
     var total = 0;
     estado.casaContas.forEach(function (c) {
       total += c.valor;
-      var pt = partesDaConta(c);
-      pessoas.forEach(function (p) { porPessoa[p.id] += Math.round(c.valor * (pt[p.id] || 0) / 100); });
+      var d = divisaoDaConta(c, pessoas);
+      pessoas.forEach(function (p) { porPessoa[p.id] += d[p.id] || 0; });
     });
     return { total: total, porPessoa: porPessoa, pessoas: pessoas, meu: porPessoa[meuIdNaCasa()] || 0 };
   }
@@ -21228,12 +21367,15 @@
       var eu = meuIdNaCasa();
       estado.casaContas.slice().sort(function (a, b) { return b.valor - a.valor; }).forEach(function (conta) {
         var pt = partesDaConta(conta);
+        var dv = divisaoDaConta(conta, t.pessoas);
+        var dela = t.pessoas.filter(function (p) { return (pt[p.id] || 0) > 0; });
         cc.appendChild(linhaSimples({
           titulo: conta.nome,
-          sub: t.pessoas.map(function (p) { return (p.voce ? 'Você' : p.nome) + ' ' + textoPct(pt[p.id] || 0); }).join(' · ') +
+          sub: (dela.length === 1 ? (dela[0].voce ? 'só sua' : 'só de ' + dela[0].nome)
+            : dela.map(function (p) { return (p.voce ? 'Você' : p.nome) + ' ' + textoPct(pt[p.id] || 0); }).join(' · ')) +
             (conta.dia ? ' · vence dia ' + conta.dia : '') + (conta.por ? ' · por ' + conta.por : ''),
           valor: emReais(conta.valor),
-          nota: 'sua parte ' + emReais(Math.round(conta.valor * (pt[eu] || 0) / 100)),
+          nota: 'sua parte ' + emReais(dv[eu] || 0),
           corNota: Math.abs(pt.soma - 100) > 0.05 ? 'vermelho' : '',
           selo: seloIcone('casa', '#E9B44C'),
           aoTocar: function () { porCima(reabrir, function () { abrirContaDeCasa(conta.id); }); }
@@ -21315,13 +21457,121 @@
     });
   }
 
+  // Os nomes de quem divide, para tocar (pedido de 10/11/2026): quem está
+  // marcado divide; um só, é só dele. Com dois ou mais, "Ajustar" abre a %
+  // e o valor de cada um, e mexendo num o resto se completa.
+  function seletorDeQuem(pessoas, sel, valorAtual, aoMudar) {
+    var caixa = no('div', 'seletor-quem');
+    var chips = no('div', 'item-quem');
+    var resumo = no('div', 'item-divide');
+    var ajuste = no('div', 'item-ajuste');
+    function q() { var ids = pessoas.map(function (p) { return p.id; }); return sel.quem.filter(function (x) { return ids.indexOf(x) >= 0; }); }
+    function pesos() {
+      var r = {};
+      q().forEach(function (id) { r[id] = sel.partes ? Math.max(0, Number(sel.partes[id]) || 0) : 1; });
+      return r;
+    }
+    function nomeDe(id) { var p = pessoas.filter(function (x) { return x.id === id; })[0]; return p ? (p.voce ? 'Você' : p.nome) : '?'; }
+    function pintar() {
+      var lista = q();
+      Array.prototype.forEach.call(chips.querySelectorAll('.chip-quem'), function (b) {
+        var ativo = lista.indexOf(b.getAttribute('data-id')) >= 0;
+        b.classList.toggle('ativo', ativo); b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+      });
+      bAj.style.display = lista.length > 1 ? '' : 'none';
+      if (lista.length < 2) { sel.aberto = false; ajuste.style.display = 'none'; }
+      if (lista.length === 1) resumo.textContent = lista[0] === meuIdNaCasa() ? 'Só sua.' : 'Só de ' + nomeDe(lista[0]) + '.';
+      else {
+        var d = dividirCentavos(valorAtual(), pesos());
+        resumo.textContent = lista.map(function (id) { return nomeDe(id) + ' ' + emReais(d[id] || 0); }).join(' · ') + (sel.partes ? ' · ajustado' : ' · partes iguais');
+      }
+      if (sel.aberto) desenharAjuste();
+    }
+    pessoas.forEach(function (p) {
+      var ch = botao('chip-quem', p.voce ? 'Você' : p.nome, function () {
+        var lista = q().slice(), i = lista.indexOf(p.id);
+        if (i >= 0) { if (lista.length === 1) return; lista.splice(i, 1); } else lista.push(p.id);
+        sel.quem = lista; sel.partes = null;
+        pintar(); aoMudar();
+      });
+      ch.setAttribute('data-id', p.id);
+      chips.appendChild(ch);
+    });
+    var bAj = botao('chip-ajustar', 'Ajustar valor ou %', function () { sel.aberto = !sel.aberto; ajuste.style.display = sel.aberto ? '' : 'none'; if (sel.aberto) desenharAjuste(); });
+    chips.appendChild(bAj);
+    function desenharAjuste() {
+      ajuste.textContent = '';
+      var lista = q(), ps = pesos(), soma = 0;
+      lista.forEach(function (id) { soma += ps[id]; });
+      var atual = {};
+      lista.forEach(function (id) { atual[id] = sel.partes ? (Number(sel.partes[id]) || 0) : Math.round(ps[id] / (soma || 1) * 1000) / 10; });
+      var nota = no('div', 'linha-nota');
+      var campos = {};
+      function somar() {
+        var t = lista.reduce(function (x, id) { return x + (atual[id] || 0); }, 0);
+        nota.textContent = Math.abs(t - 100) < 0.05 ? 'Soma 100%.' : 'Soma ' + textoPct(t) + '.';
+        nota.classList.toggle('vermelho', Math.abs(t - 100) >= 0.05);
+      }
+      function mudou(id) {
+        var outro = lista.filter(function (x) { return x !== id; }).slice(-1)[0];
+        if (outro) {
+          var resto = 100 - lista.reduce(function (x, k) { return x + (k === outro ? 0 : (atual[k] || 0)); }, 0);
+          atual[outro] = Math.max(0, Math.round(resto * 10) / 10);
+          campos[outro].pct.value = decimalBr(atual[outro], 1);
+          campos[outro].rs.value = emReais(Math.round(valorAtual() * atual[outro] / 100));
+        }
+        sel.partes = JSON.parse(JSON.stringify(atual));
+        somar();
+        var d = dividirCentavos(valorAtual(), pesos());
+        resumo.textContent = lista.map(function (k) { return nomeDe(k) + ' ' + emReais(d[k] || 0); }).join(' · ') + ' · ajustado';
+        aoMudar();
+      }
+      lista.forEach(function (id) {
+        var pct = entradaDecimal(atual[id], 1, '0');
+        pct.setAttribute('aria-label', '% de ' + nomeDe(id));
+        var rs = entradaValor(Math.round(valorAtual() * atual[id] / 100), false);
+        rs.setAttribute('aria-label', 'Valor de ' + nomeDe(id));
+        campos[id] = { pct: pct, rs: rs };
+        pct.addEventListener('input', function () {
+          var x = lerDecimal(pct.value); atual[id] = isFinite(x) ? Math.max(0, Math.min(100, x)) : 0;
+          rs.value = emReais(Math.round(valorAtual() * atual[id] / 100));
+          mudou(id);
+        });
+        rs.addEventListener('input', function () {
+          var v = Math.min(digitosParaCentavos(rs.value), valorAtual());
+          atual[id] = valorAtual() ? Math.round(v / valorAtual() * 1000) / 10 : 0;
+          pct.value = decimalBr(atual[id], 1);
+          mudou(id);
+        });
+        ajuste.appendChild(juntar(no('div', 'ajuste-linha'), no('span', null, nomeDe(id)), pct, no('span', 'ajuste-sinal', '%'), rs));
+      });
+      ajuste.appendChild(nota);
+      ajuste.appendChild(botao('btn-texto', 'Voltar a partes iguais', function () { sel.partes = null; desenharAjuste(); pintar(); aoMudar(); }));
+      somar();
+    }
+    ajuste.style.display = 'none';
+    juntar(caixa, chips, resumo, ajuste);
+    caixa.repintar = pintar;
+    pintar();
+    return caixa;
+  }
+
   function abrirContaDeCasa(id) {
     var c = id ? achar(estado.casaContas, id) : null;
     var pessoas = pessoasDaCasa();
-    var partes = {};
-    pessoas.forEach(function (p) {
-      if (!p.eu) partes[p.id] = c && c.partes && c.partes[p.id] !== undefined ? c.partes[p.id] : p.pct;
-    });
+    // Quem divide: conta nova começa só com quem lança; conta antiga
+    // traz as % que tinha.
+    var sel = { quem: [], partes: null, aberto: false };
+    if (c && Array.isArray(c.quem)) {
+      sel.quem = quemNaConta(c, pessoas);
+      sel.partes = c.divisao ? JSON.parse(JSON.stringify(c.divisao)) : null;
+    } else if (c) {
+      var pt0 = partesDaConta(c);
+      sel.quem = pessoas.filter(function (p) { return (pt0[p.id] || 0) > 0; }).map(function (p) { return p.id; });
+      if (!sel.quem.length) sel.quem = [meuIdNaCasa() || ID_EU_NA_CASA];
+      var iguais = sel.quem.every(function (x) { return Math.abs((pt0[x] || 0) - 100 / sel.quem.length) < 0.06; });
+      if (!iguais) { sel.partes = {}; sel.quem.forEach(function (x) { sel.partes[x] = pt0[x] || 0; }); }
+    } else sel.quem = [meuIdNaCasa() || ID_EU_NA_CASA];
     abrirFolha(c ? c.nome : 'Nova conta', function (folha) {
       var forma = no('div', 'forma');
       if (c && textoDeAutoria(c)) forma.appendChild(no('p', 'ajuda autoria', textoDeAutoria(c) + '.'));
@@ -21332,50 +21582,30 @@
       var dia = entradaTexto(c && c.dia ? String(c.dia) : '', 'Ex.: 10', 2);
       dia.inputMode = 'numeric';
       forma.appendChild(campo('Vence no dia (opcional)', dia));
-      var caixa = no('div', 'casa-partes');
-      forma.appendChild(campo('Quanto cada um entra (%)', caixa));
-      var resumo = no('div', 'total-calculado');
-      function pintar() {
-        var v = digitosParaCentavos(valor.value);
-        var outros = 0;
-        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
-        var dono = Math.round((100 - outros) * 10) / 10;
-        resumo.textContent = '';
-        pessoas.forEach(function (p) {
-          var pc = p.eu ? dono : partes[p.id] || 0;
-          juntar(resumo, no('span', null, (p.voce ? 'Você' : p.nome) + ' · ' + textoPct(Math.max(pc, 0))),
-            no('strong', 'num ' + (p.voce ? (dono < 0 && p.eu ? 'vermelho' : 'ouro') : ''), emReais(Math.round(v * Math.max(pc, 0) / 100))));
-        });
-        if (dono < 0) juntar(resumo, no('span', 'vermelho', 'As partes passam de 100%'), no('strong', 'num vermelho', textoPct(100 - dono)));
-      }
-      pessoas.forEach(function (p) {
-        if (p.eu) return;
-        var ent = entradaDecimal(partes[p.id], 1, '0');
-        ent.setAttribute('aria-label', 'Parte de ' + p.nome + ' (%)');
-        ent.addEventListener('input', function () { var n = lerDecimal(ent.value); partes[p.id] = isFinite(n) ? n : 0; pintar(); });
-        caixa.appendChild(juntar(no('div', 'config-linha'), no('span', 'config-rotulo', nomeNaCasa(p)), ent));
-      });
-      if (pessoas.length === 1) caixa.appendChild(no('p', 'ajuda', 'Ninguém na divisão ainda: adicione as pessoas em "Quem divide". Por enquanto a conta é toda sua.'));
-      caixa.appendChild(no('p', 'ajuda', pessoas[0].nome + ' fica com o que sobrar.'));
-      valor.addEventListener('input', pintar);
-      forma.appendChild(resumo);
-      pintar();
+      var seletor = seletorDeQuem(pessoas, sel, function () { return digitosParaCentavos(valor.value); }, function () {});
+      forma.appendChild(campo('Quem divide esta conta', seletor));
+      forma.appendChild(no('p', 'ajuda ajuda-campo', pessoas.length > 1
+        ? 'Toque nos nomes: marcado divide a conta. Só você marcado, a conta é só sua.'
+        : 'Ninguém na divisão ainda: adicione as pessoas em "Quem divide". Por enquanto a conta é toda sua.'));
+      valor.addEventListener('input', function () { seletor.repintar(); });
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar conta', function () {
         var v = digitosParaCentavos(valor.value);
         var d = parseInt(dia.value, 10) || 0;
-        var outros = 0;
-        Object.keys(partes).forEach(function (k) { outros += partes[k] || 0; });
         if (!nome.value.trim()) { mostrarErro(forma, 'Informe o nome da conta.'); return; }
         if (v <= 0) { mostrarErro(forma, 'Informe o valor.'); return; }
         if (d < 0 || d > 31) { mostrarErro(forma, 'O dia vai de 1 a 31.'); return; }
-        if (Object.keys(partes).some(function (k) { return partes[k] < 0 || partes[k] > 100; })) { mostrarErro(forma, 'Cada parte vai de 0 a 100%.'); return; }
-        if (outros > 100.001) { mostrarErro(forma, 'As partes passam de 100% (' + textoPct(outros) + ').'); return; }
+        if (sel.partes) {
+          var tot = sel.quem.reduce(function (x, k) { return x + (Number(sel.partes[k]) || 0); }, 0);
+          if (Math.abs(tot - 100) >= 0.05) { mostrarErro(forma, 'As partes somam ' + textoPct(tot) + ': ajuste para dar 100%.'); return; }
+        }
         var reg = c || { id: novoId(), criadoEm: Date.now() };
         carimbarAutor(reg, !c);
         reg.nome = nome.value.trim().slice(0, 60); reg.valor = v; reg.dia = d;
         reg.partes = {};
-        Object.keys(partes).forEach(function (k) { reg.partes[k] = Math.round((partes[k] || 0) * 10) / 10; });
+        reg.quem = sel.quem.slice();
+        if (sel.partes) { reg.divisao = {}; sel.quem.forEach(function (k) { reg.divisao[k] = Math.round((Number(sel.partes[k]) || 0) * 10) / 10; }); }
+        else delete reg.divisao;
         if (!c) estado.casaContas.push(reg);
         salvar();
         fecharOuVoltar(true);
