@@ -121,7 +121,7 @@ t = await tela();
 conferir('12. Manutenção mostra os km atuais pelo painel', /Km atual do carro\s*45\.400 km\s*Pelo painel no abastecimento de 05\/11\/2026/.test(t), t.slice(0, 200));
 conferir('13. e as trocas, com quanto falta',
   /Troca de óleo e filtro\s*trocado com 45\.400 km · 07 nov\s*faltam 5\.000 km\s*em 50\.400 km/.test(t) &&
-  /Filtro de combustível\s*registre a última troca/.test(t) && !/Filtro de óleo/.test(t), t.slice(0, 700));
+  /Filtro do ar-condicionado\s*registre a última troca/.test(t) && !/Filtro de óleo/.test(t), t.slice(0, 700));
 conferir('14. a anotação pendente e o histórico de trocas', /Anotações do carro\s*Barulho na suspensão dianteira/.test(t) && /Trocas feitas\s*Troca de óleo e filtro\s*07\/11\/2026 · 45\.400 km · 5W30 sintético\s*− R\$ 180,00/.test(t));
 await page.screenshot({ path: dir + '/z65-manutencao.png', fullPage: true });
 
@@ -135,28 +135,28 @@ t = await tela();
 conferir('15. dá para mudar o produto e os km de troca', /Filtro de ar do motor · Tecfil\s*trocado com 36\.000 km · 01 mar\s*faltam 2\.600 km\s*em 48\.000 km/.test(t), (t.match(/Filtro de ar do motor ·.{0,120}/) || [''])[0]);
 
 // ---- item vencido: "Vou esperar" volta a cada 300 km ----
-await page.click('#telaInicio .linha:has-text("Filtro de combustível")'); await page.waitForTimeout(900);
+await page.click('#telaInicio .linha:has-text("Filtro do ar-condicionado")'); await page.waitForTimeout(900);
 await page.click('#folha .btn-ouro:has-text("Registrar a última troca")'); await page.waitForTimeout(900);
 const kmF = folha().getByLabel('Km do carro na troca');
-await kmF.fill(''); await kmF.type('30000');
+await kmF.fill(''); await kmF.type('35000');
 await folha().getByLabel('Data', { exact: true }).fill('2026-06-01');
 await page.click('#folha .btn-ouro:has-text("Salvar troca")'); await page.waitForTimeout(1000);
 await fecharFolhas();
 await aba('Resumo');
 t = await tela();
-conferir('16. vencido, o alerta é de urgência', /Filtro de combustível: troca vencida\s*Passou 400 km do previsto \(45\.000 km\)\. Faça a troca o quanto antes\./.test(t), t.slice(0, 300));
-await page.click('#telaInicio .alerta-manutencao:has-text("Filtro de combustível") button:has-text("Vou esperar um pouco")'); await page.waitForTimeout(700);
+conferir('16. vencido, o alerta é de urgência', /Filtro do ar-condicionado: troca vencida\s*Passou 400 km do previsto \(45\.000 km\)\. Faça a troca o quanto antes\./.test(t), t.slice(0, 300));
+await page.click('#telaInicio .alerta-manutencao:has-text("Filtro do ar-condicionado") button:has-text("Vou esperar um pouco")'); await page.waitForTimeout(700);
 d = await dialogo();
 conferir('17. adiando um vencido, o app pede para não rodar muito', /evite rodar muito com o carro assim/.test(d) && /300 km/.test(d), d);
 await page.click('#dialogoAcoes button:has-text("Ok")'); await page.waitForTimeout(700);
-conferir('18. e esconde o alerta por enquanto', !/Filtro de combustível: troca vencida/.test(await tela()));
+conferir('18. e esconde o alerta por enquanto', !/Filtro do ar-condicionado: troca vencida/.test(await tela()));
 await aba('Gastos');
 await page.click('#telaInicio button:has-text("+ Abastecimento")'); await page.waitForTimeout(900);
 await folha().getByLabel('Litros').fill('1000'); await dinheiro(folha().getByLabel('Preço por litro'), '600');
 const odo = folha().getByLabel('Km do carro no painel (opcional)'); await odo.click(); await odo.type('45750');
 await page.click('#folha .btn-ouro:has-text("Salvar registro")'); await page.waitForTimeout(1000);
 await aba('Resumo');
-conferir('19. rodados mais 350 km, o alerta vencido volta', /Filtro de combustível: troca vencida\s*Passou 750 km/.test(await tela()), (await tela()).slice(0, 200));
+conferir('19. rodados mais 350 km, o alerta vencido volta', /Filtro do ar-condicionado: troca vencida\s*Passou 750 km/.test(await tela()), (await tela()).slice(0, 200));
 
 // ---- anotações no novo registro ----
 await page.click('#telaInicio button:has-text("+ Mais um registro"), #telaInicio button:has-text("Novo registro")'); await page.waitForTimeout(900);
