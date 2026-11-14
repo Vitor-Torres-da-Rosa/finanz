@@ -2452,7 +2452,8 @@
       versao: '5.66.0',
       data: '2026-11-14',
       itens: [
-        'Uber e Corridas: no abastecimento, "Gasolina aditivada" entrou nas opções de combustível.'
+        'Uber e Corridas: no abastecimento, "Gasolina aditivada" entrou nas opções de combustível.',
+        'Uber › Manutenção: a troca de óleo e o filtro de óleo viraram um item só, "Troca de óleo e filtro", já que são trocados juntos. As trocas antigas do filtro continuam no histórico.'
       ]
     },
     {
@@ -12661,8 +12662,9 @@
   // guardados até a pessoa mexer neles: assim a conta de quem compartilha
   // o Uber não ganha uma cópia de cada.
   var ITENS_MANUTENCAO_PADRAO = [
-    { chave: 'oleo', nome: 'Troca de óleo', intervaloKm: 5000 },
-    { chave: 'filtro_oleo', nome: 'Filtro de óleo', intervaloKm: 5000 },
+    // Óleo e filtro de óleo se trocam juntos (pedido de 14/11/2026): um
+    // item só.
+    { chave: 'oleo', nome: 'Troca de óleo e filtro', intervaloKm: 5000 },
     { chave: 'filtro_ar', nome: 'Filtro de ar do motor', intervaloKm: 10000 },
     { chave: 'filtro_combustivel', nome: 'Filtro de combustível', intervaloKm: 15000 },
     { chave: 'filtro_cabine', nome: 'Filtro do ar-condicionado', intervaloKm: 10000 }
@@ -12670,7 +12672,7 @@
 
   // Por que não adiar, item por item, nas mensagens.
   var RISCO_DE_ADIAR = {
-    oleo: 'o óleo vencido perde a capacidade de lubrificar e proteger o motor',
+    oleo: 'o óleo vencido perde a capacidade de lubrificar e proteger o motor, e o filtro saturado deixa passar impurezas',
     filtro_oleo: 'o filtro de óleo saturado deixa passar impurezas que desgastam o motor',
     filtro_ar: 'o filtro de ar sujo tira desempenho e aumenta o consumo de combustível',
     filtro_combustivel: 'o filtro de combustível saturado pode prejudicar a injeção e o rendimento',
@@ -12686,13 +12688,16 @@
     });
     guardados.forEach(function (r) {
       if (ITENS_MANUTENCAO_PADRAO.some(function (p) { return p.chave === r.chave; })) return;
+      // O filtro de óleo agora vai junto com a troca de óleo.
+      if (r.chave === 'filtro_oleo') return;
       itens.push(itemDeRegistro(r));
     });
     return itens;
   }
 
   function itemDeRegistro(r) {
-    return { id: r.id, chave: r.chave, nome: r.nome, detalhe: r.detalhe, intervaloKm: r.intervaloKm, registro: r };
+    var nome = r.chave === 'oleo' && r.nome === 'Troca de óleo' ? 'Troca de óleo e filtro' : r.nome;
+    return { id: r.id, chave: r.chave, nome: nome, detalhe: r.detalhe, intervaloKm: r.intervaloKm, registro: r };
   }
 
   // O item vira registro na primeira vez que a pessoa mexe nele.
@@ -12943,7 +12948,7 @@
   function linhaDaTroca(tr, reabrir) {
     var item = itemPorChave(tr.chave);
     return linhaSimples({
-      titulo: item ? item.nome : 'Manutenção',
+      titulo: item ? item.nome : tr.chave === 'filtro_oleo' ? 'Filtro de óleo' : 'Manutenção',
       sub: dataBr(tr.data) + ' · ' + milharBr(tr.km) + ' km' + (tr.obs ? ' · ' + tr.obs : ''),
       valor: tr.valor ? '− ' + emReais(tr.valor) : '', cor: 'vermelho',
       selo: seloIcone('ferramenta', '#E9B44C'),
