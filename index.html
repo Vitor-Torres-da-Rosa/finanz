@@ -2439,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.67.0';
+  var VERSAO = '5.68.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2448,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.68.0',
+      data: '2026-11-16',
+      itens: [
+        'Sino de avisos: com 5 dias ou mais sem lançamentos vindos do extrato, o sino acende e o primeiro aviso diz quantos dias faz, com o botão para importar o extrato.'
+      ]
+    },
     {
       versao: '5.67.0',
       data: '2026-11-16',
@@ -23828,6 +23835,17 @@
     return 'Você costuma ficar entre ' + emReais(p.de) + ' e ' + emReais(p.ate);
   }
 
+  // Quantos dias desde o último lançamento que veio de um extrato. Quem
+  // nunca importou extrato não recebe o aviso.
+  function diasSemExtrato() {
+    var ultimo = '';
+    (estado.importacoes || []).forEach(function (i) { if (i.ate && i.ate > ultimo) ultimo = i.ate; });
+    estado.lancamentos.forEach(function (l) { if (l.importacaoId && l.data > ultimo) ultimo = l.data; });
+    if (!ultimo) return null;
+    var hoje = hojeTexto();
+    return { ultimo: ultimo, dias: ultimo >= hoje ? 0 : diasEntre(ultimo, hoje) };
+  }
+
   function analiseDoMes(ano, mes) {
     var achados = [];
     var t = totaisDoMes(ano, mes);
@@ -23840,6 +23858,20 @@
     var noMesAtual = prefixoMes(ano, mes) === hoje.slice(0, 7);
 
     function juntarAchado(a) { achados.push(a); }
+
+    // 0) Extrato parado (pedido de 16/11/2026): de 5 dias sem lançamento do
+    //    extrato em diante, o sino acende e o aviso vem em primeiro.
+    var semExtrato = diasSemExtrato();
+    if (semExtrato && semExtrato.dias >= 5) {
+      juntarAchado({
+        id: 'extrato', prioridade: 0, icone: '⏱', tom: 'ruim',
+        titulo: semExtrato.dias + ' dias sem lançamentos do extrato',
+        valor: semExtrato.dias + ' dias', valorCor: 'var(--vermelho)',
+        explicacao: 'O último lançamento que veio do extrato é de ' + dataBr(semExtrato.ultimo) +
+          '. Importe o extrato do banco para o app continuar mostrando o que entrou e saiu.',
+        acao: { rotulo: 'Importar extrato', abrir: function () { abrirImportarExtrato(); } }
+      });
+    }
 
     // 1) Saldo negativo — nada é mais urgente que sair mais do que entrou.
     if (t.entradas > 0 && t.entradas - base.total < 0) {
