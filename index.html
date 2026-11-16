@@ -2439,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.66.0';
+  var VERSAO = '5.67.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2448,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.67.0',
+      data: '2026-11-16',
+      itens: [
+        'Contas de casa › Mercado: além de "Tirar foto da nota", dá para escolher uma foto que já está na galeria do celular. A compra sem foto virou "+ Sem foto", ao lado.'
+      ]
+    },
     {
       versao: '5.66.0',
       data: '2026-11-14',
@@ -20986,10 +20993,12 @@
     });
   }
 
-  function escolherFotoDaNota() {
+  // `daGaleria`: sem o "capture", o celular deixa escolher uma foto já
+  // tirada (pedido de 16/11/2026); com ele, abre direto a câmera.
+  function escolherFotoDaNota(daGaleria) {
     var inp = document.createElement('input');
     inp.type = 'file'; inp.accept = 'image/*';
-    inp.setAttribute('capture', 'environment');
+    if (!daGaleria) inp.setAttribute('capture', 'environment');
     inp.className = 'input-arquivo';
     inp.id = 'fotoDaNota';
     inp.addEventListener('change', function () {
@@ -21263,8 +21272,11 @@
     c.appendChild(no('div', 'linha-nota', 'Sua parte: ' + emReais(m.meu) + '. Só a base para dividir: não entra nas despesas.'));
     folha.appendChild(c);
     var ac = no('div', 'acoes');
-    ac.appendChild(botao('btn btn-ouro', 'Foto da nota', function () { escolherFotoDaNota(); }));
-    ac.appendChild(botao('btn btn-fantasma', '+ Compra sem foto', function () { porCima(reabrir, function () { abrirCompraDeMercado(null, null); }); }));
+    ac.appendChild(botao('btn btn-ouro', 'Tirar foto da nota', function () { escolherFotoDaNota(false); }));
+    var linhaFoto = no('div', 'duas');
+    linhaFoto.appendChild(botao('btn btn-fantasma', 'Foto da galeria', function () { escolherFotoDaNota(true); }));
+    linhaFoto.appendChild(botao('btn btn-fantasma', '+ Sem foto', function () { porCima(reabrir, function () { abrirCompraDeMercado(null, null); }); }));
+    ac.appendChild(linhaFoto);
     folha.appendChild(ac);
     var cl = cartao('liso');
     if (!m.lista.length) cl.appendChild(estadoVazio('Nenhuma compra em ' + MESES[mesAtivo.mes], 'Tire uma foto da nota: o app lê item por item e você confere antes de salvar.'));

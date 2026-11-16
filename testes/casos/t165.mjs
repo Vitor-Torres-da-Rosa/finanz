@@ -93,7 +93,7 @@ conferir('5. para ela, o Vitor é o dono e ela é "você"', /Vitor\s*fica com o 
 
 // ---- Ana lança uma compra com três itens, cada um de um jeito ----
 await ana.click('#folha .abas-casa button:has-text("Mercado")'); await ana.waitForTimeout(700);
-await ana.click('#folha button:has-text("+ Compra sem foto")'); await ana.waitForTimeout(800);
+await ana.click('#folha button:has-text("+ Sem foto")'); await ana.waitForTimeout(800);
 const F = ana.locator('#folha');
 await F.getByLabel('Onde').fill('Mercado do bairro');
 // 1: arroz, Ana e João (Vitor fora): dividem igual.

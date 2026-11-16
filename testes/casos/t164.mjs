@@ -55,9 +55,16 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 await page.click('#folha .abas-casa button:has-text("Mercado")'); await page.waitForTimeout(700);
 const fm = limpo(await folha().textContent());
 conferir('1. Contas de casa tem a aba Mercado, com a foto da nota', /Mercado em novembro\s*R\$ 0,00/.test(fm) &&
-  await folha().locator('button:has-text("Foto da nota")').count() === 1, fm.slice(0, 200));
+  await folha().locator('button:has-text("Tirar foto da nota")').count() === 1 && await folha().locator('button:has-text("Foto da galeria")').count() === 1, fm.slice(0, 200));
+// 16/11/2026: a câmera abre direto; a galeria deixa escolher uma foto já tirada.
+const [cam] = await Promise.all([page.waitForEvent('filechooser'), page.click('#folha button:has-text("Tirar foto da nota")')]);
+const capCam = await (await cam.element()).getAttribute('capture');
+await cam.setFiles([]).catch(() => {});
+await page.evaluate(() => { const i = document.getElementById('fotoDaNota'); if (i) i.remove(); });
 
-const [escolha] = await Promise.all([page.waitForEvent('filechooser'), page.click('#folha button:has-text("Foto da nota")')]);
+const [escolha] = await Promise.all([page.waitForEvent('filechooser'), page.click('#folha button:has-text("Foto da galeria")')]);
+const capGal = await (await escolha.element()).getAttribute('capture');
+conferir('1b. "Tirar foto" abre a câmera e "Foto da galeria" deixa escolher uma foto', capCam === 'environment' && capGal === null, capCam + ' / ' + capGal);
 await escolha.setFiles(foto);
 await page.waitForTimeout(500);
 conferir('2. mostra que está lendo', /Lendo/.test(await page.textContent('#folhaTitulo').catch(() => '')));
@@ -111,7 +118,7 @@ conferir('10. e as despesas não mudam', /R\$ 0,00/.test(desp), desp);
 
 // Sem foto também dá.
 await page.click('#telaInicio .cartao-casa .cartao-acao:has-text("Abrir")'); await page.waitForTimeout(900);
-await page.click('#folha button:has-text("+ Compra sem foto")'); await page.waitForTimeout(800);
+await page.click('#folha button:has-text("+ Sem foto")'); await page.waitForTimeout(800);
 await folha().getByLabel('Item 1', { exact: true }).fill('Pão');
 await dinheiro(folha().getByLabel('Valor do item 1'), '1200');
 await page.click('#folha .btn-ouro:has-text("Salvar compra")'); await page.waitForTimeout(900);
