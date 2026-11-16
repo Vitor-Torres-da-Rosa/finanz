@@ -24498,7 +24498,9 @@
       var forma = no('div');
       var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Pequenos sinais']];
       faixas.forEach(function (f) {
-        var doNivel = an.achados.filter(function (a) { return a.prioridade === f[0]; });
+        // O aviso do extrato parado (prioridade 0) entra junto do que
+        // merece atenção agora, em primeiro.
+        var doNivel = an.achados.filter(function (a) { return f[0] === 1 ? a.prioridade <= 1 : a.prioridade === f[0]; });
         if (!doNivel.length) return;
         var r = no('div', 'rotulo', f[1]);
         r.style.margin = '18px 2px 8px';

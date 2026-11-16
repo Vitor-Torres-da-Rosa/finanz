@@ -46,9 +46,10 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1200);
 
 conferir('1. com 7 dias sem extrato, o sino acende', await page.locator('#telaInicio .marca-sino .ponto-aviso').count() === 1);
-await page.click('#telaInicio .marca-sino'); await page.waitForTimeout(1200);
-const t = limpo(await page.textContent('#relatorio, #folha').catch(() => ''));
-const tudo = t || limpo(await page.textContent('body'));
+await page.click('#telaInicio .marca-sino');
+await page.waitForFunction(() => /dias sem lançamentos|Principais|Ver a análise/.test(document.getElementById('folha').textContent), null, { timeout: 15000 }).catch(() => {});
+await page.waitForTimeout(800);
+const tudo = limpo(await page.textContent('#folha'));
 conferir('2. o primeiro aviso diz quantos dias faz, e o lançamento à mão não conta',
   /7 dias sem lançamentos do extrato\s*7 dias\s*O último lançamento que veio do extrato é de 09\/11\/2026/.test(tudo), (tudo.match(/.{0,40}dias sem lançamentos.{0,120}/) || [''])[0]);
 conferir('3. com o botão para importar', /Importar extrato/.test(tudo));
@@ -59,8 +60,9 @@ await page.goBack().catch(() => {}); await page.waitForTimeout(800);
 await page.clock.setFixedTime(new Date(2026, 10, 13, 9, 0, 0));
 await page.click('#navegacao button:has-text("Transações")').catch(() => {}); await page.waitForTimeout(600);
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1200);
-await page.click('#telaInicio .marca-sino'); await page.waitForTimeout(1200);
-const t2 = limpo(await page.textContent('body'));
+await page.click('#telaInicio .marca-sino'); await page.waitForTimeout(3000);
+const t2 = limpo(await page.textContent('#folha'));
+console.log('com 4 dias:', t2.slice(0, 160));
 conferir('4. com menos de 5 dias, não avisa', !/dias sem lançamentos do extrato/.test(t2));
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
