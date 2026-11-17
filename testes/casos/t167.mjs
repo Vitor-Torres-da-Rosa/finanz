@@ -56,6 +56,14 @@ conferir('2. o aviso é do banco parado, com os dias; o lançamento à mão não
   /C6: 7 dias sem extrato\s*7 dias\s*O último lançamento do extrato do C6 é de 09\/11\/2026/.test(tudo) && !/Itaú: \d+ dias sem extrato/.test(tudo), (tudo.match(/.{0,40}dias sem extrato.{0,120}/) || [''])[0]);
 conferir('3. com o botão para importar', /Importar extrato/.test(tudo));
 await page.screenshot({ path: dir + '/z78-sino-extrato.png' });
+// 17/11/2026: o banco parado é aviso do sino, não assunto da análise do mês.
+conferir('3b. o sino abre "Avisos", com o caminho para a análise', (await page.textContent('#folhaTitulo')) === 'Avisos' &&
+  /Ver a análise de novembro/.test(tudo), await page.textContent('#folhaTitulo'));
+await page.click('#folha button:has-text("Ver a análise de novembro")'); await page.waitForTimeout(1200);
+const analise = limpo(await page.textContent('#folha'));
+conferir('3c. e a análise de novembro não mostra a inatividade do banco', /Análise de novembro/.test(await page.textContent('#folhaTitulo')) &&
+  !/dias sem extrato/.test(analise), analise.slice(0, 160));
+await page.goBack(); await page.waitForTimeout(800);
 
 // Com 4 dias, ainda não avisa.
 await page.goBack().catch(() => {}); await page.waitForTimeout(800);

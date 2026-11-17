@@ -2487,7 +2487,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.78.0';
+  var VERSAO = '5.79.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2496,6 +2496,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.79.0',
+      data: '2026-11-17',
+      itens: [
+        'Banco sem extrato virou aviso do sino e saiu da Análise do mês. Com banco parado, o sino abre "Avisos" com um botão para a análise; sem aviso, abre a análise direto.'
+      ]
+    },
     {
       versao: '5.78.0',
       data: '2026-11-17',
@@ -8766,7 +8773,7 @@
     esq.appendChild(imagemDaMarca('selo.webp', 'marca-selo', 256, 200, ''));
     juntar(esq, juntar(no('div', 'marca-letras'),
       no('div', 'marca-nome', 'FINANZ'), no('div', 'marca-sub', 'Inteligência financeira')));
-    var sino = botao('marca-botao marca-sino', null, function () { abrirAnaliseCompleta(mesAtivo.ano, mesAtivo.mes); });
+    var sino = botao('marca-botao marca-sino', null, function () { abrirAvisos(mesAtivo.ano, mesAtivo.mes); });
     sino.setAttribute('aria-label', 'Avisos e análise do mês');
     sino.appendChild(icone('sino'));
     var engrenagem = botao('marca-botao', null, function () { abrirFolhaPreferencias(); });
@@ -8781,7 +8788,7 @@
       if (!document.body.contains(sino)) return;
       try {
         var an = analiseDoMes(mesAtivo.ano, mesAtivo.mes);
-        if (an && an.principais && an.principais.some(function (a) { return a.prioridade <= 1; })) {
+        if (an && ((an.avisos && an.avisos.length) || (an.principais && an.principais.some(function (a) { return a.prioridade <= 1; })))) {
           sino.appendChild(no('span', 'ponto-aviso'));
           sino.setAttribute('aria-label', 'Avisos e análise do mês: tem algo pedindo atenção');
         }
@@ -24436,12 +24443,15 @@
     function juntarAchado(a) { achados.push(a); }
 
     // 0) Extrato parado (pedido de 16/11/2026): de 5 dias sem lançamento do
-    //    extrato em diante, o sino acende e o aviso vem em primeiro.
-    // Um aviso para cada banco parado, o mais atrasado primeiro.
+    //    extrato em diante, o sino acende. Um aviso para cada banco parado,
+    //    o mais atrasado primeiro. Desde 17/11/2026 ele é aviso do sino e
+    //    não entra na análise do mês: banco parado não é assunto de
+    //    finanças do mês, é lembrete.
+    var avisos = [];
     diasSemExtratoPorConta().filter(function (x) { return x.dias >= 5; })
       .sort(function (a, b) { return b.dias - a.dias; })
       .forEach(function (x) {
-        juntarAchado({
+        avisos.push({
           id: 'extrato-' + x.conta.id, prioridade: 0, icone: '⏱', tom: 'ruim',
           titulo: x.conta.nome + ': ' + x.dias + ' dias sem extrato',
           valor: x.dias + ' dias', valorCor: 'var(--vermelho)',
@@ -24687,7 +24697,7 @@
 
     return {
       totais: t, base: base, temAnterior: temAnterior,
-      achados: achados,
+      achados: achados, avisos: avisos,
       principais: achados.filter(function (a) { return a.prioridade <= 2; }).slice(0, 3),
       proxima: achados.filter(function (a) { return a.acao && a.prioridade <= 2; })[0] || null,
       meses: mesesComLancamento().length
@@ -25075,14 +25085,29 @@
 
   // Tudo o que o motor achou, inclusive o que é pequeno demais para brigar
   // por espaço na tela principal.
+  // O que o sino mostra: os lembretes (banco sem extrato) e, embaixo, o
+  // caminho para a análise do mês. Sem lembrete, vai direto para a análise.
+  function abrirAvisos(ano, mes) {
+    var an = analiseDoMes(ano, mes);
+    if (!an.avisos || !an.avisos.length) { abrirAnaliseCompleta(ano, mes); return; }
+    abrirFolha('Avisos', function (folha) {
+      var forma = no('div');
+      an.avisos.forEach(function (a, i) { forma.appendChild(cartaoDeAchado(a, i)); });
+      var ver = botao('btn btn-fantasma', 'Ver a análise de ' + MESES[mes] + ' ›', function () {
+        porCima(function () { abrirAvisos(ano, mes); }, function () { abrirAnaliseCompleta(ano, mes); });
+      });
+      ver.style.marginTop = '6px';
+      forma.appendChild(ver);
+      folha.appendChild(forma);
+    });
+  }
+
   function abrirAnaliseCompleta(ano, mes) {
     var an = analiseDoMes(ano, mes);
     abrirFolha('Análise de ' + MESES[mes], function (folha) {
       var forma = no('div');
       var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Pequenos sinais']];
       faixas.forEach(function (f) {
-        // O aviso do extrato parado (prioridade 0) entra junto do que
-        // merece atenção agora, em primeiro.
         var doNivel = an.achados.filter(function (a) { return f[0] === 1 ? a.prioridade <= 1 : a.prioridade === f[0]; });
         if (!doNivel.length) return;
         var r = no('div', 'rotulo', f[1]);
