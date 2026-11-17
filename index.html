@@ -2487,7 +2487,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.79.0';
+  var VERSAO = '5.80.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2496,6 +2496,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.80.0',
+      data: '2026-11-17',
+      itens: [
+        '"Contas do mês" saiu do app: não aparece mais em Planejar, no Início (nem a sobra prevista) e nos avisos de "ainda não foi paga".'
+      ]
+    },
     {
       versao: '5.79.0',
       data: '2026-11-17',
@@ -10717,16 +10724,8 @@
     tela.appendChild(kpis);
     tela.appendChild(cartaoContasDeCasa());
 
-    // Contas a pagar do mês e a sobra prevista, que já desconta o que
-    // ainda vai vencer. Só aparece quando o radar achou alguma conta.
-    if (periodo.tipo === 'mes' && est.sNum != null && contasDoRadar(mesAtivo.ano, mesAtivo.mes).itens.length) {
-      var cContas = cartaoContasDoMes(mesAtivo.ano, mesAtivo.mes, true);
-      var sobraPrev = est.eNum - est.sNum;
-      cContas.appendChild(juntar(no('div', 'sobra-prevista'),
-        no('span', null, 'Sobra prevista no fim do mês'),
-        no('strong', 'num ' + (sobraPrev < 0 ? 'vermelho' : 'verde'), (sobraPrev < 0 ? '− ' : '') + emReais(Math.abs(sobraPrev)))));
-      tela.appendChild(cContas);
-    }
+    // "Contas do mês" saiu das telas a pedido do Vitor (17/11/2026). O radar
+    // continua por trás só para a estimativa de despesas.
 
     // Só aparece quando há algo para conferir.
     var pares = paresDeTransferencia();
@@ -23600,8 +23599,6 @@
     tela.textContent = '';
     tela.appendChild(cabecalho('Planejamento', null, true));
 
-    // As contas do mês, do radar: o que costuma sair e ainda não saiu.
-    tela.appendChild(cartaoContasDoMes(mesAtivo.ano, mesAtivo.mes, false));
 
     var t = totaisDoMes(mesAtivo.ano, mesAtivo.mes);
     var gastos = gastosPorCategoria(mesAtivo.ano, mesAtivo.mes);
@@ -24607,19 +24604,6 @@
         explicacao: 'Você planejou ' + emReais(estado.orcamentos.geral) + ' e gastou ' +
           emReais(base.total) + '.',
         acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
-      });
-    }
-
-    // 5b) Conta do radar que costuma já ter saído e ainda não apareceu.
-    if (noMesAtual) {
-      contasDoRadar(ano, mes).atrasadas.forEach(function (x) {
-        juntarAchado({
-          id: 'conta-' + x.chave, prioridade: 1, icone: '📅', tom: 'atencao',
-          titulo: x.nome + ' ainda não foi paga',
-          valor: '~' + emReais(x.valor), valorCor: 'var(--ouro)',
-          explicacao: 'Costuma vencer dia ' + x.dia + ' e ainda não apareceu no extrato.',
-          acao: { rotulo: 'Ver contas do mês', abrir: function () { fecharFolha(); setTimeout(function () { irPara('planejamento'); }, 160); } }
-        });
       });
     }
 

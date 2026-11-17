@@ -1,5 +1,8 @@
 // Radar de contas: as contas do mês sem DDA.
 //
+// Desde 17/11/2026 a lista saiu das telas (pedido do Vitor: "pode remover
+// tudo"). O radar segue por trás só para a estimativa de despesas.
+//
 // Pedido do Vitor em 03/11/2026 ("1 e 3 pode fazer"): o app reconhece no
 // histórico o que sai uma vez por mês perto do mesmo dia (mesmo com valor
 // mudando), monta a lista do mês, marca como paga quando aparece e avisa
@@ -75,45 +78,25 @@ await page.evaluate((args) => new Promise(res => {
 }), { conta, cartao, L });
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 
-// ---- Planejar ----
+// ---- 17/11/2026: "Contas do mês" saiu das telas a pedido do Vitor ----
 await page.click('#navegacao button:has-text("Planejar")'); await page.waitForTimeout(1200);
-const plan = limpo(await page.textContent('#telaPlanejamento .cartao-contas'));
-console.log('contas:', plan.slice(0, 500));
-conferir('1. a luz entra, com valor de costume, e avisa que ainda não apareceu',
-  /Ceee Equatorial\s*costuma vencer dia 10 · ainda não apareceu\s*~R\$ 195,00/.test(plan));
-conferir('2. a internet deste mês já está paga', /Vivo Fibra\s*paga em 05/.test(plan));
-conferir('3. o aluguel lançado para o dia 25 aparece agendado', /Joao Imoveis\s*agendada para 25/.test(plan));
-conferir('4. a fatura do cartão que vence no mês entra', /Fatura Nubank\s*costuma vencer dia 10 · ainda não apareceu\s*R\$ 300,00/.test(plan));
-conferir('5. compra de mercado, gasto de uma vez só e conta que parou ficam de fora',
-  !/Zaffari|Netflix|Academia/i.test(plan));
-conferir('6. falta pagar R$ 495,00 em 2 das 4 contas',
-  /Falta pagar\s*R\$ 495,00/.test(plan) && /Contas\s*2 de 4/.test(plan), (plan.match(/Falta pagar.{0,60}/) || [''])[0]);
-await page.screenshot({ path: dir + '/z46-contas-do-mes.png', fullPage: true });
+const plan = limpo(await page.textContent('#telaPlanejamento'));
+conferir('1. Planejar não tem mais "Contas do mês"', !/Contas do mês/.test(plan) &&
+  !(await page.locator('#telaPlanejamento .cartao-contas').count()), plan.slice(0, 160));
 
-// ---- tirar do radar e trazer de volta ----
-await page.click('#telaPlanejamento .cartao-contas .linha:has-text("Ceee Equatorial")'); await page.waitForTimeout(800);
-const ficha = limpo(await page.textContent('#folha'));
-conferir('7. a conta mostra os meses de onde saiu o valor', /Costuma vencer\s*dia 10/.test(ficha) && /R\$ 180,40/.test(ficha) && /R\$ 210,10/.test(ficha), ficha.slice(0, 200));
-await page.click('#folha .btn-perigo:has-text("Tirar do radar")'); await page.waitForTimeout(1000);
-let plan2 = limpo(await page.textContent('#telaPlanejamento .cartao-contas'));
-conferir('8. tirada do radar, ela some e o que falta pagar cai', !/Ceee/.test(plan2) && /Falta pagar\s*R\$ 300,00/.test(plan2) && /1 fora do radar/.test(plan2));
-await page.click('#telaPlanejamento .contas-fora'); await page.waitForTimeout(600);
-await page.click('#escolhaLista .escolha-item >> nth=0'); await page.waitForTimeout(900);
-plan2 = limpo(await page.textContent('#telaPlanejamento .cartao-contas'));
-conferir('9. e dá para trazer de volta', /Ceee Equatorial/.test(plan2) && /Falta pagar\s*R\$ 495,00/.test(plan2));
-
-// ---- Visão geral: contas e sobra prevista ----
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
 const inicio = limpo(await page.textContent('#telaInicio'));
+conferir('2. o Início também não, nem a sobra prevista', !/Contas do mês/.test(inicio) && !/Sobra prevista/.test(inicio));
 const desp = (inicio.match(/Despesas\s*R\$ [\d.,]+.{0,40}?Estimativa\s*R\$ ([\d.,]+)/) || [])[1];
 const valorDesp = desp ? Number(desp.replace(/\./g, '').replace(',', '.')) : 0;
-// Saiu este mês: internet 99,90. Falta: 495,00. Agendado (25) já é lançamento do mês: 1.500,00.
-conferir('10. a estimativa de despesas desconta o que falta pagar', valorDesp >= 99.90 + 1500 + 495, 'estimativa ' + desp);
-conferir('11. o Início mostra as contas a pagar e a sobra prevista',
-  /Contas do mês/.test(inicio) && /Falta pagar\s*R\$ 495,00/.test(inicio) && /Sobra prevista no fim do mês\s*(− )?R\$/.test(inicio),
-  (inicio.match(/Contas do mês.{0,200}/) || [''])[0]);
-await page.screenshot({ path: dir + '/z47-inicio-contas.png', fullPage: true });
+// Saiu este mês: internet 99,90. Falta: 495,00. Agendado (25): 1.500,00.
+conferir('3. a estimativa de despesas continua contando o que costuma sair', valorDesp >= 99.90 + 1500 + 495, 'estimativa ' + desp);
+
+await page.click('#telaInicio .kpi-analises'); await page.waitForTimeout(1500);
+const analise = limpo(await page.textContent('#folha'));
+conferir('4. a análise não avisa mais "ainda não foi paga"', !/ainda não foi paga/.test(analise) && !/Ver contas do mês/.test(analise), analise.slice(0, 160));
+await page.screenshot({ path: dir + '/z47-sem-contas-do-mes.png' });
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
-console.log('\ntudo certo: radar de contas');
+console.log('\ntudo certo: contas do mês fora das telas');
