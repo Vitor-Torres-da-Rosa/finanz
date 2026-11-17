@@ -2330,25 +2330,31 @@
   .transf-acoes .btn-mini { flex: 1 1 auto; }
   .transf-par { display: flex; align-items: center; gap: 12px; width: 100%; }
   .transf-par .caixinha { margin-right: 2px; }
-  /* Dica com "i" (pedido de 17/11/2026): abre sozinha na primeira vez e
-     depois encolhe em direção ao "i" do canto. */
+  /* Dica com "i" (pedido de 17/11/2026): na primeira vez abre sozinha e
+     fica aberta até a pessoa tocar fora; aí encolhe até o "i". Enquanto
+     está aberta, o resto da tela fica levemente fosco. */
   .dica-i { margin: 0 0 12px; }
   .dica-i-topo { display: flex; align-items: center; gap: 10px; }
   .dica-i-resumo { flex: 1 1 auto; font-size: 14px; color: var(--suave); line-height: 1.4; }
   .dica-i-botao { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
     border: 1px solid rgba(233,180,76,.6); color: var(--ouro); background: rgba(233,180,76,.06);
     font: italic 700 15px/1 Georgia, serif; }
-  .dica-i-botao[aria-expanded="true"] { background: rgba(233,180,76,.2); }
   .dica-i-botao.chegou { animation: dica-pulso .6s ease-out; }
   @keyframes dica-pulso { 0% { transform: scale(1); } 40% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(233,180,76,.18); } 100% { transform: scale(1); } }
-  .dica-i-balao { overflow: hidden; max-height: 320px; opacity: 1; transform: none; transform-origin: 100% 0;
-    margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(233,180,76,.35);
-    background: rgba(233,180,76,.07); font-size: 13.5px; line-height: 1.45; color: var(--texto);
-    transition: max-height .7s ease, opacity .6s ease, transform .7s cubic-bezier(.5,0,.75,0), margin .7s ease, padding .7s ease; }
-  .dica-i-balao ul { margin: 6px 0 0; padding-left: 18px; color: var(--suave); }
-  .dica-i-balao li { margin-top: 4px; }
-  .dica-i-balao.fechado { max-height: 0; opacity: 0; transform: translate(0, -18px) scale(.08); margin-top: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
-  @media (prefers-reduced-motion: reduce) { .dica-i-balao { transition: none; } .dica-i-botao.chegou { animation: none; } }
+  .dica-fosco { position: fixed; inset: 0; z-index: 140; background: rgba(4,7,10,.2);
+    -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); opacity: 0; transition: opacity .35s ease; }
+  .dica-fosco.visivel { opacity: 1; }
+  .dica-pop { position: fixed; z-index: 141; padding: 14px 16px; border-radius: 16px;
+    border: 1px solid rgba(233,180,76,.45); background: #17130D; box-shadow: 0 14px 40px rgba(0,0,0,.55);
+    font-size: 14px; line-height: 1.45; color: var(--texto);
+    opacity: 0; transform: scale(.06); transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .35s ease; }
+  .dica-pop.visivel { opacity: 1; transform: none; }
+  .dica-i-fantasma { position: fixed; z-index: 141; margin: 0; }
+  .dica-pop.saindo { opacity: 0; transform: scale(.06); transition: transform .6s cubic-bezier(.55,0,.75,.2), opacity .55s ease; }
+  .dica-pop ul { margin: 6px 0 0; padding-left: 18px; color: var(--suave); }
+  .dica-pop li { margin-top: 5px; }
+  .dica-pop .dica-pop-rodape { margin-top: 10px; font-size: 12px; color: var(--suave); opacity: .8; }
+  @media (prefers-reduced-motion: reduce) { .dica-pop, .dica-pop.saindo, .dica-fosco { transition: none; } .dica-i-botao.chegou { animation: none; } }
   .cartao-transf > p.linha-sub { padding: 16px 16px 0; margin: 0; }
   .cartao-transf .transf-acoes { padding: 0 16px; }
   .transf-rodape { display: flex; flex-direction: column; gap: 8px;
@@ -2486,7 +2492,7 @@
       data: '2026-11-17',
       itens: [
         'Cartão de Transferências no Início com o mesmo desenho do Fluxo de caixa: "Ver detalhes" no topo, o valor e uma frase curta.',
-        'Na folha "Transferências entre contas", os avisos viraram uma dica só com um "i" no canto. Na primeira vez ela aparece aberta e depois encolhe até o "i"; é só tocar nele para ver de novo.'
+        'Na folha "Transferências entre contas", os avisos viraram uma dica só com um "i" no canto. Na primeira vez ela abre sozinha, com o resto da tela levemente fosco, e fica até você tocar fora; aí encolhe até o "i". Tocar no "i" mostra de novo.'
       ]
     },
     {
@@ -10879,49 +10885,82 @@
     return el;
   }
 
-  // Uma dica com "i" no canto. Na primeira vez em que a pessoa vê a tela,
-  // o balão abre sozinho e, depois de uns segundos, encolhe até o "i".
-  // Depois disso fica fechado; tocar no "i" abre e fecha. Como várias telas
-  // se redesenham a cada toque, o estado fica guardado por chave.
-  var estadoDasDicas = {};
+  // Uma dica com "i" no canto. Na primeira vez em que a pessoa vê a tela
+  // ela abre sozinha e fica aberta até a pessoa tocar fora; aí encolhe até
+  // o "i". Depois, tocar no "i" mostra de novo. O quadro flutua por cima
+  // de tudo, com o resto da tela levemente fosco.
+  var dicasJaAbertas = {};
   function dicaComI(chave, resumo, titulo, itens) {
-    var est = estadoDasDicas[chave];
-    if (!est) {
-      var jaViu = false;
-      try { jaViu = !!localStorage.getItem('finanz.dica.' + chave); } catch (e) { jaViu = false; }
-      est = estadoDasDicas[chave] = { aberta: !jaViu, ate: jaViu ? 0 : Date.now() + 5000 };
-      if (!jaViu) { try { localStorage.setItem('finanz.dica.' + chave, '1'); } catch (e) { /* sem espaço */ } }
+    var primeira = false;
+    if (!dicasJaAbertas[chave]) {
+      dicasJaAbertas[chave] = true;
+      try { primeira = !localStorage.getItem('finanz.dica.' + chave); } catch (e) { primeira = false; }
+      if (primeira) { try { localStorage.setItem('finanz.dica.' + chave, '1'); } catch (e) { /* sem espaço */ } }
     }
     var caixa = no('div', 'dica-i');
     var topo = no('div', 'dica-i-topo');
-    var botaoI = botao('dica-i-botao', 'i', function () {
-      est.aberta = !est.aberta;
-      est.ate = 0;
-      pintar();
-    });
+    var botaoI = botao('dica-i-botao', 'i', function () { abrirDicaFlutuante(botaoI, titulo, itens); });
     botaoI.setAttribute('aria-label', 'Como funciona');
     juntar(topo, no('div', 'dica-i-resumo', resumo), botaoI);
-    var balao = no('div', 'dica-i-balao');
-    balao.appendChild(no('strong', null, titulo));
+    caixa.appendChild(topo);
+    // Espera a folha terminar de subir para saber onde o "i" está.
+    if (primeira) setTimeout(function () { if (botaoI.isConnected) abrirDicaFlutuante(botaoI, titulo, itens); }, 380);
+    return caixa;
+  }
+
+  var dicaAberta = null;
+  function abrirDicaFlutuante(botaoI, titulo, itens) {
+    if (dicaAberta) return;
+    var r = botaoI.getBoundingClientRect();
+    var largura = Math.min(340, window.innerWidth - 32);
+    var fosco = no('div', 'dica-fosco');
+    var pop = no('div', 'dica-pop');
+    pop.setAttribute('role', 'dialog');
+    pop.appendChild(no('strong', null, titulo));
     var ul = no('ul');
     itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
-    balao.appendChild(ul);
-    juntar(caixa, topo, balao);
-    function pintar() {
-      balao.classList.toggle('fechado', !est.aberta);
-      botaoI.setAttribute('aria-expanded', est.aberta ? 'true' : 'false');
-    }
-    pintar();
-    if (est.aberta && est.ate) {
+    pop.appendChild(ul);
+    pop.appendChild(no('div', 'dica-pop-rodape', 'Toque fora para fechar. O "i" mostra de novo.'));
+    pop.style.width = largura + 'px';
+    pop.style.top = Math.round(r.bottom + 10) + 'px';
+    pop.style.right = Math.max(16, Math.round(window.innerWidth - r.right)) + 'px';
+    // Nasce do "i" e volta para ele.
+    var direita = Math.max(16, Math.round(window.innerWidth - r.right));
+    var esquerdaDoQuadro = window.innerWidth - direita - largura;
+    var origemX = (r.left + r.width / 2) - esquerdaDoQuadro;
+    pop.style.transformOrigin = Math.round(Math.min(largura, Math.max(0, origemX))) + 'px -16px';
+    // O "i" fica nítido por cima do fosco: é dele que o quadro sai.
+    var fantasma = no('div', 'dica-i-botao dica-i-fantasma', 'i');
+    fantasma.style.left = Math.round(r.left) + 'px';
+    fantasma.style.top = Math.round(r.top) + 'px';
+    document.body.appendChild(fosco);
+    document.body.appendChild(fantasma);
+    document.body.appendChild(pop);
+    // Só ao fechar a dica o "i" ganha o destaque de "estou aqui".
+    botaoI.classList.remove('chegou');
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      fosco.classList.add('visivel'); pop.classList.add('visivel');
+    }); });
+    function fechar() {
+      if (dicaAberta !== controle) return;
+      dicaAberta = null;
+      window.removeEventListener('popstate', fechar);
+      pop.classList.add('saindo');
+      fosco.classList.remove('visivel');
       setTimeout(function () {
-        if (!est.ate) return;
-        est.aberta = false;
-        est.ate = 0;
-        pintar();
-        setTimeout(function () { botaoI.classList.add('chegou'); }, 550);
-      }, Math.max(0, est.ate - Date.now()));
+        if (pop.parentNode) pop.parentNode.removeChild(pop);
+        if (fantasma.parentNode) fantasma.parentNode.removeChild(fantasma);
+        if (fosco.parentNode) fosco.parentNode.removeChild(fosco);
+        if (botaoI.isConnected) botaoI.classList.add('chegou');
+      }, 600);
     }
-    return caixa;
+    var controle = { fechar: fechar };
+    dicaAberta = controle;
+    fosco.addEventListener('click', fechar);
+    pop.addEventListener('click', fechar);
+    fantasma.addEventListener('click', fechar);
+    // Voltar (o botão do celular) fecha a folha: a dica vai junto.
+    window.addEventListener('popstate', fechar);
   }
 
   function abrirFolhaTransferencias() {
