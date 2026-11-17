@@ -77,3 +77,13 @@ export async function abrirHistorico(page) {
   const t = page.locator('#folha .historico-toggle[aria-expanded="false"]');
   if (await t.count()) { await t.click(); await page.waitForTimeout(600); }
 }
+
+// A dica com "i" da folha de transferências abre sozinha na primeira vez
+// e fica até a pessoa tocar fora. Quem não está testando a dica toca fora.
+export async function fecharDica(page) {
+  await page.waitForTimeout(700);
+  if (await page.locator('.dica-fosco').count()) {
+    await page.mouse.click(20, 60);
+    await page.waitForTimeout(800);
+  }
+}

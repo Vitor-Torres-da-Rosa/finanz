@@ -4,7 +4,7 @@
 // O nome nunca serviu — cada banco escreve o seu —, e exigir o mesmo dia
 // deixava passar o caso comum: o Pix sai dia 29 e o outro extrato lança
 // dia 31.
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, fecharDica } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -72,7 +72,7 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 
 const tela = async () => limpo(await page.textContent('#telaInicio'));
 conferir('1. o cartão de transferências apareceu', /entre contas para conferir/.test(await tela()));
-await page.click('#telaInicio .ver-transferencias');
+await page.click('#telaInicio .ver-transferencias'); await fecharDica(page);
 await page.waitForTimeout(1500);
 
 const linhas = await page.$$eval('#folha .item-extrato', ns => ns.map(x => x.textContent.replace(/\s+/g,' ')));

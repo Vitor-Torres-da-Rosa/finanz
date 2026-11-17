@@ -1,4 +1,4 @@
-import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { chromium, dir, amostras, ENDERECO, fecharDica } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -62,7 +62,7 @@ console.log('   trecho:', (await tela()).match(/Transferências.{0,150}/)?.[0]);
 const kpi = (await tela()).match(/ReceitasR\$ [\d.,]+/)?.[0] + ' | ' + (await tela()).match(/DespesasR\$ [\d.,]+/)?.[0];
 console.log('2. antes de juntar:', kpi);
 await page.screenshot({ path: dir+'/q01-cartao.png', fullPage:true });
-await page.click('#telaInicio .ver-transferencias'); await page.waitForTimeout(1200);
+await page.click('#telaInicio .ver-transferencias'); await page.waitForTimeout(1200); await fecharDica(page);
 console.log('3. folha:', await page.textContent('#folhaTitulo'));
 const linhas = await page.$$eval('#folha .item-extrato', ns=>ns.map(x=>x.textContent.replace(/\s+/g,' ')));
 console.log('   pares:', linhas.length);

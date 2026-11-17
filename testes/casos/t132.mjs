@@ -18,7 +18,7 @@
 // Aqui: C6 manda para o Inter duas vezes. Uma no mesmo dia, outra com dois
 // dias de diferença entre sair e cair. Junta os dois pares, reimporta o
 // extrato do Inter, e nenhuma das duas linhas pode vir marcada para lançar.
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, fecharDica } from '../comum.mjs';
 import fs from 'node:fs';
 
 const browser = await chromium.launch();
@@ -124,7 +124,7 @@ conferir('1. o app achou os dois pares de transferência',
   (noInicio.match(/\d+ (?:par|pares) entre contas[^.]*\./) || ['(não achei o cartão)'])[0]);
 await page.screenshot({ path: dir+'/w01-pares-achados.png', fullPage: true });
 
-await page.click('#telaInicio .ver-transferencias');
+await page.click('#telaInicio .ver-transferencias'); await fecharDica(page);
 await page.waitForTimeout(1500);
 const botaoJuntar = limpo(await page.textContent('#folha .btn-ouro').catch(() => ''));
 conferir('2. a folha oferece juntar as duas', /Juntar 2 transfer/.test(botaoJuntar), botaoJuntar);

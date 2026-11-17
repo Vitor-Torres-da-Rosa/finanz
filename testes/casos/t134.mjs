@@ -15,7 +15,7 @@
 // E o cartão passou a ficar fora do pareamento: uma compra no cartão com o
 // mesmo valor de uma entrada na corrente era oferecida como par, e aceitar
 // isso apagava uma despesa de verdade.
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, fecharDica } from '../comum.mjs';
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
@@ -130,7 +130,7 @@ conferir('2. antes de juntar, o extrato do Inter tem a linha do banco',
 
 // ---- junta o par ----
 await irParaInicio();
-await page.click('#telaInicio .ver-transferencias');
+await page.click('#telaInicio .ver-transferencias'); await fecharDica(page);
 await page.waitForTimeout(1500);
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1200);
 await page.locator('#dialogoAcoes button').nth(0).click(); await page.waitForTimeout(3500);
