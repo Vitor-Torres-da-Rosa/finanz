@@ -2262,6 +2262,9 @@
   .escolha-falta { margin: 10px 0 6px; }
   .pagamentos-da-parcela { margin-top: 14px; }
   .linha-sub-2.verde { color: var(--verde); }
+  .acertado-pelo-saldo { color: var(--ouro, #E9B44C) !important; border-color: rgba(233,180,76,.45) !important; }
+  .fora-do-saldo { color: var(--vermelho) !important; border-color: rgba(255,107,107,.45) !important; }
+  .conferencia-saldo { margin-top: 6px; font-size: 13px; }
   .linha-sub-2.azul-claro { color: #38BDF8; }
   .lista-parcelas.com-rolagem {
     max-height: 430px; overflow-y: auto; overscroll-behavior: contain;
@@ -2320,8 +2323,44 @@
   .despesa-lucro .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
 
   /* Transferências: título, valor e a pílula. */
-  .transf-corpo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
-  .transf-corpo .valorao { margin: 0; }
+  .transf-corpo { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 12px; margin-top: 6px; }
+  .transf-corpo .valorao { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .transf-corpo .botao-pilula { margin-left: auto; }
+  .transf-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .transf-acoes .btn-mini { flex: 1 1 auto; }
+  .transf-par { display: flex; align-items: center; gap: 12px; width: 100%; }
+  .transf-par .caixinha { margin-right: 2px; }
+  /* Dica com "i" (pedido de 17/11/2026): na primeira vez abre sozinha e
+     fica aberta até a pessoa tocar fora; aí encolhe até o "i". Enquanto
+     está aberta, o resto da tela fica levemente fosco. */
+  .dica-i { margin: 0 0 12px; }
+  .dica-i-topo { display: flex; align-items: center; gap: 10px; }
+  .dica-i-resumo { flex: 1 1 auto; font-size: 14px; color: var(--suave); line-height: 1.4; }
+  .dica-i-botao { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    border: 1px solid rgba(233,180,76,.6); color: var(--ouro); background: rgba(233,180,76,.06);
+    font: italic 700 15px/1 Georgia, serif; }
+  .dica-i-botao.chegou { animation: dica-pulso .6s ease-out; }
+  @keyframes dica-pulso { 0% { transform: scale(1); } 40% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(233,180,76,.18); } 100% { transform: scale(1); } }
+  .dica-fosco { position: fixed; inset: 0; z-index: 140; background: rgba(4,7,10,.2);
+    -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); opacity: 0; transition: opacity .35s ease; }
+  .dica-fosco.visivel { opacity: 1; }
+  .dica-pop { position: fixed; z-index: 141; padding: 14px 16px; border-radius: 16px;
+    border: 1px solid rgba(233,180,76,.45); background: #17130D; box-shadow: 0 14px 40px rgba(0,0,0,.55);
+    font-size: 14px; line-height: 1.45; color: var(--texto);
+    opacity: 0; transform: scale(.06); transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .35s ease; }
+  .dica-pop.visivel { opacity: 1; transform: none; }
+  .dica-i-fantasma { position: fixed; z-index: 141; margin: 0; }
+  .dica-pop.saindo { opacity: 0; transform: scale(.06); transition: transform .6s cubic-bezier(.55,0,.75,.2), opacity .55s ease; }
+  .dica-pop ul { margin: 6px 0 0; padding-left: 18px; color: var(--suave); }
+  .dica-pop li { margin-top: 5px; }
+  .dica-pop .dica-pop-rodape { margin-top: 10px; font-size: 12px; color: var(--suave); opacity: .8; }
+  @media (prefers-reduced-motion: reduce) { .dica-pop, .dica-pop.saindo, .dica-fosco { transition: none; } .dica-i-botao.chegou { animation: none; } }
+  .cartao-transf > p.linha-sub { padding: 16px 16px 0; margin: 0; }
+  .cartao-transf .transf-acoes { padding: 0 16px; }
+  .transf-rodape { display: flex; flex-direction: column; gap: 8px;
+    margin: 4px 16px 12px; padding: 12px; border-radius: 16px; border: 1px solid rgba(233,180,76,.45);
+    background: rgba(233,180,76,.05); }
+  .transf-rodape .btn { margin: 0; }
 
   /* Navegação: o ativo acende em dourado, com um fio de luz embaixo. */
   nav { background: rgba(4,4,5,.94); border-top: 1px solid transparent;
@@ -2439,7 +2478,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.69.0';
+  var VERSAO = '5.74.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2487,48 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.74.0',
+      data: '2026-11-17',
+      itens: [
+        'Cartão de Transferências no Início com o mesmo desenho do Fluxo de caixa: "Ver detalhes" no topo, o valor e uma frase curta.',
+        'Na folha "Transferências entre contas", os avisos viraram uma dica só com um "i" no canto. Na primeira vez ela abre sozinha, com o resto da tela levemente fosco, e fica até você tocar fora; aí encolhe até o "i". Tocar no "i" mostra de novo.'
+      ]
+    },
+    {
+      versao: '5.73.0',
+      data: '2026-11-17',
+      itens: [
+        'Transações › Transferências: cada transferência é uma linha só, com as duas descrições. Tocando numa juntada, dá para desfazer: os dois lançamentos voltam a ser saída e entrada, como eram.',
+        'Botão "Selecionar" nas Transferências: selecionar todas, só as juntadas ou só as não juntadas, e juntar, desfazer ou deixar como está de uma vez.',
+        'Na folha "Transferências entre contas", as que você deixou como estão continuam lá, desmarcadas, para marcar depois. E um aviso de que dá para desfazer.',
+        'O botão "Ver detalhes" do cartão de transferências não sai mais da tela com valores grandes.',
+        'Restaurar um backup não desfaz mais as transferências juntadas.'
+      ]
+    },
+    {
+      versao: '5.72.0',
+      data: '2026-11-17',
+      itens: [
+        'Importar extrato: quando o banco põe o sinal de menos no que sai (como o Inter), o sinal decide. Sem menos é receita, com menos é despesa. "Boleto recebido", "Ressarcimento" e "Pix devolvido" não viram mais despesa por causa da palavra.',
+        'Se a linha tem saldo e o sinal trocado é o que faz o saldo bater, o app usa o sinal certo e avisa "sinal pelo saldo".',
+        'Em cada extrato importado (toque na conta e depois no extrato) tem o botão "Reler e corrigir": lê o arquivo guardado de novo, mostra o que está com o sinal trocado e só corrige se você confirmar. Valor, data e descrição nunca mudam.'
+      ]
+    },
+    {
+      versao: '5.71.0',
+      data: '2026-11-17',
+      itens: [
+        'Importar extrato: quando o extrato tem a coluna de saldo (como o "Saldo por transação" do Banco Inter), o app soma só a coluna do valor e usa o saldo para conferir linha por linha. Na tela de importação aparece "tudo bate ✓" ou quantos lançamentos não batem, marcados em vermelho para você conferir.'
+      ]
+    },
+    {
+      versao: '5.70.0',
+      data: '2026-11-17',
+      itens: [
+        'Extrato do C6: a caixa do topo do PDF ("Período da Exportação" e "Saldo no dia da exportação") não vira mais lançamento. Antes cada PDF somava esse saldo como uma entrada. As entradas fantasmas que já tinham entrado (com a descrição "a dd/mm/aaaa") saíram sozinhas.'
+      ]
+    },
     {
       versao: '5.69.0',
       data: '2026-11-16',
@@ -4906,6 +4987,8 @@
           contaId: texto(l.contaId),
           contaDestinoId: texto(l.contaDestinoId),
           grupo: texto(l.grupo),
+          // Sem isto, restaurar um backup desfazia as transferências juntadas.
+          parTransferencia: texto(l.parTransferencia),
           criadoEm: inteiro(l.criadoEm) || Date.now()
         };
       });
@@ -10733,17 +10816,19 @@
     return pares;
   }
 
+  // Mesmo desenho do "Fluxo de caixa" (pedido de 17/11/2026): o botão no
+  // topo, o valor e uma legenda curta. O botão ao lado do valor saía da
+  // tela com valores grandes.
   function cartaoDeTransferencias(pares) {
-    var c = cartao('reflexo');
-    c.appendChild(topoDeCartao('Transferências entre contas', null, null, 'trocar'));
+    var c = cartao('reflexo cartao-transferencias');
+    var topo = topoDeCartao('Transferências', 'Ver detalhes', function () { abrirFolhaTransferencias(); }, 'trocar');
+    topo.querySelector('.cartao-acao').classList.add('ver-transferencias');
+    c.appendChild(topo);
     var soma = pares.reduce(function (t, p) { return t + p.saida.valor; }, 0);
-    var b = botao('botao-pilula ver-transferencias', null, function () { abrirFolhaTransferencias(); });
-    juntar(b, document.createTextNode('Ver detalhes'), no('span', 'seta', '›'));
-    c.appendChild(juntar(no('div', 'transf-corpo'), no('div', 'valorao num', emReais(soma)), b));
+    c.appendChild(no('div', 'valorao pequeno num', emReais(soma)));
     c.appendChild(no('div', 'linha-nota',
-      (pares.length === 1 ? 'Achei 1 saída com o mesmo valor de uma entrada em outra conta'
-                          : 'Achei ' + pares.length + ' saídas com o mesmo valor de entradas em outras contas') +
-      '. Até conferir, contam como receita de um lado e despesa do outro.'));
+      (pares.length === 1 ? '1 par' : pares.length + ' pares') + ' entre contas para conferir. ' +
+      'Até lá, contam como receita e despesa.'));
     return c;
   }
 
@@ -10800,11 +10885,93 @@
     return el;
   }
 
+  // Uma dica com "i" no canto. Na primeira vez em que a pessoa vê a tela
+  // ela abre sozinha e fica aberta até a pessoa tocar fora; aí encolhe até
+  // o "i". Depois, tocar no "i" mostra de novo. O quadro flutua por cima
+  // de tudo, com o resto da tela levemente fosco.
+  var dicasJaAbertas = {};
+  function dicaComI(chave, resumo, titulo, itens) {
+    var primeira = false;
+    if (!dicasJaAbertas[chave]) {
+      dicasJaAbertas[chave] = true;
+      try { primeira = !localStorage.getItem('finanz.dica.' + chave); } catch (e) { primeira = false; }
+      if (primeira) { try { localStorage.setItem('finanz.dica.' + chave, '1'); } catch (e) { /* sem espaço */ } }
+    }
+    var caixa = no('div', 'dica-i');
+    var topo = no('div', 'dica-i-topo');
+    var botaoI = botao('dica-i-botao', 'i', function () { abrirDicaFlutuante(botaoI, titulo, itens); });
+    botaoI.setAttribute('aria-label', 'Como funciona');
+    juntar(topo, no('div', 'dica-i-resumo', resumo), botaoI);
+    caixa.appendChild(topo);
+    // Espera a folha terminar de subir para saber onde o "i" está.
+    if (primeira) setTimeout(function () { if (botaoI.isConnected) abrirDicaFlutuante(botaoI, titulo, itens); }, 380);
+    return caixa;
+  }
+
+  var dicaAberta = null;
+  function abrirDicaFlutuante(botaoI, titulo, itens) {
+    if (dicaAberta) return;
+    var r = botaoI.getBoundingClientRect();
+    var largura = Math.min(340, window.innerWidth - 32);
+    var fosco = no('div', 'dica-fosco');
+    var pop = no('div', 'dica-pop');
+    pop.setAttribute('role', 'dialog');
+    pop.appendChild(no('strong', null, titulo));
+    var ul = no('ul');
+    itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
+    pop.appendChild(ul);
+    pop.appendChild(no('div', 'dica-pop-rodape', 'Toque fora para fechar. O "i" mostra de novo.'));
+    pop.style.width = largura + 'px';
+    pop.style.top = Math.round(r.bottom + 10) + 'px';
+    pop.style.right = Math.max(16, Math.round(window.innerWidth - r.right)) + 'px';
+    // Nasce do "i" e volta para ele.
+    var direita = Math.max(16, Math.round(window.innerWidth - r.right));
+    var esquerdaDoQuadro = window.innerWidth - direita - largura;
+    var origemX = (r.left + r.width / 2) - esquerdaDoQuadro;
+    pop.style.transformOrigin = Math.round(Math.min(largura, Math.max(0, origemX))) + 'px -16px';
+    // O "i" fica nítido por cima do fosco: é dele que o quadro sai.
+    var fantasma = no('div', 'dica-i-botao dica-i-fantasma', 'i');
+    fantasma.style.left = Math.round(r.left) + 'px';
+    fantasma.style.top = Math.round(r.top) + 'px';
+    document.body.appendChild(fosco);
+    document.body.appendChild(fantasma);
+    document.body.appendChild(pop);
+    // Só ao fechar a dica o "i" ganha o destaque de "estou aqui".
+    botaoI.classList.remove('chegou');
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      fosco.classList.add('visivel'); pop.classList.add('visivel');
+    }); });
+    function fechar() {
+      if (dicaAberta !== controle) return;
+      dicaAberta = null;
+      window.removeEventListener('popstate', fechar);
+      pop.classList.add('saindo');
+      fosco.classList.remove('visivel');
+      setTimeout(function () {
+        if (pop.parentNode) pop.parentNode.removeChild(pop);
+        if (fantasma.parentNode) fantasma.parentNode.removeChild(fantasma);
+        if (fosco.parentNode) fosco.parentNode.removeChild(fosco);
+        if (botaoI.isConnected) botaoI.classList.add('chegou');
+      }, 600);
+    }
+    var controle = { fechar: fechar };
+    dicaAberta = controle;
+    fosco.addEventListener('click', fechar);
+    pop.addEventListener('click', fechar);
+    fantasma.addEventListener('click', fechar);
+    // Voltar (o botão do celular) fecha a folha: a dica vai junto.
+    window.addEventListener('popstate', fechar);
+  }
+
   function abrirFolhaTransferencias() {
-    var pares = paresDeTransferencia();
+    // As que a pessoa deixou como estão voltam aqui, desmarcadas: dá para
+    // mudar de ideia e juntar depois (pedido de 17/11/2026). As que ainda
+    // esperam resposta vêm marcadas, na frente.
+    var pares = paresDeTransferencia(true);
     if (!pares.length) { avisar('Nada para conferir.'); return; }
+    pares.sort(function (a, b) { return (a.ignorado ? 1 : 0) - (b.ignorado ? 1 : 0); });
     var marcados = {};
-    pares.forEach(function (p) { marcados[p.chave] = true; });
+    pares.forEach(function (p) { marcados[p.chave] = !p.ignorado; });
 
     empilhar({ tipo: 'aba', voltar: function () {} });
     montarFolhaTransferencias(pares, marcados);
@@ -10816,10 +10983,12 @@
 
     abrirFolha('Transferências entre contas', function (folha) {
       var forma = no('div');
-      forma.appendChild(no('p', 'ajuda',
-        'Marque as que são o mesmo dinheiro passando de uma conta para outra. ' +
-        'Elas viram uma transferência só e deixam de contar como receita e como despesa. ' +
-        'As que você desmarcar continuam como estão, e eu não pergunto de novo.'));
+      forma.appendChild(dicaComI('transferencias',
+        'Marque as que são dinheiro seu mudando de conta.',
+        'Como funciona',
+        ['Marcada vira transferência: sai de receitas e despesas, e o saldo das contas não muda.',
+         'Desmarcada fica como está e continua aqui para marcar depois.',
+         'Juntou errado? Em Transações › Transferências, toque nela e desfaça.']));
 
       var atalhos = no('div', 'atalhos-extrato');
       atalhos.appendChild(botao('btn-mini', 'Marcar todas', function () {
@@ -10877,12 +11046,15 @@
         meio.appendChild(lados);
 
         // Com a janela de dias, a diferença é o que mais pesa na decisão.
-        if (p.dias) {
-          var quantos = Math.abs(p.dias);
+        if (p.dias || p.ignorado) {
           var nota = no('div', 'item-sub');
-          nota.appendChild(no('span', 'ouro',
-            'chegou ' + quantos + (quantos === 1 ? ' dia ' : ' dias ') +
-            (p.dias > 0 ? 'depois' : 'antes')));
+          if (p.dias) {
+            var quantos = Math.abs(p.dias);
+            nota.appendChild(no('span', 'ouro',
+              'chegou ' + quantos + (quantos === 1 ? ' dia ' : ' dias ') +
+              (p.dias > 0 ? 'depois' : 'antes')));
+          }
+          if (p.ignorado) nota.appendChild(no('span', 'ja-tem', 'você deixou como está'));
           meio.appendChild(nota);
         }
         linha.appendChild(meio);
@@ -10985,7 +11157,7 @@
         (juntar.some(function (p) { return p.dias; })
           ? 'Onde as datas não batem, fica a da saída — é quando o dinheiro saiu. '
           : '') +
-        (ignorar.length ? ignorar.length + ' par(es) ficam como estão e eu não pergunto de novo.' : ''),
+        (ignorar.length ? ignorar.length + ' par(es) ficam como estão; dá para marcar depois nesta mesma tela.' : ''),
       ok: 'Confirmar'
     }, function () {
       if (!estado.paresIgnorados) estado.paresIgnorados = [];
@@ -21726,7 +21898,7 @@
       { valor: 'entrada', rotulo: 'Receitas' },
       { valor: 'saida', rotulo: 'Despesas' },
       { valor: 'transferencia', rotulo: 'Transferências' }
-    ], filtroTransacoes, function (v) { filtroTransacoes = v; desenharTransacoes(); }));
+    ], filtroTransacoes, function (v) { filtroTransacoes = v; selecaoTransf = null; desenharTransacoes(); }));
 
     var container = no('div');
     container.id = 'listaTransacoes';
@@ -21734,41 +21906,188 @@
     desenharListaTransacoes();
   }
 
-  // Os pares achados, do jeito que estão guardados. Cada um abre a escolha
-  // de juntar ou deixar como está.
-  function cartaoDeParesAchados(achados) {
-    var c = cartao('liso');
-    var pendentes = achados.filter(function (p) { return !p.ignorado; }).length;
-    c.appendChild(no('p', 'linha-sub',
-      achados.length + ' par(es) que parecem transferência entre as suas contas e estão ' +
-      'guardados como saída e entrada. ' +
-      (pendentes ? pendentes + ' esperando resposta; t' : 'T') +
-      'oque em um para juntar ou deixar como está.'));
+  // Os pares já juntados, um por transferência, a partir das pernas que
+  // estão na lista do período.
+  function paresJuntados(itens) {
+    var vistos = {}, pares = [];
+    itens.forEach(function (l) {
+      if (!l.parTransferencia) return;
+      var outro = achar(estado.lancamentos, l.parTransferencia);
+      if (!outro) return;
+      var saida = l.tipo === 'saida' ? l : outro.tipo === 'saida' ? outro : l;
+      var entrada = saida === l ? outro : l;
+      var chave = chaveDoPar(saida, entrada);
+      if (vistos[chave]) return;
+      vistos[chave] = true;
+      pares.push({ saida: saida, entrada: entrada, chave: chave, juntado: true,
+                   dias: diasEntre(saida.data, entrada.data) });
+    });
+    return pares;
+  }
 
-    achados.forEach(function (p) {
+  // Seleção na aba de Transferências (pedido de 17/11/2026): null quando
+  // não está selecionando; senão, as chaves marcadas.
+  var selecaoTransf = null;
+
+  function estadoDoPar(p) {
+    return p.juntado ? 'juntada' : p.ignorado ? 'você mandou deixar como está' : 'ainda não juntada';
+  }
+
+  // Todas as transferências do período numa lista só: as juntadas, as que
+  // o app achou e as que a pessoa deixou como estão. Tocar abre o que dá
+  // para fazer com ela; "Selecionar" faz várias de uma vez.
+  function cartaoDeParesAchados(pares) {
+    pares = pares.slice().sort(function (a, b) {
+      return a.saida.data < b.saida.data ? 1 : a.saida.data > b.saida.data ? -1 : 0;
+    });
+    var c = cartao('liso cartao-transf');
+    var juntadas = pares.filter(function (p) { return p.juntado; }).length;
+    var pendentes = pares.filter(function (p) { return !p.juntado && !p.ignorado; }).length;
+    var nota = no('p', 'linha-sub',
+      (juntadas ? juntadas + ' juntada(s), fora de receitas e despesas. ' : '') +
+      (pares.length - juntadas ? (pares.length - juntadas) + ' par(es) que parecem transferência e estão guardados como saída e entrada' +
+        (pendentes ? ', ' + pendentes + ' esperando resposta' : '') + '. ' : '') +
+      'Toque em uma para juntar ou desfazer.');
+    c.appendChild(nota);
+
+    var sel = selecaoTransf;
+    var acoesTopo = no('div', 'transf-acoes');
+    if (!sel) {
+      acoesTopo.appendChild(botao('btn-mini botao-selecionar-transf', 'Selecionar', function () {
+        selecaoTransf = {};
+        desenharListaTransacoes();
+      }));
+    } else {
+      var todas = pares.every(function (p) { return sel[p.chave]; });
+      acoesTopo.appendChild(botao('btn-mini', todas ? 'Desmarcar todas' : 'Selecionar todas', function () {
+        pares.forEach(function (p) { if (todas) delete sel[p.chave]; else sel[p.chave] = true; });
+        desenharListaTransacoes();
+      }));
+      acoesTopo.appendChild(botao('btn-mini', 'Só as juntadas', function () {
+        pares.forEach(function (p) { if (p.juntado) sel[p.chave] = true; else delete sel[p.chave]; });
+        desenharListaTransacoes();
+      }));
+      acoesTopo.appendChild(botao('btn-mini', 'Só as não juntadas', function () {
+        pares.forEach(function (p) { if (!p.juntado) sel[p.chave] = true; else delete sel[p.chave]; });
+        desenharListaTransacoes();
+      }));
+      acoesTopo.appendChild(botao('btn-mini', 'Cancelar', function () {
+        selecaoTransf = null;
+        desenharListaTransacoes();
+      }));
+    }
+    c.appendChild(acoesTopo);
+
+    if (sel) {
+      var escolhidos = pares.filter(function (p) { return sel[p.chave]; });
+      var aJuntar = escolhidos.filter(function (p) { return !p.juntado; });
+      var aDesfazer = escolhidos.filter(function (p) { return p.juntado; });
+      var aDeixar = escolhidos.filter(function (p) { return !p.juntado && !p.ignorado; });
+      var rodape = no('div', 'transf-rodape');
+      rodape.appendChild(no('div', 'linha-sub', escolhidos.length
+        ? escolhidos.length + ' selecionada(s)' : 'Toque nas transferências para selecionar.'));
+      if (aJuntar.length) rodape.appendChild(botao('btn btn-ouro', 'Juntar ' + aJuntar.length, function () {
+        acaoEmLote('juntar', aJuntar);
+      }));
+      if (aDesfazer.length) rodape.appendChild(botao('btn btn-fantasma', 'Desfazer ' + aDesfazer.length + ' juntada(s)', function () {
+        acaoEmLote('desfazer', aDesfazer);
+      }));
+      if (aDeixar.length) rodape.appendChild(botao('btn btn-fantasma', 'Deixar ' + aDeixar.length + ' como está', function () {
+        acaoEmLote('deixar', aDeixar);
+      }));
+      c.appendChild(rodape);
+    }
+
+    pares.forEach(function (p) {
       var de = achar(estado.contas, p.saida.contaId);
       var para = achar(estado.contas, p.entrada.contaId);
-      var linha = botao('linha', null, function () { abrirParAchado(p); });
+      var marcado = !!(sel && sel[p.chave]);
+      var linha = botao('linha transf-linha' + (p.juntado ? ' transf-juntada' : ''), null, function () {
+        if (selecaoTransf) {
+          if (selecaoTransf[p.chave]) delete selecaoTransf[p.chave]; else selecaoTransf[p.chave] = true;
+          desenharListaTransacoes();
+          return;
+        }
+        abrirParAchado(p);
+      });
+      if (sel) linha.appendChild(no('span', 'caixinha' + (marcado ? ' marcada' : ''), marcado ? '✓' : ''));
       juntar(linha,
-        selo(p.ignorado ? '#7C7362' : '#5FA8FF', '⇄'),
+        selo(p.juntado ? '#E9B44C' : p.ignorado ? '#7C7362' : '#5FA8FF', '⇄'),
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo',
             (de ? de.nome : 'conta removida') + ' → ' + (para ? para.nome : 'conta removida')),
           no('div', 'linha-sub',
             dataBr(p.saida.data) + (p.dias ? ' · chegou ' + Math.abs(p.dias) +
               (Math.abs(p.dias) === 1 ? ' dia ' : ' dias ') + (p.dias > 0 ? 'depois' : 'antes') : '') +
-            ' · ' + (p.ignorado ? 'você mandou deixar como está' : 'ainda não juntada'))),
+            ' · ' + estadoDoPar(p)),
+          // O que cada banco escreveu, para reconhecer no extrato.
+          no('div', 'linha-sub transf-descs',
+            (p.saida.descricao || p.saida.categoria || '') + ' → ' + (p.entrada.descricao || p.entrada.categoria || ''))),
         juntar(no('div', 'linha-fim'),
           no('div', 'linha-valor num azul', emReais(p.saida.valor)),
-          no('div', 'linha-sub', p.ignorado ? 'rever ›' : 'resolver ›')));
+          no('div', 'linha-sub', sel ? '' : p.juntado ? 'desfazer ›' : p.ignorado ? 'rever ›' : 'resolver ›')));
       c.appendChild(linha);
     });
+
     return c;
+  }
+
+  function acaoEmLote(qual, pares) {
+    var n = pares.length;
+    var t = {
+      juntar: ['Juntar ' + n + ' transferência(s)?', 'Cada par vira uma transferência e sai das receitas e das despesas. O saldo das contas continua igual, e dá para desfazer aqui depois.', 'Juntar'],
+      desfazer: ['Desfazer ' + n + ' transferência(s)?', 'Os dois lançamentos de cada uma voltam a ser como eram: uma saída numa conta e uma entrada na outra, contando como despesa e receita. Nada é apagado.', 'Desfazer'],
+      deixar: ['Deixar ' + n + ' como está?', 'Continuam como saída e entrada. Ficam nesta lista para você juntar depois se quiser.', 'Deixar como está']
+    }[qual];
+    perguntar({ titulo: t[0], texto: t[1], ok: t[2] }, function () {
+      var feitos = 0;
+      pares.forEach(function (p) {
+        if (qual === 'juntar') { if (juntarUmPar(p)) feitos++; }
+        else if (qual === 'desfazer') { separarParDeTransferencia(p.saida); feitos++; }
+        if (qual !== 'juntar') {
+          if (!estado.paresIgnorados) estado.paresIgnorados = [];
+          if (estado.paresIgnorados.indexOf(p.chave) < 0) estado.paresIgnorados.push(p.chave);
+          if (qual === 'deixar') feitos++;
+        }
+      });
+      comMotivo(qual === 'juntar' ? 'você juntou ' + feitos + ' transferência(s)'
+              : qual === 'desfazer' ? 'você desfez ' + feitos + ' transferência(s)'
+              : 'você deixou ' + feitos + ' par(es) como estão');
+      selecaoTransf = null;
+      salvar();
+      desenhar();
+      avisar(qual === 'juntar' ? feitos + ' transferência(s) juntadas.'
+           : qual === 'desfazer' ? feitos + ' transferência(s) desfeitas.' : 'Anotado.');
+    });
   }
 
   function abrirParAchado(p) {
     var de = achar(estado.contas, p.saida.contaId);
     var para = achar(estado.contas, p.entrada.contaId);
+    var lados = '\n\n− Saiu ' + dataBr(p.saida.data) + ' · ' + (de ? de.nome : 'conta removida') + '\n' +
+                (p.saida.descricao || p.saida.categoria || '') +
+                '\n\n+ Entrou ' + dataBr(p.entrada.data) + ' · ' + (para ? para.nome : 'conta removida') + '\n' +
+                (p.entrada.descricao || p.entrada.categoria || '');
+    // Juntada: a escolha é desfazer, devolvendo os dois como eram.
+    if (p.juntado) {
+      perguntar({
+        titulo: 'Desfazer esta transferência?',
+        texto: emReais(p.saida.valor) + ' de ' + (de ? de.nome : '?') + ' para ' + (para ? para.nome : '?') + '.' + lados +
+          '\n\nDesfazendo, os dois voltam a ser como eram: a saída conta como despesa e a entrada como receita. Nada é apagado.',
+        ok: 'Desfazer',
+        cancelar: 'Voltar'
+      }, function () {
+        separarParDeTransferencia(p.saida);
+        // Sem isto o app sugeriria o mesmo par de novo logo em seguida.
+        if (!estado.paresIgnorados) estado.paresIgnorados = [];
+        if (estado.paresIgnorados.indexOf(p.chave) < 0) estado.paresIgnorados.push(p.chave);
+        comMotivo('você desfez uma transferência');
+        salvar();
+        desenhar();
+        avisar('Transferência desfeita. Os dois lançamentos voltaram a ser como eram.');
+      });
+      return;
+    }
     if (!de || !para) {
       avisarCaixa('Falta uma das contas',
         'Uma das contas deste par não existe mais, então não dá para juntar: a ' +
@@ -21778,9 +22097,9 @@
     perguntar({
       titulo: 'Juntar numa transferência?',
       texto: emReais(p.saida.valor) + ' saindo de ' + de.nome + ' e entrando em ' +
-        para.nome + ', em ' + dataBr(p.saida.data) + '.\n\nJuntando, os dois viram uma ' +
+        para.nome + '.' + lados + '\n\nJuntando, os dois viram uma ' +
         'transferência só: sai das receitas e das despesas, e o saldo das duas contas ' +
-        'continua igual.',
+        'continua igual. Dá para desfazer aqui depois.',
       ok: 'Juntar',
       cancelar: p.ignorado ? 'Voltar a sugerir' : 'Deixar como está',
       aoCancelar: function () {
@@ -21986,13 +22305,23 @@
     // vida real, independente de como estão guardadas aqui dentro. A aba
     // mostrava só as já juntadas, e quem nunca juntou via "Nenhum
     // lançamento" tendo nove pares achados na tela inicial.
+    var temPares = false;
     if (filtroTransacoes === 'transferencia' && !termo) {
       var achados = paresDeTransferencia(true).filter(function (p) {
         return p.saida.data >= faixa.de && p.saida.data <= faixa.ate;
       });
-      if (achados.length) alvo.appendChild(cartaoDeParesAchados(achados));
+      var juntados = paresJuntados(itens);
+      if (achados.length || juntados.length) {
+        temPares = true;
+        alvo.appendChild(cartaoDeParesAchados(juntados.concat(achados)));
+      }
     }
+    // As pernas dos pares juntados já estão no cartão de cima, uma linha
+    // por transferência. Repetir cada perna embaixo era ver tudo em dobro.
+    var naLista = filtroTransacoes === 'transferencia' && !termo
+      ? itens.filter(function (l) { return !l.parTransferencia; }) : itens;
 
+    if (!itens.length && temPares) return;
     if (!itens.length) {
       var c = cartao('liso');
       c.appendChild(estadoVazio(
@@ -22009,7 +22338,7 @@
     }
 
     var porDia = {};
-    itens.forEach(function (l) { (porDia[l.data] = porDia[l.data] || []).push(l); });
+    naLista.forEach(function (l) { (porDia[l.data] = porDia[l.data] || []).push(l); });
 
     Object.keys(porDia).sort().reverse().forEach(function (data) {
       var doDia = porDia[data].slice().sort(function (a, b) { return (b.criadoEm || 0) - (a.criadoEm || 0); });
@@ -22871,6 +23200,11 @@
       baixar.disabled = true;
       baixar.style.marginTop = '12px';
       c.appendChild(baixar);
+      // Reler o arquivo guardado e acertar só o sinal (pedido de
+      // 17/11/2026). Nunca roda sozinho: só quando a pessoa toca.
+      var reler = botao('btn btn-fantasma botao-reler', 'Reler e corrigir', function () {});
+      reler.disabled = true;
+      reler.style.marginTop = '8px';
       listarArquivosDeExtrato(contaId).then(function (lista) {
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
@@ -22879,6 +23213,12 @@
           avisar('Baixando...');
           baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
         };
+        if (vieram.length) {
+          c.appendChild(reler);
+          c.appendChild(no('div', 'linha-nota', 'Lê o arquivo de novo e acerta só o que estiver com o sinal trocado (receita lançada como despesa ou o contrário). Valor, data e descrição ficam como estão.'));
+          reler.disabled = false;
+          reler.onclick = function () { relerECorrigirExtrato(contaId, impId, a); };
+        }
       }).catch(function () { baixar.textContent = 'Arquivo não guardado'; });
       folha.appendChild(c);
       if (!vieram.length) {
@@ -24877,7 +25217,33 @@
 
   // ---------- Despacho ----------
 
+  // O saldo da exportação do C6 que entrou como lançamento antes da
+  // 5.70.0: entrada vinda de extrato com a descrição só "a 10/11/2020".
+  // Sai sozinho, uma vez, e a importação fica com a conta certa.
+  var conferidosSaldoExportacao = -1;
+  function tirarSaldosDaExportacao() {
+    if (!estado || !estado.lancamentos || conferidosSaldoExportacao === estado.lancamentos.length) return;
+    var fora = {}, porLeva = {};
+    estado.lancamentos.forEach(function (l) {
+      if (l.importacaoId && l.tipo === 'entrada' && /^a\s+\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(l.descricao || '').trim())) {
+        fora[l.id] = true;
+        porLeva[l.importacaoId] = (porLeva[l.importacaoId] || 0) + 1;
+      }
+    });
+    var ids = Object.keys(fora);
+    if (ids.length) {
+      ids.forEach(function (id) { marcarExcluido('lancamentos', id); });
+      estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+      (estado.importacoes || []).forEach(function (i) {
+        if (porLeva[i.id]) i.quantos = Math.max(0, (i.quantos || 0) - porLeva[i.id]);
+      });
+      salvar();
+    }
+    conferidosSaldoExportacao = estado.lancamentos.length;
+  }
+
   function desenhar() {
+    tirarSaldosDaExportacao();
     limparCacheDeFatura();
     cacheRadar = {};
     if (telaAtiva !== 'inicio') soltarExtratos();
@@ -29284,6 +29650,11 @@
       if (!s) return true;
       // Cabeçalho de mês com o resumo do período: "Setembro 2025 (...) Entradas: ... Saídas: ..."
       if (/entradas?\s*:/.test(s) && /saidas?\s*:/.test(s)) return true;
+      // A caixa do topo do extrato do C6: "Período da Exportação 30/01/2019 a
+      // 10/11/2020 · Saldo no dia da exportação R$ 200,00". Não é lançamento
+      // (17/11/2026: virava uma entrada de R$ 200 a cada PDF).
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}\s+a\s+\d{1,2}\/\d{1,2}\/\d{4}\b/.test(s)) return true;
+      if (/periodo da exportacao|saldo no dia da exportacao/.test(s)) return true;
       if (/^[a-z]+\s+\d{4}\s*\(/.test(s)) return true;
       for (var i = 0; i < PULAR.length; i++) if (PULAR[i].test(s)) return true;
       // Linha que é só valor monetário, sem descrição nenhuma: sobra de um
@@ -29488,6 +29859,23 @@
       var comSaldo = pareceColunaDeSaldo(candidatos) ||
                      temColunaDeSaldo(linhas.join('\n'));
       var saldoFinal = null;
+      var cheio = linhas.join('\n');
+      var fatura = pareceFatura(cheio, nomeArquivo);
+
+      // Extrato que põe menos no que sai (Inter, C6, Nubank): o sinal é a
+      // palavra do banco. Sem menos é entrada, com menos é saída, e a
+      // descrição não manda mais nada (pedido de 17/11/2026: "Boleto
+      // recebido" e "Pagamento cartão devolvido" viravam despesa porque o
+      // texto tinha "boleto" e "pagamento"). Palavra só decide quando o
+      // extrato não tem sinal nenhum. Fatura segue a regra dela.
+      var temSinais = !fatura && candidatos.some(function (c) {
+        var vs = c.valores;
+        var v = comSaldo && vs.length >= 2 ? vs[vs.length - 2] : vs[vs.length - 1];
+        return v && v.valor && v.negativo;
+      });
+      // Com a coluna de saldo, cada linha vira uma conferência (pedido de
+      // 17/11/2026): o saldo de antes mais o valor tem de dar o saldo dela.
+      var paraConferir = [];
 
       candidatos.forEach(function (c) {
         var linha = c.linha, d = c.d, valores = c.valores;
@@ -29515,6 +29903,7 @@
         if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
         else if (v.negativo) tipo = 'saida';
         else if (coluna) tipo = coluna.tipo;
+        else if (temSinais) tipo = 'entrada';
         else {
           var s = semAcento(descricao);
           if (ENTRADA.test(s) && !SAIDA.test(s)) tipo = 'entrada';
@@ -29527,26 +29916,70 @@
 
         // A categoria sai do texto inteiro: a coluna de tipo também dá pista.
         var achada = categoriaDe(textoCheio, tipo);
-        itens.push({
+        var novoItem = {
           data: d.data, descricao: descricao.slice(0, 80), valor: v.valor, tipo: tipo,
           categoria: achada.categoria, subcategoria: achada.subcategoria,
           descricaoCheia: textoCheio,
           negativoNoTexto: v.negativo || (marca && marca[1] === 'D'),
           credito: CREDITO_NA_FATURA.test(semAcento(textoCheio))
-        });
+        };
+        itens.push(novoItem);
+        if (comSaldo && valores.length >= 2) {
+          paraConferir.push({ item: novoItem, saldo: comSinal(valores[valores.length - 1]),
+                              efeito: tipo === 'saida' ? -v.valor : v.valor });
+        }
       });
+
+      // A conferência com a coluna de saldo. O extrato pode vir do mais
+      // antigo para o mais novo ou ao contrário: vale o sentido em que mais
+      // linhas batem. Se quase nenhuma bate, a coluna não é saldo corrente
+      // e nada é marcado.
+      var conferenciaSaldo = null;
+      if (paraConferir.length >= 2) {
+        var bateCresc = 0, bateDecr = 0, n = paraConferir.length - 1;
+        for (var k = 1; k < paraConferir.length; k++) {
+          var a0 = paraConferir[k - 1], b0 = paraConferir[k];
+          if (Math.abs(a0.saldo + b0.efeito - b0.saldo) <= 1) bateCresc++;
+          if (Math.abs(b0.saldo + a0.efeito - a0.saldo) <= 1) bateDecr++;
+        }
+        var crescente = bateCresc >= bateDecr;
+        var batem = Math.max(bateCresc, bateDecr);
+        if (batem >= n * 0.5) {
+          var fora = 0, acertados = 0;
+          for (var q = 1; q < paraConferir.length; q++) {
+            var antes = paraConferir[q - 1], agora = paraConferir[q];
+            var dele = crescente ? agora : antes;
+            var de = crescente ? antes.saldo : agora.saldo, para = crescente ? agora.saldo : antes.saldo;
+            if (Math.abs(de + dele.efeito - para) <= 1) continue;
+            // Com o sinal trocado bate? Então o saldo do banco prova o
+            // sentido: fica o que o saldo diz, e a linha sai acertada.
+            if (Math.abs(de - dele.efeito - para) <= 1) {
+              var it = dele.item;
+              it.tipo = it.tipo === 'saida' ? 'entrada' : 'saida';
+              var nova = categoriaDe(it.descricaoCheia || it.descricao, it.tipo);
+              it.categoria = nova.categoria;
+              it.subcategoria = nova.subcategoria;
+              it.acertadoPeloSaldo = true;
+              dele.efeito = -dele.efeito;
+              acertados++;
+              continue;
+            }
+            fora++; dele.item.foraDoSaldo = true;
+          }
+          conferenciaSaldo = { conferidas: n, fora: fora, acertados: acertados };
+        }
+      }
 
       // Sem ano na linha o C6 vira o ano no meio do extrato: 12/12 depois 05/01.
       arrumarVirada(itens);
 
-      var cheio = linhas.join('\n');
-      var fatura = pareceFatura(cheio, nomeArquivo);
       var vencimento = fatura ? acharVencimento(cheio, nomeArquivo, ano) : '';
       if (fatura) { ajeitarFatura(itens); anoCertoNaFatura(itens, vencimento); }
       // O saldo que o próprio banco imprime na última linha é a melhor prova
       // de que a leitura saiu certa: dá para comparar com a conta do app.
       return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
-               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento };
+               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento,
+               conferenciaSaldo: fatura ? null : conferenciaSaldo };
     }
 
     function arrumarVirada(itens) {
@@ -30483,6 +30916,7 @@
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
       saldoFinal: lido.saldoFinal == null ? null : lido.saldoFinal,
+      conferenciaSaldo: lido.conferenciaSaldo || null,
       contaId: contaIdParaProximoExtrato || contaSugerida(lido),
       lote: lote || null
     };
@@ -30824,6 +31258,18 @@
           juntar(no('div', 'resumo-par'),
             no('span', 'verde', (dados.fatura ? 'Créditos ' : 'Entradas ') + emReais(entra)),
             no('span', 'vermelho', (dados.fatura ? 'Gastos ' : 'Saídas ') + emReais(sai))));
+        // A coluna "Saldo por transação" conferida linha por linha: só a
+        // coluna do valor soma; o saldo diz se a leitura saiu certa.
+        var cs = dados.conferenciaSaldo;
+        if (cs) {
+          resumo.appendChild(no('div', 'resumo-linha conferencia-saldo ' + (cs.fora ? 'vermelho' : 'verde'), cs.fora
+            ? cs.fora + ' lançamento(s) não batem com o saldo da linha no extrato. Confira os marcados em vermelho.'
+            : 'Conferido com o saldo de cada linha do extrato: tudo bate ✓'));
+          if (cs.acertados) {
+            resumo.appendChild(no('div', 'resumo-linha conferencia-saldo',
+              cs.acertados + ' lançamento(s) tiveram o sinal acertado pelo saldo da linha.'));
+          }
+        }
         principal.textContent = escolhidos.length ? 'Importar ' + escolhidos.length + ' lançamento' + (escolhidos.length > 1 ? 's' : '') : 'Nada marcado';
         principal.disabled = !escolhidos.length;
       }
@@ -30923,6 +31369,8 @@
             });
           });
         sub.appendChild(subEtiqueta);
+        if (it.foraDoSaldo) sub.appendChild(no('span', 'ja-tem fora-do-saldo', 'não bate com o saldo'));
+        if (it.acertadoPeloSaldo) sub.appendChild(no('span', 'ja-tem acertado-pelo-saldo', 'sinal pelo saldo'));
         if (it.repetido) {
           sub.appendChild(no('span', 'ja-tem', it.motivoRepetido && it.motivoRepetido !== 'igual'
             ? 'já existe · ' + it.motivoRepetido : 'já existe'));
@@ -31598,6 +32046,86 @@
     }).catch(function () {
       avisar('Não consegui baixar o arquivo para relançar.');
     });
+  }
+
+  // Lê de novo o arquivo de um extrato já importado e compara com o que
+  // entrou. Só o tipo (receita ou despesa) e a categoria podem mudar, e só
+  // depois de a pessoa ver a lista e confirmar.
+  function relerECorrigirExtrato(contaId, impId, a) {
+    avisar('Relendo o arquivo guardado...');
+    bytesDeArquivoDeExtrato(a.id).then(function (x) {
+      var nome = x.nome || a.nome || 'extrato';
+      var tipo = x.tipo || a.tipo || 'application/octet-stream';
+      var arq;
+      try { arq = new File([x.bytes], nome, { type: tipo }); }
+      catch (e) { arq = new Blob([x.bytes], { type: tipo }); arq.name = nome; }
+      lerUmExtrato(arq, '', function (lido) {
+        limparAviso();
+        var vieram = estado.lancamentos.filter(function (l) {
+          return l.importacaoId === impId && (l.tipo === 'entrada' || l.tipo === 'saida');
+        });
+        if (!lido || !lido.itens.length) {
+          avisarCaixa('Não consegui reler', 'O arquivo guardado não trouxe lançamentos que eu soubesse ler. Nada foi mudado.', function () {});
+          return;
+        }
+        var trocas = trocasDeSinal(vieram, lido.itens);
+        if (!trocas.length) {
+          avisarCaixa('Está tudo certo', 'Reli o arquivo e os ' + vieram.length +
+            ' lançamento(s) deste extrato estão com o sinal que o banco mostra. Nada foi mudado.', function () {});
+          return;
+        }
+        var lista = trocas.slice(0, 8).map(function (t) {
+          return '• ' + dataBr(t.l.data) + ' ' + t.l.descricao + ' ' + emReais(t.l.valor) + ': ' +
+                 (t.it.tipo === 'entrada' ? 'despesa → receita' : 'receita → despesa');
+        }).join('\n') + (trocas.length > 8 ? '\n• e mais ' + (trocas.length - 8) : '');
+        perguntar({
+          titulo: 'Corrigir ' + trocas.length + ' lançamento(s)?',
+          texto: 'Reli o arquivo e estes estão com o sinal trocado:\n' + lista +
+                 '\n\nSó muda receita/despesa e a categoria. Valor, data e descrição ficam.',
+          ok: 'Corrigir'
+        }, function () {
+          trocas.forEach(function (t) {
+            t.l.tipo = t.it.tipo;
+            t.l.categoria = t.it.categoria;
+            t.l.subcategoria = t.it.subcategoria || '';
+          });
+          comMotivo('você corrigiu o sinal de ' + trocas.length + ' lançamento(s) relendo o extrato');
+          salvar();
+          desenhar();
+          fecharFolha();
+          setTimeout(function () {
+            abrirLevaDeExtrato(contaId, impId);
+            avisar(trocas.length + ' lançamento(s) corrigido(s).');
+          }, 260);
+        });
+      });
+    }).catch(function () {
+      limparAviso();
+      avisar('Não consegui baixar o arquivo para reler.');
+    });
+  }
+
+  // Casa cada lançamento com a linha do arquivo pelo valor, e pela data
+  // ou pela descrição. Devolve só os que estão com o tipo diferente.
+  function trocasDeSinal(vieram, itens) {
+    var usados = {};
+    var norm = function (t) { return semAcentoSimples(String(t || '')).replace(/\s+/g, ' ').trim(); };
+    var trocas = [];
+    vieram.forEach(function (l) {
+      var melhor = -1, nota = 0;
+      itens.forEach(function (it, k) {
+        if (usados[k] || it.valor !== l.valor) return;
+        var n = (it.data === l.data ? 2 : 0) + (norm(it.descricao) === norm(l.descricao) ? 1 : 0);
+        // Um lançamento com o tipo já igual vale um pouco mais: entre dois
+        // iguais, fica o que não precisa mexer.
+        if (n && it.tipo === l.tipo) n += 0.5;
+        if (n > nota) { nota = n; melhor = k; }
+      });
+      if (melhor < 0) return;
+      usados[melhor] = true;
+      if (itens[melhor].tipo !== l.tipo) trocas.push({ l: l, it: itens[melhor] });
+    });
+    return trocas;
   }
 
   function listarInstantaneos() {
