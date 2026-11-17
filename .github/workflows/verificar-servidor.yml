@@ -1,0 +1,70 @@
+# Verifica se o servidor do Supabase está de pé, sem mexer em nada.
+#
+# Por que existe: em 17/11/2026 o app disse "não achei o servidor". Do
+# lado de quem escreve o código não dá para alcançar o Supabase, então o
+# GitHub olha: o nome resolve? a API responde? o projeto está ativo ou
+# pausado? Só lê. Pode rodar quantas vezes quiser.
+#
+# Como rodar: Actions > "Verificar servidor do Supabase" > Run workflow.
+
+name: Verificar servidor do Supabase
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar
+        env:
+          TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+        run: |
+          set -uo pipefail
+          URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' config.js | head -1)
+          HOST=${URL#https://}
+          REF=${HOST%%.*}
+          echo "Projeto: $REF ($URL)"
+          echo
+
+          echo "== 1. O endereço existe? (DNS)"
+          if getent hosts "$HOST"; then
+            echo "ok: o nome resolve."
+          else
+            echo "NÃO RESOLVEU: o endereço não existe no DNS agora."
+          fi
+          echo
+
+          echo "== 2. A API responde?"
+          for CAMINHO in /rest/v1/ /auth/v1/health; do
+            CODIGO=$(curl -sS -o /dev/null -w '%{http_code} em %{time_total}s' --max-time 20 "$URL$CAMINHO" 2>&1) || CODIGO="sem resposta ($CODIGO)"
+            echo "$CAMINHO -> $CODIGO"
+          done
+          echo "(401 em /rest/v1/ é normal: quer dizer que o servidor respondeu e pediu login.)"
+          echo
+
+          echo "== 3. Estado do projeto na conta"
+          if [ -z "${TOKEN:-}" ]; then
+            echo "Sem o segredo SUPABASE_TOKEN: pulo esta parte."
+            exit 0
+          fi
+          RESP=$(mktemp)
+          CODIGO=$(curl -sS -o "$RESP" -w '%{http_code}' --max-time 20 \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://api.supabase.com/v1/projects/$REF") || CODIGO=000
+          if [ "$CODIGO" = "200" ]; then
+            jq '{nome: .name, estado: .status, regiao: .region}' < "$RESP"
+            ESTADO=$(jq -r '.status' < "$RESP")
+            case "$ESTADO" in
+              ACTIVE_HEALTHY) echo "ok: projeto ativo e saudável." ;;
+              INACTIVE|PAUSED*) echo "ATENÇÃO: o projeto está pausado. Reative em supabase.com/dashboard." ;;
+              *) echo "Estado fora do normal: $ESTADO" ;;
+            esac
+          else
+            echo "Não consegui ler o estado do projeto (HTTP $CODIGO)."
+          fi
