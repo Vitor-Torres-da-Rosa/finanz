@@ -2330,6 +2330,25 @@
   .transf-acoes .btn-mini { flex: 1 1 auto; }
   .transf-par { display: flex; align-items: center; gap: 12px; width: 100%; }
   .transf-par .caixinha { margin-right: 2px; }
+  /* Dica com "i" (pedido de 17/11/2026): abre sozinha na primeira vez e
+     depois encolhe em direção ao "i" do canto. */
+  .dica-i { margin: 0 0 12px; }
+  .dica-i-topo { display: flex; align-items: center; gap: 10px; }
+  .dica-i-resumo { flex: 1 1 auto; font-size: 14px; color: var(--suave); line-height: 1.4; }
+  .dica-i-botao { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    border: 1px solid rgba(233,180,76,.6); color: var(--ouro); background: rgba(233,180,76,.06);
+    font: italic 700 15px/1 Georgia, serif; }
+  .dica-i-botao[aria-expanded="true"] { background: rgba(233,180,76,.2); }
+  .dica-i-botao.chegou { animation: dica-pulso .6s ease-out; }
+  @keyframes dica-pulso { 0% { transform: scale(1); } 40% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(233,180,76,.18); } 100% { transform: scale(1); } }
+  .dica-i-balao { overflow: hidden; max-height: 320px; opacity: 1; transform: none; transform-origin: 100% 0;
+    margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(233,180,76,.35);
+    background: rgba(233,180,76,.07); font-size: 13.5px; line-height: 1.45; color: var(--texto);
+    transition: max-height .7s ease, opacity .6s ease, transform .7s cubic-bezier(.5,0,.75,0), margin .7s ease, padding .7s ease; }
+  .dica-i-balao ul { margin: 6px 0 0; padding-left: 18px; color: var(--suave); }
+  .dica-i-balao li { margin-top: 4px; }
+  .dica-i-balao.fechado { max-height: 0; opacity: 0; transform: translate(0, -18px) scale(.08); margin-top: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
+  @media (prefers-reduced-motion: reduce) { .dica-i-balao { transition: none; } .dica-i-botao.chegou { animation: none; } }
   .cartao-transf > p.linha-sub { padding: 16px 16px 0; margin: 0; }
   .cartao-transf .transf-acoes { padding: 0 16px; }
   .transf-rodape { display: flex; flex-direction: column; gap: 8px;
@@ -2453,7 +2472,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.73.0';
+  var VERSAO = '5.74.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2462,6 +2481,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.74.0',
+      data: '2026-11-17',
+      itens: [
+        'Cartão de Transferências no Início com o mesmo desenho do Fluxo de caixa: "Ver detalhes" no topo, o valor e uma frase curta.',
+        'Na folha "Transferências entre contas", os avisos viraram uma dica só com um "i" no canto. Na primeira vez ela aparece aberta e depois encolhe até o "i"; é só tocar nele para ver de novo.'
+      ]
+    },
     {
       versao: '5.73.0',
       data: '2026-11-17',
@@ -10783,17 +10810,19 @@
     return pares;
   }
 
+  // Mesmo desenho do "Fluxo de caixa" (pedido de 17/11/2026): o botão no
+  // topo, o valor e uma legenda curta. O botão ao lado do valor saía da
+  // tela com valores grandes.
   function cartaoDeTransferencias(pares) {
-    var c = cartao('reflexo');
-    c.appendChild(topoDeCartao('Transferências entre contas', null, null, 'trocar'));
+    var c = cartao('reflexo cartao-transferencias');
+    var topo = topoDeCartao('Transferências', 'Ver detalhes', function () { abrirFolhaTransferencias(); }, 'trocar');
+    topo.querySelector('.cartao-acao').classList.add('ver-transferencias');
+    c.appendChild(topo);
     var soma = pares.reduce(function (t, p) { return t + p.saida.valor; }, 0);
-    var b = botao('botao-pilula ver-transferencias', null, function () { abrirFolhaTransferencias(); });
-    juntar(b, document.createTextNode('Ver detalhes'), no('span', 'seta', '›'));
-    c.appendChild(juntar(no('div', 'transf-corpo'), no('div', 'valorao num', emReais(soma)), b));
+    c.appendChild(no('div', 'valorao pequeno num', emReais(soma)));
     c.appendChild(no('div', 'linha-nota',
-      (pares.length === 1 ? 'Achei 1 saída com o mesmo valor de uma entrada em outra conta'
-                          : 'Achei ' + pares.length + ' saídas com o mesmo valor de entradas em outras contas') +
-      '. Até conferir, contam como receita de um lado e despesa do outro.'));
+      (pares.length === 1 ? '1 par' : pares.length + ' pares') + ' entre contas para conferir. ' +
+      'Até lá, contam como receita e despesa.'));
     return c;
   }
 
@@ -10850,6 +10879,51 @@
     return el;
   }
 
+  // Uma dica com "i" no canto. Na primeira vez em que a pessoa vê a tela,
+  // o balão abre sozinho e, depois de uns segundos, encolhe até o "i".
+  // Depois disso fica fechado; tocar no "i" abre e fecha. Como várias telas
+  // se redesenham a cada toque, o estado fica guardado por chave.
+  var estadoDasDicas = {};
+  function dicaComI(chave, resumo, titulo, itens) {
+    var est = estadoDasDicas[chave];
+    if (!est) {
+      var jaViu = false;
+      try { jaViu = !!localStorage.getItem('finanz.dica.' + chave); } catch (e) { jaViu = false; }
+      est = estadoDasDicas[chave] = { aberta: !jaViu, ate: jaViu ? 0 : Date.now() + 5000 };
+      if (!jaViu) { try { localStorage.setItem('finanz.dica.' + chave, '1'); } catch (e) { /* sem espaço */ } }
+    }
+    var caixa = no('div', 'dica-i');
+    var topo = no('div', 'dica-i-topo');
+    var botaoI = botao('dica-i-botao', 'i', function () {
+      est.aberta = !est.aberta;
+      est.ate = 0;
+      pintar();
+    });
+    botaoI.setAttribute('aria-label', 'Como funciona');
+    juntar(topo, no('div', 'dica-i-resumo', resumo), botaoI);
+    var balao = no('div', 'dica-i-balao');
+    balao.appendChild(no('strong', null, titulo));
+    var ul = no('ul');
+    itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
+    balao.appendChild(ul);
+    juntar(caixa, topo, balao);
+    function pintar() {
+      balao.classList.toggle('fechado', !est.aberta);
+      botaoI.setAttribute('aria-expanded', est.aberta ? 'true' : 'false');
+    }
+    pintar();
+    if (est.aberta && est.ate) {
+      setTimeout(function () {
+        if (!est.ate) return;
+        est.aberta = false;
+        est.ate = 0;
+        pintar();
+        setTimeout(function () { botaoI.classList.add('chegou'); }, 550);
+      }, Math.max(0, est.ate - Date.now()));
+    }
+    return caixa;
+  }
+
   function abrirFolhaTransferencias() {
     // As que a pessoa deixou como estão voltam aqui, desmarcadas: dá para
     // mudar de ideia e juntar depois (pedido de 17/11/2026). As que ainda
@@ -10870,14 +10944,12 @@
 
     abrirFolha('Transferências entre contas', function (folha) {
       var forma = no('div');
-      forma.appendChild(no('p', 'ajuda',
-        'Marque as que são o mesmo dinheiro passando de uma conta para outra. ' +
-        'Elas viram uma transferência só e deixam de contar como receita e como despesa. ' +
-        'As que você desmarcar continuam como estão e ficam aqui, desmarcadas, para você marcar depois se quiser ' +
-        '(também em Transações › Transferências).'));
-      forma.appendChild(no('div', 'linha-nota aviso-desfazer-transf',
-        'Juntou e se arrependeu? Em Transações › Transferências dá para tocar numa transferência e desfazer: ' +
-        'os dois lançamentos voltam a ser como eram.'));
+      forma.appendChild(dicaComI('transferencias',
+        'Marque as que são dinheiro seu mudando de conta.',
+        'Como funciona',
+        ['Marcada vira transferência: sai de receitas e despesas, e o saldo das contas não muda.',
+         'Desmarcada fica como está e continua aqui para marcar depois.',
+         'Juntou errado? Em Transações › Transferências, toque nela e desfaça.']));
 
       var atalhos = no('div', 'atalhos-extrato');
       atalhos.appendChild(botao('btn-mini', 'Marcar todas', function () {

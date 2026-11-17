@@ -120,11 +120,11 @@ await semDialogo();
 await irParaInicio(); await page.waitForTimeout(1200);
 const noInicio = limpo(await page.textContent('#telaInicio'));
 conferir('1. o app achou os dois pares de transferência',
-  /Achei 2 saídas com o mesmo valor/.test(noInicio),
-  (noInicio.match(/Achei [^.]*\./) || ['(não achei o cartão)'])[0]);
+  /2 pares entre contas para conferir/.test(noInicio),
+  (noInicio.match(/\d+ (?:par|pares) entre contas[^.]*\./) || ['(não achei o cartão)'])[0]);
 await page.screenshot({ path: dir+'/w01-pares-achados.png', fullPage: true });
 
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias');
+await page.click('#telaInicio .ver-transferencias');
 await page.waitForTimeout(1500);
 const botaoJuntar = limpo(await page.textContent('#folha .btn-ouro').catch(() => ''));
 conferir('2. a folha oferece juntar as duas', /Juntar 2 transfer/.test(botaoJuntar), botaoJuntar);

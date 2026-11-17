@@ -148,9 +148,18 @@ await irParaInicio();
 await page.click('#telaInicio .ver-transferencias'); await page.waitForTimeout(1200);
 const fl = limpo(await page.textContent('#folha'));
 const caixas = await page.$$eval('#folha .item-extrato', ns => ns.map(n => (n.querySelector('.caixinha.marcada') ? 'X' : '_') + (n.textContent.includes('deixou como está') ? 'ign' : 'novo')));
-conferir('11. na folha, o novo vem marcado e o deixado de lado aparece desmarcado, com o aviso de desfazer',
-  caixas.join(',') === 'Xnovo,_ign' && /Em Transações › Transferências dá para tocar numa transferência e desfazer/.test(fl), caixas.join(',') + ' | ' + fl.slice(0, 200));
+const abertaNaPrimeira = await page.locator('#folha .dica-i-balao:not(.fechado)').count();
+conferir('11. na folha, o novo vem marcado e o deixado de lado aparece desmarcado; a dica abre sozinha na primeira vez',
+  caixas.join(',') === 'Xnovo,_ign' && abertaNaPrimeira === 1 && /Juntou errado\? Em Transações › Transferências, toque nela e desfaça/.test(fl),
+  caixas.join(',') + ' | ' + abertaNaPrimeira + ' | ' + fl.slice(0, 200));
 await page.screenshot({ path: dir+'/z88-folha-transf.png' });
+await page.waitForTimeout(6500);
+const fechou = await page.locator('#folha .dica-i-balao.fechado').count();
+await page.screenshot({ path: dir+'/z93-dica-recolhida.png' });
+await page.click('#folha .dica-i-botao'); await page.waitForTimeout(900);
+const reabriu = await page.locator('#folha .dica-i-balao:not(.fechado)').count();
+conferir('11b. depois de uns segundos a dica encolhe até o "i", e tocar no "i" abre de novo', fechou === 1 && reabriu === 1, fechou + ' / ' + reabriu);
+await page.click('#folha .dica-i-botao'); await page.waitForTimeout(900);
 await page.goBack(); await page.waitForTimeout(800);
 
 // ---- seleção: todas, juntar; só as juntadas, desfazer ----

@@ -117,7 +117,8 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 // ---- o cartão não pode ser oferecido como par ----
 await irParaInicio(); await page.waitForTimeout(1400);
 const inicio = limpo(await page.textContent('#telaInicio'));
-const achou = inicio.match(/Achei (\d+) saídas? com o mesmo valor/);
+const notaTransf = limpo(await page.textContent('#telaInicio .cartao-transferencias .linha-nota').catch(() => ''));
+const achou = notaTransf.match(/^(\d+) (?:par|pares) entre contas para conferir/);
 conferir('1. o app acha 1 par só — a compra no cartão fica de fora',
   !!achou && achou[1] === '1', achou ? achou[0] : '(nenhum par achado)');
 
@@ -129,7 +130,7 @@ conferir('2. antes de juntar, o extrato do Inter tem a linha do banco',
 
 // ---- junta o par ----
 await irParaInicio();
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias');
+await page.click('#telaInicio .ver-transferencias');
 await page.waitForTimeout(1500);
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1200);
 await page.locator('#dialogoAcoes button').nth(0).click(); await page.waitForTimeout(3500);

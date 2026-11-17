@@ -71,8 +71,8 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1600);
 
 const tela = async () => limpo(await page.textContent('#telaInicio'));
-conferir('1. o cartão de transferências apareceu', /Transferências entre contas/.test(await tela()));
-await page.click('#telaInicio .cartao:has-text("Transferências entre contas") .ver-transferencias');
+conferir('1. o cartão de transferências apareceu', /entre contas para conferir/.test(await tela()));
+await page.click('#telaInicio .ver-transferencias');
 await page.waitForTimeout(1500);
 
 const linhas = await page.$$eval('#folha .item-extrato', ns => ns.map(x => x.textContent.replace(/\s+/g,' ')));
@@ -98,7 +98,7 @@ await page.screenshot({ path: dir+'/v01-pares.png', fullPage: true });
 // --- juntar fica com a data da saída, que é quando o dinheiro saiu ---
 await page.click('#folha .btn-ouro:has-text("Juntar")'); await page.waitForTimeout(900);
 await page.click('#dialogoAcoes button:has-text("Confirmar")'); await page.waitForTimeout(2500);
-conferir('8. o cartão sumiu depois de juntar', !/Transferências entre contas/.test(await tela()));
+conferir('8. o cartão sumiu depois de juntar', !/entre contas para conferir/.test(await tela()));
 
 await page.click('#navegacao button:has-text("Transações")'); await page.waitForTimeout(1600);
 const transacoes = limpo(await page.textContent('#telaTransacoes'));
