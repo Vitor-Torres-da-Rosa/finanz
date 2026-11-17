@@ -2483,7 +2483,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.76.0';
+  var VERSAO = '5.77.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2492,6 +2492,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.77.0',
+      data: '2026-11-17',
+      itens: [
+        'Salvar na nuvem depois de apagar muitos lançamentos ficou rápido e firme: as exclusões sobem em lotes, não uma por uma, e um tropeço da rede é tentado de novo sozinho. Era isso que dava "não achei o servidor" depois de apagar milhares de lançamentos.',
+        'Se cair no meio, o envio continua de onde parou na próxima vez, em vez de recomeçar do zero.'
+      ]
+    },
     {
       versao: '5.76.0',
       data: '2026-11-17',
@@ -5936,9 +5944,9 @@
     }
     var onde = '';
     try { onde = new URL(NUVEM.url).host; } catch (erro) { onde = NUVEM.url || ''; }
-    return 'Este aparelho tem internet, mas não achei o servidor' +
+    return 'Este aparelho tem internet, mas o servidor' +
       (onde ? ' (' + onde + ')' : '') +
-      '. Ele pode estar fora do ar, pausado, ou o endereço pode ter mudado.';
+      ' não respondeu. Pode ser a conexão oscilando no meio do envio, ou ele estar fora do ar ou pausado.';
   }
 
   function carregarProvedores() {
@@ -6509,16 +6517,48 @@
     return achados.length ? achados : null;
   }
 
+  // Falha de rede no meio de uma sincronização grande não pode derrubar
+  // tudo (17/11/2026: o Vitor apagou 2744 lançamentos, a sincronização
+  // virou milhares de pedidos em fila, e um tropeço da rede no meio dava
+  // "não achei o servidor"). Erro de rede, 429 e 5xx são passageiros:
+  // tento de novo até 3 vezes, esperando um pouco mais a cada vez.
+  function ehFalhaPassageira(e) {
+    var st = e && (e.status || e.codigoHttp);
+    if (st === 429 || (st >= 500 && st < 600)) return true;
+    return /failed to fetch|networkerror|load failed|network request failed|o servidor não respondeu/i.test(String((e && e.message) || ''));
+  }
+  function comTentativas(fazer, vezes) {
+    vezes = vezes == null ? 3 : vezes;
+    return fazer().catch(function (e) {
+      if (vezes <= 0 || !ehFalhaPassageira(e)) throw e;
+      return new Promise(function (r) { setTimeout(r, (4 - vezes) * 900); })
+        .then(function () { return comTentativas(fazer, vezes - 1); });
+    });
+  }
+
+  var LOTE_DE_ENVIO = 400;
+
   function enviarLinhas(tabela, linhas, aoConflito) {
     if (!linhas.length) return Promise.resolve();
     if (faltaNoBanco['tabela:' + tabela]) return Promise.resolve();
+    // Milhares de linhas num pedido só pesam no celular e, se a rede cair
+    // no meio, perdem tudo. Em lotes, cada um sobe por conta própria.
+    if (linhas.length > LOTE_DE_ENVIO) {
+      var lotes = [];
+      for (var i = 0; i < linhas.length; i += LOTE_DE_ENVIO) lotes.push(linhas.slice(i, i + LOTE_DE_ENVIO));
+      return lotes.reduce(function (antes, lote) {
+        return antes.then(function () { return enviarLinhas(tabela, lote, aoConflito); });
+      }, Promise.resolve());
+    }
     var tirar = faltaNoBanco['colunas:' + tabela] || [];
     var corpo = tirar.length ? semColunas(linhas, tirar) : linhas;
     var caminho = '/rest/v1/' + tabela + (aoConflito ? '?on_conflict=' + aoConflito : '');
-    return pedirNuvem(caminho, {
-      metodo: 'POST',
-      corpo: corpo,
-      cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+    return comTentativas(function () {
+      return pedirNuvem(caminho, {
+        metodo: 'POST',
+        corpo: corpo,
+        cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+      });
     }).catch(function (e) {
       var faltando = oQueFaltou(e, tabela);
       if (faltando) {
@@ -6568,19 +6608,43 @@
     // A lista é lida dentro da corrente, não ao montá-la: a limpeza da
     // troca total só enche `excluidos` quando roda, e um forEach aqui fora
     // leria a lista vazia.
+    //
+    // Em lotes de 80 por tabela, e não um pedido por linha: apagar 2744
+    // lançamentos eram 2744 pedidos em fila, minutos de espera, e bastava
+    // um tropeçar para tudo recomeçar do zero. Cada lote que sobe sai da
+    // lista na hora, então uma falha no meio continua de onde parou.
+    var marcasDestaVez = [];
     tarefa = tarefa.then(function () {
-      return (estado.excluidos || []).reduce(function (antes, marca) {
-        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return antes;
-        if (faltaNoBanco['tabela:' + marca.t]) return antes;
+      marcasDestaVez = (estado.excluidos || []).slice();
+      var porTabela = {};
+      marcasDestaVez.forEach(function (marca) {
+        if (TABELAS_SINCRONIA.indexOf(marca.t) < 0) return;
+        if (faltaNoBanco['tabela:' + marca.t]) return;
+        (porTabela[marca.t] = porTabela[marca.t] || []).push(marca.id);
+      });
+      var lotes = [];
+      Object.keys(porTabela).forEach(function (t) {
+        var ids = porTabela[t];
+        for (var i = 0; i < ids.length; i += 80) lotes.push({ t: t, ids: ids.slice(i, i + 80) });
+      });
+      return lotes.reduce(function (antes, lote) {
         return antes.then(function () {
-          return pedirNuvem('/rest/v1/' + marca.t + '?id=eq.' + encodeURIComponent(marca.id), {
-            metodo: 'PATCH',
-            corpo: { excluido_em: agora },
-            cabecalhos: { 'Prefer': 'return=minimal' }
+          if (faltaNoBanco['tabela:' + lote.t]) return null;
+          var lista = lote.ids.map(function (id) { return '"' + String(id).replace(/"/g, '') + '"'; }).join(',');
+          return comTentativas(function () {
+            return pedirNuvem('/rest/v1/' + lote.t + '?id=in.(' + encodeURIComponent(lista) + ')', {
+              metodo: 'PATCH',
+              corpo: { excluido_em: agora },
+              cabecalhos: { 'Prefer': 'return=minimal' }
+            });
+          }).then(function () {
+            var feitos = {};
+            lote.ids.forEach(function (id) { feitos[lote.t + '|' + id] = true; });
+            estado.excluidos = (estado.excluidos || []).filter(function (m) { return !feitos[m.t + '|' + m.id]; });
           }).catch(function (e) {
             // Sem a tabela lá, a linha nunca subiu: não há o que apagar.
-            if (TABELAS_OPCIONAIS.indexOf(marca.t) >= 0 && ehTabelaQueFalta(e)) {
-              faltaNoBanco['tabela:' + marca.t] = true;
+            if (TABELAS_OPCIONAIS.indexOf(lote.t) >= 0 && ehTabelaQueFalta(e)) {
+              faltaNoBanco['tabela:' + lote.t] = true;
               return null;
             }
             throw e;
@@ -6588,9 +6652,11 @@
         });
       }, Promise.resolve());
     }).then(function () {
-      // Só depois de a limpeza ter subido inteira. Falhando no meio, as
-      // marcas continuam de pé e a próxima tentativa refaz o serviço.
-      estado.excluidos = [];
+      // Só depois de a limpeza ter subido inteira. As marcas que chegaram
+      // durante a sincronização ficam para a próxima.
+      var vistas = {};
+      marcasDestaVez.forEach(function (m) { vistas[m.t + '|' + m.id] = true; });
+      estado.excluidos = (estado.excluidos || []).filter(function (m) { return !vistas[m.t + '|' + m.id]; });
       estado.trocaTotal = false;
     });
 

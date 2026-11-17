@@ -67,6 +67,13 @@ function condicoes(params) {
     const [, op, alvo] = m;
     const COMPARA = { eq: '=', neq: '<>', lt: '<', lte: '<=', gt: '>', gte: '>=' };
     if (COMPARA[op]) { valores.push(alvo); onde.push(`"${chave}" ${COMPARA[op]} $${valores.length}`); }
+    else if (op === 'in') {
+      // `in.("a","b",c)`: a lista vira um array e o filtro, = ANY.
+      const dentro = /^\((.*)\)$/.exec(alvo);
+      if (!dentro) throw new Error('filtro in mal formado: ' + alvo);
+      const itens = dentro[1] === '' ? [] : dentro[1].split(',').map((x) => x.trim().replace(/^"(.*)"$/, '$1'));
+      valores.push(itens); onde.push(`"${chave}"::text = ANY($${valores.length}::text[])`);
+    }
     else if (op === 'is') { onde.push(`"${chave}" IS ${alvo.toUpperCase() === 'NULL' ? 'NULL' : 'NOT NULL'}`); }
     else if (op === 'not' && /^is\.null$/i.test(alvo)) { onde.push(`"${chave}" IS NOT NULL`); }
   }
