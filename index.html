@@ -209,7 +209,7 @@
     pointer-events: none;
   }
   .rosca-centro .t { font-size: 11px; color: var(--suave); }
-  .rosca-centro .v { font-size: 17px; font-weight: 700; }
+  .rosca-centro .v { font-size: 17px; font-weight: 700; white-space: nowrap; max-width: 100px; margin: 0 auto; }
 
   .legenda { display: flex; flex-direction: column; gap: 9px; }
   .legenda-item { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
@@ -2483,7 +2483,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.75.0';
+  var VERSAO = '5.76.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2492,6 +2492,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.76.0',
+      data: '2026-11-17',
+      itens: [
+        'Distribuição de gastos: o valor no meio do gráfico diminui a letra quando é grande e fica sempre dentro do círculo.'
+      ]
+    },
     {
       versao: '5.75.0',
       data: '2026-11-17',
@@ -8386,7 +8393,14 @@
     caixa.appendChild(svg);
 
     var meio = no('div', 'rosca-centro');
-    juntar(meio, no('div', 't', rotuloCentro || 'Total'), no('div', 'v', emReais(total)));
+    // O furo da rosca tem uns 110px. Valor grande encolhe a letra para
+    // caber inteiro dentro do círculo (pedido de 17/11/2026: "R$
+    // 1.012.826,56" passava por cima do anel).
+    var textoCentro = emReais(total);
+    var valorCentro = no('div', 'v', textoCentro);
+    var tamanho = Math.min(17, 94 / (textoCentro.length * 0.53));
+    valorCentro.style.fontSize = Math.max(9, Math.floor(tamanho * 10) / 10) + 'px';
+    juntar(meio, no('div', 't', rotuloCentro || 'Total'), valorCentro);
     caixa.appendChild(meio);
 
     return caixa;
