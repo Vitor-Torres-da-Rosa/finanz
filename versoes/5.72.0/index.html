@@ -2262,6 +2262,9 @@
   .escolha-falta { margin: 10px 0 6px; }
   .pagamentos-da-parcela { margin-top: 14px; }
   .linha-sub-2.verde { color: var(--verde); }
+  .acertado-pelo-saldo { color: var(--ouro, #E9B44C) !important; border-color: rgba(233,180,76,.45) !important; }
+  .fora-do-saldo { color: var(--vermelho) !important; border-color: rgba(255,107,107,.45) !important; }
+  .conferencia-saldo { margin-top: 6px; font-size: 13px; }
   .linha-sub-2.azul-claro { color: #38BDF8; }
   .lista-parcelas.com-rolagem {
     max-height: 430px; overflow-y: auto; overscroll-behavior: contain;
@@ -2439,7 +2442,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.66.0';
+  var VERSAO = '5.72.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2451,51 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.72.0',
+      data: '2026-11-17',
+      itens: [
+        'Importar extrato: quando o banco põe o sinal de menos no que sai (como o Inter), o sinal decide. Sem menos é receita, com menos é despesa. "Boleto recebido", "Ressarcimento" e "Pix devolvido" não viram mais despesa por causa da palavra.',
+        'Se a linha tem saldo e o sinal trocado é o que faz o saldo bater, o app usa o sinal certo e avisa "sinal pelo saldo".',
+        'Em cada extrato importado (toque na conta e depois no extrato) tem o botão "Reler e corrigir": lê o arquivo guardado de novo, mostra o que está com o sinal trocado e só corrige se você confirmar. Valor, data e descrição nunca mudam.'
+      ]
+    },
+    {
+      versao: '5.71.0',
+      data: '2026-11-17',
+      itens: [
+        'Importar extrato: quando o extrato tem a coluna de saldo (como o "Saldo por transação" do Banco Inter), o app soma só a coluna do valor e usa o saldo para conferir linha por linha. Na tela de importação aparece "tudo bate ✓" ou quantos lançamentos não batem, marcados em vermelho para você conferir.'
+      ]
+    },
+    {
+      versao: '5.70.0',
+      data: '2026-11-17',
+      itens: [
+        'Extrato do C6: a caixa do topo do PDF ("Período da Exportação" e "Saldo no dia da exportação") não vira mais lançamento. Antes cada PDF somava esse saldo como uma entrada. As entradas fantasmas que já tinham entrado (com a descrição "a dd/mm/aaaa") saíram sozinhas.'
+      ]
+    },
+    {
+      versao: '5.69.0',
+      data: '2026-11-16',
+      itens: [
+        'Contas: tocando numa conta, aparece o cartão "Extratos" com cada extrato importado dela (período, arquivo e quantos lançamentos). Tocando num extrato, você vê o saldo com que ele terminava, as entradas e saídas, os lançamentos que vieram dele e pode baixar o arquivo original. "+ Importar" importa outro.',
+        'Sino de avisos: agora é um aviso para cada banco. Cada conta com 5 dias ou mais sem lançamentos do extrato aparece separada (ex.: "C6 Bank: 7 dias sem extrato"), mesmo que você tenha atualizado o extrato de outro banco.'
+      ]
+    },
+    {
+      versao: '5.68.0',
+      data: '2026-11-16',
+      itens: [
+        'Sino de avisos: com 5 dias ou mais sem lançamentos vindos do extrato, o sino acende e o primeiro aviso diz quantos dias faz, com o botão para importar o extrato.'
+      ]
+    },
+    {
+      versao: '5.67.0',
+      data: '2026-11-16',
+      itens: [
+        'Contas de casa › Mercado: além de "Tirar foto da nota", dá para escolher uma foto que já está na galeria do celular. A compra sem foto virou "+ Sem foto", ao lado.'
+      ]
+    },
     {
       versao: '5.66.0',
       data: '2026-11-14',
@@ -20986,10 +21034,12 @@
     });
   }
 
-  function escolherFotoDaNota() {
+  // `daGaleria`: sem o "capture", o celular deixa escolher uma foto já
+  // tirada (pedido de 16/11/2026); com ele, abre direto a câmera.
+  function escolherFotoDaNota(daGaleria) {
     var inp = document.createElement('input');
     inp.type = 'file'; inp.accept = 'image/*';
-    inp.setAttribute('capture', 'environment');
+    if (!daGaleria) inp.setAttribute('capture', 'environment');
     inp.className = 'input-arquivo';
     inp.id = 'fotoDaNota';
     inp.addEventListener('change', function () {
@@ -21263,8 +21313,11 @@
     c.appendChild(no('div', 'linha-nota', 'Sua parte: ' + emReais(m.meu) + '. Só a base para dividir: não entra nas despesas.'));
     folha.appendChild(c);
     var ac = no('div', 'acoes');
-    ac.appendChild(botao('btn btn-ouro', 'Foto da nota', function () { escolherFotoDaNota(); }));
-    ac.appendChild(botao('btn btn-fantasma', '+ Compra sem foto', function () { porCima(reabrir, function () { abrirCompraDeMercado(null, null); }); }));
+    ac.appendChild(botao('btn btn-ouro', 'Tirar foto da nota', function () { escolherFotoDaNota(false); }));
+    var linhaFoto = no('div', 'duas');
+    linhaFoto.appendChild(botao('btn btn-fantasma', 'Foto da galeria', function () { escolherFotoDaNota(true); }));
+    linhaFoto.appendChild(botao('btn btn-fantasma', '+ Sem foto', function () { porCima(reabrir, function () { abrirCompraDeMercado(null, null); }); }));
+    ac.appendChild(linhaFoto);
     folha.appendChild(ac);
     var cl = cartao('liso');
     if (!m.lista.length) cl.appendChild(estadoVazio('Nenhuma compra em ' + MESES[mesAtivo.mes], 'Tire uma foto da nota: o app lê item por item e você confere antes de salvar.'));
@@ -22816,6 +22869,76 @@
     });
   }
 
+  // Um extrato importado: o período, o saldo com que terminava, os
+  // lançamentos que vieram dele e o arquivo original, se está guardado.
+  function abrirLevaDeExtrato(contaId, impId) {
+    var i = achar(estado.importacoes || [], impId);
+    if (!i) return;
+    abrirFolha(i.de ? 'Extrato de ' + dataBr(i.de) + ' a ' + dataBr(i.ate) : 'Extrato', function (folha) {
+      var vieram = estado.lancamentos.filter(function (l) { return l.importacaoId === impId; })
+        .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; });
+      var entrou = 0, saiu = 0;
+      vieram.forEach(function (l) { var e = efeitoNaConta(l, contaId); if (e > 0) entrou += e; else saiu -= e; });
+      var c = cartao('detalhe-uber-lucro');
+      [['Arquivo', i.arquivo || '—', ''], ['Banco', i.banco || '—', ''],
+       ['Importado em', dataBr(deData(new Date(i.quando || Date.now()))), ''],
+       ['Lançamentos', String(vieram.length), ''],
+       ['Entradas', '+ ' + emReais(entrou), 'verde'], ['Saídas', '− ' + emReais(saiu), 'vermelho']].forEach(function (x) {
+        var l = no('div', 'parcela-linha');
+        juntar(l, no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1]));
+        c.appendChild(l);
+      });
+      if (i.saldoExtrato != null) {
+        var ls = no('div', 'parcela-linha total');
+        juntar(ls, no('span', 'q', 'Saldo no fim do extrato'), no('span', 'v num' + (i.saldoExtrato < 0 ? ' vermelho' : ''), emReais(i.saldoExtrato)));
+        c.appendChild(ls);
+      }
+      var baixar = botao('btn btn-fantasma', 'Baixar o arquivo', function () {});
+      baixar.disabled = true;
+      baixar.style.marginTop = '12px';
+      c.appendChild(baixar);
+      // Reler o arquivo guardado e acertar só o sinal (pedido de
+      // 17/11/2026). Nunca roda sozinho: só quando a pessoa toca.
+      var reler = botao('btn btn-fantasma botao-reler', 'Reler e corrigir', function () {});
+      reler.disabled = true;
+      reler.style.marginTop = '8px';
+      listarArquivosDeExtrato(contaId).then(function (lista) {
+        var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
+        if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
+        baixar.disabled = false;
+        baixar.onclick = function () {
+          avisar('Baixando...');
+          baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
+        };
+        if (vieram.length) {
+          c.appendChild(reler);
+          c.appendChild(no('div', 'linha-nota', 'Lê o arquivo de novo e acerta só o que estiver com o sinal trocado (receita lançada como despesa ou o contrário). Valor, data e descrição ficam como estão.'));
+          reler.disabled = false;
+          reler.onclick = function () { relerECorrigirExtrato(contaId, impId, a); };
+        }
+      }).catch(function () { baixar.textContent = 'Arquivo não guardado'; });
+      folha.appendChild(c);
+      if (!vieram.length) {
+        var vz = cartao('liso');
+        vz.appendChild(estadoVazio('Nenhum lançamento', 'Os lançamentos deste extrato foram apagados ou movidos.'));
+        folha.appendChild(vz);
+      }
+      // Dia a dia, como na lista da conta.
+      var diaAtual = '', cl = null;
+      vieram.slice(0, 400).forEach(function (l) {
+        if (l.data !== diaAtual) {
+          diaAtual = l.data;
+          var doDia = vieram.filter(function (x) { return x.data === diaAtual; });
+          var totalDia = doDia.reduce(function (t, x) { return t + efeitoNaConta(x, contaId); }, 0);
+          folha.appendChild(juntar(no('div', 'dia-cabecalho'), no('div', 'dia-nome', nomeDoDia(diaAtual)), no('div', 'dia-total num', comSinal(totalDia))));
+          cl = cartao('liso');
+          folha.appendChild(cl);
+        }
+        cl.appendChild(linhaExtrato(l, contaId));
+      });
+    });
+  }
+
   function abrirExtratoConta(id) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
@@ -22842,6 +22965,28 @@
       editar.style.marginTop = '8px';
       topo.appendChild(editar);
       folha.appendChild(topo);
+
+      // Os extratos importados desta conta (pedido de 16/11/2026): antes
+      // só apareciam no fim de "Conferir esta conta".
+      var levas = (estado.importacoes || []).filter(function (i) { return i.contaId === id; })
+        .sort(function (a, b) { return (b.ate || '') < (a.ate || '') ? -1 : (b.ate || '') > (a.ate || '') ? 1 : (b.quando || 0) - (a.quando || 0); });
+      var cExt = cartao('liso cartao-extratos');
+      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato');
+      tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
+      cExt.appendChild(tExt);
+      if (!levas.length) cExt.appendChild(no('div', 'sanfona-vazio', 'Nenhum extrato importado nesta conta ainda.'));
+      levas.forEach(function (i) {
+        cExt.appendChild(linhaSimples({
+          titulo: i.de ? dataBr(i.de) + ' a ' + dataBr(i.ate) : (i.arquivo || 'Extrato'),
+          sub: (i.arquivo || i.banco || 'extrato') + ' · ' + i.quantos + ' lançamento(s)',
+          valor: i.saldoExtrato != null ? emReais(i.saldoExtrato) : '',
+          cor: i.saldoExtrato != null && i.saldoExtrato < 0 ? 'vermelho' : '',
+          nota: i.saldoExtrato != null ? 'saldo no fim' : '',
+          selo: seloIcone('extrato', '#E9B44C'),
+          aoTocar: function () { porCima(function () { abrirExtratoConta(id); }, function () { abrirLevaDeExtrato(id, i.id); }); }
+        }));
+      });
+      folha.appendChild(cExt);
 
       var itens = lancamentosDaConta(id);
       if (!itens.length) {
@@ -23816,6 +23961,24 @@
     return 'Você costuma ficar entre ' + emReais(p.de) + ' e ' + emReais(p.ate);
   }
 
+  // Conta por conta (pedido de 16/11/2026): quantos dias desde o último
+  // lançamento que veio do extrato daquele banco. Conta que nunca teve
+  // extrato importado fica de fora; cartão de crédito também (é fatura).
+  function diasSemExtratoPorConta() {
+    var ultimo = {};
+    (estado.importacoes || []).forEach(function (i) {
+      if (i.contaId && i.ate && (!ultimo[i.contaId] || i.ate > ultimo[i.contaId])) ultimo[i.contaId] = i.ate;
+    });
+    estado.lancamentos.forEach(function (l) {
+      if (l.importacaoId && l.contaId && (!ultimo[l.contaId] || l.data > ultimo[l.contaId])) ultimo[l.contaId] = l.data;
+    });
+    var hoje = hojeTexto();
+    return estado.contas.filter(function (c) { return !ehCartao(c) && ultimo[c.id]; }).map(function (c) {
+      var u = ultimo[c.id];
+      return { conta: c, ultimo: u, dias: u >= hoje ? 0 : diasEntre(u, hoje) };
+    });
+  }
+
   function analiseDoMes(ano, mes) {
     var achados = [];
     var t = totaisDoMes(ano, mes);
@@ -23828,6 +23991,22 @@
     var noMesAtual = prefixoMes(ano, mes) === hoje.slice(0, 7);
 
     function juntarAchado(a) { achados.push(a); }
+
+    // 0) Extrato parado (pedido de 16/11/2026): de 5 dias sem lançamento do
+    //    extrato em diante, o sino acende e o aviso vem em primeiro.
+    // Um aviso para cada banco parado, o mais atrasado primeiro.
+    diasSemExtratoPorConta().filter(function (x) { return x.dias >= 5; })
+      .sort(function (a, b) { return b.dias - a.dias; })
+      .forEach(function (x) {
+        juntarAchado({
+          id: 'extrato-' + x.conta.id, prioridade: 0, icone: '⏱', tom: 'ruim',
+          titulo: x.conta.nome + ': ' + x.dias + ' dias sem extrato',
+          valor: x.dias + ' dias', valorCor: 'var(--vermelho)',
+          explicacao: 'O último lançamento do extrato do ' + x.conta.nome + ' é de ' + dataBr(x.ultimo) +
+            '. Importe o extrato desse banco para o app continuar mostrando o que entrou e saiu.',
+          acao: { rotulo: 'Importar extrato', abrir: function () { abrirImportarExtrato(); } }
+        });
+      });
 
     // 1) Saldo negativo — nada é mais urgente que sair mais do que entrou.
     if (t.entradas > 0 && t.entradas - base.total < 0) {
@@ -24454,7 +24633,9 @@
       var forma = no('div');
       var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Pequenos sinais']];
       faixas.forEach(function (f) {
-        var doNivel = an.achados.filter(function (a) { return a.prioridade === f[0]; });
+        // O aviso do extrato parado (prioridade 0) entra junto do que
+        // merece atenção agora, em primeiro.
+        var doNivel = an.achados.filter(function (a) { return f[0] === 1 ? a.prioridade <= 1 : a.prioridade === f[0]; });
         if (!doNivel.length) return;
         var r = no('div', 'rotulo', f[1]);
         r.style.margin = '18px 2px 8px';
@@ -24733,7 +24914,33 @@
 
   // ---------- Despacho ----------
 
+  // O saldo da exportação do C6 que entrou como lançamento antes da
+  // 5.70.0: entrada vinda de extrato com a descrição só "a 10/11/2020".
+  // Sai sozinho, uma vez, e a importação fica com a conta certa.
+  var conferidosSaldoExportacao = -1;
+  function tirarSaldosDaExportacao() {
+    if (!estado || !estado.lancamentos || conferidosSaldoExportacao === estado.lancamentos.length) return;
+    var fora = {}, porLeva = {};
+    estado.lancamentos.forEach(function (l) {
+      if (l.importacaoId && l.tipo === 'entrada' && /^a\s+\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(l.descricao || '').trim())) {
+        fora[l.id] = true;
+        porLeva[l.importacaoId] = (porLeva[l.importacaoId] || 0) + 1;
+      }
+    });
+    var ids = Object.keys(fora);
+    if (ids.length) {
+      ids.forEach(function (id) { marcarExcluido('lancamentos', id); });
+      estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+      (estado.importacoes || []).forEach(function (i) {
+        if (porLeva[i.id]) i.quantos = Math.max(0, (i.quantos || 0) - porLeva[i.id]);
+      });
+      salvar();
+    }
+    conferidosSaldoExportacao = estado.lancamentos.length;
+  }
+
   function desenhar() {
+    tirarSaldosDaExportacao();
     limparCacheDeFatura();
     cacheRadar = {};
     if (telaAtiva !== 'inicio') soltarExtratos();
@@ -29140,6 +29347,11 @@
       if (!s) return true;
       // Cabeçalho de mês com o resumo do período: "Setembro 2025 (...) Entradas: ... Saídas: ..."
       if (/entradas?\s*:/.test(s) && /saidas?\s*:/.test(s)) return true;
+      // A caixa do topo do extrato do C6: "Período da Exportação 30/01/2019 a
+      // 10/11/2020 · Saldo no dia da exportação R$ 200,00". Não é lançamento
+      // (17/11/2026: virava uma entrada de R$ 200 a cada PDF).
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}\s+a\s+\d{1,2}\/\d{1,2}\/\d{4}\b/.test(s)) return true;
+      if (/periodo da exportacao|saldo no dia da exportacao/.test(s)) return true;
       if (/^[a-z]+\s+\d{4}\s*\(/.test(s)) return true;
       for (var i = 0; i < PULAR.length; i++) if (PULAR[i].test(s)) return true;
       // Linha que é só valor monetário, sem descrição nenhuma: sobra de um
@@ -29344,6 +29556,23 @@
       var comSaldo = pareceColunaDeSaldo(candidatos) ||
                      temColunaDeSaldo(linhas.join('\n'));
       var saldoFinal = null;
+      var cheio = linhas.join('\n');
+      var fatura = pareceFatura(cheio, nomeArquivo);
+
+      // Extrato que põe menos no que sai (Inter, C6, Nubank): o sinal é a
+      // palavra do banco. Sem menos é entrada, com menos é saída, e a
+      // descrição não manda mais nada (pedido de 17/11/2026: "Boleto
+      // recebido" e "Pagamento cartão devolvido" viravam despesa porque o
+      // texto tinha "boleto" e "pagamento"). Palavra só decide quando o
+      // extrato não tem sinal nenhum. Fatura segue a regra dela.
+      var temSinais = !fatura && candidatos.some(function (c) {
+        var vs = c.valores;
+        var v = comSaldo && vs.length >= 2 ? vs[vs.length - 2] : vs[vs.length - 1];
+        return v && v.valor && v.negativo;
+      });
+      // Com a coluna de saldo, cada linha vira uma conferência (pedido de
+      // 17/11/2026): o saldo de antes mais o valor tem de dar o saldo dela.
+      var paraConferir = [];
 
       candidatos.forEach(function (c) {
         var linha = c.linha, d = c.d, valores = c.valores;
@@ -29371,6 +29600,7 @@
         if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
         else if (v.negativo) tipo = 'saida';
         else if (coluna) tipo = coluna.tipo;
+        else if (temSinais) tipo = 'entrada';
         else {
           var s = semAcento(descricao);
           if (ENTRADA.test(s) && !SAIDA.test(s)) tipo = 'entrada';
@@ -29383,26 +29613,70 @@
 
         // A categoria sai do texto inteiro: a coluna de tipo também dá pista.
         var achada = categoriaDe(textoCheio, tipo);
-        itens.push({
+        var novoItem = {
           data: d.data, descricao: descricao.slice(0, 80), valor: v.valor, tipo: tipo,
           categoria: achada.categoria, subcategoria: achada.subcategoria,
           descricaoCheia: textoCheio,
           negativoNoTexto: v.negativo || (marca && marca[1] === 'D'),
           credito: CREDITO_NA_FATURA.test(semAcento(textoCheio))
-        });
+        };
+        itens.push(novoItem);
+        if (comSaldo && valores.length >= 2) {
+          paraConferir.push({ item: novoItem, saldo: comSinal(valores[valores.length - 1]),
+                              efeito: tipo === 'saida' ? -v.valor : v.valor });
+        }
       });
+
+      // A conferência com a coluna de saldo. O extrato pode vir do mais
+      // antigo para o mais novo ou ao contrário: vale o sentido em que mais
+      // linhas batem. Se quase nenhuma bate, a coluna não é saldo corrente
+      // e nada é marcado.
+      var conferenciaSaldo = null;
+      if (paraConferir.length >= 2) {
+        var bateCresc = 0, bateDecr = 0, n = paraConferir.length - 1;
+        for (var k = 1; k < paraConferir.length; k++) {
+          var a0 = paraConferir[k - 1], b0 = paraConferir[k];
+          if (Math.abs(a0.saldo + b0.efeito - b0.saldo) <= 1) bateCresc++;
+          if (Math.abs(b0.saldo + a0.efeito - a0.saldo) <= 1) bateDecr++;
+        }
+        var crescente = bateCresc >= bateDecr;
+        var batem = Math.max(bateCresc, bateDecr);
+        if (batem >= n * 0.5) {
+          var fora = 0, acertados = 0;
+          for (var q = 1; q < paraConferir.length; q++) {
+            var antes = paraConferir[q - 1], agora = paraConferir[q];
+            var dele = crescente ? agora : antes;
+            var de = crescente ? antes.saldo : agora.saldo, para = crescente ? agora.saldo : antes.saldo;
+            if (Math.abs(de + dele.efeito - para) <= 1) continue;
+            // Com o sinal trocado bate? Então o saldo do banco prova o
+            // sentido: fica o que o saldo diz, e a linha sai acertada.
+            if (Math.abs(de - dele.efeito - para) <= 1) {
+              var it = dele.item;
+              it.tipo = it.tipo === 'saida' ? 'entrada' : 'saida';
+              var nova = categoriaDe(it.descricaoCheia || it.descricao, it.tipo);
+              it.categoria = nova.categoria;
+              it.subcategoria = nova.subcategoria;
+              it.acertadoPeloSaldo = true;
+              dele.efeito = -dele.efeito;
+              acertados++;
+              continue;
+            }
+            fora++; dele.item.foraDoSaldo = true;
+          }
+          conferenciaSaldo = { conferidas: n, fora: fora, acertados: acertados };
+        }
+      }
 
       // Sem ano na linha o C6 vira o ano no meio do extrato: 12/12 depois 05/01.
       arrumarVirada(itens);
 
-      var cheio = linhas.join('\n');
-      var fatura = pareceFatura(cheio, nomeArquivo);
       var vencimento = fatura ? acharVencimento(cheio, nomeArquivo, ano) : '';
       if (fatura) { ajeitarFatura(itens); anoCertoNaFatura(itens, vencimento); }
       // O saldo que o próprio banco imprime na última linha é a melhor prova
       // de que a leitura saiu certa: dá para comparar com a conta do app.
       return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
-               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento };
+               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento,
+               conferenciaSaldo: fatura ? null : conferenciaSaldo };
     }
 
     function arrumarVirada(itens) {
@@ -30339,6 +30613,7 @@
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
       saldoFinal: lido.saldoFinal == null ? null : lido.saldoFinal,
+      conferenciaSaldo: lido.conferenciaSaldo || null,
       contaId: contaIdParaProximoExtrato || contaSugerida(lido),
       lote: lote || null
     };
@@ -30680,6 +30955,18 @@
           juntar(no('div', 'resumo-par'),
             no('span', 'verde', (dados.fatura ? 'Créditos ' : 'Entradas ') + emReais(entra)),
             no('span', 'vermelho', (dados.fatura ? 'Gastos ' : 'Saídas ') + emReais(sai))));
+        // A coluna "Saldo por transação" conferida linha por linha: só a
+        // coluna do valor soma; o saldo diz se a leitura saiu certa.
+        var cs = dados.conferenciaSaldo;
+        if (cs) {
+          resumo.appendChild(no('div', 'resumo-linha conferencia-saldo ' + (cs.fora ? 'vermelho' : 'verde'), cs.fora
+            ? cs.fora + ' lançamento(s) não batem com o saldo da linha no extrato. Confira os marcados em vermelho.'
+            : 'Conferido com o saldo de cada linha do extrato: tudo bate ✓'));
+          if (cs.acertados) {
+            resumo.appendChild(no('div', 'resumo-linha conferencia-saldo',
+              cs.acertados + ' lançamento(s) tiveram o sinal acertado pelo saldo da linha.'));
+          }
+        }
         principal.textContent = escolhidos.length ? 'Importar ' + escolhidos.length + ' lançamento' + (escolhidos.length > 1 ? 's' : '') : 'Nada marcado';
         principal.disabled = !escolhidos.length;
       }
@@ -30779,6 +31066,8 @@
             });
           });
         sub.appendChild(subEtiqueta);
+        if (it.foraDoSaldo) sub.appendChild(no('span', 'ja-tem fora-do-saldo', 'não bate com o saldo'));
+        if (it.acertadoPeloSaldo) sub.appendChild(no('span', 'ja-tem acertado-pelo-saldo', 'sinal pelo saldo'));
         if (it.repetido) {
           sub.appendChild(no('span', 'ja-tem', it.motivoRepetido && it.motivoRepetido !== 'igual'
             ? 'já existe · ' + it.motivoRepetido : 'já existe'));
@@ -31454,6 +31743,86 @@
     }).catch(function () {
       avisar('Não consegui baixar o arquivo para relançar.');
     });
+  }
+
+  // Lê de novo o arquivo de um extrato já importado e compara com o que
+  // entrou. Só o tipo (receita ou despesa) e a categoria podem mudar, e só
+  // depois de a pessoa ver a lista e confirmar.
+  function relerECorrigirExtrato(contaId, impId, a) {
+    avisar('Relendo o arquivo guardado...');
+    bytesDeArquivoDeExtrato(a.id).then(function (x) {
+      var nome = x.nome || a.nome || 'extrato';
+      var tipo = x.tipo || a.tipo || 'application/octet-stream';
+      var arq;
+      try { arq = new File([x.bytes], nome, { type: tipo }); }
+      catch (e) { arq = new Blob([x.bytes], { type: tipo }); arq.name = nome; }
+      lerUmExtrato(arq, '', function (lido) {
+        limparAviso();
+        var vieram = estado.lancamentos.filter(function (l) {
+          return l.importacaoId === impId && (l.tipo === 'entrada' || l.tipo === 'saida');
+        });
+        if (!lido || !lido.itens.length) {
+          avisarCaixa('Não consegui reler', 'O arquivo guardado não trouxe lançamentos que eu soubesse ler. Nada foi mudado.', function () {});
+          return;
+        }
+        var trocas = trocasDeSinal(vieram, lido.itens);
+        if (!trocas.length) {
+          avisarCaixa('Está tudo certo', 'Reli o arquivo e os ' + vieram.length +
+            ' lançamento(s) deste extrato estão com o sinal que o banco mostra. Nada foi mudado.', function () {});
+          return;
+        }
+        var lista = trocas.slice(0, 8).map(function (t) {
+          return '• ' + dataBr(t.l.data) + ' ' + t.l.descricao + ' ' + emReais(t.l.valor) + ': ' +
+                 (t.it.tipo === 'entrada' ? 'despesa → receita' : 'receita → despesa');
+        }).join('\n') + (trocas.length > 8 ? '\n• e mais ' + (trocas.length - 8) : '');
+        perguntar({
+          titulo: 'Corrigir ' + trocas.length + ' lançamento(s)?',
+          texto: 'Reli o arquivo e estes estão com o sinal trocado:\n' + lista +
+                 '\n\nSó muda receita/despesa e a categoria. Valor, data e descrição ficam.',
+          ok: 'Corrigir'
+        }, function () {
+          trocas.forEach(function (t) {
+            t.l.tipo = t.it.tipo;
+            t.l.categoria = t.it.categoria;
+            t.l.subcategoria = t.it.subcategoria || '';
+          });
+          comMotivo('você corrigiu o sinal de ' + trocas.length + ' lançamento(s) relendo o extrato');
+          salvar();
+          desenhar();
+          fecharFolha();
+          setTimeout(function () {
+            abrirLevaDeExtrato(contaId, impId);
+            avisar(trocas.length + ' lançamento(s) corrigido(s).');
+          }, 260);
+        });
+      });
+    }).catch(function () {
+      limparAviso();
+      avisar('Não consegui baixar o arquivo para reler.');
+    });
+  }
+
+  // Casa cada lançamento com a linha do arquivo pelo valor, e pela data
+  // ou pela descrição. Devolve só os que estão com o tipo diferente.
+  function trocasDeSinal(vieram, itens) {
+    var usados = {};
+    var norm = function (t) { return semAcentoSimples(String(t || '')).replace(/\s+/g, ' ').trim(); };
+    var trocas = [];
+    vieram.forEach(function (l) {
+      var melhor = -1, nota = 0;
+      itens.forEach(function (it, k) {
+        if (usados[k] || it.valor !== l.valor) return;
+        var n = (it.data === l.data ? 2 : 0) + (norm(it.descricao) === norm(l.descricao) ? 1 : 0);
+        // Um lançamento com o tipo já igual vale um pouco mais: entre dois
+        // iguais, fica o que não precisa mexer.
+        if (n && it.tipo === l.tipo) n += 0.5;
+        if (n > nota) { nota = n; melhor = k; }
+      });
+      if (melhor < 0) return;
+      usados[melhor] = true;
+      if (itens[melhor].tipo !== l.tipo) trocas.push({ l: l, it: itens[melhor] });
+    });
+    return trocas;
   }
 
   function listarInstantaneos() {
