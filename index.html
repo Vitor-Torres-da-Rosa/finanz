@@ -2501,7 +2501,8 @@
       data: '2026-11-17',
       itens: [
         'Transações: o "Saldo do período" agora fica em cima, logo abaixo da escolha das datas.',
-        'O cartão "Fluxo de caixa" saiu do Início. O relatório de fluxo de caixa, em Mais, continua.'
+        'O cartão "Fluxo de caixa" saiu do Início. O relatório de fluxo de caixa, em Mais, continua.',
+        'Olho da privacidade: atualizar a página mantém como você deixou; fechar e abrir o app volta com os valores escondidos.'
       ]
     },
     {
@@ -9688,11 +9689,14 @@
   }
   var filtroTransacoes = 'todas';
 
-  // Privacidade: os valores ficam embaçados até tocar no olho. Sempre
-  // começa ligada, e volta a ligar quando o app fica um minuto em segundo
-  // plano — abrir de novo é abrir com os valores escondidos.
+  // Privacidade: os valores ficam embaçados até tocar no olho. Abrir o app
+  // é abrir com eles escondidos; atualizar a página mantém o que a pessoa
+  // deixou (pedido de 17/11/2026). Por isso a escolha mora no
+  // sessionStorage: ele atravessa o recarregar e some quando o app fecha.
+  // E volta a esconder quando o app fica um minuto em segundo plano.
   var privado = true;
-  document.documentElement.classList.add('privado');
+  try { privado = sessionStorage.getItem('finanz.privado') !== '0'; } catch (e) { privado = true; }
+  document.documentElement.classList.toggle('privado', privado);
   function pintarOlho(b) {
     b.textContent = '';
     b.appendChild(icone(privado ? 'olhoFechado' : 'olho'));
@@ -9701,6 +9705,7 @@
   }
   function ligarPrivacidade(sim) {
     privado = !!sim;
+    try { sessionStorage.setItem('finanz.privado', privado ? '1' : '0'); } catch (e) { /* sem armazenamento */ }
     document.documentElement.classList.toggle('privado', privado);
     Array.prototype.forEach.call(document.querySelectorAll('.marca-olho'), pintarOlho);
   }

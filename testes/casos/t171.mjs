@@ -39,8 +39,14 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(400);
 conferir('4. tocando de novo, esconde', /blur/.test(await filtro(valor)));
 await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(400);
+// Atualizar a página mantém o que a pessoa deixou (pedido de 17/11/2026).
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(3000);
-conferir('5. fechou e abriu: volta escondido', /blur/.test(await filtro(valor)), await filtro(valor));
+conferir('5. atualizando a página, continua como ela deixou (mostrando)', (await filtro(valor)) === 'none', await filtro(valor));
+// Fechar e abrir o app é uma aba nova: o sessionStorage começa vazio.
+const outra = await page.context().newPage();
+await outra.goto(ENDERECO, { waitUntil:'networkidle' }); await outra.waitForTimeout(3000);
+const filtroNova = await outra.evaluate(() => { const e = document.querySelector('#telaInicio .heroi-valor'); return e ? getComputedStyle(e).filter : '(sem elemento)'; });
+conferir('6. fechou e abriu: volta escondido', /blur/.test(filtroNova), filtroNova);
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();
