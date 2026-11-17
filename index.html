@@ -2262,6 +2262,7 @@
   .escolha-falta { margin: 10px 0 6px; }
   .pagamentos-da-parcela { margin-top: 14px; }
   .linha-sub-2.verde { color: var(--verde); }
+  .acertado-pelo-saldo { color: var(--ouro, #E9B44C) !important; border-color: rgba(233,180,76,.45) !important; }
   .fora-do-saldo { color: var(--vermelho) !important; border-color: rgba(255,107,107,.45) !important; }
   .conferencia-saldo { margin-top: 6px; font-size: 13px; }
   .linha-sub-2.azul-claro { color: #38BDF8; }
@@ -2441,7 +2442,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.71.0';
+  var VERSAO = '5.72.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2450,6 +2451,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.72.0',
+      data: '2026-11-17',
+      itens: [
+        'Importar extrato: quando o banco põe o sinal de menos no que sai (como o Inter), o sinal decide. Sem menos é receita, com menos é despesa. "Boleto recebido", "Ressarcimento" e "Pix devolvido" não viram mais despesa por causa da palavra.',
+        'Se a linha tem saldo e o sinal trocado é o que faz o saldo bater, o app usa o sinal certo e avisa "sinal pelo saldo".',
+        'Em cada extrato importado (toque na conta e depois no extrato) tem o botão "Reler e corrigir": lê o arquivo guardado de novo, mostra o que está com o sinal trocado e só corrige se você confirmar. Valor, data e descrição nunca mudam.'
+      ]
+    },
     {
       versao: '5.71.0',
       data: '2026-11-17',
@@ -22887,6 +22897,11 @@
       baixar.disabled = true;
       baixar.style.marginTop = '12px';
       c.appendChild(baixar);
+      // Reler o arquivo guardado e acertar só o sinal (pedido de
+      // 17/11/2026). Nunca roda sozinho: só quando a pessoa toca.
+      var reler = botao('btn btn-fantasma botao-reler', 'Reler e corrigir', function () {});
+      reler.disabled = true;
+      reler.style.marginTop = '8px';
       listarArquivosDeExtrato(contaId).then(function (lista) {
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
@@ -22895,6 +22910,12 @@
           avisar('Baixando...');
           baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
         };
+        if (vieram.length) {
+          c.appendChild(reler);
+          c.appendChild(no('div', 'linha-nota', 'Lê o arquivo de novo e acerta só o que estiver com o sinal trocado (receita lançada como despesa ou o contrário). Valor, data e descrição ficam como estão.'));
+          reler.disabled = false;
+          reler.onclick = function () { relerECorrigirExtrato(contaId, impId, a); };
+        }
       }).catch(function () { baixar.textContent = 'Arquivo não guardado'; });
       folha.appendChild(c);
       if (!vieram.length) {
@@ -29535,6 +29556,20 @@
       var comSaldo = pareceColunaDeSaldo(candidatos) ||
                      temColunaDeSaldo(linhas.join('\n'));
       var saldoFinal = null;
+      var cheio = linhas.join('\n');
+      var fatura = pareceFatura(cheio, nomeArquivo);
+
+      // Extrato que põe menos no que sai (Inter, C6, Nubank): o sinal é a
+      // palavra do banco. Sem menos é entrada, com menos é saída, e a
+      // descrição não manda mais nada (pedido de 17/11/2026: "Boleto
+      // recebido" e "Pagamento cartão devolvido" viravam despesa porque o
+      // texto tinha "boleto" e "pagamento"). Palavra só decide quando o
+      // extrato não tem sinal nenhum. Fatura segue a regra dela.
+      var temSinais = !fatura && candidatos.some(function (c) {
+        var vs = c.valores;
+        var v = comSaldo && vs.length >= 2 ? vs[vs.length - 2] : vs[vs.length - 1];
+        return v && v.valor && v.negativo;
+      });
       // Com a coluna de saldo, cada linha vira uma conferência (pedido de
       // 17/11/2026): o saldo de antes mais o valor tem de dar o saldo dela.
       var paraConferir = [];
@@ -29565,6 +29600,7 @@
         if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
         else if (v.negativo) tipo = 'saida';
         else if (coluna) tipo = coluna.tipo;
+        else if (temSinais) tipo = 'entrada';
         else {
           var s = semAcento(descricao);
           if (ENTRADA.test(s) && !SAIDA.test(s)) tipo = 'entrada';
@@ -29606,22 +29642,34 @@
         var crescente = bateCresc >= bateDecr;
         var batem = Math.max(bateCresc, bateDecr);
         if (batem >= n * 0.5) {
-          var fora = 0;
+          var fora = 0, acertados = 0;
           for (var q = 1; q < paraConferir.length; q++) {
             var antes = paraConferir[q - 1], agora = paraConferir[q];
-            var ok = crescente ? Math.abs(antes.saldo + agora.efeito - agora.saldo) <= 1
-                               : Math.abs(agora.saldo + antes.efeito - antes.saldo) <= 1;
-            if (!ok) { fora++; (crescente ? agora : antes).item.foraDoSaldo = true; }
+            var dele = crescente ? agora : antes;
+            var de = crescente ? antes.saldo : agora.saldo, para = crescente ? agora.saldo : antes.saldo;
+            if (Math.abs(de + dele.efeito - para) <= 1) continue;
+            // Com o sinal trocado bate? Então o saldo do banco prova o
+            // sentido: fica o que o saldo diz, e a linha sai acertada.
+            if (Math.abs(de - dele.efeito - para) <= 1) {
+              var it = dele.item;
+              it.tipo = it.tipo === 'saida' ? 'entrada' : 'saida';
+              var nova = categoriaDe(it.descricaoCheia || it.descricao, it.tipo);
+              it.categoria = nova.categoria;
+              it.subcategoria = nova.subcategoria;
+              it.acertadoPeloSaldo = true;
+              dele.efeito = -dele.efeito;
+              acertados++;
+              continue;
+            }
+            fora++; dele.item.foraDoSaldo = true;
           }
-          conferenciaSaldo = { conferidas: n, fora: fora };
+          conferenciaSaldo = { conferidas: n, fora: fora, acertados: acertados };
         }
       }
 
       // Sem ano na linha o C6 vira o ano no meio do extrato: 12/12 depois 05/01.
       arrumarVirada(itens);
 
-      var cheio = linhas.join('\n');
-      var fatura = pareceFatura(cheio, nomeArquivo);
       var vencimento = fatura ? acharVencimento(cheio, nomeArquivo, ano) : '';
       if (fatura) { ajeitarFatura(itens); anoCertoNaFatura(itens, vencimento); }
       // O saldo que o próprio banco imprime na última linha é a melhor prova
@@ -30914,6 +30962,10 @@
           resumo.appendChild(no('div', 'resumo-linha conferencia-saldo ' + (cs.fora ? 'vermelho' : 'verde'), cs.fora
             ? cs.fora + ' lançamento(s) não batem com o saldo da linha no extrato. Confira os marcados em vermelho.'
             : 'Conferido com o saldo de cada linha do extrato: tudo bate ✓'));
+          if (cs.acertados) {
+            resumo.appendChild(no('div', 'resumo-linha conferencia-saldo',
+              cs.acertados + ' lançamento(s) tiveram o sinal acertado pelo saldo da linha.'));
+          }
         }
         principal.textContent = escolhidos.length ? 'Importar ' + escolhidos.length + ' lançamento' + (escolhidos.length > 1 ? 's' : '') : 'Nada marcado';
         principal.disabled = !escolhidos.length;
@@ -31015,6 +31067,7 @@
           });
         sub.appendChild(subEtiqueta);
         if (it.foraDoSaldo) sub.appendChild(no('span', 'ja-tem fora-do-saldo', 'não bate com o saldo'));
+        if (it.acertadoPeloSaldo) sub.appendChild(no('span', 'ja-tem acertado-pelo-saldo', 'sinal pelo saldo'));
         if (it.repetido) {
           sub.appendChild(no('span', 'ja-tem', it.motivoRepetido && it.motivoRepetido !== 'igual'
             ? 'já existe · ' + it.motivoRepetido : 'já existe'));
@@ -31690,6 +31743,86 @@
     }).catch(function () {
       avisar('Não consegui baixar o arquivo para relançar.');
     });
+  }
+
+  // Lê de novo o arquivo de um extrato já importado e compara com o que
+  // entrou. Só o tipo (receita ou despesa) e a categoria podem mudar, e só
+  // depois de a pessoa ver a lista e confirmar.
+  function relerECorrigirExtrato(contaId, impId, a) {
+    avisar('Relendo o arquivo guardado...');
+    bytesDeArquivoDeExtrato(a.id).then(function (x) {
+      var nome = x.nome || a.nome || 'extrato';
+      var tipo = x.tipo || a.tipo || 'application/octet-stream';
+      var arq;
+      try { arq = new File([x.bytes], nome, { type: tipo }); }
+      catch (e) { arq = new Blob([x.bytes], { type: tipo }); arq.name = nome; }
+      lerUmExtrato(arq, '', function (lido) {
+        limparAviso();
+        var vieram = estado.lancamentos.filter(function (l) {
+          return l.importacaoId === impId && (l.tipo === 'entrada' || l.tipo === 'saida');
+        });
+        if (!lido || !lido.itens.length) {
+          avisarCaixa('Não consegui reler', 'O arquivo guardado não trouxe lançamentos que eu soubesse ler. Nada foi mudado.', function () {});
+          return;
+        }
+        var trocas = trocasDeSinal(vieram, lido.itens);
+        if (!trocas.length) {
+          avisarCaixa('Está tudo certo', 'Reli o arquivo e os ' + vieram.length +
+            ' lançamento(s) deste extrato estão com o sinal que o banco mostra. Nada foi mudado.', function () {});
+          return;
+        }
+        var lista = trocas.slice(0, 8).map(function (t) {
+          return '• ' + dataBr(t.l.data) + ' ' + t.l.descricao + ' ' + emReais(t.l.valor) + ': ' +
+                 (t.it.tipo === 'entrada' ? 'despesa → receita' : 'receita → despesa');
+        }).join('\n') + (trocas.length > 8 ? '\n• e mais ' + (trocas.length - 8) : '');
+        perguntar({
+          titulo: 'Corrigir ' + trocas.length + ' lançamento(s)?',
+          texto: 'Reli o arquivo e estes estão com o sinal trocado:\n' + lista +
+                 '\n\nSó muda receita/despesa e a categoria. Valor, data e descrição ficam.',
+          ok: 'Corrigir'
+        }, function () {
+          trocas.forEach(function (t) {
+            t.l.tipo = t.it.tipo;
+            t.l.categoria = t.it.categoria;
+            t.l.subcategoria = t.it.subcategoria || '';
+          });
+          comMotivo('você corrigiu o sinal de ' + trocas.length + ' lançamento(s) relendo o extrato');
+          salvar();
+          desenhar();
+          fecharFolha();
+          setTimeout(function () {
+            abrirLevaDeExtrato(contaId, impId);
+            avisar(trocas.length + ' lançamento(s) corrigido(s).');
+          }, 260);
+        });
+      });
+    }).catch(function () {
+      limparAviso();
+      avisar('Não consegui baixar o arquivo para reler.');
+    });
+  }
+
+  // Casa cada lançamento com a linha do arquivo pelo valor, e pela data
+  // ou pela descrição. Devolve só os que estão com o tipo diferente.
+  function trocasDeSinal(vieram, itens) {
+    var usados = {};
+    var norm = function (t) { return semAcentoSimples(String(t || '')).replace(/\s+/g, ' ').trim(); };
+    var trocas = [];
+    vieram.forEach(function (l) {
+      var melhor = -1, nota = 0;
+      itens.forEach(function (it, k) {
+        if (usados[k] || it.valor !== l.valor) return;
+        var n = (it.data === l.data ? 2 : 0) + (norm(it.descricao) === norm(l.descricao) ? 1 : 0);
+        // Um lançamento com o tipo já igual vale um pouco mais: entre dois
+        // iguais, fica o que não precisa mexer.
+        if (n && it.tipo === l.tipo) n += 0.5;
+        if (n > nota) { nota = n; melhor = k; }
+      });
+      if (melhor < 0) return;
+      usados[melhor] = true;
+      if (itens[melhor].tipo !== l.tipo) trocas.push({ l: l, it: itens[melhor] });
+    });
+    return trocas;
   }
 
   function listarInstantaneos() {
