@@ -2439,7 +2439,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.69.0';
+  var VERSAO = '5.70.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2448,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.70.0',
+      data: '2026-11-17',
+      itens: [
+        'Extrato do C6: a caixa do topo do PDF ("Período da Exportação" e "Saldo no dia da exportação") não vira mais lançamento. Antes cada PDF somava esse saldo como uma entrada. As entradas fantasmas que já tinham entrado (com a descrição "a dd/mm/aaaa") saíram sozinhas.'
+      ]
+    },
     {
       versao: '5.69.0',
       data: '2026-11-16',
@@ -24877,7 +24884,33 @@
 
   // ---------- Despacho ----------
 
+  // O saldo da exportação do C6 que entrou como lançamento antes da
+  // 5.70.0: entrada vinda de extrato com a descrição só "a 10/11/2020".
+  // Sai sozinho, uma vez, e a importação fica com a conta certa.
+  var conferidosSaldoExportacao = -1;
+  function tirarSaldosDaExportacao() {
+    if (!estado || !estado.lancamentos || conferidosSaldoExportacao === estado.lancamentos.length) return;
+    var fora = {}, porLeva = {};
+    estado.lancamentos.forEach(function (l) {
+      if (l.importacaoId && l.tipo === 'entrada' && /^a\s+\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(l.descricao || '').trim())) {
+        fora[l.id] = true;
+        porLeva[l.importacaoId] = (porLeva[l.importacaoId] || 0) + 1;
+      }
+    });
+    var ids = Object.keys(fora);
+    if (ids.length) {
+      ids.forEach(function (id) { marcarExcluido('lancamentos', id); });
+      estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
+      (estado.importacoes || []).forEach(function (i) {
+        if (porLeva[i.id]) i.quantos = Math.max(0, (i.quantos || 0) - porLeva[i.id]);
+      });
+      salvar();
+    }
+    conferidosSaldoExportacao = estado.lancamentos.length;
+  }
+
   function desenhar() {
+    tirarSaldosDaExportacao();
     limparCacheDeFatura();
     cacheRadar = {};
     if (telaAtiva !== 'inicio') soltarExtratos();
@@ -29284,6 +29317,11 @@
       if (!s) return true;
       // Cabeçalho de mês com o resumo do período: "Setembro 2025 (...) Entradas: ... Saídas: ..."
       if (/entradas?\s*:/.test(s) && /saidas?\s*:/.test(s)) return true;
+      // A caixa do topo do extrato do C6: "Período da Exportação 30/01/2019 a
+      // 10/11/2020 · Saldo no dia da exportação R$ 200,00". Não é lançamento
+      // (17/11/2026: virava uma entrada de R$ 200 a cada PDF).
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}\s+a\s+\d{1,2}\/\d{1,2}\/\d{4}\b/.test(s)) return true;
+      if (/periodo da exportacao|saldo no dia da exportacao/.test(s)) return true;
       if (/^[a-z]+\s+\d{4}\s*\(/.test(s)) return true;
       for (var i = 0; i < PULAR.length; i++) if (PULAR[i].test(s)) return true;
       // Linha que é só valor monetário, sem descrição nenhuma: sobra de um

@@ -1,0 +1,48 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 677 >>
+stream
+BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
+BT /F1 9 Tf 380 800 Td (FULANO DE TAL) Tj ET
+BT /F1 9 Tf 40 780 Td (Periodo da Exportacao) Tj ET
+BT /F1 9 Tf 300 780 Td (Saldo no dia da exportacao) Tj ET
+BT /F1 9 Tf 40 766 Td (30/01/2019 a 10/11/2020) Tj ET
+BT /F1 9 Tf 300 766 Td (R$ 200,00) Tj ET
+BT /F2 9 Tf 40 740 Td (Novembro 2020 \( 01/11/2020 - 10/11/2020 \)) Tj ET
+BT /F1 9 Tf 350 740 Td (Entradas: R$ 100,00) Tj ET
+BT /F1 9 Tf 470 740 Td (Saidas: R$ 0,00) Tj ET
+BT /F1 9 Tf 40 720 Td (05/11/2020) Tj ET
+BT /F1 9 Tf 110 720 Td (Pix recebido de FULANO) Tj ET
+BT /F1 9 Tf 470 720 Td (R$ 100,00) Tj ET
+BT /F1 9 Tf 40 690 Td (Informacoes sujeitas a alteracao ate o final do dia) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000348 00000 n 
+0000000450 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+1178
+%%EOF
