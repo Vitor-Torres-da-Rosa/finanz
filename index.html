@@ -566,6 +566,10 @@
   .parte-nota { padding: 10px 0; border-bottom: 1px solid var(--borda); }
   .parte-nota:last-child { border-bottom: 0; }
   .parte-topo { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+  .parte-pontos { flex: 0 0 auto; color: var(--ouro); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .parte-sem-dados .parte-topo span:first-child { color: var(--suave); }
+  .parte-total { padding-top: 14px; }
+  .parte-total .parte-topo { font-size: 15.5px; }
   .parte-barra, .meta-barra, .mini-barra { height: 5px; border-radius: 3px;
                  background: rgba(255,255,255,.07); overflow: hidden; margin-top: 8px; }
   .parte-cheio, .meta-cheio { height: 100%; background: var(--ouro); border-radius: 3px;
@@ -2483,7 +2487,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.77.0';
+  var VERSAO = '5.78.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2492,6 +2496,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.78.0',
+      data: '2026-11-17',
+      itens: [
+        'Saúde financeira em pontos que somam: cada parte vale até um tanto de pontos (30, 25, 15, 10, 10 e 10, total 100), a parte sem dados fica com zero, e a soma em "Como calculamos" é exatamente a nota de cima.'
+      ]
+    },
     {
       versao: '5.77.0',
       data: '2026-11-17',
@@ -24307,7 +24318,7 @@
       // um sinal; a nota cai conforme esse peso sobe.
       var peso = noCartao / t.entradas;
       partes.push({
-        chave: 'cartao', peso: 15, nota: Math.max(0, Math.min(100, 100 - (peso / 0.5) * 100)),
+        chave: 'cartao', peso: 10, nota: Math.max(0, Math.min(100, 100 - (peso / 0.5) * 100)),
         rotulo: 'Peso do cartão',
         detalhe: emReais(noCartao) + ' · ' + Math.round(peso * 100) + '% da sua renda'
       });
@@ -24352,9 +24363,21 @@
     if (partes.length < 2 || mesesTotais < 2) {
       return { pronta: false, partes: partes, meses: mesesTotais };
     }
-    var pesos = 0, soma = 0;
-    partes.forEach(function (p) { pesos += p.peso; soma += p.nota * p.peso; });
-    var valor = Math.round(soma / pesos);
+    // Pontos que somam (pedido de 17/11/2026): cada parte vale até o seu
+    // peso em pontos, e os pesos somam 100. Parte sem dados fica com zero
+    // — antes ela saía da conta e a nota virava uma média que ninguém
+    // conseguia refazer olhando a tela ("os dois primeiros já dão 45, por
+    // que a nota é 35?").
+    var bruto = partes.map(function (p) { return p.peso * Math.max(0, Math.min(100, p.nota)) / 100; });
+    var valor = Math.round(bruto.reduce(function (a, b) { return a + b; }, 0));
+    // Arredonda cada parte sem deixar a soma fugir do total: as sobras vão
+    // para as partes com a maior fração.
+    var inteiros = bruto.map(Math.floor);
+    var falta = valor - inteiros.reduce(function (a, b) { return a + b; }, 0);
+    bruto.map(function (b, i) { return { i: i, f: b - Math.floor(b) }; })
+      .sort(function (a, b) { return b.f - a.f; })
+      .forEach(function (x) { if (falta > 0 && inteiros[x.i] < partes[x.i].peso) { inteiros[x.i]++; falta--; } });
+    partes.forEach(function (p, i) { p.pontos = inteiros[i]; });
     return {
       pronta: true, valor: valor, partes: partes, meses: mesesTotais,
       faixa: valor >= 80 ? 'Excelente' : valor >= 65 ? 'Boa' : valor >= 45 ? 'Atenção' : 'Frágil',
@@ -24781,37 +24804,42 @@
     abrirFolha('Como calculamos', function (folha) {
       var forma = no('div');
       forma.appendChild(no('p', 'linha-sub',
-        'A nota é a média das partes abaixo, cada uma com o seu peso. Só entra na conta ' +
-        'o que tem dado de verdade: sem metas, sem orçamento ou sem cartão, essas partes ' +
-        'não pesam — em vez de virarem zero e derrubarem a sua nota.'));
+        'A nota é a soma dos pontos abaixo. Cada parte vale até um tanto de pontos, e juntas ' +
+        'somam 100. Parte sem dados fica com zero.'));
       var c = cartao();
-      nota.partes.forEach(function (p) {
-        var l = no('div', 'parte-nota');
+      var TODAS = [
+        ['sobra', 'Quanto sobrou', 30, 'sem entradas no mês'],
+        ['padrao', 'Gastos x seu padrão', 25, 'ainda sem meses para comparar'],
+        ['orcamento', 'Orçamento do mês', 15, 'sem orçamento definido'],
+        ['cartao', 'Peso do cartão', 10, 'sem cartão cadastrado'],
+        ['metas', 'Suas metas', 10, 'sem metas criadas'],
+        ['investir', 'Quanto foi investido', 10, 'sem investimentos cadastrados']
+      ];
+      var soma = 0;
+      TODAS.forEach(function (t) {
+        var p = nota.partes.filter(function (x) { return x.chave === t[0]; })[0];
+        var pontos = p ? p.pontos : 0, maximo = p ? p.peso : t[2];
+        soma += pontos;
+        var l = no('div', 'parte-nota' + (p ? '' : ' parte-sem-dados'));
         var topo = no('div', 'parte-topo');
-        topo.appendChild(no('span', null, p.rotulo));
-        topo.appendChild(no('span', 'num', Math.round(p.nota) + '/100'));
+        topo.appendChild(no('span', null, p ? p.rotulo : t[1]));
+        topo.appendChild(no('span', 'parte-pontos', pontos + ' de ' + maximo));
         l.appendChild(topo);
-        l.appendChild(no('div', 'linha-nota', p.detalhe + '  ·  peso ' + p.peso));
+        l.appendChild(no('div', 'linha-nota', p ? p.detalhe : t[3] + ' · fica com 0'));
         var barra = no('div', 'parte-barra');
         var dentro = no('div', 'parte-cheio');
-        dentro.style.width = Math.min(100, Math.max(0, p.nota)) + '%';
+        dentro.style.width = (maximo ? Math.min(100, Math.max(0, pontos / maximo * 100)) : 0) + '%';
         barra.appendChild(dentro);
         l.appendChild(barra);
         c.appendChild(l);
       });
+      var total = no('div', 'parte-nota parte-total');
+      var topoT = no('div', 'parte-topo');
+      topoT.appendChild(no('strong', null, 'Sua nota'));
+      topoT.appendChild(no('strong', 'parte-pontos', soma + ' de 100'));
+      total.appendChild(topoT);
+      c.appendChild(total);
       forma.appendChild(c);
-      var faltando = ['sobra', 'padrao', 'orcamento', 'cartao', 'metas', 'investir']
-        .filter(function (ch) {
-          return !nota.partes.some(function (p) { return p.chave === ch; });
-        });
-      if (faltando.length) {
-        var nomes = { sobra: 'quanto sobrou', padrao: 'comparação com o seu padrão',
-                      orcamento: 'orçamento', cartao: 'cartão', metas: 'metas',
-                      investir: 'investimentos' };
-        forma.appendChild(no('p', 'linha-nota',
-          'Fora da conta por falta de dados: ' +
-          faltando.map(function (ch) { return nomes[ch]; }).join(', ') + '.'));
-      }
       folha.appendChild(forma);
     });
   }
