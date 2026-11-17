@@ -168,12 +168,13 @@ conferir('8. com a etiqueta dizendo que ficam fora de receitas e despesas',
 await page.screenshot({ path: dir+'/v02-aba-transferencias.png', fullPage: true });
 
 // ---- e dá para separar, que antes era impossível ----
-await page.click('#telaTransacoes .linha:has-text("PIX TRANSF VITOR")'); await page.waitForTimeout(1500);
-const temSeparar = await page.locator('#folha button:has-text("Separar da transferência")').count();
-conferir('9. a folha do lançamento oferece separar o par', temSeparar === 1, temSeparar + ' botão(ões)');
+// Na aba, a transferência é uma linha só; tocar nela oferece desfazer
+// (pedido de 17/11/2026). A folha do lançamento continua com "Separar".
+await page.click('#telaTransacoes .transf-linha:has-text("PIX TRANSF VITOR")'); await page.waitForTimeout(1500);
+const temSeparar = await page.locator('#dialogoAcoes button:has-text("Desfazer")').count();
+conferir('9. tocando na transferência, dá para desfazer o par', temSeparar === 1, temSeparar + ' botão(ões)');
 if (temSeparar) {
-  await page.click('#folha button:has-text("Separar da transferência")'); await page.waitForTimeout(1000);
-  await page.locator('#dialogoAcoes button').nth(0).click(); await page.waitForTimeout(2500);
+  await page.click('#dialogoAcoes button:has-text("Desfazer")'); await page.waitForTimeout(2500);
   await semDialogo();
 }
 const voltou = await retrato();

@@ -122,10 +122,52 @@ await page.click('#dialogoAcoes button:has-text("Juntar")'); await page.waitForT
 
 const juntada = await abrirTransferencias();
 console.log('depois de juntar:', juntada.slice(0, 260));
-conferir('7. juntando, vira uma transferência de verdade na lista',
-  /Pix enviado/.test(juntada) && !/parecem transferência/.test(juntada),
+conferir('7. juntando, vira uma transferência de verdade na lista (uma linha só, com desfazer)',
+  /1 juntada\(s\)/.test(juntada) && /Banco Inter → C6 Bank.*juntada.*desfazer ›/.test(juntada) && !/parecem transferência/.test(juntada),
   juntada.slice(0, 200));
 await page.screenshot({ path: dir+'/z27-juntada.png', fullPage: true });
+
+// ---- 17/11/2026: tocar na juntada e desfazer ----
+await page.click('#telaTransacoes .transf-linha:has-text("Banco Inter → C6 Bank")'); await page.waitForTimeout(1000);
+const dlg = limpo(await page.textContent('#dialogoFundo'));
+conferir('8. tocando na juntada, oferece desfazer mostrando os dois lados', /Desfazer esta transferência\?/.test(dlg) &&
+  /Saiu .*Banco Inter.*Pix enviado/.test(dlg) && /Entrou .*C6 Bank.*Pix recebido/.test(dlg), dlg.slice(0, 260));
+await page.screenshot({ path: dir+'/z87-desfazer-transf.png' });
+await page.click('#dialogoAcoes button:has-text("Desfazer")'); await page.waitForTimeout(2000);
+const desfeita = limpo(await page.textContent('#telaTransacoes'));
+conferir('9. desfeita, os dois voltam a ser saída e entrada e o par fica na lista para juntar depois',
+  !/juntada\(s\)/.test(desfeita) && /Banco Inter → C6 Bank.*você mandou deixar como está/.test(desfeita), desfeita.slice(0, 260));
+await page.click('#telaTransacoes button:has-text("Receitas")'); await page.waitForTimeout(800);
+conferir('10. a entrada voltou para as receitas', /Pix recebido/.test(limpo(await page.textContent('#telaTransacoes'))));
+
+// ---- um segundo par; a folha de juntar mostra o deixado de lado, desmarcado ----
+await lancar('saida', 'Pix para mim', '20000', 'C6 Bank');
+await lancar('entrada', 'Pix de mim', '20000', 'Banco Inter');
+await page.waitForTimeout(2000);
+await irParaInicio();
+await page.click('#telaInicio .ver-transferencias'); await page.waitForTimeout(1200);
+const fl = limpo(await page.textContent('#folha'));
+const caixas = await page.$$eval('#folha .item-extrato', ns => ns.map(n => (n.querySelector('.caixinha.marcada') ? 'X' : '_') + (n.textContent.includes('deixou como está') ? 'ign' : 'novo')));
+conferir('11. na folha, o novo vem marcado e o deixado de lado aparece desmarcado, com o aviso de desfazer',
+  caixas.join(',') === 'Xnovo,_ign' && /Em Transações › Transferências dá para tocar numa transferência e desfazer/.test(fl), caixas.join(',') + ' | ' + fl.slice(0, 200));
+await page.screenshot({ path: dir+'/z88-folha-transf.png' });
+await page.goBack(); await page.waitForTimeout(800);
+
+// ---- seleção: todas, juntar; só as juntadas, desfazer ----
+await abrirTransferencias();
+await page.click('#telaTransacoes .botao-selecionar-transf'); await page.waitForTimeout(600);
+await page.click('#telaTransacoes .transf-acoes button:has-text("Selecionar todas")'); await page.waitForTimeout(600);
+await page.screenshot({ path: dir+'/z89-selecao-transf.png' });
+await page.click('#telaTransacoes .transf-rodape button:has-text("Juntar 2")'); await page.waitForTimeout(700);
+await page.click('#dialogoAcoes button:has-text("Juntar")'); await page.waitForTimeout(2000);
+const duas = limpo(await page.textContent('#telaTransacoes'));
+conferir('12. selecionando todas, junta as duas de uma vez', /2 juntada\(s\)/.test(duas), duas.slice(0, 200));
+await page.click('#telaTransacoes .botao-selecionar-transf'); await page.waitForTimeout(600);
+await page.click('#telaTransacoes .transf-acoes button:has-text("Só as juntadas")'); await page.waitForTimeout(600);
+await page.click('#telaTransacoes .transf-rodape button:has-text("Desfazer 2")'); await page.waitForTimeout(700);
+await page.click('#dialogoAcoes button:has-text("Desfazer")'); await page.waitForTimeout(2000);
+const nenhuma = limpo(await page.textContent('#telaTransacoes'));
+conferir('13. e desfaz as duas de uma vez', !/juntada\(s\)/.test(nenhuma) && (nenhuma.match(/você mandou deixar como está/g) || []).length === 2, nenhuma.slice(0, 260));
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
