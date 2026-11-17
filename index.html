@@ -2262,6 +2262,8 @@
   .escolha-falta { margin: 10px 0 6px; }
   .pagamentos-da-parcela { margin-top: 14px; }
   .linha-sub-2.verde { color: var(--verde); }
+  .fora-do-saldo { color: var(--vermelho) !important; border-color: rgba(255,107,107,.45) !important; }
+  .conferencia-saldo { margin-top: 6px; font-size: 13px; }
   .linha-sub-2.azul-claro { color: #38BDF8; }
   .lista-parcelas.com-rolagem {
     max-height: 430px; overflow-y: auto; overscroll-behavior: contain;
@@ -2439,7 +2441,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.70.0';
+  var VERSAO = '5.71.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2448,6 +2450,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.71.0',
+      data: '2026-11-17',
+      itens: [
+        'Importar extrato: quando o extrato tem a coluna de saldo (como o "Saldo por transação" do Banco Inter), o app soma só a coluna do valor e usa o saldo para conferir linha por linha. Na tela de importação aparece "tudo bate ✓" ou quantos lançamentos não batem, marcados em vermelho para você conferir.'
+      ]
+    },
     {
       versao: '5.70.0',
       data: '2026-11-17',
@@ -29526,6 +29535,9 @@
       var comSaldo = pareceColunaDeSaldo(candidatos) ||
                      temColunaDeSaldo(linhas.join('\n'));
       var saldoFinal = null;
+      // Com a coluna de saldo, cada linha vira uma conferência (pedido de
+      // 17/11/2026): o saldo de antes mais o valor tem de dar o saldo dela.
+      var paraConferir = [];
 
       candidatos.forEach(function (c) {
         var linha = c.linha, d = c.d, valores = c.valores;
@@ -29565,14 +29577,45 @@
 
         // A categoria sai do texto inteiro: a coluna de tipo também dá pista.
         var achada = categoriaDe(textoCheio, tipo);
-        itens.push({
+        var novoItem = {
           data: d.data, descricao: descricao.slice(0, 80), valor: v.valor, tipo: tipo,
           categoria: achada.categoria, subcategoria: achada.subcategoria,
           descricaoCheia: textoCheio,
           negativoNoTexto: v.negativo || (marca && marca[1] === 'D'),
           credito: CREDITO_NA_FATURA.test(semAcento(textoCheio))
-        });
+        };
+        itens.push(novoItem);
+        if (comSaldo && valores.length >= 2) {
+          paraConferir.push({ item: novoItem, saldo: comSinal(valores[valores.length - 1]),
+                              efeito: tipo === 'saida' ? -v.valor : v.valor });
+        }
       });
+
+      // A conferência com a coluna de saldo. O extrato pode vir do mais
+      // antigo para o mais novo ou ao contrário: vale o sentido em que mais
+      // linhas batem. Se quase nenhuma bate, a coluna não é saldo corrente
+      // e nada é marcado.
+      var conferenciaSaldo = null;
+      if (paraConferir.length >= 2) {
+        var bateCresc = 0, bateDecr = 0, n = paraConferir.length - 1;
+        for (var k = 1; k < paraConferir.length; k++) {
+          var a0 = paraConferir[k - 1], b0 = paraConferir[k];
+          if (Math.abs(a0.saldo + b0.efeito - b0.saldo) <= 1) bateCresc++;
+          if (Math.abs(b0.saldo + a0.efeito - a0.saldo) <= 1) bateDecr++;
+        }
+        var crescente = bateCresc >= bateDecr;
+        var batem = Math.max(bateCresc, bateDecr);
+        if (batem >= n * 0.5) {
+          var fora = 0;
+          for (var q = 1; q < paraConferir.length; q++) {
+            var antes = paraConferir[q - 1], agora = paraConferir[q];
+            var ok = crescente ? Math.abs(antes.saldo + agora.efeito - agora.saldo) <= 1
+                               : Math.abs(agora.saldo + antes.efeito - antes.saldo) <= 1;
+            if (!ok) { fora++; (crescente ? agora : antes).item.foraDoSaldo = true; }
+          }
+          conferenciaSaldo = { conferidas: n, fora: fora };
+        }
+      }
 
       // Sem ano na linha o C6 vira o ano no meio do extrato: 12/12 depois 05/01.
       arrumarVirada(itens);
@@ -29584,7 +29627,8 @@
       // O saldo que o próprio banco imprime na última linha é a melhor prova
       // de que a leitura saiu certa: dá para comparar com a conta do app.
       return { itens: itens, fatura: fatura, banco: acharBanco(cheio, nomeArquivo),
-               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento };
+               saldoFinal: fatura ? null : saldoFinal, vencimento: vencimento,
+               conferenciaSaldo: fatura ? null : conferenciaSaldo };
     }
 
     function arrumarVirada(itens) {
@@ -30521,6 +30565,7 @@
       // O saldo que o banco imprime no fim do extrato: é com ele que dá
       // para saber, depois de lançar, se a leitura bateu.
       saldoFinal: lido.saldoFinal == null ? null : lido.saldoFinal,
+      conferenciaSaldo: lido.conferenciaSaldo || null,
       contaId: contaIdParaProximoExtrato || contaSugerida(lido),
       lote: lote || null
     };
@@ -30862,6 +30907,14 @@
           juntar(no('div', 'resumo-par'),
             no('span', 'verde', (dados.fatura ? 'Créditos ' : 'Entradas ') + emReais(entra)),
             no('span', 'vermelho', (dados.fatura ? 'Gastos ' : 'Saídas ') + emReais(sai))));
+        // A coluna "Saldo por transação" conferida linha por linha: só a
+        // coluna do valor soma; o saldo diz se a leitura saiu certa.
+        var cs = dados.conferenciaSaldo;
+        if (cs) {
+          resumo.appendChild(no('div', 'resumo-linha conferencia-saldo ' + (cs.fora ? 'vermelho' : 'verde'), cs.fora
+            ? cs.fora + ' lançamento(s) não batem com o saldo da linha no extrato. Confira os marcados em vermelho.'
+            : 'Conferido com o saldo de cada linha do extrato: tudo bate ✓'));
+        }
         principal.textContent = escolhidos.length ? 'Importar ' + escolhidos.length + ' lançamento' + (escolhidos.length > 1 ? 's' : '') : 'Nada marcado';
         principal.disabled = !escolhidos.length;
       }
@@ -30961,6 +31014,7 @@
             });
           });
         sub.appendChild(subEtiqueta);
+        if (it.foraDoSaldo) sub.appendChild(no('span', 'ja-tem fora-do-saldo', 'não bate com o saldo'));
         if (it.repetido) {
           sub.appendChild(no('span', 'ja-tem', it.motivoRepetido && it.motivoRepetido !== 'igual'
             ? 'já existe · ' + it.motivoRepetido : 'já existe'));
