@@ -2166,7 +2166,12 @@
   .marca-topo .marca-nome { font-size: 22px; letter-spacing: .34em; text-indent: 0; margin: 0; line-height: 1.1; }
   .marca-topo .marca-sub { font-size: 9.5px; letter-spacing: .16em; margin-top: 5px; color: var(--ouro); text-align: left; }
   .marca-topo .marca-sub::before, .marca-topo .marca-sub::after { display: none; }
-  .marca-botoes { display: flex; gap: 10px; flex: 0 0 auto; }
+  .marca-botoes { display: flex; gap: 8px; flex: 0 0 auto; }
+  /* Modo privacidade (pedido de 17/11/2026): o olho no topo esconde os
+     valores em todas as telas, e o app sempre abre com ele ligado. */
+  html.privado :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel):not(input):not(textarea):not(select) {
+    filter: blur(7px); -webkit-user-select: none; user-select: none; }
+  .marca-botao.marca-olho[aria-pressed="true"] { color: var(--ouro); }
   .marca-botao {
     position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
     color: var(--ouro); border: 1px solid transparent;
@@ -2478,7 +2483,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.74.0';
+  var VERSAO = '5.75.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2487,6 +2492,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.75.0',
+      data: '2026-11-17',
+      itens: [
+        'Olho da privacidade no topo do Início: esconde os valores em todas as telas. O app sempre abre com eles escondidos (e volta a esconder se ficar mais de 1 minuto em segundo plano). Toque no olho para mostrar.'
+      ]
+    },
     {
       versao: '5.74.0',
       data: '2026-11-17',
@@ -8669,7 +8681,9 @@
     var engrenagem = botao('marca-botao', null, function () { abrirFolhaPreferencias(); });
     engrenagem.setAttribute('aria-label', 'Preferências');
     engrenagem.appendChild(icone('engrenagem'));
-    juntar(barra, esq, juntar(no('div', 'marca-botoes'), sino, engrenagem));
+    var olho = botao('marca-botao marca-olho', null, function () { ligarPrivacidade(!privado); });
+    pintarOlho(olho);
+    juntar(barra, esq, juntar(no('div', 'marca-botoes'), olho, sino, engrenagem));
     // O ponto no sino sai da análise do mês, que pesa: fica para depois de
     // a tela aparecer, e só acende quando há algo pedindo atenção.
     setTimeout(function () {
@@ -9560,6 +9574,29 @@
     try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
   }
   var filtroTransacoes = 'todas';
+
+  // Privacidade: os valores ficam embaçados até tocar no olho. Sempre
+  // começa ligada, e volta a ligar quando o app fica um minuto em segundo
+  // plano — abrir de novo é abrir com os valores escondidos.
+  var privado = true;
+  document.documentElement.classList.add('privado');
+  function pintarOlho(b) {
+    b.textContent = '';
+    b.appendChild(icone(privado ? 'olhoFechado' : 'olho'));
+    b.setAttribute('aria-pressed', privado ? 'true' : 'false');
+    b.setAttribute('aria-label', privado ? 'Mostrar os valores' : 'Esconder os valores');
+  }
+  function ligarPrivacidade(sim) {
+    privado = !!sim;
+    document.documentElement.classList.toggle('privado', privado);
+    Array.prototype.forEach.call(document.querySelectorAll('.marca-olho'), pintarOlho);
+  }
+  var escondidoDesde = 0;
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { escondidoDesde = Date.now(); return; }
+    if (escondidoDesde && Date.now() - escondidoDesde >= 60000) ligarPrivacidade(true);
+    escondidoDesde = 0;
+  });
 
   // mes: o mês do seletor; tres e ano: contados a partir de hoje;
   // escolhido: as duas datas que a pessoa marcou.
@@ -11456,7 +11493,7 @@
         var quanto = pct(usado, cart.limite);
         topo.appendChild(progresso(usado, cart.limite,
           quanto > 90 ? 'var(--vermelho)' : quanto > 70 ? 'var(--ouro)' : 'var(--verde)'));
-        topo.appendChild(no('div', 'linha-nota',
+        topo.appendChild(no('div', 'linha-nota privavel',
           emReais(usado) + ' de ' + emReais(cart.limite) + ' · ' +
           emReais(livre) + ' livre nesta fatura'));
         if (usado > cart.limite) {
@@ -23573,7 +23610,7 @@
         );
         bloco.appendChild(topoMeta);
         bloco.appendChild(progresso(jaTem, m.alvo, 'var(--ouro)'));
-        var nota = no('div', 'linha-nota', emReais(jaTem) + ' de ' + emReais(m.alvo) +
+        var nota = no('div', 'linha-nota privavel', emReais(jaTem) + ' de ' + emReais(m.alvo) +
           (contaMeta ? ' · saldo de ' + contaMeta.nome : '') +
           (m.prazo ? ' · até ' + dataBr(m.prazo) : ''));
         nota.style.marginTop = '5px';
@@ -23615,7 +23652,7 @@
         });
         cRes.appendChild(gradeRes);
 
-        cRes.appendChild(no('div', 'linha-nota',
+        cRes.appendChild(no('div', 'linha-nota privavel',
           estado.perfil.reservaMeses + ' meses de despesa, com média de ' + emReais(res.media) + ' por mês.'));
       }
       tela.appendChild(cRes);
@@ -23657,7 +23694,7 @@
       barraMeta.appendChild(topoMetaPat);
       barraMeta.appendChild(progresso(a.bruto, a.meta,
         a.metaPct >= 100 ? 'var(--verde)' : 'var(--ouro)'));
-      barraMeta.appendChild(no('div', 'linha-nota',
+      barraMeta.appendChild(no('div', 'linha-nota privavel',
         emReais(a.bruto) + ' de ' + emReais(a.meta) +
         (a.metaPct >= 100 ? ' — meta alcançada.' : ' — faltam ' + emReais(a.meta - a.bruto) + '.')));
       cApos.appendChild(barraMeta);
