@@ -2487,7 +2487,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.80.0';
+  var VERSAO = '5.81.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2496,6 +2496,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.81.0',
+      data: '2026-11-17',
+      itens: [
+        'Transações: o "Saldo do período" agora fica em cima, logo abaixo da escolha das datas.',
+        'O cartão "Fluxo de caixa" saiu do Início. O relatório de fluxo de caixa, em Mais, continua.'
+      ]
+    },
     {
       versao: '5.80.0',
       data: '2026-11-17',
@@ -10731,36 +10739,8 @@
     var pares = paresDeTransferencia();
     if (pares.length) tela.appendChild(cartaoDeTransferencias(pares));
 
-    // Fluxo de caixa
-    var cFluxo = cartao();
-    cFluxo.appendChild(topoDeCartao('Fluxo de caixa', 'Ver todas', function () { irPara('transacoes'); }, 'trocar'));
-    // Este cartão é sobre dinheiro que entrou e saiu das contas. A fatura
-    // paga conta aqui; a compra no cartão conta em Despesas. São perguntas
-    // diferentes, e por isso os números podem não bater — está explicado.
-    cFluxo.appendChild(no('div', 'valorao pequeno num ' + (t.saldoCaixa >= 0 ? 'verde' : 'vermelho'), emReais(t.saldoCaixa)));
-    cFluxo.appendChild(no('div', 'linha-nota', 'líquido ' + faixa.rotulo));
-
-    var barra = no('div', 'barra-dupla');
-    barra.style.marginTop = '14px';
-    var soma = t.entradas + t.saidasCaixa;
-    var iE = no('i'); iE.style.width = pct(t.entradas, soma) + '%'; iE.style.background = 'var(--verde)';
-    var iS = no('i'); iS.style.width = pct(t.saidasCaixa, soma) + '%'; iS.style.background = 'var(--vermelho)';
-    juntar(barra, iE, iS);
-    cFluxo.appendChild(barra);
-
-    var duas = no('div', 'duas');
-    duas.style.marginTop = '12px';
-    duas.appendChild(parDeValores('Entradas', emReais(t.entradas), 'verde'));
-    var dir = parDeValores('Saídas', emReais(t.saidasCaixa), 'vermelho');
-    dir.style.textAlign = 'right';
-    duas.appendChild(dir);
-    cFluxo.appendChild(duas);
-    if (t.saidasCaixa !== t.saidas) {
-      cFluxo.appendChild(no('div', 'linha-nota',
-        'O que saiu das contas. A compra no cartão sai daqui quando a fatura é paga — ' +
-        'o gasto em si aparece em Despesas.'));
-    }
-    tela.appendChild(cFluxo);
+    // O cartão "Fluxo de caixa" saiu do Início a pedido do Vitor
+    // (17/11/2026). O relatório de fluxo de caixa, em Mais, continua.
 
     // Distribuição, das saídas ou das entradas
     var ehEntrada = abaDistribuicao === 'entrada';
@@ -22027,6 +22007,12 @@
       trocarPeriodo(v, function () { desenharTransacoes(); });
     }));
 
+    // O saldo do período fica aqui em cima, embaixo das datas (pedido de
+    // 17/11/2026): antes ele estava no fim da lista, depois de tudo.
+    var resumoTopo = no('div');
+    resumoTopo.id = 'resumoTransacoes';
+    tela.appendChild(resumoTopo);
+
     tela.appendChild(segmentos([
       { valor: 'todas', rotulo: 'Todas' },
       { valor: 'entrada', rotulo: 'Receitas' },
@@ -22410,6 +22396,8 @@
     var alvo = $('listaTransacoes');
     if (!alvo) return;
     alvo.textContent = '';
+    var lugarDoResumo = $('resumoTransacoes') || alvo;
+    if (lugarDoResumo !== alvo) lugarDoResumo.textContent = '';
 
     var termo = paraBusca(buscaTransacoes);
     var faixa = faixaDoPeriodo();
@@ -22499,8 +22487,7 @@
     var entradas = totais.entradas, saidas = totais.saidas, saldo = totais.saldo;
     var recortado = filtroTransacoes !== 'todas' || !!termo;
 
-    var resumo = cartao();
-    resumo.style.marginTop = '16px';
+    var resumo = cartao('resumo-periodo');
     var linhaResumo = no('div', 'cartao-topo');
     linhaResumo.style.marginBottom = '8px';
     juntar(linhaResumo,
@@ -22540,7 +22527,8 @@
       rodape += ' Somando só o que está nesta lista: ' + recorte.join(' e ') + '.';
     }
     resumo.appendChild(no('div', 'linha-nota', rodape));
-    alvo.appendChild(resumo);
+    if (lugarDoResumo === alvo) { resumo.style.marginTop = '16px'; alvo.appendChild(resumo); }
+    else lugarDoResumo.appendChild(resumo);
   }
 
   function linhaLancamento(l) {

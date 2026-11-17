@@ -63,10 +63,10 @@ const despesas = kpis.find(k => k.rotulo === 'Despesas');
 conferir('1. KPI Despesas = R$ 1.889,90 (consumo)', !!despesas && /1\.889,90/.test(despesas.valor),
   despesas && despesas.valor);
 
-const fluxo = await page.$eval('#telaInicio .cartao:has-text("Fluxo de caixa")', n => n.textContent.replace(/\s+/g,' '));
-console.log('   cartão:', limpo(fluxo).slice(0, 220));
-conferir('2. Fluxo de caixa = R$ 1.700,00 (caixa)', /1\.700,00/.test(fluxo));
-conferir('3. o cartão explica a diferença', /fatura é paga/.test(fluxo));
+// O cartão "Fluxo de caixa" saiu do Início em 17/11/2026, a pedido do
+// Vitor. A conta de caixa segue no relatório (verificações 11 a 13).
+conferir('2. o cartão Fluxo de caixa não está mais no Início',
+  !(await page.locator('#telaInicio .cartao:has-text("Fluxo de caixa")').count()));
 
 const distrib = await page.$eval('#telaInicio .cartao:has-text("Distribuição de gastos")', n => n.textContent.replace(/\s+/g,' '));
 conferir('4. distribuição avisa dos R$ 500,00 de fatura', /500,00 de fatura paga ficou de fora/.test(distrib));

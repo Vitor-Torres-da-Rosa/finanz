@@ -53,7 +53,7 @@ await page.evaluate(() => new Promise((res) => {
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Transações")'); await page.waitForTimeout(1800);
 
-const resumo = () => page.textContent('#listaTransacoes .cartao:has-text("Saldo do período")').then(limpo);
+const resumo = () => page.textContent('#resumoTransacoes .cartao:has-text("Saldo do período")').then(limpo);
 
 // --- tudo ---
 const tudo = await resumo();
@@ -90,12 +90,12 @@ await page.click('#telaTransacoes .seg-item:has-text("Todas"), #telaTransacoes b
 // Espero o filtro cair de verdade antes de buscar, senão o rodapé sai
 // falando de dois recortes e o teste mede outra coisa.
 await page.waitForFunction(() => {
-  var n = document.getElementById('listaTransacoes');
+  var n = document.getElementById('resumoTransacoes');
   return n && /Lançamentos\s*5/.test(n.textContent.replace(/\s+/g, ' '));
 }, null, { timeout: 20000 });
 await page.locator('#telaTransacoes .busca input').fill('Mercado');
 await page.waitForFunction(() => {
-  var n = document.getElementById('listaTransacoes');
+  var n = document.getElementById('resumoTransacoes');
   return n && /Lançamentos\s*1[^\d]/.test(n.textContent.replace(/\s+/g, ' '));
 }, null, { timeout: 20000 });
 await page.waitForTimeout(400);
@@ -106,6 +106,21 @@ conferir('6. buscando "Mercado", soma só o lançamento achado',
 conferir('7. e o rodapé diz que a soma é só da busca',
   /busca por "Mercado"/.test(comBusca), comBusca.slice(-110));
 await page.screenshot({ path: dir+'/r02-busca.png', fullPage: true });
+
+// 17/11/2026: o saldo do período fica em cima, logo abaixo das datas.
+await page.locator('#telaTransacoes .busca input').fill('');
+await page.waitForTimeout(600);
+const ordem = await page.evaluate(() => {
+  const r = document.getElementById('resumoTransacoes');
+  const antes = r && r.previousElementSibling, depois = r && r.nextElementSibling;
+  const dia = document.querySelector('#listaTransacoes .dia-cabecalho');
+  return { antes: antes ? antes.textContent : '', depois: depois ? depois.textContent : '',
+           acimaDaLista: !!(r && dia && r.getBoundingClientRect().top < dia.getBoundingClientRect().top) };
+});
+conferir('9. o saldo do período fica logo abaixo das datas, antes dos filtros e da lista',
+  /Últimos 3 meses/.test(ordem.antes) && /Receitas/.test(ordem.depois) && ordem.acimaDaLista, JSON.stringify(ordem));
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.screenshot({ path: dir+'/r03-saldo-em-cima.png' });
 
 await browser.close();
 if (falhas) { console.log('\n' + falhas + ' verificação(ões) falharam'); process.exit(1); }
