@@ -2490,7 +2490,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.83.0';
+  var VERSAO = '5.84.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2499,6 +2499,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.84.0',
+      data: '2026-11-18',
+      itens: [
+        'Fatura do C6 em PDF: a data da compra vem grudada no nome da loja ("06 dezMERCADOLIVRE") e agora é reconhecida. Cada compra entra com a data dela e o nome limpo, e a soma bate com o valor da fatura.'
+      ]
+    },
     {
       versao: '5.83.0',
       data: '2026-11-18',
@@ -29521,6 +29528,13 @@
       // no começo da linha. Sem isto, o "10/12" da parcela virava a data e a
       // descrição inteira ficava para trás.
       var c = /^([^0-9a-zA-Z]{0,4})(\d{1,2})\s+(?:de\s+)?([a-zA-ZçÇ]{3,9})\.?(?:\s+(?:de\s+)?(\d{4}))?(?=[\s,;-]|$)/.exec(linha);
+      // O texto do PDF do C6 gruda o mês na loja: "06 dezMERCADOLIVRE",
+      // "04 janHAVAN" (18/11/2026). Mês de três letras em minúsculas seguido
+      // de maiúscula, número ou "*" é a data da compra. Vale também quando a
+      // regra de cima pegou "janHAVAN" achando que era o nome do mês.
+      if (!c || !MESES[semAcento(c[3])]) {
+        c = /^([^0-9a-zA-Z]{0,4})(\d{1,2})\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)()(?=[A-Z0-9*])/.exec(linha) || c;
+      }
       if (c) {
         var nomeMes = semAcento(c[3]);
         var numMes = MESES[nomeMes];
@@ -29978,7 +29992,7 @@
     // O que a fatura imprime e não é compra (pedido de 18/11/2026, fatura
     // do C6): opções de pagamento, tabela de juros/IOF/CET, totais,
     // subtotal de cada cartão e o rodapé do boleto.
-    var QUADRO_DA_FATURA = /(^\d+\.\s*(pagamento|parcelamento)|pagamento total|pagamento minimo|parcelamento de fatura|entrada \+ ?\d+ ?x|\bcet\b|% a\.? ?m\b|juros de mora|multa por atraso|iof do (parcelamento|rotativo|atraso)|iof de financiamento|gastos desta fatura|compras (nacionais|internacionais)|subtotal|total (desta|da) fatura|total a pagar|valor da fatura|escanear o qr|qr ?code|codigo de barras|linha digitavel|limite (total|disponivel|utilizado)|saldo anterior|valor minimo)/;
+    var QUADRO_DA_FATURA = /(^\d+\.\s*(pagamento|parcelamento)|pagamento total|pagamento minimo|parcelamento de fatura|entrada \+ ?\d+ ?x|\bcet\b|% a\.? ?[ma]\b|% \(?a\.?d|juros de mora|multa por atraso|iof do (parcelamento|rotativo|atraso)|iof de financiamento|gastos desta fatura|compras (nacionais|internacionais)|subtotal|total (desta|da) fatura|total a pagar|valor da fatura|escanear o qr|qr ?code|codigo de barras|linha digitavel|limite (total|disponivel|utilizado)|saldo anterior|valor minimo)/;
     function ehQuadroDaFatura(texto) {
       var s = semAcento(String(texto || '')).trim();
       if (QUADRO_DA_FATURA.test(s)) return true;

@@ -3,117 +3,304 @@
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 6 >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
-endobj
-4 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
 endobj
-5 0 obj
+4 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
 endobj
-6 0 obj
-<< /Length 4148 >>
+5 0 obj
+<< /Length 1144 >>
 stream
 BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
-BT /F1 9 Tf 160 800 Td (Vencimento: 10 de Outubro) Tj ET
-BT /F1 9 Tf 330 800 Td (Debito automatico: Ativado) Tj ET
-BT /F1 9 Tf 160 786 Td (Valor da fatura: R$ 2.562,34) Tj ET
-BT /F1 9 Tf 330 786 Td (Anuidade: R$0,00) Tj ET
-BT /F1 9 Tf 160 772 Td (Melhor dia de compra: 4) Tj ET
-BT /F2 9 Tf 40 740 Td (Transacoes do cartao principal) Tj ET
-BT /F1 9 Tf 40 726 Td (Lembrando: nesta fatura serao lancadas apenas transacoes feitas ate 02/10/26.) Tj ET
-BT /F2 9 Tf 40 700 Td (C6 Carbon Virtual Final 6674 - FULANO DE TAL) Tj ET
-BT /F1 9 Tf 380 700 Td (Subtotal deste cartao R$ 381,79) Tj ET
-BT /F1 9 Tf 480 686 Td (Valores em reais) Tj ET
-BT /F1 9 Tf 50 670 Td (06 dez) Tj ET
-BT /F1 9 Tf 100 670 Td (MERCADOLIVRE*MERCADOL - ) Tj ET
-BT /F2 9 Tf 225 670 Td (Parcela 10/12) Tj ET
-BT /F1 9 Tf 520 670 Td (141,58) Tj ET
-BT /F1 9 Tf 50 656 Td (06 dez) Tj ET
-BT /F1 9 Tf 100 656 Td (HAVAN VIAMAO - ) Tj ET
-BT /F2 9 Tf 180 656 Td (Parcela 10/10) Tj ET
-BT /F1 9 Tf 527 656 Td (99,99) Tj ET
-BT /F1 9 Tf 50 642 Td (04 jan) Tj ET
-BT /F1 9 Tf 100 642 Td (HAVAN VIAMAO - ) Tj ET
-BT /F2 9 Tf 180 642 Td (Parcela 9/10) Tj ET
-BT /F1 9 Tf 527 642 Td (59,99) Tj ET
-BT /F1 9 Tf 50 628 Td (04 abr) Tj ET
-BT /F1 9 Tf 100 628 Td (ZP *WEBER MOTO PECAS L - ) Tj ET
-BT /F2 9 Tf 230 628 Td (Parcela 6/12) Tj ET
-BT /F1 9 Tf 527 628 Td (28,62) Tj ET
-BT /F1 9 Tf 50 614 Td (21 abr) Tj ET
-BT /F1 9 Tf 100 614 Td (SHOPEE *CESARIPNEUSF - ) Tj ET
-BT /F2 9 Tf 215 614 Td (Parcela 6/9) Tj ET
-BT /F1 9 Tf 527 614 Td (51,61) Tj ET
-BT /F2 9 Tf 40 590 Td (C6 Platinum Final 9534 - FULANO DE TAL) Tj ET
-BT /F1 9 Tf 380 590 Td (Subtotal deste cartao R$ 2.180,55) Tj ET
-BT /F1 9 Tf 50 574 Td (16 jul) Tj ET
-BT /F1 9 Tf 100 574 Td (JIM.COM* FULANO DE TAL - ) Tj ET
-BT /F2 9 Tf 225 574 Td (Parcela 3/6) Tj ET
-BT /F1 9 Tf 510 574 Td (2.180,55) Tj ET
-BT /F1 9 Tf 50 560 Td (08 set) Tj ET
-BT /F1 9 Tf 100 560 Td (Inclusao de Pagamento) Tj ET
-BT /F1 9 Tf 510 560 Td (2.924,84) Tj ET
-BT /F1 9 Tf 50 548 Td (13 out) Tj ET
-BT /F1 9 Tf 100 548 Td (Pag Fatura Boleto) Tj ET
-BT /F1 9 Tf 510 548 Td (2.562,34) Tj ET
-BT /F2 9 Tf 40 520 Td (Total a pagar) Tj ET
-BT /F2 9 Tf 480 520 Td (R$ 2.562,34) Tj ET
-BT /F1 9 Tf 40 510 Td (10/11/2026) Tj ET
-BT /F1 9 Tf 40 500 Td (Gastos desta fatura) Tj ET
-BT /F1 9 Tf 480 500 Td (R$ 369,35) Tj ET
-BT /F1 9 Tf 40 488 Td (Compras nacionais) Tj ET
-BT /F1 9 Tf 480 488 Td (R$ 2.462,35) Tj ET
-BT /F2 9 Tf 40 470 Td (Opcoes de pagamento) Tj ET
-BT /F1 9 Tf 40 456 Td (1. Pagamento total Recomendado) Tj ET
-BT /F1 9 Tf 480 456 Td (R$ 2.462,35) Tj ET
-BT /F1 9 Tf 40 442 Td (2. Parcelamento de fatura Em ate 33x de) Tj ET
-BT /F1 9 Tf 480 442 Td (R$ 140,59) Tj ET
-BT /F1 9 Tf 40 428 Td (Juros do parcelamento em 33x 4,49% a.m.) Tj ET
-BT /F1 9 Tf 480 428 Td (R$ 70,64) Tj ET
-BT /F1 9 Tf 40 414 Td (CET do financiamento 5,16% a.m.) Tj ET
-BT /F1 9 Tf 480 414 Td (R$ 84,42) Tj ET
-BT /F1 9 Tf 40 400 Td (Entrada + 2x de R$ 861,34R$ 2.584,02) Tj ET
-BT /F1 9 Tf 480 400 Td (R$ 81,59) Tj ET
-BT /F1 9 Tf 40 386 Td (IOF do parcelamento) Tj ET
-BT /F1 9 Tf 480 386 Td (R$ 0,38) Tj ET
-BT /F1 9 Tf 40 372 Td (Juros Rotativo 19,00% a.m.) Tj ET
-BT /F1 9 Tf 480 372 Td (R$ 730,15) Tj ET
-BT /F1 9 Tf 40 358 Td (IOF do rotativo) Tj ET
-BT /F1 9 Tf 480 358 Td (R$ 0,38) Tj ET
-BT /F1 9 Tf 40 344 Td (Juros de mora por atraso - % a.m.) Tj ET
-BT /F1 9 Tf 480 344 Td (R$ 1,00) Tj ET
-BT /F1 9 Tf 40 330 Td (Multa por atraso) Tj ET
-BT /F1 9 Tf 480 330 Td (R$ 2,00) Tj ET
-BT /F1 9 Tf 40 316 Td (Juros do financiamento pos-rotativo5,99% a.m.) Tj ET
-BT /F1 9 Tf 480 316 Td (R$ 102,95) Tj ET
-BT /F1 9 Tf 40 302 Td (IOF de financiamento - % a.m.) Tj ET
-BT /F1 9 Tf 480 302 Td (R$ 0,38) Tj ET
-BT /F1 9 Tf 40 288 Td (IOF do atraso) Tj ET
-BT /F1 9 Tf 480 288 Td (R$ 0,38) Tj ET
-BT /F1 9 Tf 40 270 Td (E so escanear o QR Code usando o app de qualquer banco para pagar) Tj ET
-BT /F1 9 Tf 480 270 Td (R$ 2.462,35) Tj ET
-BT /F1 9 Tf 40 256 Td (29) Tj ET
-BT /F1 9 Tf 60 256 Td (R$ 2.462,35) Tj ET
-BT /F1 9 Tf 40 240 Td (Pague com Pix e libere seu limite em minutos) Tj ET
-BT /F1 9 Tf 400 240 Td (Valor da fatura: R$ 2.562,34) Tj ET
-BT /F1 9 Tf 400 226 Td (Vencimento: 10/10/2026) Tj ET
+BT /F1 9 Tf 120 800 Td (mastercard) Tj ET
+BT /F1 9 Tf 40 760 Td (Ola, FULANO! Sua fatura com vencimento em Novembro chegou no valor de R$ 2.462,35.) Tj ET
+BT /F1 9 Tf 40 740 Td (Data do vencimento: 10 de Novembro) Tj ET
+BT /F1 9 Tf 40 726 Td (Limite total: R$ 4.748,87) Tj ET
+BT /F2 9 Tf 40 690 Td (Opcoes de pagamento) Tj ET
+BT /F1 9 Tf 40 676 Td (1. Pagamento total) Tj ET
+BT /F1 9 Tf 120 676 Td (Recomendado) Tj ET
+BT /F1 9 Tf 200 676 Td (2. Pagamento minimo ou parcial) Tj ET
+BT /F1 9 Tf 380 676 Td (3. Parcelamento em 3x) Tj ET
+BT /F1 9 Tf 40 662 Td (R$ 2.462,35) Tj ET
+BT /F1 9 Tf 200 662 Td (A partir de R$ 369,35) Tj ET
+BT /F1 9 Tf 380 662 Td (Entrada + 2x de R$ 861,34) Tj ET
+BT /F2 9 Tf 40 630 Td (Pague com Pix e libere seu limite em minutos) Tj ET
+BT /F1 9 Tf 400 630 Td (Valor da fatura:) Tj ET
+BT /F1 9 Tf 40 616 Td (E so escanear o QR Code usando o app de qualquer banco para) Tj ET
+BT /F1 9 Tf 400 616 Td (R$ 2.462,35) Tj ET
+BT /F1 9 Tf 40 602 Td (pagar com Pix.) Tj ET
+BT /F1 9 Tf 400 602 Td (Vencimento:) Tj ET
+BT /F1 9 Tf 400 588 Td (10/11/2026) Tj ET
+BT /F1 9 Tf 40 560 Td (1 / 7) Tj ET
 endstream
 endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2927 >>
+stream
+BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
+BT /F1 9 Tf 160 800 Td (Vencimento: 10 de Novembro) Tj ET
+BT /F1 9 Tf 330 800 Td (Debito automatico: Ativado) Tj ET
+BT /F1 9 Tf 450 800 Td (FULANO DE TAL) Tj ET
+BT /F1 9 Tf 160 786 Td (Valor da fatura: R$ 2.462,35) Tj ET
+BT /F1 9 Tf 330 786 Td (Anuidade: R$0,00) Tj ET
+BT /F1 9 Tf 450 786 Td (Cartao C6 Platinum) Tj ET
+BT /F1 9 Tf 160 772 Td (Melhor dia de compra: 4) Tj ET
+BT /F2 9 Tf 40 740 Td (Pagamento de fatura) Tj ET
+BT /F1 9 Tf 40 710 Td (1. Pagamento total) Tj ET
+BT /F1 9 Tf 120 710 Td (Recomendado) Tj ET
+BT /F1 9 Tf 480 710 Td (R$ 2.462,35) Tj ET
+BT /F1 9 Tf 40 690 Td (2. Parcelamento de fatura) Tj ET
+BT /F1 9 Tf 400 690 Td (Em ate 33x de R$140,59) Tj ET
+BT /F1 9 Tf 40 670 Td (Parcelamento) Tj ET
+BT /F1 9 Tf 150 670 Td (Total a pagar) Tj ET
+BT /F1 9 Tf 230 670 Td (CET) Tj ET
+BT /F1 9 Tf 300 670 Td (Juros do parcelamento em 33x) Tj ET
+BT /F1 9 Tf 420 670 Td (4,49% a.m.) Tj ET
+BT /F1 9 Tf 480 670 Td (70,64% a.a.) Tj ET
+BT /F1 9 Tf 40 656 Td (Entrada + 2x de R$ 861,34) Tj ET
+BT /F1 9 Tf 150 656 Td (R$ 2.584,02) Tj ET
+BT /F1 9 Tf 230 656 Td (81,59% a.a.) Tj ET
+BT /F1 9 Tf 300 656 Td (CET do financiamento) Tj ET
+BT /F1 9 Tf 420 656 Td (5,16% a.m.) Tj ET
+BT /F1 9 Tf 480 656 Td (84,42% a.a.) Tj ET
+BT /F1 9 Tf 40 642 Td (Entrada + 5x de R$ 461,05) Tj ET
+BT /F1 9 Tf 150 642 Td (R$ 2.766,30) Tj ET
+BT /F1 9 Tf 230 642 Td (79,09% a.a.) Tj ET
+BT /F1 9 Tf 300 642 Td (IOF do parcelamento) Tj ET
+BT /F1 9 Tf 420 642 Td (0,38% + 0,0082% \(a.d\)) Tj ET
+BT /F1 9 Tf 40 628 Td (Entrada + 7x de R$ 361,51) Tj ET
+BT /F1 9 Tf 150 628 Td (R$ 2.892,08) Tj ET
+BT /F1 9 Tf 230 628 Td (78,59% a.a.) Tj ET
+BT /F1 9 Tf 40 614 Td (Entrada + 9x de R$ 302,18) Tj ET
+BT /F1 9 Tf 150 614 Td (R$ 3.021,80) Tj ET
+BT /F1 9 Tf 230 614 Td (78,37% a.a.) Tj ET
+BT /F1 9 Tf 40 600 Td (Entrada + 11x de R$ 262,95) Tj ET
+BT /F1 9 Tf 150 600 Td (R$ 3.155,40) Tj ET
+BT /F1 9 Tf 230 600 Td (78,31% a.a.) Tj ET
+BT /F1 9 Tf 40 570 Td (3. Pagamento minimo) Tj ET
+BT /F1 9 Tf 480 570 Td (R$ 369,35) Tj ET
+BT /F1 9 Tf 40 550 Td (Gastos desta fatura) Tj ET
+BT /F1 9 Tf 220 550 Td (R$ 369,35) Tj ET
+BT /F1 9 Tf 300 550 Td (Juros Rotativo) Tj ET
+BT /F1 9 Tf 420 550 Td (19,00% a.m. 730,15% a.a.) Tj ET
+BT /F1 9 Tf 40 536 Td (Saldo rotativo) Tj ET
+BT /F1 9 Tf 220 536 Td (R$ 0,00) Tj ET
+BT /F1 9 Tf 300 536 Td (CET do financiamento) Tj ET
+BT /F1 9 Tf 420 536 Td (19,63% a.m. 784,87% a.a.) Tj ET
+BT /F1 9 Tf 40 522 Td (Encargos do credito rotativo) Tj ET
+BT /F1 9 Tf 220 522 Td (R$ 0,00) Tj ET
+BT /F1 9 Tf 300 522 Td (Encargos e IOF do rotativo) Tj ET
+BT /F1 9 Tf 480 522 Td (R$ 410,77) Tj ET
+BT /F1 9 Tf 40 508 Td (Encargos de atraso) Tj ET
+BT /F1 9 Tf 220 508 Td (R$ 0,00) Tj ET
+BT /F1 9 Tf 300 508 Td (IOF do rotativo) Tj ET
+BT /F1 9 Tf 420 508 Td (0,38% + 0,0082% \(a.d\)) Tj ET
+BT /F1 9 Tf 40 494 Td (Pagamento minimo obrigatorio) Tj ET
+BT /F1 9 Tf 220 494 Td (R$ 369,35) Tj ET
+BT /F1 9 Tf 40 460 Td (2 / 7) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 1447 >>
+stream
+BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
+BT /F1 9 Tf 160 800 Td (Vencimento: 10 de Novembro) Tj ET
+BT /F1 9 Tf 330 800 Td (Debito automatico: Ativado) Tj ET
+BT /F1 9 Tf 450 800 Td (FULANO DE TAL) Tj ET
+BT /F1 9 Tf 160 786 Td (Valor da fatura: R$ 2.462,35) Tj ET
+BT /F1 9 Tf 330 786 Td (Anuidade: R$0,00) Tj ET
+BT /F1 9 Tf 450 786 Td (Cartao C6 Platinum) Tj ET
+BT /F1 9 Tf 160 772 Td (Melhor dia de compra: 4) Tj ET
+BT /F2 9 Tf 40 740 Td (Pagamento de fatura) Tj ET
+BT /F1 9 Tf 40 710 Td (4. Atrasar ou pagar menos que o minimo da fatura) Tj ET
+BT /F1 9 Tf 300 710 Td (Nao recomendado) Tj ET
+BT /F1 9 Tf 40 690 Td (Juros do rotativo) Tj ET
+BT /F1 9 Tf 180 690 Td (19,00% a. 730,15% a.) Tj ET
+BT /F1 9 Tf 300 690 Td (Juros maximo do contrato) Tj ET
+BT /F1 9 Tf 480 690 Td (27,00% a.m.) Tj ET
+BT /F1 9 Tf 40 676 Td (Juros de mora por atraso - % a.m.) Tj ET
+BT /F1 9 Tf 240 676 Td (1,00%) Tj ET
+BT /F1 9 Tf 40 662 Td (Multa por atraso) Tj ET
+BT /F1 9 Tf 240 662 Td (2,00%) Tj ET
+BT /F1 9 Tf 300 662 Td (Juros do financiamento pos-rotativo) Tj ET
+BT /F1 9 Tf 450 662 Td (5,99% a.m. 102,95% a.) Tj ET
+BT /F1 9 Tf 40 648 Td (IOF de financiamento - % a.m.) Tj ET
+BT /F1 9 Tf 180 648 Td (0,38% + 0,0082% \(a.d\)) Tj ET
+BT /F1 9 Tf 300 648 Td (CET do financiamento) Tj ET
+BT /F1 9 Tf 450 648 Td (6,62% a.m. 118,23% a.) Tj ET
+BT /F1 9 Tf 300 634 Td (IOF do atraso) Tj ET
+BT /F1 9 Tf 450 634 Td (0,38% + 0,0082% \(a.d\)) Tj ET
+BT /F1 9 Tf 40 600 Td (3 / 7) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 1493 >>
+stream
+BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
+BT /F1 9 Tf 160 800 Td (Vencimento: 10 de Novembro) Tj ET
+BT /F1 9 Tf 330 800 Td (Debito automatico: Ativado) Tj ET
+BT /F1 9 Tf 450 800 Td (FULANO DE TAL) Tj ET
+BT /F1 9 Tf 160 786 Td (Valor da fatura: R$ 2.462,35) Tj ET
+BT /F1 9 Tf 330 786 Td (Anuidade: R$0,00) Tj ET
+BT /F1 9 Tf 450 786 Td (Cartao C6 Platinum) Tj ET
+BT /F1 9 Tf 160 772 Td (Melhor dia de compra: 4) Tj ET
+BT /F2 9 Tf 40 740 Td (Resumo da fatura) Tj ET
+BT /F1 9 Tf 40 726 Td (Compras e pagamentos feitos ate o fechamento desta fatura em 03/11/26.) Tj ET
+BT /F1 9 Tf 40 700 Td (Compras nacionais) Tj ET
+BT /F1 9 Tf 480 700 Td (2.462,35) Tj ET
+BT /F1 9 Tf 40 686 Td (Compras internacionais) Tj ET
+BT /F1 9 Tf 480 686 Td (0,00) Tj ET
+BT /F1 9 Tf 40 672 Td (Anuidade diferenciada) Tj ET
+BT /F1 9 Tf 480 672 Td (0,00) Tj ET
+BT /F1 9 Tf 40 658 Td (Juros de financiamento) Tj ET
+BT /F1 9 Tf 480 658 Td (0,00) Tj ET
+BT /F2 9 Tf 40 630 Td (Total a pagar) Tj ET
+BT /F2 9 Tf 460 630 Td (R$ 2.462,35) Tj ET
+BT /F1 9 Tf 40 616 Td (Saldo obrigacoes futuras) Tj ET
+BT /F1 9 Tf 460 616 Td (R$ 4.749,00) Tj ET
+BT /F1 9 Tf 40 590 Td (Total) Tj ET
+BT /F1 9 Tf 120 590 Td (Utilizado) Tj ET
+BT /F1 9 Tf 200 590 Td (Disponivel) Tj ET
+BT /F1 9 Tf 40 576 Td (R$7.211,22) Tj ET
+BT /F1 9 Tf 120 576 Td (R$7.211,35) Tj ET
+BT /F1 9 Tf 200 576 Td (R$-0,13) Tj ET
+BT /F1 9 Tf 300 576 Td (R$721,12) Tj ET
+BT /F1 9 Tf 380 576 Td (R$0,00) Tj ET
+BT /F1 9 Tf 460 576 Td (R$721,12) Tj ET
+BT /F1 9 Tf 40 540 Td (5 / 7) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 1782 >>
+stream
+BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
+BT /F1 9 Tf 160 800 Td (Vencimento: 10 de Novembro) Tj ET
+BT /F1 9 Tf 330 800 Td (Debito automatico: Ativado) Tj ET
+BT /F1 9 Tf 450 800 Td (FULANO DE TAL) Tj ET
+BT /F1 9 Tf 160 786 Td (Valor da fatura: R$ 2.462,35) Tj ET
+BT /F1 9 Tf 330 786 Td (Anuidade: R$0,00) Tj ET
+BT /F1 9 Tf 450 786 Td (Cartao C6 Platinum) Tj ET
+BT /F1 9 Tf 160 772 Td (Melhor dia de compra: 4) Tj ET
+BT /F2 9 Tf 40 740 Td (Transacoes do cartao principal) Tj ET
+BT /F1 9 Tf 40 726 Td (Lembrando: nesta fatura serao lancadas apenas transacoes feitas ate 03/11/26.) Tj ET
+BT /F2 9 Tf 40 700 Td (C6 Carbon Virtual Final 6674 - FULANO DE TAL) Tj ET
+BT /F1 9 Tf 280 700 Td (Cartao Virtual) Tj ET
+BT /F1 9 Tf 380 700 Td (Subtotal deste cartao R$ 281,80) Tj ET
+BT /F1 9 Tf 480 686 Td (Valores em reais) Tj ET
+BT /F1 9 Tf 50 670 Td (06 dezMERCADOLIVRE*MERCADOL - ) Tj ET
+BT /F2 9 Tf 225 670 Td (Parcela 11/12) Tj ET
+BT /F1 9 Tf 520 670 Td (141,58) Tj ET
+BT /F1 9 Tf 50 656 Td (04 janHAVAN VIAMAO - ) Tj ET
+BT /F2 9 Tf 180 656 Td (Parcela 10/10) Tj ET
+BT /F1 9 Tf 527 656 Td (59,99) Tj ET
+BT /F1 9 Tf 50 642 Td (04 abrZP *WEBER MOTO PECAS L - ) Tj ET
+BT /F2 9 Tf 230 642 Td (Parcela 7/12) Tj ET
+BT /F1 9 Tf 527 642 Td (28,62) Tj ET
+BT /F1 9 Tf 50 628 Td (21 abrSHOPEE *CESARIPNEUSF - ) Tj ET
+BT /F2 9 Tf 215 628 Td (Parcela 7/9) Tj ET
+BT /F1 9 Tf 527 628 Td (51,61) Tj ET
+BT /F2 9 Tf 40 600 Td (C6 Platinum Final 9534 - FULANO DE TAL) Tj ET
+BT /F1 9 Tf 380 600 Td (Subtotal deste cartao R$ 2.180,55) Tj ET
+BT /F1 9 Tf 50 584 Td (16 julJIM.COM* FULANO DE TAL - ) Tj ET
+BT /F2 9 Tf 225 584 Td (Parcela 4/6) Tj ET
+BT /F1 9 Tf 510 584 Td (2.180,55) Tj ET
+BT /F1 9 Tf 50 570 Td (13 outPag Fatura Boleto) Tj ET
+BT /F1 9 Tf 510 570 Td (2.562,34) Tj ET
+BT /F1 9 Tf 40 540 Td (6 / 7) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 2081 >>
+stream
+BT /F2 9 Tf 40 800 Td (C6 BANK) Tj ET
+BT /F1 9 Tf 160 800 Td (Vencimento: 10 de Novembro) Tj ET
+BT /F1 9 Tf 330 800 Td (Debito automatico: Ativado) Tj ET
+BT /F1 9 Tf 450 800 Td (FULANO DE TAL) Tj ET
+BT /F1 9 Tf 160 786 Td (Valor da fatura: R$ 2.462,35) Tj ET
+BT /F1 9 Tf 330 786 Td (Anuidade: R$0,00) Tj ET
+BT /F1 9 Tf 450 786 Td (Cartao C6 Platinum) Tj ET
+BT /F1 9 Tf 160 772 Td (Melhor dia de compra: 4) Tj ET
+BT /F2 9 Tf 40 740 Td (Formas de pagamento) Tj ET
+BT /F2 9 Tf 40 710 Td (Pague com Pix e libere seu limite em minutos) Tj ET
+BT /F1 9 Tf 400 710 Td (Valor da fatura:) Tj ET
+BT /F1 9 Tf 40 696 Td (E so escanear o QR Code usando o app de qualquer banco para pagar) Tj ET
+BT /F1 9 Tf 400 696 Td (R$ 2.462,35) Tj ET
+BT /F1 9 Tf 400 682 Td (Vencimento:) Tj ET
+BT /F1 9 Tf 400 668 Td (10/11/2026) Tj ET
+BT /F1 9 Tf 40 640 Td (C6 BANK 336) Tj ET
+BT /F2 9 Tf 400 640 Td (Recibo do pagador) Tj ET
+BT /F1 9 Tf 40 626 Td (NUMERO DO CARTAO) Tj ET
+BT /F1 9 Tf 200 626 Td (NOSSO NUMERO) Tj ET
+BT /F1 9 Tf 380 626 Td (VENCIMENTO) Tj ET
+BT /F1 9 Tf 40 612 Td (3134) Tj ET
+BT /F1 9 Tf 200 612 Td (349536270) Tj ET
+BT /F1 9 Tf 380 612 Td (10/11/2026) Tj ET
+BT /F1 9 Tf 40 598 Td (VALOR TOTAL) Tj ET
+BT /F1 9 Tf 200 598 Td (PAGAMENTO MINIMO) Tj ET
+BT /F1 9 Tf 380 598 Td (VALOR PAGO R$) Tj ET
+BT /F1 9 Tf 40 584 Td (2.462,35) Tj ET
+BT /F1 9 Tf 200 584 Td (369,35) Tj ET
+BT /F1 9 Tf 40 560 Td (DATA DO DOCUMENTO) Tj ET
+BT /F1 9 Tf 130 560 Td (N. DO DOCUMENTO) Tj ET
+BT /F1 9 Tf 230 560 Td (DATA DO PROCESSAMENTO) Tj ET
+BT /F1 9 Tf 40 546 Td (18/11/2026) Tj ET
+BT /F1 9 Tf 130 546 Td (3099125463) Tj ET
+BT /F1 9 Tf 230 546 Td (03/11/2026) Tj ET
+BT /F1 9 Tf 460 546 Td (349536270) Tj ET
+BT /F1 9 Tf 40 532 Td (USO DO BANCO) Tj ET
+BT /F1 9 Tf 130 532 Td (CARTEIRA) Tj ET
+BT /F1 9 Tf 180 532 Td (ESPECIE) Tj ET
+BT /F1 9 Tf 260 532 Td (VALOR) Tj ET
+BT /F1 9 Tf 430 532 Td (\(=\) VALOR TOTAL DO DOCUMENTO) Tj ET
+BT /F1 9 Tf 130 518 Td (29) Tj ET
+BT /F1 9 Tf 180 518 Td (R$) Tj ET
+BT /F1 9 Tf 260 518 Td (2.462,35) Tj ET
+BT /F1 9 Tf 480 518 Td (2.462,35) Tj ET
+BT /F1 9 Tf 40 490 Td (7 / 7) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 15 0 R >>
+endobj
 xref
-0 7
+0 17
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
-0000000115 00000 n 
-0000000251 00000 n 
+0000000149 00000 n 
+0000000246 00000 n 
 0000000348 00000 n 
-0000000450 00000 n 
+0000001544 00000 n 
+0000001680 00000 n 
+0000004659 00000 n 
+0000004795 00000 n 
+0000006294 00000 n 
+0000006431 00000 n 
+0000007977 00000 n 
+0000008115 00000 n 
+0000009950 00000 n 
+0000010088 00000 n 
+0000012222 00000 n 
 trailer
-<< /Size 7 /Root 1 0 R >>
+<< /Size 17 /Root 1 0 R >>
 startxref
-4650
+12360
 %%EOF

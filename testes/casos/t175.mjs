@@ -36,13 +36,15 @@ await page.click('#telaMais .linha:has-text("Importar extrato")');
 await page.waitForSelector('#folha .item-extrato', { timeout: 60000 }); await page.waitForTimeout(800);
 const itens = await page.$$eval('#folha .item-extrato', ns => ns.map(n => n.textContent.replace(/\s+/g, ' ').trim()));
 console.log(itens.join('\n'));
-const compras = ['MERCADOLIVRE', 'HAVAN VIAMAO - Parcela 10/10', 'HAVAN VIAMAO - Parcela 9/10', 'WEBER MOTO', 'SHOPEE', 'JIM.COM'];
-conferir('1. as 6 compras dos cartões aparecem', compras.every(k => itens.some(t => t.includes(k))) && itens.length === 6, itens.length + ' itens');
+const compras = ['MERCADOLIVRE*MERCADOL - Parcela 11/12', 'HAVAN VIAMAO - Parcela 10/10', 'WEBER MOTO PECAS L - Parcela 7/12', 'SHOPEE *CESARIPNEUSF - Parcela 7/9', 'JIM.COM* FULANO DE TAL - Parcela 4/6'];
+conferir('1. as 5 compras da página de transações aparecem, com o nome da loja sem a data grudada', compras.every(k => itens.some(t => t.includes(k))) && itens.length === 5 &&
+  !itens.some(t => /^✓?\s*\d\d [a-z]{3}/.test(t)), itens.length + ' itens');
+conferir('1b. cada compra com a data dela, não a do vencimento', /06\/12\/2025/.test(itens.join()) && /16\/07\/2026/.test(itens.join()) && !/10\/11\/2026/.test(itens.join()));
 const lixo = /Pagamento total|Parcelamento de fatura|Juros|CET|Entrada \+|IOF|Gastos desta fatura|Compras nacionais|Subtotal|Pag Fatura|Inclus.o de Pagamento|QR Code|^29 |Multa/i;
 const sobrou = itens.filter(t => lixo.test(t));
 conferir('2. nada dos quadros da fatura vira compra (opções de pagamento, juros, IOF, CET, totais, subtotal, pagamento anterior, QR Code)', sobrou.length === 0, sobrou.join(' | '));
 const tela = limpo(await page.textContent('#folha'));
-conferir('3. o que entra soma as compras da fatura', /Gastos R\$ 2\.562,34/.test(tela), (tela.match(/Gastos R\$ [\d.,]+/) || [''])[0]);
+conferir('3. o que entra soma o valor da fatura (R$ 2.462,35)', /Gastos R\$ 2\.462,34|Gastos R\$ 2\.462,35/.test(tela), (tela.match(/Gastos R\$ [\d.,]+/) || [''])[0]);
 await page.screenshot({ path: dir + '/z101-fatura-so-compras.png' });
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();
