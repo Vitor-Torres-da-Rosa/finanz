@@ -53,8 +53,9 @@ conferir('3. diz em qual fatura vai entrar', /Tudo entra na fatura de outubro de
   (tela.match(/Tudo entra[^.]*\./) || [''])[0]);
 conferir('4. a loja aparece, não "Entrada"', /MERCADOLIVRE\*MERCADOL - Parcela 10\/12/.test(tela) && /HAVAN VIAMAO - Parcela 9\/10/.test(tela));
 conferir('5. a data é a da compra, não a da parcela', /06\/12\/2025/.test(tela) && !/10\/12\/2026/.test(tela));
-conferir('6. o pagamento da fatura anterior vem desmarcado', /Deixei desmarcado o pagamento/.test(tela));
-conferir('7. marcados somam o valor da fatura', /6 de 7 lançamentos/.test(tela) && /Gastos R\$ 2\.562,34/.test(tela),
+// Desde 18/11/2026 o pagamento da fatura anterior nem entra na lista.
+conferir('6. o pagamento da fatura anterior não aparece', !/Inclus[aã]o de Pagamento/i.test(tela));
+conferir('7. marcados somam o valor da fatura', /6 de 6 lançamentos/.test(tela) && /Gastos R\$ 2\.562,34/.test(tela),
   (tela.match(/\d+ de \d+ lançamentos.{0,80}/) || [''])[0]);
 await page.screenshot({ path: dir + '/z21-fatura-c6-conferir.png', fullPage: true });
 

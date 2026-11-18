@@ -2490,7 +2490,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.82.0';
+  var VERSAO = '5.83.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2499,6 +2499,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.83.0',
+      data: '2026-11-18',
+      itens: [
+        'Fatura do cartão em PDF: o app lê só as compras dos cartões. Opções de pagamento, tabela de juros/IOF/CET, multa, "Gastos desta fatura", "Compras nacionais", subtotal de cada cartão, o QR Code do boleto e o pagamento da fatura anterior não entram mais.'
+      ]
+    },
     {
       versao: '5.82.0',
       data: '2026-11-18',
@@ -29729,7 +29736,7 @@
     // Numa fatura, isso é crédito: abate, não soma.
     var CREDITO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura|estorno|credito de|devolucao|cashback|desconto|ajuste a credito|anuidade diferenciada|reembolso)/;
     // O pagamento da fatura anterior já saiu da conta corrente.
-    var PAGAMENTO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura)/;
+    var PAGAMENTO_NA_FATURA = /(pagamento (recebido|efetuado|de fatura|da fatura)|inclusao de pagamento|pgto (de )?fatura|\bpag\.? fatura|pagamento fatura)/;
 
     // Extrato que agrupa por dia (Inter, entre outros) põe a data numa linha
     // sozinha e deixa os lançamentos do dia embaixo, sem data nenhuma.
@@ -29968,11 +29975,22 @@
     }
 
     // Numa fatura o valor positivo é gasto. Fora dela, o sinal manda.
+    // O que a fatura imprime e não é compra (pedido de 18/11/2026, fatura
+    // do C6): opções de pagamento, tabela de juros/IOF/CET, totais,
+    // subtotal de cada cartão e o rodapé do boleto.
+    var QUADRO_DA_FATURA = /(^\d+\.\s*(pagamento|parcelamento)|pagamento total|pagamento minimo|parcelamento de fatura|entrada \+ ?\d+ ?x|\bcet\b|% a\.? ?m\b|juros de mora|multa por atraso|iof do (parcelamento|rotativo|atraso)|iof de financiamento|gastos desta fatura|compras (nacionais|internacionais)|subtotal|total (desta|da) fatura|total a pagar|valor da fatura|escanear o qr|qr ?code|codigo de barras|linha digitavel|limite (total|disponivel|utilizado)|saldo anterior|valor minimo)/;
+    function ehQuadroDaFatura(texto) {
+      var s = semAcento(String(texto || '')).trim();
+      if (QUADRO_DA_FATURA.test(s)) return true;
+      // Sobra sem descrição nenhuma: "29 R$ 2.462,35".
+      return s.replace(/r\$/g, '').replace(/[^a-z]/g, '').length < 3;
+    }
+
     function ajeitarFatura(itens) {
       itens.forEach(function (it) {
         // Numa fatura não existe coluna "Tipo": o que eu tirei era descrição.
         if (it.descricaoCheia) it.descricao = it.descricaoCheia.slice(0, 80);
-        if (PAGAMENTO_NA_FATURA.test(semAcento(it.descricao))) { it.credito = true; it.pagamentoDeFatura = true; }
+        if (PAGAMENTO_NA_FATURA.test(semAcento(it.descricaoCheia || it.descricao))) { it.credito = true; it.pagamentoDeFatura = true; }
         if (it.credito || !it.negativoNoTexto) {
           it.tipo = it.credito ? 'entrada' : 'saida';
           var d = categoriaDe(it.descricao, it.tipo);
@@ -29980,6 +29998,10 @@
           it.subcategoria = d.subcategoria;
         }
       });
+      // O pagamento da fatura anterior não é compra nem crédito desta
+      // fatura: ele já está na conta de onde saiu. Fica de fora (pedido de
+      // 18/11/2026: "o que eu deixar desmarcado o app não deve ler").
+      for (var i = itens.length - 1; i >= 0; i--) if (itens[i].pagamentoDeFatura) itens.splice(i, 1);
       return itens;
     }
 
@@ -29992,6 +30014,11 @@
       // Primeira passada: separa as linhas que são lançamento e os números de
       // cada uma. Só depois dá para saber se a última coluna é saldo.
       var candidatos = [];
+      // Numa fatura cada compra traz a sua data. Uma data solta (o
+      // vencimento "10/11/2026") não é cabeçalho de dia: usada assim, ela
+      // dava data a tudo o que vinha embaixo e os quadros da fatura (opções
+      // de pagamento, juros, IOF, totais) viravam compras (18/11/2026).
+      var ehFatura = pareceFatura(linhas.join('\n'), nomeArquivo);
       linhas.forEach(function (linha) {
         var cab = anoDoCabecalho(linha);
         if (cab && cab.ano) { ano = cab.ano; mesRef = cab.mes; }
@@ -30003,9 +30030,9 @@
         if (devePular(linha)) return;
 
         var d = acharData(linha, ano || hoje.getFullYear());
-        // Sem data na linha, vale a do cabeçalho do dia.
+        // Sem data na linha, vale a do cabeçalho do dia (menos em fatura).
         if (!d || !d.data) {
-          if (!dataDoDia) return;
+          if (!dataDoDia || ehFatura) return;
           d = { data: dataDoDia, fim: 0, ini: 0 };
         }
 
@@ -30056,6 +30083,8 @@
         var textoCheio = descricao;
         var coluna = tirarColunaTipo(descricao);
         if (coluna) descricao = coluna.descricao;
+
+        if (fatura && ehQuadroDaFatura(textoCheio)) return;
 
         var tipo;
         if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
