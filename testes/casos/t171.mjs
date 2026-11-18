@@ -32,10 +32,25 @@ await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(500);
 conferir('2. tocando no olho, os valores aparecem', (await filtro(valor)) === 'none' &&
   (await page.getAttribute('#telaInicio .marca-olho', 'aria-label')) === 'Esconder os valores', await filtro(valor));
 await page.screenshot({ path: dir + '/z98-privacidade-desligada.png', clip: { x: 0, y: 0, width: 390, height: 600 } });
-await page.click('#navegacao button:has-text("Transações")'); await page.waitForTimeout(800);
-const naLista = await page.evaluate(() => { const e = document.querySelector('#telaTransacoes .linha-valor, #telaTransacoes .v'); return e ? getComputedStyle(e).filter : 'none'; });
-conferir('3. mostrando, vale para as outras telas também', naLista === 'none', naLista);
+// 18/11/2026: só o Início embaça. Com o olho fechado, as outras abas e os
+// módulos do Empreendedor ficam à vista.
+await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(400);
+for (const aba of ['Transações', 'Investir', 'Planejar', 'Mais']) {
+  await page.click('#navegacao button:has-text("' + aba + '")'); await page.waitForTimeout(700);
+}
+const fora = await page.evaluate(() => [...document.querySelectorAll('.tela:not(#telaInicio) *')]
+  .filter(e => /blur/.test(getComputedStyle(e).filter)).length);
+const valoresFora = await page.evaluate(() => document.querySelectorAll('.tela:not(#telaInicio) .num, .tela:not(#telaInicio) .valorao').length);
+conferir('3. com o olho fechado, as outras abas ficam à vista', fora === 0 && valoresFora > 0, fora + ' embaçados de ' + valoresFora + ' valores');
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(800);
+await page.click('#telaInicio button:has-text("Empreendedor")'); await page.waitForTimeout(900);
+const resumoEmp = await filtro('#telaInicio .cartao-resumo-emp .valorao');
+await page.click('#telaInicio .modulo-cartao[data-modulo="servicos"]'); await page.waitForTimeout(900);
+const noModulo = await page.evaluate(() => { const e = document.querySelector('#telaInicio .modulo-corpo .valorao, #telaInicio .modulo-corpo .num'); return e ? getComputedStyle(e).filter : '(sem elemento)'; });
+conferir('3b. no Empreendedor o resumo embaça, mas dentro de Serviços fica à vista', /blur/.test(resumoEmp) && noModulo === 'none', resumoEmp + ' / ' + noModulo);
+await page.click('#telaInicio .modulo-voltar').catch(() => {}); await page.waitForTimeout(600);
+await page.click('#telaInicio button:has-text("Visão geral")').catch(() => {}); await page.waitForTimeout(900);
+await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(400);
 await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(400);
 conferir('4. tocando de novo, esconde', /blur/.test(await filtro(valor)));
 await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(400);

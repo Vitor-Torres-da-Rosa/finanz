@@ -2173,7 +2173,10 @@
   .marca-botoes { display: flex; gap: 8px; flex: 0 0 auto; }
   /* Modo privacidade (pedido de 17/11/2026): o olho no topo esconde os
      valores em todas as telas, e o app sempre abre com ele ligado. */
-  html.privado :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel):not(input):not(textarea):not(select) {
+  /* Desde 18/11/2026 só a tela Início embaça, na Visão geral e no resumo
+     do Empreendedor. Dentro de um módulo (Serviços, Uber, Doces, Painel),
+     nas outras abas e nas folhas, tudo fica à vista. */
+  html.privado #telaInicio :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel):not(input):not(textarea):not(select):not(.modulo-corpo *) {
     filter: blur(7px); -webkit-user-select: none; user-select: none; }
   .marca-botao.marca-olho[aria-pressed="true"] { color: var(--ouro); }
   .marca-botao {
@@ -2487,7 +2490,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.81.0';
+  var VERSAO = '5.82.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2496,6 +2499,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.82.0',
+      data: '2026-11-18',
+      itens: [
+        'Olho da privacidade agora embaça só a tela Início: a Visão geral e o resumo do Empreendedor. Dentro de Serviços, Uber, Doces, nas outras abas e nas folhas, tudo fica à vista.'
+      ]
+    },
     {
       versao: '5.81.0',
       data: '2026-11-17',
@@ -9689,7 +9699,8 @@
   }
   var filtroTransacoes = 'todas';
 
-  // Privacidade: os valores ficam embaçados até tocar no olho. Abrir o app
+  // Privacidade: os valores da tela Início (Visão geral e resumo do
+  // Empreendedor) ficam embaçados até tocar no olho. Abrir o app
   // é abrir com eles escondidos; atualizar a página mantém o que a pessoa
   // deixou (pedido de 17/11/2026). Por isso a escolha mora no
   // sessionStorage: ele atravessa o recarregar e some quando o app fecha.
