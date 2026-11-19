@@ -67,7 +67,17 @@ const abrirLeva = async () => {
   await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")'); await page.waitForTimeout(1200);
   await page.click('#folha .cartao-extratos .linha:has-text("03/11/2026")'); await page.waitForTimeout(1500);
 };
+// 19/11/2026: quanto os arquivos ocupam na conta.
+await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(800);
+await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")'); await page.waitForTimeout(1200);
+await page.waitForFunction(() => /no total|Nenhum arquivo/.test((document.querySelector('#folha .tamanho-extratos') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+const ext = limpo(await page.textContent('#folha .cartao-extratos'));
+conferir('3b. a conta diz quanto os arquivos ocupam, no total e em cada extrato', /1 arquivo\(s\) guardado\(s\) na sua conta · \d+ KB no total/.test(ext) &&
+  /\d+ KB · inter-sinais\.pdf · 7 lançamento\(s\)/.test(ext), ext.slice(0, 200));
+await page.locator('#folha .cartao-extratos').screenshot({ path: dir + '/z105-tamanho-extratos.png' }).catch(() => {});
 await abrirLeva();
+await page.waitForSelector('#folha .botao-reler:not([disabled])', { timeout: 20000 });
+conferir('3c. o botão de baixar mostra o tamanho do arquivo', /Baixar o arquivo \(\d+ KB\)/.test(limpo(await page.textContent('#folha'))));
 await page.click('#folha .linha:has-text("Boleto recebido")'); await page.waitForTimeout(900);
 await page.click('#folha .segmentos button:has-text("Saída")'); await page.waitForTimeout(700);
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2500);

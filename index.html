@@ -2499,7 +2499,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.86.0';
+  var VERSAO = '5.87.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2508,6 +2508,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.87.0',
+      data: '2026-11-19',
+      itens: [
+        'Na conta, o cartão Extratos diz quanto os arquivos guardados ocupam: o total da conta e o tamanho de cada extrato (em KB ou MB). Dentro do extrato, o botão de baixar também mostra o tamanho.'
+      ]
+    },
     {
       versao: '5.86.0',
       data: '2026-11-19',
@@ -23515,6 +23522,7 @@
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
         baixar.disabled = false;
+        baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';
         baixar.onclick = function () {
           avisar('Baixando...');
           baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
@@ -23584,8 +23592,14 @@
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
       if (!levas.length) cExt.appendChild(no('div', 'sanfona-vazio', 'Nenhum extrato importado nesta conta ainda.'));
+      // Quanto os arquivos guardados ocupam (pedido de 19/11/2026). A lista
+      // da nuvem já traz o tamanho; chega depois, sem segurar a tela.
+      var linhasDasLevas = {};
+      var totalArquivos = no('div', 'linha-nota tamanho-extratos');
+      totalArquivos.style.padding = '0 16px 8px';
+      if (levas.length) cExt.appendChild(totalArquivos);
       levas.forEach(function (i) {
-        cExt.appendChild(linhaSimples({
+        cExt.appendChild(linhasDasLevas[i.id] = linhaSimples({
           titulo: i.de ? dataBr(i.de) + ' a ' + dataBr(i.ate) : (i.arquivo || 'Extrato'),
           sub: (i.arquivo || i.banco || 'extrato') + ' · ' + i.quantos + ' lançamento(s)',
           valor: i.saldoExtrato != null ? emReais(i.saldoExtrato) : '',
@@ -23596,6 +23610,22 @@
         }));
       });
       folha.appendChild(cExt);
+      if (levas.length) {
+        listarArquivosDeExtrato(id).then(function (lista) {
+          var soma = 0, quantos = 0;
+          (lista || []).forEach(function (a) {
+            var t = inteiro(a.tamanho);
+            soma += t; quantos++;
+            var linha = linhasDasLevas[a.importacao_id];
+            var sub = linha && linha.querySelector('.linha-sub');
+            // Na frente: o fim da linha é cortado quando o nome do arquivo é comprido.
+            if (sub) sub.textContent = tamanhoDeArquivo(t) + ' · ' + sub.textContent;
+          });
+          totalArquivos.textContent = quantos
+            ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total'
+            : 'Nenhum arquivo guardado na nuvem para esta conta.';
+        }).catch(function () { totalArquivos.textContent = ''; });
+      }
 
       var itens = lancamentosDaConta(id);
       if (!itens.length) {
@@ -32399,6 +32429,14 @@
 
   // A lista vem sem o conteúdo: são os megabytes que não precisam descer
   // para montar a tela.
+  // 950 bytes, 120 KB, 1,4 MB.
+  function tamanhoDeArquivo(bytes) {
+    bytes = Math.max(0, Number(bytes) || 0);
+    if (bytes < 1024) return bytes + ' bytes';
+    if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+    return (Math.round(bytes / 1024 / 1024 * 10) / 10).toString().replace('.', ',') + ' MB';
+  }
+
   function listarArquivosDeExtrato(contaId) {
     if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve([]);
     var filtro = contaId ? '&conta_id=eq.' + encodeURIComponent(contaId) : '';
