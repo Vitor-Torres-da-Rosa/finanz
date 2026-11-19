@@ -2499,7 +2499,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.89.0';
+  var VERSAO = '5.90.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2508,6 +2508,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.90.0',
+      data: '2026-11-19',
+      itens: [
+        'Abrindo um extrato importado, aparece a linha "Tamanho do arquivo" com quanto ele ocupa na sua conta. Em "Conferir esta conta", cada extrato importado também mostra o tamanho.'
+      ]
+    },
     {
       versao: '5.89.0',
       data: '2026-11-19',
@@ -23333,6 +23340,8 @@
           minhas.forEach(function (i) {
             var caixaB = imp.querySelector('[data-leva="' + i.id + '"]');
             if (!caixaB) return;
+            var subB = caixaB.parentNode && caixaB.parentNode.querySelector('.linha-sub');
+            if (subB && guardados[i.id]) subB.textContent = tamanhoDeArquivo(guardados[i.id].tamanho) + ' · ' + subB.textContent;
             if (guardados[i.id]) {
               Array.prototype.forEach.call(caixaB.querySelectorAll('button'), function (b) {
                 b.disabled = false;
@@ -23511,6 +23520,7 @@
       var entrou = 0, saiu = 0;
       vieram.forEach(function (l) { var e = efeitoNaConta(l, contaId); if (e > 0) entrou += e; else saiu -= e; });
       var c = cartao('detalhe-uber-lucro');
+      var tamanhoEl = null;
       [['Arquivo', i.arquivo || '—', ''], ['Banco', i.banco || '—', ''],
        ['Importado em', dataBr(deData(new Date(i.quando || Date.now()))), ''],
        ['Lançamentos', String(vieram.length), ''],
@@ -23518,6 +23528,11 @@
         var l = no('div', 'parcela-linha');
         juntar(l, no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1]));
         c.appendChild(l);
+        if (x[0] === 'Arquivo') {
+          var lt = no('div', 'parcela-linha linha-tamanho');
+          juntar(lt, no('span', 'q', 'Tamanho do arquivo'), tamanhoEl = no('span', 'v', '…'));
+          c.appendChild(lt);
+        }
       });
       if (i.saldoExtrato != null) {
         var ls = no('div', 'parcela-linha total');
@@ -23535,6 +23550,7 @@
       reler.style.marginTop = '8px';
       listarArquivosDeExtrato(contaId).then(function (lista) {
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
+        if (tamanhoEl) tamanhoEl.textContent = a ? tamanhoDeArquivo(a.tamanho) : 'não guardado';
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
         baixar.disabled = false;
         baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';

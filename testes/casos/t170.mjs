@@ -77,7 +77,9 @@ conferir('3b. a conta diz quanto os arquivos ocupam, no total e em cada extrato'
 await page.locator('#folha .cartao-extratos').screenshot({ path: dir + '/z105-tamanho-extratos.png' }).catch(() => {});
 await abrirLeva();
 await page.waitForSelector('#folha .botao-reler:not([disabled])', { timeout: 20000 });
-conferir('3c. o botão de baixar mostra o tamanho do arquivo', /Baixar o arquivo \(\d+ KB\)/.test(limpo(await page.textContent('#folha'))));
+const dentro = limpo(await page.textContent('#folha'));
+conferir('3c. dentro do extrato, o tamanho do arquivo numa linha e no botão de baixar', /Tamanho do arquivo\s*\d+ KB/.test(dentro) && /Baixar o arquivo \(\d+ KB\)/.test(dentro), (dentro.match(/Tamanho do arquivo.{0,12}/) || [''])[0]);
+await page.screenshot({ path: dir + '/z108-tamanho-no-extrato.png' });
 await page.click('#folha .linha:has-text("Boleto recebido")'); await page.waitForTimeout(900);
 await page.click('#folha .segmentos button:has-text("Saída")'); await page.waitForTimeout(700);
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(2500);
