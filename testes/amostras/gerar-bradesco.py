@@ -1,4 +1,4 @@
-LINHAS = [('30/09/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '3003708', '935,37', '', '935,37'), ('30/09/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 30/09', '1045451', '', '935,37', '0,00'), ('15/10/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '1503708', '1.124,96', '', '1.124,96'), ('15/10/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 15/10', '1125528', '', '1.124,96', '0,00'), ('30/10/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '3003708', '1.798,05', '', '1.798,05'), ('30/10/2026', 'PIX ENVIADO', 'DES: CICLANO DA SILVA 30/10', '1346530', '', '30,00', '1.768,05'), ('30/10/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 30/10', '1626157', '', '1.768,05', '0,00'), ('13/11/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '1303708', '1.124,96', '', '1.124,96'), ('13/11/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 13/11', '1235115', '', '1.124,96', '0,00')]
+LINHAS = [('30/09/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '3003708', '935,37', '', '935,37'), ('30/09/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 30/09', '1045451', '', '935,37', '0,00'), ('15/10/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '1503708', '1.124,96', '', '1.124,96'), ('15/10/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 15/10', '1125528', '', '1.124,96', '0,00'), ('30/10/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '3003708', '1.798,05', '', '1.798,05'), ('30/10/2026', 'PIX ENVIADO', 'DES: CICLANO DA SILVA 30/10', '1346530', '', '30,00', '1.768,05'), ('30/10/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 30/10', '1626157', '', '1.768,05', '0,00'), ('13/11/2026', 'TRANSF SALDO C/SAL P/CC', 'REM: FULANO DE TAL O E A', '1303708', '1.124,96', '', '1.124,96'), ('18/11/2026', 'PIX ENVIADO', 'DES: FULANO DE TAL 18/11', '1235115', '', '1.124,96', '0,00')]
 # Extrato do Bradesco Celular (pedido do Vitor em 19/11/2026), copiado do
 # print: colunas Credito, Debito e Saldo; o historico na linha de cima e o
 # complemento (REM:/DES:) na de baixo da linha dos numeros. Gera
@@ -11,9 +11,12 @@ L = [
     (730, [(40, 'F2', 'Data'), (110, 'F2', 'Lancamento'), (250, 'F2', 'Docto.'), (330, 'F2', 'Credito (R$)'), (410, 'F2', 'Debito (R$)'), (490, 'F2', 'Saldo (R$)')]),
 ]
 y = 708
+# O Bradesco escreve a data so no primeiro lancamento de cada dia.
+ultima = ''
 for d, t, comp, doc, cr, db, sd in LINHAS:
     L.append((y + 6, [(110, 'F2', t)]))
-    partes = [(40, 'F1', d), (250, 'F1', doc)]
+    partes = [(250, 'F1', doc)] if d == ultima else [(40, 'F1', d), (250, 'F1', doc)]
+    ultima = d
     if cr: partes.append((340, 'F1', cr))
     if db: partes.append((420, 'F1', db))
     partes.append((500, 'F1', sd))

@@ -2499,7 +2499,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.88.0';
+  var VERSAO = '5.89.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2508,6 +2508,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.89.0',
+      data: '2026-11-19',
+      itens: [
+        'Extrato do Bradesco em PDF: o banco escreve a data só no primeiro lançamento de cada dia, e os outros do mesmo dia (como o PIX logo depois da transferência) ficavam de fora. Agora entram com a data de cima, e o PDF dá o mesmo resultado do CSV. Só no Bradesco.'
+      ]
+    },
     {
       versao: '5.88.0',
       data: '2026-11-19',
@@ -30231,7 +30238,7 @@
       // de baixo), não na linha dos números. Só no Bradesco.
       var bancoCedo = acharBanco(linhas.join('\n'), nomeArquivo);
       var ehBradesco = !!(bancoCedo && bancoCedo.chave === 'bradesco');
-      var saldoAnteriorBrad = null;
+      var saldoAnteriorBrad = null, ultimaDataBrad = '';
       linhas.forEach(function (linha, idx) {
         var cab = anoDoCabecalho(linha);
         if (cab && cab.ano) { ano = cab.ano; mesRef = cab.mes; }
@@ -30248,6 +30255,16 @@
         if (devePular(linha)) return;
 
         var d = acharData(linha, ano || hoje.getFullYear());
+        // O Bradesco escreve a data só no primeiro lançamento de cada dia
+        // (19/11/2026): a linha de baixo, sem data, é do mesmo dia. Vale
+        // para a linha com exatamente dois valores (o lançamento e o saldo);
+        // a linha do total tem três.
+        if (ehBradesco) {
+          if (d && d.data && d.ini <= 2) ultimaDataBrad = d.data;
+          else if (ultimaDataBrad && !/total/.test(semAcento(linha)) && acharValores(linha).length === 2) {
+            d = { data: ultimaDataBrad, fim: 0, ini: 0 };
+          }
+        }
         // Sem data na linha, vale a do cabeçalho do dia (menos em fatura).
         if (!d || !d.data) {
           if (!dataDoDia || ehFatura) return;
