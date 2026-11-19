@@ -923,6 +923,15 @@
   .etiqueta-acao { background: rgba(255,255,255,.05); border: 1px solid var(--borda);
     border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
   .etiqueta-dia { color: var(--suave); }
+  .linha-fatura-ligada { background: linear-gradient(90deg, rgba(233,180,76,.12), rgba(233,180,76,0) 70%);
+    box-shadow: inset 3px 0 0 var(--ouro); }
+  .etiqueta.fatura-ligada { display: inline-block; margin-top: 5px; font-size: 11px; color: var(--ouro); }
+  .situacao-fatura { display: inline-block; margin-top: 5px; font-size: 11px; }
+  .situacao-fatura.paga { color: var(--verde); }
+  .situacao-fatura.vencida { color: var(--vermelho); }
+  .fatura-vencida { margin-top: 8px; }
+  .etiqueta-parcelas { color: var(--ouro); border-style: dashed; }
+  .etiqueta-parcelas.ligada { background: rgba(233,180,76,.16); border-style: solid; border-color: rgba(233,180,76,.6); }
   .etiqueta-dia-aberta { background: rgba(233,180,76,.12); border-color: var(--ouro);
     color: var(--ouro); }
   .dia-real { margin: 2px 0 10px 34px; padding: 10px 12px; border-radius: 11px;
@@ -2490,7 +2499,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.83.0';
+  var VERSAO = '5.89.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2499,6 +2508,53 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.89.0',
+      data: '2026-11-19',
+      itens: [
+        'Extrato do Bradesco em PDF: o banco escreve a data só no primeiro lançamento de cada dia, e os outros do mesmo dia (como o PIX logo depois da transferência) ficavam de fora. Agora entram com a data de cima, e o PDF dá o mesmo resultado do CSV. Só no Bradesco.'
+      ]
+    },
+    {
+      versao: '5.88.0',
+      data: '2026-11-19',
+      itens: [
+        'Extrato do Itaú no modelo "Extrato conta corrente": a linha só com a data e o saldo do dia não vira mais "Entrada". A regra vale só para o Itaú.',
+        'Extrato do Bradesco em PDF e CSV (colunas Crédito, Débito e Saldo): entram os créditos e os débitos com o valor da coluna, não o saldo, e a descrição é o histórico ("PIX ENVIADO DES: ...") em vez do número do documento. A regra vale só para o Bradesco.'
+      ]
+    },
+    {
+      versao: '5.87.0',
+      data: '2026-11-19',
+      itens: [
+        'Na conta, o cartão Extratos diz quanto os arquivos guardados ocupam: o total da conta e o tamanho de cada extrato (em KB ou MB). Dentro do extrato, o botão de baixar também mostra o tamanho.'
+      ]
+    },
+    {
+      versao: '5.86.0',
+      data: '2026-11-19',
+      itens: [
+        'O pagamento da fatura no banco agora reconhece a fatura do cartão quando o valor e o mês batem: a linha ganha a cor do cartão, mostra as categorias das compras e, tocando, abre a fatura. Vale para qualquer saída com o valor exato da fatura, mesmo categorizada de outro jeito.',
+        'O extrato do banco é a verdade: numa fatura ligada, os gastos contam pelas compras do cartão, no lugar do pagamento, sem dobrar. Fatura sem pagamento ligado não conta como gasto; pagamento sem fatura ligada continua contando. Nada é gravado: apagando a fatura, tudo volta a ser como era.',
+        'Corrigido: "Apagar todos os gastos" do cartão dava erro ao reabrir a tela.'
+      ]
+    },
+    {
+      versao: '5.85.0',
+      data: '2026-11-19',
+      itens: [
+        'Limite do cartão: toda fatura que não consta paga continua ocupando o limite, inclusive a que já venceu. Ela aparece em vermelho ("venceu e não consta pagamento"). Conta como paga quando o pagamento aparece numa conta com o mesmo valor (a saída "Pag fatura" do extrato ou uma transferência para o cartão).',
+        'Na lista de faturas do cartão, cada uma diz se está paga, em aberto, fechada ou vencida sem pagamento.',
+        'Importando a fatura, cada compra parcelada pergunta: "Parcela 4/6" mostra "lançar 5/6 a 6/6 nas próximas faturas?". Tocando, as parcelas que faltam entram nas faturas dos próximos meses e, quando essas faturas forem importadas, aparecem como "já existe".'
+      ]
+    },
+    {
+      versao: '5.84.0',
+      data: '2026-11-18',
+      itens: [
+        'Fatura do C6 em PDF: a data da compra vem grudada no nome da loja ("06 dezMERCADOLIVRE") e agora é reconhecida. Cada compra entra com a data dela e o nome limpo, e a soma bate com o valor da fatura.'
+      ]
+    },
     {
       versao: '5.83.0',
       data: '2026-11-18',
@@ -8169,7 +8225,39 @@
   // guardada até o próximo desenho ou a próxima gravação.
   var cacheDeCompras = {};
 
-  function limparCacheDeFatura() { cacheDeCompras = {}; }
+  function limparCacheDeFatura() { cacheDeCompras = {}; cacheLigacoes = null; }
+
+  // Fatura do cartão ligada ao pagamento no extrato do banco (pedido de
+  // 19/11/2026). O extrato do banco é a verdade: o pagamento é o dinheiro
+  // que saiu. As compras do cartão só servem para dizer em que ele foi
+  // gasto. Então, numa fatura ligada (pagamento do mesmo valor, no mesmo
+  // mês), as compras entram como gasto no lugar do pagamento; fatura sem
+  // pagamento ligado não entra como gasto, e pagamento sem fatura ligada
+  // continua contando como ele mesmo. Nada é gravado: apagando a fatura, a
+  // ligação some e tudo volta a ser como era.
+  var cacheLigacoes = null;
+  function ligacoesDeFatura() {
+    if (cacheLigacoes) return cacheLigacoes;
+    var lig = { pagamentos: {}, itens: {}, cartoes: {} };
+    estado.contas.forEach(function (c) {
+      if (!ehCartao(c)) return;
+      lig.cartoes[c.id] = true;
+      situacaoDasFaturas(c.id).faturas.forEach(function (f) {
+        if (!f.ligada || !f.pagamento || lig.pagamentos[f.pagamento.id]) return;
+        lig.pagamentos[f.pagamento.id] = { cartao: c, fatura: f };
+        f.itens.forEach(function (i) { lig.itens[i.id] = f; });
+      });
+    });
+    cacheLigacoes = lig;
+    return lig;
+  }
+
+  // As categorias das compras de uma fatura, da maior para a menor.
+  function categoriasDaFatura(f) {
+    var mapa = {};
+    f.itens.forEach(function (i) { if (i.tipo === 'saida') mapa[i.categoria] = (mapa[i.categoria] || 0) + i.valor; });
+    return Object.keys(mapa).sort(function (a, b) { return mapa[b] - mapa[a]; });
+  }
 
   function temComprasNoMes(ano, mes) {
     var chave = ano + '-' + mes;
@@ -8182,25 +8270,32 @@
   // A visão de consumo de uma lista: a mesma lista sem as faturas pagas,
   // mais o que saiu dela e por quê.
   function visaoDeConsumo(lista) {
-    if (!temComprasDeCartao(lista)) {
-      return { lista: lista, faturasPagas: [], valorDasFaturas: 0, modo: 'fatura' };
-    }
-    var faturas = [], valor = 0;
+    var lig = ligacoesDeFatura();
+    var faturas = [], valor = 0, semLigacao = 0;
     var fora = lista.filter(function (l) {
-      if (!ehPagamentoDeFatura(l)) return true;
-      faturas.push(l);
-      valor += l.valor;
-      return false;
+      if (l.tipo !== 'saida') return true;
+      // O pagamento ligado sai: no lugar dele entram as compras da fatura.
+      if (lig.pagamentos[l.id]) { faturas.push(l); valor += l.valor; return false; }
+      // Compra no cartão só conta quando a fatura dela está ligada.
+      if (lig.cartoes[l.contaId]) {
+        if (lig.itens[l.id]) return true;
+        semLigacao += l.valor;
+        return false;
+      }
+      return true;
     });
-    return { lista: fora, faturasPagas: faturas, valorDasFaturas: valor, modo: 'compras' };
+    return { lista: fora, faturasPagas: faturas, valorDasFaturas: valor,
+             comprasSemLigacao: semLigacao, modo: faturas.length ? 'compras' : 'fatura' };
   }
 
   // Este lançamento entra no total de despesas do mês dele? Serve para
   // marcar a linha em Transações sem recalcular o mês inteiro por linha.
   function contaComoDespesa(l) {
     if (l.tipo !== 'saida') return false;
-    if (!ehPagamentoDeFatura(l)) return true;
-    return !temComprasNoMes(+l.data.slice(0, 4), +l.data.slice(5, 7) - 1);
+    var lig = ligacoesDeFatura();
+    if (lig.pagamentos[l.id]) return false;
+    if (lig.cartoes[l.contaId]) return !!lig.itens[l.id];
+    return true;
   }
 
   // Saída de dinheiro de verdade: o que deixou uma conta. A compra no cartão
@@ -11402,7 +11497,7 @@
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', cart.nome),
           no('div', 'linha-sub', f.rotuloCurto +
-            (cart.limite > 0 ? ' · ' + Math.round(pct(Math.max(f.total - f.pago, 0), cart.limite)) + '% do limite' : ''))),
+            (cart.limite > 0 ? ' · ' + Math.round(pct(situacaoDasFaturas(cart.id).usado, cart.limite)) + '% do limite' : ''))),
         juntar(no('div', 'linha-fim'),
           no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
       );
@@ -11519,6 +11614,61 @@
     return Object.keys(mapa).sort().reverse().map(function (k) { return mapa[k]; });
   }
 
+  // Quais faturas deste cartão estão pagas (pedido de 19/11/2026: a de
+  // novembro venceu sem pagamento e sumiu do limite). Paga é a que tem
+  // crédito no próprio cartão cobrindo o total, ou um pagamento numa conta
+  // com o mesmo valor (até R$ 1 de diferença) entre o fechamento e uns
+  // dias depois do vencimento: a saída "Pag fatura…" do extrato ou uma
+  // transferência para o cartão. Cada pagamento quita uma fatura só.
+  function situacaoDasFaturas(id) {
+    var cart = achar(estado.contas, id);
+    var todas = faturasDoCartao(id).slice().reverse();
+    // Primeiro o que diz que é pagamento de fatura (texto, categoria ou
+    // transferência para o cartão); depois qualquer saída de uma conta com
+    // o valor exato da fatura (pedido de 19/11/2026: "ou outro caso
+    // selecionado").
+    var proprios = [], outros = [];
+    estado.lancamentos.forEach(function (l) {
+      if ((l.tipo === 'transferencia' && l.contaDestinoId === id) || ehPagamentoDeFatura(l)) proprios.push(l);
+      else if (l.tipo === 'saida' && !l.parTransferencia && !ehCartao(achar(estado.contas, l.contaId))) outros.push(l);
+    });
+    var porData = function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; };
+    proprios.sort(porData); outros.sort(porData);
+    var usados = {};
+    var hoje = hojeTexto();
+    todas.forEach(function (f) {
+      var resta = Math.max(f.total - f.pago, 0);
+      f.resta = resta;
+      if (resta <= 100) { f.situacao = 'paga'; return; }
+      var desde = f.ate || f.de || '';
+      var limiteData = f.vence ? somaDias(f.vence, 20) : (f.ate ? somaDias(f.ate, 40) : '');
+      var achou = null;
+      [[proprios, 100], [outros, 0]].forEach(function (grupo) {
+        if (achou) return;
+        for (var i = 0; i < grupo[0].length; i++) {
+          var pg = grupo[0][i];
+          if (usados[pg.id]) continue;
+          if (desde && pg.data < desde) continue;
+          if (limiteData && pg.data > limiteData) continue;
+          if (Math.abs(pg.valor - resta) <= grupo[1]) { achou = pg; break; }
+        }
+      });
+      if (achou) {
+        usados[achou.id] = true; f.situacao = 'paga'; f.pagaEm = achou.data; f.pagamento = achou;
+        // Ligada: o pagamento caiu no mesmo mês da fatura. Só aí as compras
+        // dela contam como gasto, no lugar do pagamento.
+        f.ligada = achou.data.slice(0, 7) === f.chave;
+        return;
+      }
+      if (f.ate && f.ate >= hoje) f.situacao = 'aberta';
+      else if (f.vence && f.vence < hoje) f.situacao = 'vencida';
+      else f.situacao = 'fechada';
+    });
+    var usado = 0;
+    todas.forEach(function (f) { if (f.situacao !== 'paga') usado += f.resta; });
+    return { faturas: todas.slice().reverse(), usado: usado, cartao: cart };
+  }
+
   // A fatura de hoje: a que ainda não fechou.
   function faturaAberta(id) {
     var cart = achar(estado.contas, id);
@@ -11582,23 +11732,28 @@
       if (aberta.pago) nota.push(emReais(aberta.pago) + ' já pago');
       if (nota.length) topo.appendChild(no('div', 'linha-nota', nota.join(' · ')));
 
-      // Quanto do limite a fatura em aberto já ocupa. Só a fatura em aberto:
-      // pagamento de fatura sai da conta corrente, não do cartão, então o
-      // app não sabe dizer qual fatura fechada foi paga. Prometer
-      // "disponível" seria chutar; isto aqui é o que dá para afirmar.
+      // Quanto do limite está em uso: toda fatura que não consta paga, a
+      // aberta, a fechada e a vencida, e as parcelas futuras já lançadas.
+      var sit = situacaoDasFaturas(id);
+      var vencidas = sit.faturas.filter(function (f) { return f.situacao === 'vencida'; });
+      vencidas.forEach(function (f) {
+        topo.appendChild(no('div', 'linha-nota vermelho fatura-vencida',
+          'A fatura de ' + f.rotulo + ' (' + emReais(f.resta) + ') venceu em ' + dataBr(f.vence) +
+          ' e não consta pagamento. Ela continua ocupando o limite.'));
+      });
       if (cart.limite > 0) {
         topo.appendChild(no('div', 'rotulo', 'Limite'));
-        var usado = Math.max(aberta.total - aberta.pago, 0);
+        var usado = sit.usado;
         var livre = Math.max(cart.limite - usado, 0);
         var quanto = pct(usado, cart.limite);
         topo.appendChild(progresso(usado, cart.limite,
           quanto > 90 ? 'var(--vermelho)' : quanto > 70 ? 'var(--ouro)' : 'var(--verde)'));
         topo.appendChild(no('div', 'linha-nota privavel',
-          emReais(usado) + ' de ' + emReais(cart.limite) + ' · ' +
-          emReais(livre) + ' livre nesta fatura'));
+          emReais(usado) + ' em uso de ' + emReais(cart.limite) + ' · ' +
+          emReais(livre) + ' livre'));
         if (usado > cart.limite) {
           topo.appendChild(no('div', 'linha-nota vermelho',
-            'A fatura em aberto já passou do limite em ' + emReais(usado - cart.limite) + '.'));
+            'O que está em uso já passou do limite em ' + emReais(usado - cart.limite) + '.'));
         }
       }
 
@@ -11635,13 +11790,19 @@
       topoFat.style.marginBottom = '8px';
       cFat.appendChild(topoFat);
 
+      var situacoes = {};
+      sit.faturas.forEach(function (f) { situacoes[f.chave] = f; });
       todas.forEach(function (f) {
+        var st = situacoes[f.chave] || {};
         var linha = botao('linha linha-alvo', null, function () { abrirFaturaDoMes(id, f.chave); });
+        var rotSit = st.situacao === 'paga' ? 'paga' : st.situacao === 'vencida' ? 'vencida, sem pagamento'
+          : st.situacao === 'aberta' ? 'em aberto' : 'fechada';
         juntar(linha,
           juntar(no('div', 'linha-texto'),
             no('div', 'linha-titulo', f.rotulo),
             no('div', 'linha-sub', f.itens.length + ' lançamento(s)' +
-              (f.vence ? ' · vence em ' + dataBr(f.vence) : ''))),
+              (f.vence ? ' · vence em ' + dataBr(f.vence) : '')),
+            no('span', 'etiqueta situacao-fatura ' + (st.situacao || ''), rotSit)),
           juntar(no('div', 'linha-fim'),
             no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
         );
@@ -11676,7 +11837,7 @@
             todosGastos.forEach(function (l) { fora[l.id] = true; marcarExcluido('lancamentos', l.id); });
             estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
             salvar();
-            abrirFolhaCartao(id);
+            abrirTelaCartao(id);
             avisar(todosGastos.length + ' gasto(s) apagado(s).');
           });
         }));
@@ -22555,6 +22716,8 @@
   }
 
   function linhaLancamento(l) {
+    var ligadoL = ligacoesDeFatura().pagamentos[l.id];
+    if (ligadoL) return linhaDePagamentoLigado(l, ligadoL, '− ' + emReais(l.valor));
     var b = botao('linha', null, function () { abrirFolhaLancamento(l.id); });
     var cor = l.tipo === 'entrada' ? '#34D399' : l.tipo === 'saida' ? '#F87171' : '#60A5FA';
     var sinal = l.tipo === 'entrada' ? '+' : l.tipo === 'saida' ? '−' : '⇄';
@@ -22671,7 +22834,27 @@
     return 0;
   }
 
+  // A linha de um pagamento ligado a uma fatura: a cor do cartão, as
+  // categorias das compras e o toque abre a fatura.
+  function linhaDePagamentoLigado(l, ligado, valorTexto) {
+    var b = botao('linha linha-fatura-ligada', null, function () {
+      abrirFaturaDoMes(ligado.cartao.id, ligado.fatura.chave);
+    });
+    var cats = categoriasDaFatura(ligado.fatura);
+    juntar(b,
+      seloDeConta(ligado.cartao),
+      juntar(no('div', 'linha-texto'),
+        no('div', 'linha-titulo', l.descricao || 'Pagamento de fatura'),
+        no('div', 'linha-sub', 'Fatura ' + ligado.cartao.nome + ' · ' + (cats.slice(0, 3).join(', ') || 'compras') +
+          (cats.length > 3 ? ' e mais ' + (cats.length - 3) : '')),
+        no('span', 'etiqueta fatura-ligada', 'ver a fatura ›')),
+      juntar(no('div', 'linha-fim'), no('div', 'linha-valor num vermelho', valorTexto)));
+    return b;
+  }
+
   function linhaExtrato(l, id) {
+    var ligadoE = ligacoesDeFatura().pagamentos[l.id];
+    if (ligadoE) return linhaDePagamentoLigado(l, ligadoE, '− ' + emReais(l.valor));
     var efeito = efeitoNaConta(l, id);
     var b = botao('linha', null, function () { abrirFolhaLancamento(l.id); });
     var cor = efeito > 0 ? '#34D399' : efeito < 0 ? '#F87171' : '#60A5FA';
@@ -23354,6 +23537,7 @@
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
         baixar.disabled = false;
+        baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';
         baixar.onclick = function () {
           avisar('Baixando...');
           baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
@@ -23423,8 +23607,14 @@
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
       if (!levas.length) cExt.appendChild(no('div', 'sanfona-vazio', 'Nenhum extrato importado nesta conta ainda.'));
+      // Quanto os arquivos guardados ocupam (pedido de 19/11/2026). A lista
+      // da nuvem já traz o tamanho; chega depois, sem segurar a tela.
+      var linhasDasLevas = {};
+      var totalArquivos = no('div', 'linha-nota tamanho-extratos');
+      totalArquivos.style.padding = '0 16px 8px';
+      if (levas.length) cExt.appendChild(totalArquivos);
       levas.forEach(function (i) {
-        cExt.appendChild(linhaSimples({
+        cExt.appendChild(linhasDasLevas[i.id] = linhaSimples({
           titulo: i.de ? dataBr(i.de) + ' a ' + dataBr(i.ate) : (i.arquivo || 'Extrato'),
           sub: (i.arquivo || i.banco || 'extrato') + ' · ' + i.quantos + ' lançamento(s)',
           valor: i.saldoExtrato != null ? emReais(i.saldoExtrato) : '',
@@ -23435,6 +23625,22 @@
         }));
       });
       folha.appendChild(cExt);
+      if (levas.length) {
+        listarArquivosDeExtrato(id).then(function (lista) {
+          var soma = 0, quantos = 0;
+          (lista || []).forEach(function (a) {
+            var t = inteiro(a.tamanho);
+            soma += t; quantos++;
+            var linha = linhasDasLevas[a.importacao_id];
+            var sub = linha && linha.querySelector('.linha-sub');
+            // Na frente: o fim da linha é cortado quando o nome do arquivo é comprido.
+            if (sub) sub.textContent = tamanhoDeArquivo(t) + ' · ' + sub.textContent;
+          });
+          totalArquivos.textContent = quantos
+            ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total'
+            : 'Nenhum arquivo guardado na nuvem para esta conta.';
+        }).catch(function () { totalArquivos.textContent = ''; });
+      }
 
       var itens = lancamentosDaConta(id);
       if (!itens.length) {
@@ -29521,6 +29727,13 @@
       // no começo da linha. Sem isto, o "10/12" da parcela virava a data e a
       // descrição inteira ficava para trás.
       var c = /^([^0-9a-zA-Z]{0,4})(\d{1,2})\s+(?:de\s+)?([a-zA-ZçÇ]{3,9})\.?(?:\s+(?:de\s+)?(\d{4}))?(?=[\s,;-]|$)/.exec(linha);
+      // O texto do PDF do C6 gruda o mês na loja: "06 dezMERCADOLIVRE",
+      // "04 janHAVAN" (18/11/2026). Mês de três letras em minúsculas seguido
+      // de maiúscula, número ou "*" é a data da compra. Vale também quando a
+      // regra de cima pegou "janHAVAN" achando que era o nome do mês.
+      if (!c || !MESES[semAcento(c[3])]) {
+        c = /^([^0-9a-zA-Z]{0,4})(\d{1,2})\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)()(?=[A-Z0-9*])/.exec(linha) || c;
+      }
       if (c) {
         var nomeMes = semAcento(c[3]);
         var numMes = MESES[nomeMes];
@@ -29978,7 +30191,7 @@
     // O que a fatura imprime e não é compra (pedido de 18/11/2026, fatura
     // do C6): opções de pagamento, tabela de juros/IOF/CET, totais,
     // subtotal de cada cartão e o rodapé do boleto.
-    var QUADRO_DA_FATURA = /(^\d+\.\s*(pagamento|parcelamento)|pagamento total|pagamento minimo|parcelamento de fatura|entrada \+ ?\d+ ?x|\bcet\b|% a\.? ?m\b|juros de mora|multa por atraso|iof do (parcelamento|rotativo|atraso)|iof de financiamento|gastos desta fatura|compras (nacionais|internacionais)|subtotal|total (desta|da) fatura|total a pagar|valor da fatura|escanear o qr|qr ?code|codigo de barras|linha digitavel|limite (total|disponivel|utilizado)|saldo anterior|valor minimo)/;
+    var QUADRO_DA_FATURA = /(^\d+\.\s*(pagamento|parcelamento)|pagamento total|pagamento minimo|parcelamento de fatura|entrada \+ ?\d+ ?x|\bcet\b|% a\.? ?[ma]\b|% \(?a\.?d|juros de mora|multa por atraso|iof do (parcelamento|rotativo|atraso)|iof de financiamento|gastos desta fatura|compras (nacionais|internacionais)|subtotal|total (desta|da) fatura|total a pagar|valor da fatura|escanear o qr|qr ?code|codigo de barras|linha digitavel|limite (total|disponivel|utilizado)|saldo anterior|valor minimo)/;
     function ehQuadroDaFatura(texto) {
       var s = semAcento(String(texto || '')).trim();
       if (QUADRO_DA_FATURA.test(s)) return true;
@@ -30019,7 +30232,14 @@
       // dava data a tudo o que vinha embaixo e os quadros da fatura (opções
       // de pagamento, juros, IOF, totais) viravam compras (18/11/2026).
       var ehFatura = pareceFatura(linhas.join('\n'), nomeArquivo);
-      linhas.forEach(function (linha) {
+      // Bradesco (19/11/2026): colunas Crédito, Débito e Saldo. O valor é o
+      // penúltimo número; se é crédito ou débito, a conta do saldo diz. E o
+      // histórico mora na linha de cima (e o complemento, "REM:"/"DES:", na
+      // de baixo), não na linha dos números. Só no Bradesco.
+      var bancoCedo = acharBanco(linhas.join('\n'), nomeArquivo);
+      var ehBradesco = !!(bancoCedo && bancoCedo.chave === 'bradesco');
+      var saldoAnteriorBrad = null, ultimaDataBrad = '';
+      linhas.forEach(function (linha, idx) {
         var cab = anoDoCabecalho(linha);
         if (cab && cab.ano) { ano = cab.ano; mesRef = cab.mes; }
 
@@ -30027,9 +30247,24 @@
         var doDia = dataDeCabecalhoDeDia(linha);
         if (doDia) { dataDoDia = doDia; return; }
 
+        if (ehBradesco && /saldo anterior/.test(semAcento(linha))) {
+          var vsa = acharValores(linha);
+          if (vsa.length) saldoAnteriorBrad = comSinal(vsa[vsa.length - 1]);
+          return;
+        }
         if (devePular(linha)) return;
 
         var d = acharData(linha, ano || hoje.getFullYear());
+        // O Bradesco escreve a data só no primeiro lançamento de cada dia
+        // (19/11/2026): a linha de baixo, sem data, é do mesmo dia. Vale
+        // para a linha com exatamente dois valores (o lançamento e o saldo);
+        // a linha do total tem três.
+        if (ehBradesco) {
+          if (d && d.data && d.ini <= 2) ultimaDataBrad = d.data;
+          else if (ultimaDataBrad && !/total/.test(semAcento(linha)) && acharValores(linha).length === 2) {
+            d = { data: ultimaDataBrad, fim: 0, ini: 0 };
+          }
+        }
         // Sem data na linha, vale a do cabeçalho do dia (menos em fatura).
         if (!d || !d.data) {
           if (!dataDoDia || ehFatura) return;
@@ -30038,14 +30273,46 @@
 
         var valores = acharValores(linha.slice(d.fim));
         if (!valores.length) return;
-        candidatos.push({ linha: linha, d: d, valores: valores });
+        candidatos.push({ linha: linha, d: d, valores: valores, idx: idx });
       });
 
+      if (ehBradesco) {
+        var soTexto = function (l) {
+          if (!l || !/[a-z]{3}/.test(semAcento(l))) return false;
+          if (acharValores(l).length || devePular(l)) return false;
+          var dd = acharData(l, hoje.getFullYear());
+          return !(dd && dd.data && dd.ini === 0);
+        };
+        var saldoAntes = saldoAnteriorBrad;
+        candidatos.forEach(function (c) {
+          var pedacos = [];
+          var cima = linhas[c.idx - 1], baixo = linhas[c.idx + 1];
+          if (soTexto(cima)) pedacos.push(cima);
+          if (soTexto(baixo) && (/^\s*(rem|des)\s*:/i.test(baixo) || !pedacos.length)) {
+            pedacos.push(baixo.replace(/\s+\d{1,2}\/\d{1,2}\s*$/, ''));
+          }
+          c.textoBradesco = pedacos.join(' ').replace(/\s+/g, ' ').trim();
+          if (c.valores.length >= 2) {
+            var vb = c.valores[c.valores.length - 2].valor;
+            var sb = comSinal(c.valores[c.valores.length - 1]);
+            var base = saldoAntes == null ? 0 : saldoAntes;
+            if (Math.abs(base + vb - sb) <= 1) c.tipoBradesco = 'entrada';
+            else if (Math.abs(base - vb - sb) <= 1) c.tipoBradesco = 'saida';
+            saldoAntes = sb;
+          }
+        });
+      }
+
       var comSaldo = pareceColunaDeSaldo(candidatos) ||
-                     temColunaDeSaldo(linhas.join('\n'));
+                     temColunaDeSaldo(linhas.join('\n')) || ehBradesco;
       var saldoFinal = null;
       var cheio = linhas.join('\n');
       var fatura = pareceFatura(cheio, nomeArquivo);
+      var bancoDoArquivo = acharBanco(cheio, nomeArquivo);
+      // Itaú, modelo "Extrato conta corrente" (19/11/2026): a linha só com
+      // a data e o saldo do dia não é lançamento. Vale só para o Itaú —
+      // pedido do Vitor: mexer num banco não mexe nos outros.
+      var ehItau = !!(bancoDoArquivo && bancoDoArquivo.chave === 'itau');
 
       // Extrato que põe menos no que sai (Inter, C6, Nubank): o sinal é a
       // palavra do banco. Sem menos é entrada, com menos é saída, e a
@@ -30078,6 +30345,8 @@
         var descricao = resto.slice(0, v.ini).replace(/^\s*\d{1,2}\/\d{1,2}(\/\d{2,4})?\s*/, '').trim();
         var cauda = resto.slice(v.fim).trim();
 
+        if (ehBradesco && c.textoBradesco && !/[a-z]{3}/i.test(semAcento(descricao))) descricao = c.textoBradesco;
+
         // Itaú e afins marcam D de débito e C de crédito depois do valor.
         var marca = /^([DC])\b/.exec(cauda.toUpperCase());
         var textoCheio = descricao;
@@ -30085,9 +30354,11 @@
         if (coluna) descricao = coluna.descricao;
 
         if (fatura && ehQuadroDaFatura(textoCheio)) return;
+        if (ehItau && !/[a-z]{2}/i.test(semAcento(textoCheio))) return;
 
         var tipo;
-        if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
+        if (ehBradesco && c.tipoBradesco) tipo = c.tipoBradesco;
+        else if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
         else if (v.negativo) tipo = 'saida';
         else if (coluna) tipo = coluna.tipo;
         else if (temSinais) tipo = 'entrada';
@@ -30238,6 +30509,32 @@
       var cheio = linhas.map(function (l) { return l.join(' '); }).join('\n');
       var fatura = pareceFatura(cheio, nomeArquivo);
 
+      // Bradesco (19/11/2026): "Data;Lançamento;Dcto.;Crédito (R$);Débito
+      // (R$);Saldo (R$)". A última célula de dinheiro é o saldo, não o
+      // valor: o valor está na coluna de crédito ou na de débito, e é ela
+      // que diz se entrou ou saiu. Reconhecido pelo cabeçalho com "Dcto."
+      // (ou pelo nome do banco), para não mexer nos outros.
+      var bancoTab = acharBanco(cheio, nomeArquivo);
+      var colCred = -1, colDeb = -1;
+      for (var h = 0; h < Math.min(linhas.length, 40) && colCred < 0; h++) {
+        var ic = -1, idb = -1, temDoc = false;
+        linhas[h].forEach(function (x, i) {
+          var t = semAcento(String(x)).trim();
+          if (/^credito\b/.test(t)) ic = i;
+          else if (/^debito\b/.test(t)) idb = i;
+          else if (/^d(o)?cto\b/.test(t)) temDoc = true;
+        });
+        if (ic >= 0 && idb >= 0 && (temDoc || (bancoTab && bancoTab.chave === 'bradesco'))) { colCred = ic; colDeb = idb; }
+      }
+      function dinheiroDaCelula(x) {
+        var t = String(x == null ? '' : x).trim();
+        if (!t || !/\d/.test(t)) return 0;
+        var a = acharValores(t);
+        if (a.length) return a[a.length - 1].valor;
+        var n = parseFloat(t.replace(/[^\d.,-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
+        return isFinite(n) ? Math.round(Math.abs(n) * 100) : 0;
+      }
+
       linhas.forEach(function (partes) {
         if (partes.length < 2) return;
         var junta = partes.join('  ');
@@ -30255,7 +30552,13 @@
 
         // O valor: a última célula que é só dinheiro.
         var iValor = -1, valor = null;
-        for (var k = partes.length - 1; k >= 0; k--) {
+        if (colCred >= 0) {
+          var vCred = dinheiroDaCelula(partes[colCred]), vDeb = dinheiroDaCelula(partes[colDeb]);
+          if (vCred) { valor = { valor: vCred, negativo: false, marca: null }; iValor = colCred; }
+          else if (vDeb) { valor = { valor: vDeb, negativo: true, marca: null }; iValor = colDeb; }
+          else return;
+        }
+        for (var k = colCred >= 0 ? -1 : partes.length - 1; k >= 0; k--) {
           if (k === iData) continue;
           var c = String(partes[k]).trim();
           if (!c || !/\d/.test(c)) continue;
@@ -31047,6 +31350,15 @@
   }
 
   // O motivo do primeiro que bater, ou '' se nenhum bate.
+  // "Parcela 4/6" → { atual: 4, total: 6 }. Só quando ainda faltam parcelas.
+  function parcelaDoTexto(texto) {
+    var m = /parc(?:ela)?\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i.exec(String(texto || ''));
+    if (!m) return null;
+    var atual = +m[1], total = +m[2];
+    if (!atual || total > 72 || atual >= total) return null;
+    return { atual: atual, total: total, trecho: m[0] };
+  }
+
   function motivoDeJaTer(item, contaId) {
     var motivo = '';
     // Item de fatura entra com a data da fatura, não a da compra: quem já
@@ -31556,6 +31868,20 @@
             });
           });
         sub.appendChild(subEtiqueta);
+        // Compra parcelada na fatura (pedido de 19/11/2026): "Parcela 4/6"
+        // quer dizer que faltam a 5/6 e a 6/6. Pergunto em cada uma; só
+        // lança as próximas quem tocar aqui.
+        var pc = dados.fatura && !it.repetido ? parcelaDoTexto(it.descricao) : null;
+        if (pc) {
+          var faixaPc = pc.atual + 1 === pc.total ? pc.total + '/' + pc.total
+            : (pc.atual + 1) + '/' + pc.total + ' a ' + pc.total + '/' + pc.total;
+          sub.appendChild(botao('etiqueta-acao etiqueta-parcelas' + (it.lancarProximas ? ' ligada' : ''),
+            it.lancarProximas ? '✓ lança ' + faixaPc + ' nas próximas faturas'
+                              : 'lançar ' + faixaPc + ' nas próximas faturas?', function () {
+              it.lancarProximas = !it.lancarProximas;
+              montarFolhaExtrato();
+            }));
+        }
         if (it.foraDoSaldo) sub.appendChild(no('span', 'ja-tem fora-do-saldo', 'não bate com o saldo'));
         if (it.acertadoPeloSaldo) sub.appendChild(no('span', 'ja-tem acertado-pelo-saldo', 'sinal pelo saldo'));
         if (it.repetido) {
@@ -31680,6 +32006,11 @@
     var deQuem = dados.banco ? dados.banco.nome : 'banco não reconhecido';
     var oQue = dados.fatura ? 'fatura de cartão' : 'extrato de conta';
     var trocadas = escolhidos.filter(function (i) { return i.categoriaTrocada; }).length;
+    var futuras = 0;
+    if (dados.fatura) escolhidos.forEach(function (i) {
+      var pc = i.lancarProximas ? parcelaDoTexto(i.descricao) : null;
+      if (pc) futuras += pc.total - pc.atual;
+    });
 
     perguntar({
       titulo: 'É esse mesmo?',
@@ -31687,6 +32018,7 @@
              escolhidos.length + ' lançamento(s) em "' + (conta ? conta.nome : '') + '"' +
              (conta ? ' (' + conta.tipo + ')' : '') + '.' +
              (trocadas ? ' Você trocou ' + trocadas + ' categoria(s).' : '') +
+             (futuras ? ' E mais ' + futuras + ' parcela(s) nas próximas faturas.' : '') +
              ' Se não for isso, cancele e troque o banco ou a conta lá em cima.',
       ok: 'Sim, pode lançar'
     }, function () {
@@ -31699,15 +32031,36 @@
         dataFatura = dataNaFatura(achar(estado.contas, contaId), dados.vencimento);
         if (!dataFatura) escolhidos.forEach(function (it) { if (it.data > dataFatura) dataFatura = it.data; });
       }
+      var cartaoDaFatura = dados.fatura ? achar(estado.contas, contaId) : null;
       escolhidos.forEach(function (it, i) {
-        estado.lancamentos.push({
+        var reg = {
           id: novoId(), tipo: it.tipo, valor: it.valor,
           descricao: it.descricao, categoria: it.categoria,
           subcategoria: it.subcategoria || '',
           data: dataFatura || it.data, contaId: contaId, contaDestinoId: '',
           importacaoId: importacaoId,
           criadoEm: agora + i
-        });
+        };
+        estado.lancamentos.push(reg);
+        // As próximas parcelas, cada uma na fatura do mês dela. Com a data
+        // da fatura certa, quando aquela fatura for importada a parcela
+        // aparece como "já existe" e não duplica.
+        var pc = dados.fatura && it.lancarProximas ? parcelaDoTexto(it.descricao) : null;
+        if (!pc) return;
+        reg.grupo = novoId();
+        for (var k = 1; k <= pc.total - pc.atual; k++) {
+          var dataK = dados.vencimento && cartaoDaFatura
+            ? dataNaFatura(cartaoDaFatura, somaMeses(dados.vencimento, k)) : '';
+          if (!dataK) dataK = somaMeses(reg.data, k);
+          estado.lancamentos.push({
+            id: novoId(), tipo: it.tipo, valor: it.valor,
+            descricao: it.descricao.replace(pc.trecho, 'Parcela ' + (pc.atual + k) + '/' + pc.total).slice(0, 80),
+            categoria: it.categoria, subcategoria: it.subcategoria || '',
+            data: dataK, contaId: contaId, contaDestinoId: '',
+            importacaoId: importacaoId, grupo: reg.grupo,
+            criadoEm: agora + escolhidos.length + i * 80 + k
+          });
+        }
       });
 
       // O original vai junto, sem segurar a importação: os lançamentos já
@@ -32181,6 +32534,14 @@
 
   // A lista vem sem o conteúdo: são os megabytes que não precisam descer
   // para montar a tela.
+  // 950 bytes, 120 KB, 1,4 MB.
+  function tamanhoDeArquivo(bytes) {
+    bytes = Math.max(0, Number(bytes) || 0);
+    if (bytes < 1024) return bytes + ' bytes';
+    if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+    return (Math.round(bytes / 1024 / 1024 * 10) / 10).toString().replace('.', ',') + ' MB';
+  }
+
   function listarArquivosDeExtrato(contaId) {
     if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve([]);
     var filtro = contaId ? '&conta_id=eq.' + encodeURIComponent(contaId) : '';
