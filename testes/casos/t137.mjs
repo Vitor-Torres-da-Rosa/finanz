@@ -71,7 +71,9 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 const inicio = limpo(await page.textContent('#telaInicio'));
 conferir('8a. o Início vai para outubro, o mês da fatura', /Outubro/.test(inicio) && !/06 dez a/.test(inicio),
   (inicio.match(/Domingo[^A-Z]*|[A-Z][a-zç]+ \d{4}|\d{2} [a-z]{3} a \d{2} [a-z]{3}|Outubro/) || [''])[0]);
-conferir('8b. e as despesas do mês mostram a fatura', /Despesas\s*R\$ 2\.562,34/i.test(inicio),
+// Desde 19/11/2026 a fatura só conta como despesa ligada ao pagamento no
+// banco (mesmo valor, mesmo mês). Aqui só a fatura foi importada.
+conferir('8b. sem o pagamento no banco, a fatura ainda não conta como despesa', /Despesas\s*R\$ 0,00/i.test(inicio),
   (inicio.match(/Despesas\s*R\$ [\d.,]+/i) || [''])[0]);
 await page.click('#telaInicio .linha-alvo:has-text("C6 Bank")'); await page.waitForTimeout(1200);
 const cartao = limpo(await page.textContent('#folha'));

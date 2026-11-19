@@ -142,9 +142,11 @@ conferir('3. os saldos das contas não mudam ao juntar',
   depois.inter === antes.inter && depois.c6 === antes.c6 && depois.total === antes.total,
   antes.inter + '/' + antes.c6 + '/' + antes.total + ' → ' +
   depois.inter + '/' + depois.c6 + '/' + depois.total);
+// A compra de R$ 90 no cartão não tem pagamento ligado no banco, então
+// desde 19/11/2026 não conta como despesa: só os R$ 500,00 do Pix contam.
 conferir('4. mas os R$ 500,00 saem de receitas e de despesas',
   antes.receitas === 'R$ 2.590,00' && depois.receitas === 'R$ 2.090,00' &&
-  antes.despesas === 'R$ 590,00' && depois.despesas === 'R$ 90,00',
+  antes.despesas === 'R$ 500,00' && depois.despesas === 'R$ 0,00',
   'receitas ' + antes.receitas + ' → ' + depois.receitas +
   ' · despesas ' + antes.despesas + ' → ' + depois.despesas);
 
