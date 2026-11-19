@@ -2375,6 +2375,48 @@
     border: 1px solid rgba(233,180,76,.6); color: var(--ouro); background: rgba(233,180,76,.06);
     font: italic 700 15px/1 Georgia, serif; }
   .dica-i-botao.chegou { animation: dica-pulso .6s ease-out; }
+  /* Fatura do cartão mês a mês, arrastando para o lado (pedido de 19/11/2026). */
+  .meses-fatura { display: flex; gap: 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+    padding: 4px 16px 0; border-bottom: 1px solid var(--borda); -webkit-overflow-scrolling: touch; }
+  .meses-fatura::-webkit-scrollbar { display: none; }
+  .mes-fatura { flex: 0 0 auto; scroll-snap-align: center; background: none; border: 0; color: var(--fraco);
+    font-size: 15px; font-weight: 600; padding: 10px 14px 12px; position: relative; text-transform: capitalize; }
+  .mes-fatura small { display: block; font-size: 10.5px; font-weight: 500; color: var(--fraco); margin-top: 1px; }
+  .mes-fatura.ativa { color: var(--texto); }
+  .mes-fatura.ativa::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px;
+    border-radius: 3px; background: var(--ouro); }
+  .mes-fatura .ponto { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-left: 6px;
+    vertical-align: middle; background: var(--fraco); }
+  .mes-fatura .ponto.paga { background: var(--verde); }
+  .mes-fatura .ponto.vencida { background: var(--vermelho); }
+  .mes-fatura .ponto.aberta, .mes-fatura .ponto.futura { background: var(--ouro); }
+  .painel-fatura { padding: 14px 16px 6px; touch-action: pan-y; }
+  .painel-fatura.entra-dir { animation: fatura-dir .28s ease; }
+  .painel-fatura.entra-esq { animation: fatura-esq .28s ease; }
+  @keyframes fatura-dir { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+  @keyframes fatura-esq { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+  .situacao-grande { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .situacao-grande .marca { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+    border: 1.5px solid currentColor; font-size: 14px; }
+  .situacao-grande.paga { color: var(--verde); }
+  .situacao-grande.vencida { color: var(--vermelho); }
+  .situacao-grande.aberta, .situacao-grande.futura { color: var(--ouro); }
+  .situacao-grande.fechada { color: var(--texto); }
+  .situacao-grande span:last-child { color: var(--texto); }
+  .painel-fatura .parcela-linha.total { font-weight: 700; font-size: 15px; border-top: 1px solid var(--borda); }
+  .painel-fatura .dica-arrastar { font-size: 11.5px; color: var(--fraco); text-align: center; margin: 8px 0 2px; }
+  .subtitulo-fatura { font-size: 13px; font-weight: 700; color: var(--suave); padding: 14px 16px 4px;
+    text-transform: uppercase; letter-spacing: .05em; }
+  .parcelas-faltando { margin: 6px 16px 12px; padding: 12px 14px; border-radius: 14px;
+    border: 1px dashed rgba(233,180,76,.55); background: rgba(233,180,76,.06); }
+  .parcelas-faltando strong { display: block; font-size: 14px; margin-bottom: 4px; }
+  .parcelas-faltando p { margin: 0 0 8px; font-size: 13px; color: var(--suave); line-height: 1.4; }
+  .parcela-faltando { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0;
+    border-top: 1px solid rgba(233,180,76,.18); font-size: 13.5px; }
+  .parcela-faltando .q { min-width: 0; }
+  .parcela-faltando .q span { display: block; font-size: 12px; color: var(--suave); }
+  .parcela-faltando .btn-mini { flex: 0 0 auto; }
+  .etiqueta-parc-linha { color: var(--ouro); }
   /* O "i" no topo dos cartões, do lado do botão (pedido de 19/11/2026). */
   .cartao-topo-fim { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
   .cartao-topo .dica-i-botao { width: 26px; height: 26px; font-size: 14px; }
@@ -11983,34 +12025,7 @@
         return;
       }
 
-      var cFat = cartao('liso');
-      var topoFat = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', itens: [
-        'Uma linha por mês de fatura, com o total, o vencimento e a situação: aberta, fechada, vencida ou paga.',
-        'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
-        'Toque numa fatura para ver as compras dela por categoria.'] });
-      topoFat.style.padding = '16px 16px 0';
-      topoFat.style.marginBottom = '8px';
-      cFat.appendChild(topoFat);
-
-      var situacoes = {};
-      sit.faturas.forEach(function (f) { situacoes[f.chave] = f; });
-      todas.forEach(function (f) {
-        var st = situacoes[f.chave] || {};
-        var linha = botao('linha linha-alvo', null, function () { abrirFaturaDoMes(id, f.chave); });
-        var rotSit = st.situacao === 'paga' ? 'paga' : st.situacao === 'vencida' ? 'vencida, sem pagamento'
-          : st.situacao === 'aberta' ? 'em aberto' : 'fechada';
-        juntar(linha,
-          juntar(no('div', 'linha-texto'),
-            no('div', 'linha-titulo', f.rotulo),
-            no('div', 'linha-sub', f.itens.length + ' lançamento(s)' +
-              (f.vence ? ' · vence em ' + dataBr(f.vence) : '')),
-            no('span', 'etiqueta situacao-fatura ' + (st.situacao || ''), rotSit)),
-          juntar(no('div', 'linha-fim'),
-            no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
-        );
-        cFat.appendChild(linha);
-      });
-      folha.appendChild(cFat);
+      folha.appendChild(cartaoFaturasPorMes(id, cart, sit, aberta));
 
       // Últimos gastos, com a marca do cartão do lado para não confundir.
       var recentes = estado.lancamentos.filter(function (l) { return l.contaId === id; })
@@ -12051,6 +12066,219 @@
     });
   }
 
+  // A fatura do cartão mês a mês (pedido de 19/11/2026): os meses numa
+  // faixa no topo, arrastando para o lado troca de mês, e cada um mostra se
+  // está paga, a conta da fatura (compras, créditos, pagamento, a pagar) e
+  // os lançamentos dela. Compra parcelada com parcelas que ainda não estão
+  // nas próximas faturas aparece logo embaixo, para lançar se a pessoa quiser.
+  var mesDaFaturaNaTela = {};
+  function cartaoFaturasPorMes(id, cart, sit, aberta) {
+    var faturas = sit.faturas.slice().reverse();   // da mais velha para a mais nova
+    if (aberta && aberta.chave && !faturas.some(function (f) { return f.chave === aberta.chave; })) {
+      faturas.push({ chave: aberta.chave, de: aberta.de, ate: aberta.ate, vence: aberta.vence, rotulo: aberta.rotulo,
+        itens: [], total: 0, pago: 0, resta: 0, situacao: 'aberta' });
+      faturas.sort(function (a, b) { return a.chave < b.chave ? -1 : a.chave > b.chave ? 1 : 0; });
+    }
+    var hoje = hojeTexto();
+    faturas.forEach(function (f) { if (f.de && f.de > hoje && f.situacao !== 'paga') f.situacao = 'futura'; });
+    var chaves = faturas.map(function (f) { return f.chave; });
+    var escolhida = mesDaFaturaNaTela[id];
+    if (chaves.indexOf(escolhida) < 0) escolhida = aberta && chaves.indexOf(aberta.chave) >= 0 ? aberta.chave : chaves[chaves.length - 1];
+
+    var c = cartao('liso cartao-faturas-mes');
+    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', itens: [
+      'Cada mês de fatura numa aba. Arraste para o lado, ou toque no mês lá em cima, para ver outra.',
+      'O pontinho do mês diz a situação: verde é paga, dourado é aberta ou futura, vermelho é vencida sem pagamento.',
+      'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
+      'Compra parcelada com parcelas que ainda não estão nas próximas faturas aparece embaixo, com o botão para lançar. O app pergunta antes, uma por uma.'] });
+    topo.style.padding = '16px 16px 0';
+    c.appendChild(topo);
+    var faixa = no('div', 'meses-fatura');
+    faixa.setAttribute('role', 'tablist');
+    c.appendChild(faixa);
+    var corpo = no('div');
+    c.appendChild(corpo);
+    var anoHoje = +hoje.slice(0, 4);
+
+    function mostrar(chave, lado) {
+      escolhida = chave;
+      mesDaFaturaNaTela[id] = chave;
+      faixa.innerHTML = '';
+      faturas.forEach(function (f) {
+        var p = f.chave.split('-');
+        var b = botao('mes-fatura' + (f.chave === chave ? ' ativa' : ''), null, function () {
+          if (f.chave !== escolhida) mostrar(f.chave, f.chave > escolhida ? 'dir' : 'esq');
+        });
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', f.chave === chave ? 'true' : 'false');
+        b.setAttribute('data-chave', f.chave);
+        b.appendChild(document.createTextNode(MESES[+p[1] - 1]));
+        b.appendChild(no('span', 'ponto ' + (f.situacao || '')));
+        if (+p[0] !== anoHoje) b.appendChild(no('small', null, p[0]));
+        faixa.appendChild(b);
+      });
+      var ativo = faixa.querySelector('.ativa');
+      if (ativo) {
+        var alvoX = ativo.offsetLeft - (faixa.clientWidth - ativo.offsetWidth) / 2;
+        try { faixa.scrollTo({ left: Math.max(0, alvoX), behavior: lado ? 'smooth' : 'auto' }); } catch (e) { faixa.scrollLeft = Math.max(0, alvoX); }
+      }
+      corpo.innerHTML = '';
+      var f = faturas[chaves.indexOf(chave)];
+      corpo.appendChild(painelDaFatura(id, cart, f, lado));
+      var faltando = parcelasQueFaltam(id, cart, f);
+      if (faltando.length) corpo.appendChild(caixaDeParcelasFaltando(id, cart, faltando));
+      if (f.itens.length) {
+        corpo.appendChild(no('div', 'subtitulo-fatura', 'Lançamentos desta fatura'));
+        f.itens.slice().sort(function (a, b) {
+          if (a.tipo !== b.tipo) return a.tipo === 'entrada' ? -1 : 1;
+          return a.data < b.data ? 1 : a.data > b.data ? -1 : 0;
+        }).forEach(function (l) { corpo.appendChild(linhaDeGasto(l, cart)); });
+      } else {
+        corpo.appendChild(no('div', 'sanfona-vazio', 'Nenhum lançamento nesta fatura ainda.'));
+      }
+    }
+
+    // Arrastar para o lado troca de mês.
+    var x0 = null, y0 = null;
+    corpo.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) { x0 = null; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    }, { passive: true });
+    corpo.addEventListener('touchend', function (e) {
+      if (x0 == null) return;
+      var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      var i = chaves.indexOf(escolhida) + (dx < 0 ? 1 : -1);
+      if (i >= 0 && i < chaves.length) mostrar(chaves[i], dx < 0 ? 'dir' : 'esq');
+    }, { passive: true });
+
+    mostrar(escolhida, '');
+    return c;
+  }
+
+  function painelDaFatura(id, cart, f, lado) {
+    var p = no('div', 'painel-fatura' + (lado ? ' entra-' + lado : ''));
+    var nomes = { paga: ['✓', 'Fatura paga'], aberta: ['◷', 'Fatura aberta'], fechada: ['▣', 'Fatura fechada'],
+      vencida: ['!', 'Fatura vencida, sem pagamento'], futura: ['›', 'Fatura futura'] };
+    var n = nomes[f.situacao] || nomes.fechada;
+    p.appendChild(juntar(no('div', 'situacao-grande ' + (f.situacao || 'fechada')), no('span', 'marca', n[0]), no('span', null, n[1])));
+
+    var linhas = [];
+    var compras = f.total;
+    var parceladas = f.itens.filter(function (l) { return l.tipo === 'saida' && /parc(?:ela)?\.?\s*\d{1,2}\s*(?:\/|de)\s*\d{1,2}/i.test(l.descricao || ''); })
+      .reduce(function (t, l) { return t + l.valor; }, 0);
+    linhas.push(['Compras e débitos', emReais(compras), '']);
+    if (parceladas) linhas.push(['· das quais parcelas', emReais(parceladas), '']);
+    if (f.pago) linhas.push(['Créditos e pagamentos no cartão', '− ' + emReais(f.pago), 'verde']);
+    var aPagar = Math.max(f.total - f.pago, 0);
+    if (f.situacao === 'paga' && f.pagamento) {
+      var contaPg = achar(estado.contas, f.pagamento.contaId);
+      linhas.push(['Pago em ' + dataBr(f.pagamento.data) + (contaPg ? ' · ' + contaPg.nome : ''), '− ' + emReais(f.pagamento.valor), 'verde']);
+    }
+    var resta = f.situacao === 'paga' ? 0 : aPagar;
+    linhas.forEach(function (x) {
+      p.appendChild(juntar(no('div', 'parcela-linha'), no('span', 'q', x[0]), no('span', 'v num ' + x[2], x[1])));
+    });
+    p.appendChild(juntar(no('div', 'parcela-linha total'), no('span', 'q', 'Valor a pagar'),
+      no('span', 'v num' + (resta > 0 ? ' vermelho' : ''), emReais(resta))));
+    var nota = [];
+    if (f.de && f.ate) nota.push('compras de ' + dataBr(f.de) + ' a ' + dataBr(f.ate));
+    if (f.vence) nota.push((f.vence < hojeTexto() ? 'venceu em ' : 'vence em ') + dataBr(f.vence));
+    if (nota.length) p.appendChild(no('div', 'linha-nota', nota.join(' · ')));
+    p.appendChild(no('div', 'dica-arrastar', '‹ arraste para o lado para ver outro mês ›'));
+    return p;
+  }
+
+  // O nome da compra sem o pedaço "Parcela 4/6", para achar as irmãs.
+  var REGEX_PARCELA = /parc(?:ela)?\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i;
+  function nomeSemParcela(descricao) {
+    return semAcentoSimples(String(descricao || '').replace(REGEX_PARCELA, '')).replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  // As parcelas que faltam lançar das compras desta fatura: "Parcela 5 de
+  // 10" quer a 6/10 até a 10/10, cada uma numa fatura seguinte.
+  function parcelasQueFaltam(id, cart, f) {
+    var meus = estado.lancamentos.filter(function (o) { return o.contaId === id && o.tipo === 'saida'; });
+    var lista = [];
+    f.itens.forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var pc = parcelaDoTexto(l.descricao);
+      if (!pc) return;
+      var base = nomeSemParcela(l.descricao);
+      var faltam = [];
+      for (var k = 1; k <= pc.total - pc.atual; k++) {
+        var numero = pc.atual + k;
+        var tem = meus.some(function (o) {
+          if (o.id === l.id || Math.abs(o.valor - l.valor) > 100) return false;
+          var m = REGEX_PARCELA.exec(o.descricao || '');
+          return !!m && +m[1] === numero && +m[2] === pc.total && nomeSemParcela(o.descricao) === base;
+        });
+        if (!tem) faltam.push(k);
+      }
+      if (faltam.length) lista.push({ l: l, pc: pc, faltam: faltam, chave: f.chave });
+    });
+    return lista;
+  }
+
+  function dataDaFaturaSeguinte(cart, chave, k) {
+    var p = chave.split('-');
+    var d = new Date(+p[0], +p[1] - 1 + k, 1);
+    return faturaDoCartao(cart, d.getFullYear(), d.getMonth()).ate;
+  }
+
+  function caixaDeParcelasFaltando(id, cart, faltando) {
+    var cx = no('div', 'parcelas-faltando');
+    cx.appendChild(no('strong', null, faltando.length === 1 ? 'Compra parcelada' : faltando.length + ' compras parceladas'));
+    cx.appendChild(no('p', null, 'As próximas parcelas ainda não estão nas faturas seguintes. Quer lançar? O limite do cartão já conta com elas.'));
+    faltando.forEach(function (x) {
+      var nums = x.faltam.map(function (k) { return x.pc.atual + k; });
+      var faixaTxt = nums.length === 1 ? nums[0] + '/' + x.pc.total : nums[0] + '/' + x.pc.total + ' a ' + nums[nums.length - 1] + '/' + x.pc.total;
+      var linha = no('div', 'parcela-faltando');
+      juntar(linha,
+        juntar(no('div', 'q'), document.createTextNode(String(x.l.descricao || '').replace(REGEX_PARCELA, '').replace(/[\s\-–·]+$/, '').trim() || x.l.descricao),
+          no('span', null, 'Parcela ' + x.pc.atual + ' de ' + x.pc.total + ' · falta' + (nums.length > 1 ? 'm ' : ' ') + nums.length + ' de ' + emReais(x.l.valor))),
+        botao('btn-mini', 'Lançar ' + faixaTxt, function () { lancarParcelasQueFaltam(id, cart, x, faixaTxt); }));
+      cx.appendChild(linha);
+    });
+    return cx;
+  }
+
+  function lancarParcelasQueFaltam(id, cart, x, faixaTxt) {
+    var primeiro = dataDaFaturaSeguinte(cart, x.chave, x.faltam[0]);
+    var ultimo = dataDaFaturaSeguinte(cart, x.chave, x.faltam[x.faltam.length - 1]);
+    var mesesTxt = primeiro.slice(0, 7) === ultimo.slice(0, 7) ? 'na fatura de ' + MESES[+primeiro.slice(5, 7) - 1]
+      : 'uma em cada fatura, de ' + MESES[+primeiro.slice(5, 7) - 1] + ' a ' + MESES[+ultimo.slice(5, 7) - 1] +
+        (ultimo.slice(0, 4) !== primeiro.slice(0, 4) ? ' de ' + ultimo.slice(0, 4) : '');
+    perguntar({
+      titulo: 'Lançar as parcelas ' + faixaTxt + '?',
+      texto: '"' + (x.l.descricao || '') + '" está na parcela ' + x.pc.atual + ' de ' + x.pc.total + '. Vou lançar ' +
+        x.faltam.length + ' parcela(s) de ' + emReais(x.l.valor) + ', ' + mesesTxt + ', na categoria ' + x.l.categoria + '.' +
+        ' Quando essas faturas forem importadas, as parcelas aparecem como "já existe" e não duplicam.',
+      ok: 'Lançar'
+    }, function () {
+      var l = achar(estado.lancamentos, x.l.id);
+      if (!l) return;
+      if (!l.grupo) l.grupo = novoId();
+      var agora = Date.now();
+      x.faltam.forEach(function (k, i) {
+        var numero = x.pc.atual + k;
+        estado.lancamentos.push({
+          id: novoId(), tipo: 'saida', valor: l.valor,
+          descricao: String(l.descricao).replace(x.pc.trecho, 'Parcela ' + numero + '/' + x.pc.total).slice(0, 80),
+          categoria: l.categoria, subcategoria: l.subcategoria || '',
+          data: dataDaFaturaSeguinte(cart, x.chave, k) || somaMeses(l.data, k),
+          contaId: id, contaDestinoId: '', importacaoId: l.importacaoId || undefined, grupo: l.grupo,
+          criadoEm: agora + i
+        });
+      });
+      comMotivo('você lançou ' + x.faltam.length + ' parcela(s) futuras de ' + (l.descricao || 'uma compra'));
+      salvar();
+      abrirTelaCartao(id);
+      avisar(x.faltam.length + ' parcela(s) lançada(s) nas próximas faturas.');
+    });
+  }
+
   function linhaDeGasto(l, cart) {
     var linha = botao('linha linha-alvo', null, function () {
       fecharFolha();
@@ -12063,7 +12291,11 @@
         no('div', 'linha-sub', dataBr(l.data) + ' · ' + l.categoria)),
       juntar(no('div', 'linha-fim'),
         no('div', 'linha-valor num' + (l.tipo === 'entrada' ? ' verde' : ' vermelho'),
-          (l.tipo === 'entrada' ? '+ ' : '− ') + emReais(l.valor)))
+          (l.tipo === 'entrada' ? '+ ' : '− ') + emReais(l.valor)),
+        (function () {
+          var m = REGEX_PARCELA.exec(l.descricao || '');
+          return m ? no('div', 'linha-sub etiqueta-parc-linha', 'Parcela ' + (+m[1]) + ' de ' + (+m[2])) : null;
+        })())
     );
     return linha;
   }
