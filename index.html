@@ -2499,7 +2499,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.87.0';
+  var VERSAO = '5.88.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2508,6 +2508,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.88.0',
+      data: '2026-11-19',
+      itens: [
+        'Extrato do Itaú no modelo "Extrato conta corrente": a linha só com a data e o saldo do dia não vira mais "Entrada". A regra vale só para o Itaú.',
+        'Extrato do Bradesco em PDF e CSV (colunas Crédito, Débito e Saldo): entram os créditos e os débitos com o valor da coluna, não o saldo, e a descrição é o histórico ("PIX ENVIADO DES: ...") em vez do número do documento. A regra vale só para o Bradesco.'
+      ]
+    },
     {
       versao: '5.87.0',
       data: '2026-11-19',
@@ -30217,7 +30225,14 @@
       // dava data a tudo o que vinha embaixo e os quadros da fatura (opções
       // de pagamento, juros, IOF, totais) viravam compras (18/11/2026).
       var ehFatura = pareceFatura(linhas.join('\n'), nomeArquivo);
-      linhas.forEach(function (linha) {
+      // Bradesco (19/11/2026): colunas Crédito, Débito e Saldo. O valor é o
+      // penúltimo número; se é crédito ou débito, a conta do saldo diz. E o
+      // histórico mora na linha de cima (e o complemento, "REM:"/"DES:", na
+      // de baixo), não na linha dos números. Só no Bradesco.
+      var bancoCedo = acharBanco(linhas.join('\n'), nomeArquivo);
+      var ehBradesco = !!(bancoCedo && bancoCedo.chave === 'bradesco');
+      var saldoAnteriorBrad = null;
+      linhas.forEach(function (linha, idx) {
         var cab = anoDoCabecalho(linha);
         if (cab && cab.ano) { ano = cab.ano; mesRef = cab.mes; }
 
@@ -30225,6 +30240,11 @@
         var doDia = dataDeCabecalhoDeDia(linha);
         if (doDia) { dataDoDia = doDia; return; }
 
+        if (ehBradesco && /saldo anterior/.test(semAcento(linha))) {
+          var vsa = acharValores(linha);
+          if (vsa.length) saldoAnteriorBrad = comSinal(vsa[vsa.length - 1]);
+          return;
+        }
         if (devePular(linha)) return;
 
         var d = acharData(linha, ano || hoje.getFullYear());
@@ -30236,14 +30256,46 @@
 
         var valores = acharValores(linha.slice(d.fim));
         if (!valores.length) return;
-        candidatos.push({ linha: linha, d: d, valores: valores });
+        candidatos.push({ linha: linha, d: d, valores: valores, idx: idx });
       });
 
+      if (ehBradesco) {
+        var soTexto = function (l) {
+          if (!l || !/[a-z]{3}/.test(semAcento(l))) return false;
+          if (acharValores(l).length || devePular(l)) return false;
+          var dd = acharData(l, hoje.getFullYear());
+          return !(dd && dd.data && dd.ini === 0);
+        };
+        var saldoAntes = saldoAnteriorBrad;
+        candidatos.forEach(function (c) {
+          var pedacos = [];
+          var cima = linhas[c.idx - 1], baixo = linhas[c.idx + 1];
+          if (soTexto(cima)) pedacos.push(cima);
+          if (soTexto(baixo) && (/^\s*(rem|des)\s*:/i.test(baixo) || !pedacos.length)) {
+            pedacos.push(baixo.replace(/\s+\d{1,2}\/\d{1,2}\s*$/, ''));
+          }
+          c.textoBradesco = pedacos.join(' ').replace(/\s+/g, ' ').trim();
+          if (c.valores.length >= 2) {
+            var vb = c.valores[c.valores.length - 2].valor;
+            var sb = comSinal(c.valores[c.valores.length - 1]);
+            var base = saldoAntes == null ? 0 : saldoAntes;
+            if (Math.abs(base + vb - sb) <= 1) c.tipoBradesco = 'entrada';
+            else if (Math.abs(base - vb - sb) <= 1) c.tipoBradesco = 'saida';
+            saldoAntes = sb;
+          }
+        });
+      }
+
       var comSaldo = pareceColunaDeSaldo(candidatos) ||
-                     temColunaDeSaldo(linhas.join('\n'));
+                     temColunaDeSaldo(linhas.join('\n')) || ehBradesco;
       var saldoFinal = null;
       var cheio = linhas.join('\n');
       var fatura = pareceFatura(cheio, nomeArquivo);
+      var bancoDoArquivo = acharBanco(cheio, nomeArquivo);
+      // Itaú, modelo "Extrato conta corrente" (19/11/2026): a linha só com
+      // a data e o saldo do dia não é lançamento. Vale só para o Itaú —
+      // pedido do Vitor: mexer num banco não mexe nos outros.
+      var ehItau = !!(bancoDoArquivo && bancoDoArquivo.chave === 'itau');
 
       // Extrato que põe menos no que sai (Inter, C6, Nubank): o sinal é a
       // palavra do banco. Sem menos é entrada, com menos é saída, e a
@@ -30276,6 +30328,8 @@
         var descricao = resto.slice(0, v.ini).replace(/^\s*\d{1,2}\/\d{1,2}(\/\d{2,4})?\s*/, '').trim();
         var cauda = resto.slice(v.fim).trim();
 
+        if (ehBradesco && c.textoBradesco && !/[a-z]{3}/i.test(semAcento(descricao))) descricao = c.textoBradesco;
+
         // Itaú e afins marcam D de débito e C de crédito depois do valor.
         var marca = /^([DC])\b/.exec(cauda.toUpperCase());
         var textoCheio = descricao;
@@ -30283,9 +30337,11 @@
         if (coluna) descricao = coluna.descricao;
 
         if (fatura && ehQuadroDaFatura(textoCheio)) return;
+        if (ehItau && !/[a-z]{2}/i.test(semAcento(textoCheio))) return;
 
         var tipo;
-        if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
+        if (ehBradesco && c.tipoBradesco) tipo = c.tipoBradesco;
+        else if (marca) tipo = marca[1] === 'D' ? 'saida' : 'entrada';
         else if (v.negativo) tipo = 'saida';
         else if (coluna) tipo = coluna.tipo;
         else if (temSinais) tipo = 'entrada';
@@ -30436,6 +30492,32 @@
       var cheio = linhas.map(function (l) { return l.join(' '); }).join('\n');
       var fatura = pareceFatura(cheio, nomeArquivo);
 
+      // Bradesco (19/11/2026): "Data;Lançamento;Dcto.;Crédito (R$);Débito
+      // (R$);Saldo (R$)". A última célula de dinheiro é o saldo, não o
+      // valor: o valor está na coluna de crédito ou na de débito, e é ela
+      // que diz se entrou ou saiu. Reconhecido pelo cabeçalho com "Dcto."
+      // (ou pelo nome do banco), para não mexer nos outros.
+      var bancoTab = acharBanco(cheio, nomeArquivo);
+      var colCred = -1, colDeb = -1;
+      for (var h = 0; h < Math.min(linhas.length, 40) && colCred < 0; h++) {
+        var ic = -1, idb = -1, temDoc = false;
+        linhas[h].forEach(function (x, i) {
+          var t = semAcento(String(x)).trim();
+          if (/^credito\b/.test(t)) ic = i;
+          else if (/^debito\b/.test(t)) idb = i;
+          else if (/^d(o)?cto\b/.test(t)) temDoc = true;
+        });
+        if (ic >= 0 && idb >= 0 && (temDoc || (bancoTab && bancoTab.chave === 'bradesco'))) { colCred = ic; colDeb = idb; }
+      }
+      function dinheiroDaCelula(x) {
+        var t = String(x == null ? '' : x).trim();
+        if (!t || !/\d/.test(t)) return 0;
+        var a = acharValores(t);
+        if (a.length) return a[a.length - 1].valor;
+        var n = parseFloat(t.replace(/[^\d.,-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
+        return isFinite(n) ? Math.round(Math.abs(n) * 100) : 0;
+      }
+
       linhas.forEach(function (partes) {
         if (partes.length < 2) return;
         var junta = partes.join('  ');
@@ -30453,7 +30535,13 @@
 
         // O valor: a última célula que é só dinheiro.
         var iValor = -1, valor = null;
-        for (var k = partes.length - 1; k >= 0; k--) {
+        if (colCred >= 0) {
+          var vCred = dinheiroDaCelula(partes[colCred]), vDeb = dinheiroDaCelula(partes[colDeb]);
+          if (vCred) { valor = { valor: vCred, negativo: false, marca: null }; iValor = colCred; }
+          else if (vDeb) { valor = { valor: vDeb, negativo: true, marca: null }; iValor = colDeb; }
+          else return;
+        }
+        for (var k = colCred >= 0 ? -1 : partes.length - 1; k >= 0; k--) {
           if (k === iData) continue;
           var c = String(partes[k]).trim();
           if (!c || !/\d/.test(c)) continue;
