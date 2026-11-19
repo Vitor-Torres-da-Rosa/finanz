@@ -79,7 +79,7 @@ conferir('4. com menos de 5 dias, não avisa', !/dias sem extrato/.test(t2));
 for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
 await page.click('#telaInicio .linha-alvo:has-text("C6")'); await page.waitForTimeout(1000);
 const fc = limpo(await page.textContent('#folha'));
-conferir('5. a conta mostra os extratos importados', /Extratos\s*\+ Importar.{0,90}?01\/11\/2026 a 09\/11\/2026\s*extrato\.pdf · 2 lançamento\(s\)/.test(fc), (fc.match(/Extratos.{0,120}/) || [''])[0]);
+conferir('5. a conta mostra os extratos importados', /Extratos\s*i?\s*\+ Importar.{0,90}?01\/11\/2026 a 09\/11\/2026\s*extrato\.pdf · 2 lançamento\(s\)/.test(fc), (fc.match(/Extratos.{0,120}/) || [''])[0]);
 await page.locator('#folha .cartao-extratos').screenshot({ path: dir + '/z79-extratos-da-conta.png' }).catch(() => {});
 await page.click('#folha .cartao-extratos .linha:has-text("01/11/2026 a 09/11/2026")'); await page.waitForTimeout(1200);
 const fe = limpo(await page.textContent('#folha'));

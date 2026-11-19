@@ -73,13 +73,13 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 await page.click('#telaInicio .cartao:has-text("Cartões") .linha-alvo'); await page.waitForTimeout(1200);
 console.log('7. tela do cartão:', await page.textContent('#folhaTitulo'));
 console.log('   fatura aberta:', (await page.textContent('#folha .cartao')).replace(/\s+/g,' ').slice(0,170));
-console.log('   faturas:', await page.$$eval('#folha .cartao:has-text("Faturas") .linha-alvo', ns=>ns.map(x=>x.textContent.replace(/\s+/g,' '))));
+console.log('   faturas:', await page.$$eval('#folha .mes-fatura', ns=>ns.map(x=>x.textContent.replace(/\s+/g,' '))));
 console.log('   últimos gastos:', await page.locator('#folha .cartao:has-text("Últimos gastos") .linha-alvo').count());
 await page.screenshot({ path: dir+'/f04-tela-cartao.png', fullPage:true });
 // abre uma fatura
-await page.click('#folha .cartao:has-text("Faturas") .linha-alvo >> nth=0'); await page.waitForTimeout(1200);
-console.log('8. fatura do mês:', await page.textContent('#folhaTitulo'));
-console.log('   ', (await page.textContent('#folha .cartao')).replace(/\s+/g,' ').slice(0,140));
-console.log('   itens:', await page.locator('#folha .linha-alvo').count());
+await page.click('#folha .mes-fatura >> nth=0'); await page.waitForTimeout(1200);
+console.log('8. fatura do mês:', await page.textContent('#folha .mes-fatura.ativa'));
+console.log('   ', (await page.textContent('#folha .painel-fatura')).replace(/\s+/g,' ').slice(0,140));
+console.log('   itens:', await page.locator('#folha .cartao-faturas-mes .linha-alvo').count());
 await page.screenshot({ path: dir+'/f05-fatura-mes.png', fullPage:true });
 await browser.close();

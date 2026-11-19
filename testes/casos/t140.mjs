@@ -145,15 +145,18 @@ conferir('10a. as 3 parcelas sobem para o servidor com o mesmo grupo',
   subiram.length === 3 && !!subiram[0].grupo && subiram.every(l => l.grupo === subiram[0].grupo),
   subiram.length + ' · grupo ' + (subiram[0] || {}).grupo);
 await page.click('#telaInicio .linha-alvo:has-text("C6 cartao")'); await page.waitForTimeout(1200);
-const faturas = await page.$$eval('#folha .cartao', ns => {
-  const f = ns.find(n => /Faturas/.test(n.textContent));
-  return f ? [...f.querySelectorAll('.linha')].map(l => l.textContent.replace(/\s+/g, ' ').trim()) : [];
-});
+// Desde a 5.92 as faturas ficam mês a mês: abre cada mês e confere.
+const esperadoMeses = [proxima, new Date(proxima.getFullYear(), proxima.getMonth() + 1, 1), ultima];
+const faturas = [];
+for (const d of esperadoMeses) {
+  const tab = page.locator('#folha .mes-fatura[data-chave="' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '"]');
+  if (!(await tab.count())) { faturas.push(rotulo(d) + ': sem aba'); continue; }
+  await tab.click(); await page.waitForTimeout(500);
+  faturas.push(rotulo(d) + ': ' + limpo(await page.textContent('#folha .painel-fatura')).slice(0, 60));
+}
 console.log('faturas:', faturas);
-const esperado = [ultima, new Date(proxima.getFullYear(), proxima.getMonth() + 1, 1), proxima].map(rotulo);
 conferir('10. uma parcela em cada uma das 3 faturas seguidas',
-  faturas.length === 3 && esperado.every((r, i) => faturas[i].indexOf(r) === 0 && /R\$ 100,00/.test(faturas[i])),
-  faturas.join(' | '));
+  faturas.every(f => /Compras e débitos\s*R\$ 100,00/.test(f)), faturas.join(' | '));
 const gastos = limpo(await page.textContent('#folha'));
 conferir('11. cada uma com "(1/3)", "(2/3)", "(3/3)"', /Geladeira \(1\/3\)/.test(gastos) && /Geladeira \(3\/3\)/.test(gastos));
 

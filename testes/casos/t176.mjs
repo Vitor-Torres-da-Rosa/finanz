@@ -72,7 +72,11 @@ let tela = await abrirCartao();
 console.log(tela.slice(0, 700));
 conferir('3. a fatura de novembro venceu sem pagamento e aparece em vermelho', /A fatura de novembro de 2026 \(R\$ 2\.462,35\) venceu em 10\/11\/2026 e não consta pagamento/.test(tela));
 conferir('4. o limite conta ela e as parcelas futuras (2.462,35 + 2 × 2.180,55)', /R\$ 6\.823,45 em uso de R\$ 10\.000,00 · R\$ 3\.176,55 livre/.test(tela), (tela.match(/R\$ [\d.,]+ em uso.{0,40}/) || [''])[0]);
-conferir('5. as parcelas 5/6 e 6/6 caem em dezembro e janeiro', /dezembro de 2026\s*1 lançamento\(s\)/.test(tela) && /janeiro de 2027\s*1 lançamento\(s\)/.test(tela) && /vencida, sem pagamento/.test(tela), (tela.match(/Faturas.{0,300}/) || [''])[0]);
+// Desde a 5.92 as faturas ficam mês a mês, numa faixa no topo.
+const umMes = async (chave) => { await page.click('#folha .mes-fatura[data-chave="' + chave + '"]'); await page.waitForTimeout(500);
+  return limpo(await page.textContent('#folha .cartao-faturas-mes')); };
+const dez = await umMes('2026-12'), jan = await umMes('2027-01'), nov = await umMes('2026-11');
+conferir('5. as parcelas 5/6 e 6/6 caem em dezembro e janeiro', /Parcela 5\/6/.test(dez) && /Parcela 6\/6/.test(jan) && /Fatura vencida, sem pagamento/.test(nov), dez.slice(0, 80) + ' | ' + jan.slice(0, 80));
 await page.screenshot({ path: dir + '/z103-limite-vencida.png' });
 
 // ---- com o pagamento na conta: a de novembro está paga ----
@@ -83,7 +87,7 @@ await page.waitForSelector('#dialogoFundo.aberta', { timeout: 30000 });
 await page.locator('#dialogoAcoes button').nth(0).click(); await page.waitForTimeout(3000);
 tela = await abrirCartao();
 conferir('6. com o pagamento de R$ 2.462,35 no Inter, novembro está paga e não ocupa o limite',
-  !/não consta pagamento/.test(tela) && /R\$ 0,00 em uso de R\$ 10\.000,00/.test(tela) && /novembro de 2026.{0,60}paga/.test(tela), (tela.match(/R\$ [\d.,]+ em uso.{0,40}/) || [''])[0]);
+  !/não consta pagamento/.test(tela) && /R\$ 0,00 em uso de R\$ 10\.000,00/.test(tela) && /Fatura paga/.test(await umMes('2026-11')), (tela.match(/R\$ [\d.,]+ em uso.{0,40}/) || [''])[0]);
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();

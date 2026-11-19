@@ -77,14 +77,15 @@ conferir('8b. sem o pagamento no banco, a fatura ainda não conta como despesa',
   (inicio.match(/Despesas\s*R\$ [\d.,]+/i) || [''])[0]);
 await page.click('#telaInicio .linha-alvo:has-text("C6 Bank")'); await page.waitForTimeout(1200);
 const cartao = limpo(await page.textContent('#folha'));
-const faturas = await page.$$eval('#folha .cartao', ns => {
-  const f = ns.find(n => /Faturas/.test(n.textContent));
-  return f ? [...f.querySelectorAll('.linha')].map(l => l.textContent.replace(/\s+/g, ' ').trim()) : [];
-});
-console.log('faturas:', faturas);
-conferir('8. uma fatura só', faturas.length === 1, faturas.length);
-conferir('9. é a de outubro de 2026', /outubro de 2026/.test(faturas[0] || ''));
-conferir('10. com R$ 2.562,34 e 6 lançamentos', /6 lançamento\(s\)/.test(faturas[0] || '') && /2\.562,34/.test(faturas[0] || ''));
+// Desde a 5.92 as faturas ficam mês a mês, numa faixa no topo.
+const mesesTab = await page.$$eval('#folha .mes-fatura', ns => ns.map(n => n.textContent.replace(/\s+/g, ' ').trim()));
+console.log('meses:', mesesTab);
+await page.click('#folha .mes-fatura:has-text("outubro")'); await page.waitForTimeout(600);
+const painelOut = limpo(await page.textContent('#folha .painel-fatura'));
+const itensOut = await page.locator('#folha .cartao-faturas-mes .linha-alvo').count();
+conferir('8. uma fatura só com lançamentos (a aberta de agora pode aparecer vazia)', mesesTab.filter(m => !/novembro|dezembro/.test(m)).length === 1, mesesTab.join(' | '));
+conferir('9. é a de outubro de 2026', mesesTab.some(m => /^outubro$/.test(m)));
+conferir('10. com R$ 2.562,34 e 6 lançamentos', itensOut === 6 && /2\.562,34/.test(painelOut), itensOut + ' · ' + painelOut.slice(0, 80));
 conferir('11. nada foi parar em janeiro', !/janeiro de 2027/.test(cartao));
 await page.screenshot({ path: dir + '/z22-fatura-c6-no-cartao.png', fullPage: true });
 
