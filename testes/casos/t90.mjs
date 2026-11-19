@@ -71,6 +71,12 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 // O título do cartão muda com o lado escolhido: gastos ou receitas.
 const cartaoGastos = () => page.locator('#telaInicio .cartao', { hasText: /Distribuição de (gastos|receitas)/ });
 const fatia = (nome) => cartaoGastos().locator('.legenda-alvo', { hasText: nome }).first();
+// Desde 19/11/2026 tocar na categoria abre as subcategorias embaixo; a folha
+// com os lançamentos abre em "Ver os lançamentos".
+const abrirFatia = async (nome) => {
+  await fatia(nome).click(); await page.waitForTimeout(500);
+  await cartaoGastos().locator('.legenda-sub:not([hidden]) .ver-lancamentos', { hasText: 'de ' + nome }).first().click();
+};
 const folhaFechou = () => page.waitForFunction(
   () => !document.getElementById('folha').classList.contains('aberta'), null, { timeout: 20000 });
 
@@ -79,7 +85,7 @@ console.log('legenda:', legendaToda.slice(0, 260));
 conferir('1. a fatura paga não entra nos gastos', !/Pagamento Fatura/.test(legendaToda));
 
 // --- uma categoria ---
-await fatia('Alimentação').click(); await page.waitForTimeout(1400);
+await abrirFatia('Alimentação'); await page.waitForTimeout(1400);
 const alim = limpo(await page.textContent('#folha'));
 console.log('folha Alimentação:', alim.slice(0, 220));
 conferir('2. a folha abre no nome da categoria', /Alimentação/.test(await page.textContent('#folhaTitulo')));
@@ -92,7 +98,7 @@ await page.goBack(); await folhaFechou();
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1400);
 
 // --- "Demais" junta o resto ---
-await fatia('Demais').click(); await page.waitForTimeout(1400);
+await abrirFatia('Demais'); await page.waitForTimeout(1400);
 const demais = limpo(await page.textContent('#folha'));
 console.log('folha Demais:', demais.slice(0, 260));
 conferir('7. "Demais" soma R$ 180,00 (Educação + Impostos e taxas + Negócio)',
@@ -108,7 +114,7 @@ await page.click('#navegacao button:has-text("Início")'); await page.waitForTim
 // --- do lado das receitas ---
 await cartaoGastos().locator('.seg-item:has-text("Receitas"), button:has-text("Receitas")').first().click();
 await page.waitForTimeout(1400);
-await fatia('Serviços').click(); await page.waitForTimeout(1400);
+await abrirFatia('Serviços'); await page.waitForTimeout(1400);
 const rec = limpo(await page.textContent('#folha'));
 console.log('folha Serviços:', rec.slice(0, 200));
 conferir('10. do lado das receitas, abre o que entrou', /Recebido/.test(rec) && /R\$ 5\.000,00/.test(rec), rec.slice(0, 60));

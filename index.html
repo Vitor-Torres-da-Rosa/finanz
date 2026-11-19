@@ -220,7 +220,13 @@
   .legenda-alvo { width: 100%; background: none; border: 0; padding: 4px 0; margin: -4px 0;
                   color: inherit; font: inherit; text-align: left; cursor: pointer; }
   .legenda-alvo:active { opacity: .6; }
-  .legenda-seta { color: var(--fraco); font-size: 15px; margin-left: 2px; flex: 0 0 auto; }
+  .legenda-seta { color: var(--fraco); font-size: 15px; margin-left: 2px; flex: 0 0 auto; transition: transform .2s ease; }
+  .legenda-alvo.aberta .legenda-seta { transform: rotate(90deg); color: var(--ouro); }
+  /* As subcategorias abrem embaixo da categoria (pedido de 19/11/2026). */
+  .legenda-sub { margin: 2px 0 6px 19px; padding: 4px 0 4px 12px; border-left: 2px solid var(--borda); display: flex; flex-direction: column; gap: 7px; }
+  .legenda-sub[hidden] { display: none; }
+  .legenda-sub .legenda-item { font-size: 13px; }
+  .legenda-sub .ver-lancamentos { align-self: flex-start; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--ouro); background: none; border: 0; padding: 2px 0; }
 
   /* ---------- Barras e progresso ---------- */
 
@@ -931,6 +937,14 @@
   .situacao-fatura.vencida { color: var(--vermelho); }
   .fatura-vencida { margin-top: 8px; }
   .etiqueta-parcelas { color: var(--ouro); border-style: dashed; }
+  /* Há quantos dias o extrato da conta foi atualizado (pedido de 19/11/2026). */
+  .linha-fim .idade-extrato { margin-top: 4px; }
+  .idade-extrato { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--borda);
+    border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; color: var(--suave); }
+  .idade-extrato::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .idade-extrato.em-dia { color: var(--verde); border-color: rgba(74,222,128,.35); }
+  .idade-extrato.atencao { color: var(--ouro); border-color: rgba(233,180,76,.45); }
+  .idade-extrato.velho { color: var(--vermelho); border-color: rgba(248,113,113,.45); }
   .etiqueta-parcelas.ligada { background: rgba(233,180,76,.16); border-style: solid; border-color: rgba(233,180,76,.6); }
   .etiqueta-dia-aberta { background: rgba(233,180,76,.12); border-color: var(--ouro);
     color: var(--ouro); }
@@ -2499,7 +2513,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.90.0';
+  var VERSAO = '5.91.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2508,6 +2522,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.91.0',
+      data: '2026-11-19',
+      itens: [
+        'Trocando a categoria de um lançamento, o app pergunta para quais vale: só este, os de mesmo nome deste extrato ou fatura, ou todos com o mesmo nome. Em "todos", os próximos que forem importados também já entram na categoria nova.',
+        'Em "Distribuição de gastos", tocar numa categoria abre embaixo dela as subcategorias, com nome, valor e porcentagem. Tocando de novo, fecha. Para ver os lançamentos, use "Ver os lançamentos de…".',
+        'Em "Contas", embaixo do saldo, aparece há quantos dias vai o último extrato importado de cada uma: verde até 7 dias, dourado até 20 e vermelho depois disso, quando vale importar um novo.'
+      ]
+    },
     {
       versao: '5.90.0',
       data: '2026-11-19',
@@ -8628,11 +8651,24 @@
   // `aoTocar` transforma cada fatia em botão: quem vê 34% numa categoria
   // quer saber de onde saiu esse número, e o lugar de responder é a própria
   // linha que mostra o número. Sem ele, a legenda continua sendo só legenda.
-  function legenda(segmentos, total, aoTocar) {
+  // `abrirDentro(s)` devolve o que aparece embaixo da linha ao tocar nela
+  // (as subcategorias). Sem ele, tocar chama `aoTocar` como antes.
+  function legenda(segmentos, total, aoTocar, abrirDentro) {
     var lista = no('div', 'legenda');
     segmentos.forEach(function (s, i) {
+      var dentro = null;
       var item = aoTocar
-        ? botao('legenda-item legenda-alvo', null, function () { aoTocar(s); })
+        ? botao('legenda-item legenda-alvo', null, function () {
+            if (!abrirDentro) { aoTocar(s); return; }
+            if (!dentro) {
+              dentro = abrirDentro(s);
+              dentro.hidden = true;
+              item.parentNode.insertBefore(dentro, item.nextSibling);
+            }
+            dentro.hidden = !dentro.hidden;
+            item.classList.toggle('aberta', !dentro.hidden);
+            item.setAttribute('aria-expanded', dentro.hidden ? 'false' : 'true');
+          })
         : no('div', 'legenda-item');
       var bolinha = no('i', 'bolinha');
       bolinha.style.background = s.cor || corDeCategoria(s.nome);
@@ -10894,11 +10930,34 @@
       var outros = resto.reduce(function (s, c) { return s + c.valor; }, 0);
       if (outros > 0) seg.push({ nome: 'Demais', valor: outros, cor: '#4B5A6B' });
       cGastos.appendChild(rosca(seg, gastos.total, ehEntrada ? 'Receitas' : 'Gastos'));
-      cGastos.appendChild(legenda(seg, gastos.total, function (fatia) {
-        var nomes = fatia.nome === 'Demais'
-          ? resto.map(function (c) { return c.nome; })
-          : [fatia.nome];
-        abrirFolhaCategoria(faixa, abaDistribuicao, nomes, fatia.nome);
+      var nomesDaFatia = function (fatia) {
+        return fatia.nome === 'Demais' ? resto.map(function (c) { return c.nome; }) : [fatia.nome];
+      };
+      var abrirLancamentos = function (fatia) {
+        abrirFolhaCategoria(faixa, abaDistribuicao, nomesDaFatia(fatia), fatia.nome);
+      };
+      // Tocar na categoria abre embaixo as subcategorias, com nome e valor
+      // (pedido de 19/11/2026). Em "Demais", as categorias que estão nela.
+      var ladoDist = ehEntrada ? 'entrada' : 'saida';
+      cGastos.appendChild(legenda(seg, gastos.total, abrirLancamentos, function (fatia) {
+        var nomes = nomesDaFatia(fatia);
+        var porSub = {};
+        gastos.base.forEach(function (l) {
+          if (l.tipo !== ladoDist || nomes.indexOf(l.categoria) < 0) return;
+          var k = fatia.nome === 'Demais' ? l.categoria : (l.subcategoria || 'Sem subcategoria');
+          porSub[k] = (porSub[k] || 0) + l.valor;
+        });
+        var caixaSub = no('div', 'legenda-sub');
+        Object.keys(porSub).sort(function (a, b) { return porSub[b] - porSub[a]; }).forEach(function (k) {
+          juntar(caixaSub, juntar(no('div', 'legenda-item'),
+            no('span', 'nome', k),
+            no('span', 'val', emReais(porSub[k])),
+            no('span', 'pct', Math.round(pct(porSub[k], fatia.valor)) + '%')));
+        });
+        caixaSub.appendChild(botao('ver-lancamentos', 'Ver os lançamentos de ' + fatia.nome + ' ›', function () {
+          abrirLancamentos(fatia);
+        }));
+        return caixaSub;
       }));
     }
     if (gastos.valorDasFaturas > 0) {
@@ -10916,6 +10975,29 @@
     cContas.appendChild(topoContas);
 
     var soContas = estado.contas.filter(function (c) { return !ehCartao(c); });
+    // Até que dia vai o último extrato de cada conta: o fim da leva mais
+    // recente, ou o lançamento importado mais novo se a leva sumiu da lista.
+    var extratoAte = {};
+    (estado.importacoes || []).forEach(function (i) {
+      var d = i.ate || (i.quando ? deData(new Date(i.quando)) : '');
+      if (i.contaId && d && (!extratoAte[i.contaId] || d > extratoAte[i.contaId])) extratoAte[i.contaId] = d;
+    });
+    estado.lancamentos.forEach(function (l) {
+      if (!l.importacaoId || !l.contaId || !l.data) return;
+      if (!extratoAte[l.contaId] || l.data > extratoAte[l.contaId]) extratoAte[l.contaId] = l.data;
+    });
+    var idadeDoExtrato = function (c) {
+      if (c.tipo === 'Dinheiro físico') return null;
+      var ate = extratoAte[c.id];
+      if (!ate) return no('span', 'idade-extrato', 'sem extrato');
+      var dias = Math.max(0, diasEntre(ate, hojeTexto()));
+      var el = no('span', 'idade-extrato ' + (dias <= 7 ? 'em-dia' : dias <= 20 ? 'atencao' : 'velho'),
+        dias === 0 ? 'hoje' : dias === 1 ? '1 dia' : dias + ' dias');
+      el.title = 'Extrato até ' + dataCurta(ate) +
+        (dias > 7 ? ': vale importar um novo.' : ': está em dia.');
+      el.setAttribute('aria-label', 'Extrato até ' + dataCurta(ate) + ', há ' + dias + ' dia(s)');
+      return el;
+    };
     if (!soContas.length) {
       cContas.appendChild(estadoVazio('Nenhuma conta', 'Cadastre suas contas para acompanhar o saldo de cada uma.'));
     } else {
@@ -10930,7 +11012,8 @@
             no('div', 'linha-titulo', c.nome),
             no('div', 'linha-sub', c.tipo)),
           juntar(no('div', 'linha-fim'),
-            no('div', 'linha-valor num' + (s < 0 ? ' vermelho' : ''), emReais(s)))
+            no('div', 'linha-valor num' + (s < 0 ? ' vermelho' : ''), emReais(s)),
+            idadeDoExtrato(c))
         );
         linha.appendChild(alvo);
 
@@ -26696,20 +26779,60 @@
           return r;
         });
 
-        if (existente) {
-          estado.lancamentos = estado.lancamentos.map(function (l) { return l.id === existente.id ? registros[0] : l; });
-        } else {
-          registros.forEach(function (r) { estado.lancamentos.push(r); });
-        }
-        if (noCartao) ultimoCartaoUsado = campoConta.value;
+        var concluir = function (outros) {
+          if (existente) {
+            estado.lancamentos = estado.lancamentos.map(function (l) { return l.id === existente.id ? registros[0] : l; });
+          } else {
+            registros.forEach(function (r) { estado.lancamentos.push(r); });
+          }
+          (outros || []).forEach(function (l) {
+            l.categoria = registros[0].categoria;
+            l.subcategoria = registros[0].subcategoria || '';
+          });
+          if (noCartao) ultimoCartaoUsado = campoConta.value;
 
-        salvar();
-        var p = partes(registros[0].data);
-        mesAtivo = { ano: p.ano, mes: p.mes };
-        fecharFolha();
-        desenhar();
-        avisar(existente ? 'Lançamento atualizado.'
-          : registros.length > 1 ? registros.length + ' lançamentos salvos.' : 'Lançamento salvo.');
+          salvar();
+          var p = partes(registros[0].data);
+          mesAtivo = { ano: p.ano, mes: p.mes };
+          fecharFolha();
+          desenhar();
+          avisar(outros && outros.length ? (outros.length + 1) + ' lançamentos atualizados.'
+            : existente ? 'Lançamento atualizado.'
+            : registros.length > 1 ? registros.length + ' lançamentos salvos.' : 'Lançamento salvo.');
+        };
+
+        // Trocou a categoria: vale para quais? (pedido de 19/11/2026) Só
+        // este, os de mesmo nome deste extrato ou fatura, ou todos com o
+        // mesmo nome — e aí também os próximos que forem importados.
+        var mudouCategoria = existente && registros.length === 1 && dados.tipo !== 'transferencia' &&
+          (existente.categoria !== registros[0].categoria ||
+           (existente.subcategoria || '') !== (registros[0].subcategoria || ''));
+        var chaveNome = mudouCategoria ? nomeDeOrigem(registros[0].descricao || existente.descricao) : '';
+        var iguais = chaveNome ? estado.lancamentos.filter(function (l) {
+          return l.id !== existente.id && l.tipo === registros[0].tipo && nomeDeOrigem(l.descricao) === chaveNome &&
+            (l.categoria !== registros[0].categoria || (l.subcategoria || '') !== (registros[0].subcategoria || ''));
+        }) : [];
+        if (!iguais.length) { concluir([]); return; }
+        var daLeva = existente.importacaoId
+          ? iguais.filter(function (l) { return l.importacaoId === existente.importacaoId; }) : [];
+        var ehDeCartao = ehCartao(achar(estado.contas, existente.contaId));
+        var nomeCat = registros[0].categoria + (registros[0].subcategoria ? ' · ' + registros[0].subcategoria : '');
+        var opcoesEscopo = [{ valor: 'so', rotulo: 'Só este lançamento' }];
+        if (daLeva.length) opcoesEscopo.push({ valor: 'leva',
+          rotulo: 'Os de "' + chaveNome + '" ' + (ehDeCartao ? 'desta fatura' : 'deste extrato'),
+          detalhe: (daLeva.length + 1) + ' lançamento(s) vão para ' + nomeCat });
+        opcoesEscopo.push({ valor: 'todos', rotulo: 'Todos com o mesmo nome',
+          detalhe: (iguais.length + 1) + ' lançamento(s), de todos os extratos e faturas, vão para ' + nomeCat +
+            '. Os próximos que forem importados também.' });
+        abrirEscolha({ titulo: 'Trocar a categoria de quais?', opcoes: opcoesEscopo, semMarca: true }, function (v) {
+          if (v === undefined) return;
+          if (v === 'todos') {
+            if (!estado.regrasCategoria) estado.regrasCategoria = {};
+            estado.regrasCategoria[chaveNome] = registros[0].categoria;
+            concluir(iguais);
+          } else if (v === 'leva') concluir(daLeva);
+          else concluir([]);
+        });
       }));
 
       // Perna de transferência juntada: dá para separar. Antes não dava,
