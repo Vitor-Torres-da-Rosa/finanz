@@ -128,8 +128,8 @@ await page.waitForTimeout(1500);
 const telaCartao = limpo(await page.textContent('#folha'));
 console.log('tela do cartão:', telaCartao.slice(0, 240));
 conferir('10b. a tela do cartão mostra o limite e o que sobra',
-  /Limite/.test(telaCartao) && /R\$ 0,00 de R\$ 2\.000,00/.test(telaCartao) &&
-  /R\$ 2\.000,00 livre nesta fatura/.test(telaCartao), telaCartao.slice(0, 160));
+  /Limite/.test(telaCartao) && /R\$ 0,00 em uso de R\$ 2\.000,00/.test(telaCartao) &&
+  /R\$ 2\.000,00 livre/.test(telaCartao), telaCartao.slice(0, 160));
 conferir('10c. sem gastos, ele oferece importar a fatura num botão',
   /Sem gastos ainda/.test(telaCartao) && /Importar fatura/.test(telaCartao));
 await page.screenshot({ path: dir+'/s02-limite.png', fullPage: true });
