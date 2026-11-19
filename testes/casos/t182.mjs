@@ -46,33 +46,32 @@ await page.evaluate(() => { localStorage.setItem('finanz.dicas.teste', '1'); Obj
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(400);
 await page.evaluate(() => { window.scrollTo(0, 0); });
-// A primeira que estiver inteira na tela abre sozinha.
-let titulo1 = '';
-for (let i = 0; i < 10 && !titulo1; i++) { await page.waitForTimeout(500); titulo1 = limpo(await page.locator('.dica-pop.visivel strong').textContent().catch(() => '')); }
-conferir('3. a primeira dica que aparece na tela abre sozinha, com o fundo fosco', !!titulo1 && (await page.locator('.dica-fosco.visivel').count()) === 1, titulo1);
-await page.mouse.click(20, 820); await page.waitForTimeout(1200);
 // Rola até as contas: a dica delas abre sozinha.
 await contas.locator('.cartao-topo').evaluate(n => n.scrollIntoView({ block: 'center' }));
-let titulo2 = '';
+let titulo2 = '', primeiraFosca = false;
 for (let i = 0; i < 12 && titulo2 !== 'Contas'; i++) {
   await page.waitForTimeout(600);
-  titulo2 = limpo(await page.locator('.dica-pop.visivel strong').textContent().catch(() => ''));
+  titulo2 = limpo(await page.locator('.dica-pop.visivel strong').textContent({ timeout: 300 }).catch(() => ''));
+  if (titulo2 && (await page.locator('.dica-fosco.visivel').count()) === 1) primeiraFosca = true;
   if (titulo2 && titulo2 !== 'Contas') { await page.mouse.click(20, 820); await page.waitForTimeout(900); await contas.locator('.cartao-topo').evaluate(n => n.scrollIntoView({ block: 'center' })); }
 }
-const textoPop = limpo(await page.locator('.dica-pop.visivel').textContent().catch(() => ''));
-conferir('4. chegando em Contas, a dica dela abre sozinha e explica a etiqueta dos dias', titulo2 === 'Contas' && /há quantos dias vai o último extrato/.test(textoPop), textoPop.slice(0, 140));
-await page.screenshot({ path: dir + '/z112-dica-contas.png' });
+const textoPop = limpo(await page.locator('.dica-pop.visivel').textContent({ timeout: 300 }).catch(() => ''));
+conferir('3. a dica abre sozinha quando o "i" aparece na tela, com o fundo fosco', primeiraFosca);
+conferir('4. chegando em Contas, a dica dela abre sozinha e explica a etiqueta dos dias', titulo2 === 'Contas' && /há quantos dias vai o último extrato/.test(textoPop) && await page.locator('.dica-pop.visivel').evaluate(n => { const r = n.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; }), textoPop.slice(0, 140));
+await page.waitForTimeout(700); await page.screenshot({ path: dir + '/z112-dica-contas.png' });
 await page.mouse.click(20, 820); await page.waitForTimeout(1200);
-conferir('5. tocando fora, fecha', (await page.locator('.dica-pop').count()) === 0);
+const depoisDeFechar = limpo(await page.locator('.dica-pop.visivel strong').textContent({ timeout: 300 }).catch(() => ''));
+conferir('5. tocando fora, fecha (e a próxima ainda não vista pode abrir)', depoisDeFechar !== 'Contas', depoisDeFechar || '(nenhuma)');
+if (depoisDeFechar) { await page.mouse.click(20, 820); await page.waitForTimeout(1200); }
 
 // Depois de vista, não abre mais sozinha.
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
 await contas.locator('.cartao-topo').evaluate(n => n.scrollIntoView({ block: 'center' })); await page.waitForTimeout(2500);
-const sozinha = limpo(await page.locator('.dica-pop.visivel strong').textContent().catch(() => ''));
+const sozinha = limpo(await page.locator('.dica-pop.visivel strong').textContent({ timeout: 300 }).catch(() => ''));
 conferir('6. já vista, a de Contas não abre mais sozinha', sozinha !== 'Contas', sozinha || '(nenhuma)');
 if (sozinha) { await page.mouse.click(20, 820); await page.waitForTimeout(1200); }
 await iContas.click(); await page.waitForTimeout(900);
-conferir('7. tocando no "i", abre de novo', limpo(await page.locator('.dica-pop.visivel strong').textContent().catch(() => '')) === 'Contas');
+conferir('7. tocando no "i", abre de novo', limpo(await page.locator('.dica-pop.visivel strong').textContent({ timeout: 2000 }).catch(() => '')) === 'Contas');
 await page.mouse.click(20, 820); await page.waitForTimeout(1200);
 
 // Os outros cartões também têm.

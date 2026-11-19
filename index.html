@@ -2425,7 +2425,7 @@
   .dica-fosco { position: fixed; inset: 0; z-index: 140; background: rgba(4,7,10,.2);
     -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); opacity: 0; transition: opacity .35s ease; }
   .dica-fosco.visivel { opacity: 1; }
-  .dica-pop { position: fixed; z-index: 141; padding: 14px 16px; border-radius: 16px;
+  .dica-pop { position: fixed; z-index: 141; padding: 14px 16px; border-radius: 16px; max-height: calc(100vh - 32px); overflow-y: auto;
     border: 1px solid rgba(233,180,76,.45); background: #17130D; box-shadow: 0 14px 40px rgba(0,0,0,.55);
     font-size: 14px; line-height: 1.45; color: var(--texto);
     opacity: 0; transform: scale(.06); transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .35s ease; }
@@ -2559,7 +2559,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.91.0';
+  var VERSAO = '5.92.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2568,6 +2568,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.92.0',
+      data: '2026-11-19',
+      itens: [
+        'Na tela do cartão, as faturas ficam mês a mês: os meses numa faixa no topo, e arrastando para o lado você troca de mês. Cada mês diz se a fatura está paga, aberta, futura ou vencida, e mostra a conta dela: compras, parcelas, créditos, o pagamento (com a data e a conta) e o valor a pagar. Embaixo, os lançamentos daquela fatura.',
+        'Compra parcelada é reconhecida sozinha: se a fatura tem "Parcela 5/10" e as próximas ainda não estão lançadas, aparece o botão "Lançar 6/10 a 10/10". O app pergunta antes, compra por compra, e lança uma parcela em cada fatura seguinte.',
+        'Um "i" no topo dos cartões, do lado do botão (Contas, Cartões, Distribuição, Transferências, Faturas, Extratos, Planejar, Relatórios, Seus dados…), explica para que serve cada um. Na primeira vez em que aparece na tela, abre sozinho com o fundo fosco; depois, só tocando nele.',
+        'Conta de dinheiro físico, como a Carteira, não mostra mais "Extratos" e "Importar".',
+        'Novo "Ajustar saldo" dentro de cada conta: você digita quanto tem de verdade e escolhe se a diferença vira uma receita ou despesa (que você completa) ou se muda o saldo inicial.'
+      ]
+    },
     {
       versao: '5.91.0',
       data: '2026-11-19',
@@ -11030,7 +11041,7 @@
     var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira', { chave: 'inicio.contas', itens: [
         'Cada conta mostra o saldo de hoje: o saldo inicial dela mais tudo o que entrou e saiu.',
         'A etiqueta embaixo do saldo diz há quantos dias vai o último extrato importado: verde até 7 dias, dourado até 20 e vermelho depois. Dourado ou vermelho, vale importar um novo.',
-        'Toque na conta para ver o extrato dela e importar o arquivo do banco. O lápis troca nome, tipo e saldo inicial.',
+        'Toque na conta para ver os lançamentos dela, importar o extrato do banco ou ajustar o saldo. O lápis troca nome, tipo e saldo inicial.',
         '"Total em contas" soma só as contas. O que você deve no cartão aparece no cartão de Cartões.',
         '"+ Nova" cadastra outra conta, poupança, corretora ou a carteira de dinheiro.'] });
     topoContas.style.padding = '16px 16px 0';
@@ -11385,10 +11396,11 @@
     pop.appendChild(no('div', 'dica-pop-rodape', 'Toque fora para fechar. O "i" mostra de novo.'));
     pop.style.width = largura + 'px';
     pop.style.top = Math.round(r.bottom + 10) + 'px';
-    pop.style.right = Math.max(16, Math.round(window.innerWidth - r.right)) + 'px';
+    // Encostado na direita do "i", mas sempre inteiro dentro da tela (o "i"
+    // do lado de um botão fica longe da borda).
+    var esquerdaDoQuadro = Math.round(Math.min(Math.max(16, r.right - largura), window.innerWidth - 16 - largura));
+    pop.style.left = esquerdaDoQuadro + 'px';
     // Nasce do "i" e volta para ele.
-    var direita = Math.max(16, Math.round(window.innerWidth - r.right));
-    var esquerdaDoQuadro = window.innerWidth - direita - largura;
     var origemX = (r.left + r.width / 2) - esquerdaDoQuadro;
     pop.style.transformOrigin = Math.round(Math.min(largura, Math.max(0, origemX))) + 'px -16px';
     // O "i" fica nítido por cima do fosco: é dele que o quadro sai.
@@ -11400,9 +11412,16 @@
     document.body.appendChild(pop);
     // Sem espaço embaixo do "i", o quadro abre para cima dele.
     var alturaPop = pop.offsetHeight;
-    if (r.bottom + 10 + alturaPop > window.innerHeight - 16 && r.top - 10 - alturaPop >= 16) {
-      pop.style.top = Math.round(r.top - 10 - alturaPop) + 'px';
-      pop.style.transformOrigin = Math.round(Math.min(largura, Math.max(0, origemX))) + 'px ' + (alturaPop + 16) + 'px';
+    if (r.bottom + 10 + alturaPop > window.innerHeight - 16) {
+      if (r.top - 10 - alturaPop >= 16) {
+        pop.style.top = Math.round(r.top - 10 - alturaPop) + 'px';
+        pop.style.transformOrigin = Math.round(Math.min(largura, Math.max(0, origemX))) + 'px ' + (alturaPop + 16) + 'px';
+      } else {
+        // Nem em cima nem embaixo: fica inteiro na tela, o mais perto do "i".
+        var topoPop = Math.max(16, window.innerHeight - 16 - alturaPop);
+        pop.style.top = Math.round(topoPop) + 'px';
+        pop.style.transformOrigin = Math.round(Math.min(largura, Math.max(0, origemX))) + 'px ' + Math.round(r.top - topoPop) + 'px';
+      }
     }
     // Só ao fechar a dica o "i" ganha o destaque de "estou aqui".
     botaoI.classList.remove('chegou');
@@ -24019,6 +24038,77 @@
     });
   }
 
+  function abrirAjusteDeSaldo(id) {
+    var conta = achar(estado.contas, id);
+    if (!conta) return;
+    var noApp = saldoConta(id, null);
+    abrirFolha('Ajustar saldo', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', 'Diga quanto tem de verdade em ' + conta.nome + ' hoje. Depois você escolhe se a diferença vira uma receita ou despesa, ou se muda o saldo inicial.'));
+      var info = cartao();
+      info.appendChild(no('div', 'rotulo', 'Saldo no app'));
+      info.appendChild(no('div', 'valorao pequeno num' + (noApp < 0 ? ' vermelho' : ''), emReais(noApp)));
+      forma.appendChild(info);
+      var campoSaldo = entradaValor(Math.abs(noApp), true, true);
+      if (noApp < 0) campoSaldo.value = '-' + emReais(Math.abs(noApp));
+      campoSaldo.classList.add('campo-saldo-certo');
+      forma.appendChild(campo('Saldo certo hoje', campoSaldo));
+      var difEl = no('div', 'linha-nota diferenca-ajuste');
+      forma.appendChild(difEl);
+      var lerSaldo = function () {
+        var v = digitosParaCentavos(campoSaldo.value);
+        return /[-−]/.test(campoSaldo.value) ? -v : v;
+      };
+      var mostrarDif = function () {
+        var d = lerSaldo() - noApp;
+        difEl.className = 'linha-nota diferenca-ajuste' + (d > 0 ? ' verde' : d < 0 ? ' vermelho' : '');
+        difEl.textContent = d === 0 ? 'Igual ao do app: nada para ajustar.'
+          : (d > 0 ? emReais(d) + ' a mais do que o app mostra.' : emReais(-d) + ' a menos do que o app mostra.');
+      };
+      campoSaldo.addEventListener('input', mostrarDif);
+      mostrarDif();
+      forma.appendChild(no('p', 'linha-sub', 'Dica: com o sinal de menos (-) na frente, o saldo fica negativo.'));
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Continuar', function () {
+        var certo = lerSaldo();
+        var dif = certo - noApp;
+        if (!dif) { avisar('O saldo já está certo.'); return; }
+        var ehMais = dif > 0;
+        var novoInicial = (conta.saldoInicial || 0) + dif;
+        abrirEscolha({ titulo: 'Como ajustar ' + emReais(Math.abs(dif)) + '?', semMarca: true, opcoes: [
+          { valor: 'transacao', rotulo: ehMais ? 'Lançar uma receita de ' + emReais(dif) : 'Lançar uma despesa de ' + emReais(-dif),
+            detalhe: 'Entra hoje em ' + conta.nome + '. Na próxima tela você escolhe a descrição, a categoria e a data.' },
+          { valor: 'inicial', rotulo: 'Mudar o saldo inicial',
+            detalhe: 'De ' + emReais(conta.saldoInicial || 0) + ' para ' + emReais(novoInicial) + '. Não cria lançamento e não mexe nas receitas e despesas.' }
+        ] }, function (v) {
+          if (v === undefined) return;
+          if (v === 'inicial') {
+            var c = achar(estado.contas, id);
+            if (!c) return;
+            comMotivo('você ajustou o saldo inicial de ' + c.nome + ' de ' + emReais(c.saldoInicial || 0) + ' para ' + emReais(novoInicial));
+            c.saldoInicial = novoInicial;
+            salvar();
+            fecharFolha();
+            desenhar();
+            setTimeout(function () { abrirExtratoConta(id); }, 240);
+            avisar('Saldo ajustado: ' + emReais(certo) + '.');
+            return;
+          }
+          var r = novoRascunho(ehMais ? 'entrada' : 'saida', id, '');
+          r.valor = Math.abs(dif);
+          r.descricao = 'Ajuste de saldo';
+          r.data = hojeTexto();
+          r.contaId = id;
+          fecharFolha();
+          setTimeout(function () { abrirFolhaLancamento(null, r); }, 240);
+        });
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
   function abrirExtratoConta(id) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
@@ -24038,18 +24128,26 @@
       conferir.style.marginTop = '14px';
       topo.appendChild(conferir);
 
-      var editar = botao('btn btn-fantasma', 'Editar esta conta', function () {
+      // Ajustar saldo (pedido de 19/11/2026): diz o saldo certo e escolhe se
+      // a diferença vira receita/despesa ou muda o saldo inicial.
+      var duasAcoes = no('div', 'duas');
+      duasAcoes.style.marginTop = '8px';
+      duasAcoes.appendChild(botao('btn btn-fantasma', 'Ajustar saldo', function () {
+        fecharFolha();
+        setTimeout(function () { abrirAjusteDeSaldo(id); }, 240);
+      }));
+      duasAcoes.appendChild(botao('btn btn-fantasma', 'Editar esta conta', function () {
         fecharFolha();
         setTimeout(function () { abrirFolhaConta(id); }, 240);
-      });
-      editar.style.marginTop = '8px';
-      topo.appendChild(editar);
+      }));
+      topo.appendChild(duasAcoes);
       folha.appendChild(topo);
 
       // Os extratos importados desta conta (pedido de 16/11/2026): antes
       // só apareciam no fim de "Conferir esta conta".
       var levas = (estado.importacoes || []).filter(function (i) { return i.contaId === id; })
         .sort(function (a, b) { return (b.ate || '') < (a.ate || '') ? -1 : (b.ate || '') > (a.ate || '') ? 1 : (b.quando || 0) - (a.quando || 0); });
+      var semExtrato = conta.tipo === 'Dinheiro físico' && !levas.length;
       var cExt = cartao('liso cartao-extratos');
       var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
@@ -24075,7 +24173,7 @@
           aoTocar: function () { porCima(function () { abrirExtratoConta(id); }, function () { abrirLevaDeExtrato(id, i.id); }); }
         }));
       });
-      folha.appendChild(cExt);
+      if (!semExtrato) folha.appendChild(cExt);
       if (levas.length) {
         listarArquivosDeExtrato(id).then(function (lista) {
           var soma = 0, quantos = 0;
