@@ -923,6 +923,12 @@
   .etiqueta-acao { background: rgba(255,255,255,.05); border: 1px solid var(--borda);
     border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
   .etiqueta-dia { color: var(--suave); }
+  .situacao-fatura { display: inline-block; margin-top: 5px; font-size: 11px; }
+  .situacao-fatura.paga { color: var(--verde); }
+  .situacao-fatura.vencida { color: var(--vermelho); }
+  .fatura-vencida { margin-top: 8px; }
+  .etiqueta-parcelas { color: var(--ouro); border-style: dashed; }
+  .etiqueta-parcelas.ligada { background: rgba(233,180,76,.16); border-style: solid; border-color: rgba(233,180,76,.6); }
   .etiqueta-dia-aberta { background: rgba(233,180,76,.12); border-color: var(--ouro);
     color: var(--ouro); }
   .dia-real { margin: 2px 0 10px 34px; padding: 10px 12px; border-radius: 11px;
@@ -2490,7 +2496,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.84.0';
+  var VERSAO = '5.85.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2499,6 +2505,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.85.0',
+      data: '2026-11-19',
+      itens: [
+        'Limite do cartão: toda fatura que não consta paga continua ocupando o limite, inclusive a que já venceu. Ela aparece em vermelho ("venceu e não consta pagamento"). Conta como paga quando o pagamento aparece numa conta com o mesmo valor (a saída "Pag fatura" do extrato ou uma transferência para o cartão).',
+        'Na lista de faturas do cartão, cada uma diz se está paga, em aberto, fechada ou vencida sem pagamento.',
+        'Importando a fatura, cada compra parcelada pergunta: "Parcela 4/6" mostra "lançar 5/6 a 6/6 nas próximas faturas?". Tocando, as parcelas que faltam entram nas faturas dos próximos meses e, quando essas faturas forem importadas, aparecem como "já existe".'
+      ]
+    },
     {
       versao: '5.84.0',
       data: '2026-11-18',
@@ -11409,7 +11424,7 @@
         juntar(no('div', 'linha-texto'),
           no('div', 'linha-titulo', cart.nome),
           no('div', 'linha-sub', f.rotuloCurto +
-            (cart.limite > 0 ? ' · ' + Math.round(pct(Math.max(f.total - f.pago, 0), cart.limite)) + '% do limite' : ''))),
+            (cart.limite > 0 ? ' · ' + Math.round(pct(situacaoDasFaturas(cart.id).usado, cart.limite)) + '% do limite' : ''))),
         juntar(no('div', 'linha-fim'),
           no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
       );
@@ -11526,6 +11541,44 @@
     return Object.keys(mapa).sort().reverse().map(function (k) { return mapa[k]; });
   }
 
+  // Quais faturas deste cartão estão pagas (pedido de 19/11/2026: a de
+  // novembro venceu sem pagamento e sumiu do limite). Paga é a que tem
+  // crédito no próprio cartão cobrindo o total, ou um pagamento numa conta
+  // com o mesmo valor (até R$ 1 de diferença) entre o fechamento e uns
+  // dias depois do vencimento: a saída "Pag fatura…" do extrato ou uma
+  // transferência para o cartão. Cada pagamento quita uma fatura só.
+  function situacaoDasFaturas(id) {
+    var cart = achar(estado.contas, id);
+    var todas = faturasDoCartao(id).slice().reverse();
+    var pagamentos = estado.lancamentos.filter(function (l) {
+      return (l.tipo === 'transferencia' && l.contaDestinoId === id) || ehPagamentoDeFatura(l);
+    }).sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
+    var usados = {};
+    var hoje = hojeTexto();
+    todas.forEach(function (f) {
+      var resta = Math.max(f.total - f.pago, 0);
+      f.resta = resta;
+      if (resta <= 100) { f.situacao = 'paga'; return; }
+      var desde = f.ate || f.de || '';
+      var limiteData = f.vence ? somaDias(f.vence, 20) : (f.ate ? somaDias(f.ate, 40) : '');
+      var achou = null;
+      for (var i = 0; i < pagamentos.length; i++) {
+        var pg = pagamentos[i];
+        if (usados[pg.id]) continue;
+        if (desde && pg.data < desde) continue;
+        if (limiteData && pg.data > limiteData) continue;
+        if (Math.abs(pg.valor - resta) <= 100) { achou = pg; break; }
+      }
+      if (achou) { usados[achou.id] = true; f.situacao = 'paga'; f.pagaEm = achou.data; return; }
+      if (f.ate && f.ate >= hoje) f.situacao = 'aberta';
+      else if (f.vence && f.vence < hoje) f.situacao = 'vencida';
+      else f.situacao = 'fechada';
+    });
+    var usado = 0;
+    todas.forEach(function (f) { if (f.situacao !== 'paga') usado += f.resta; });
+    return { faturas: todas.slice().reverse(), usado: usado, cartao: cart };
+  }
+
   // A fatura de hoje: a que ainda não fechou.
   function faturaAberta(id) {
     var cart = achar(estado.contas, id);
@@ -11589,23 +11642,28 @@
       if (aberta.pago) nota.push(emReais(aberta.pago) + ' já pago');
       if (nota.length) topo.appendChild(no('div', 'linha-nota', nota.join(' · ')));
 
-      // Quanto do limite a fatura em aberto já ocupa. Só a fatura em aberto:
-      // pagamento de fatura sai da conta corrente, não do cartão, então o
-      // app não sabe dizer qual fatura fechada foi paga. Prometer
-      // "disponível" seria chutar; isto aqui é o que dá para afirmar.
+      // Quanto do limite está em uso: toda fatura que não consta paga, a
+      // aberta, a fechada e a vencida, e as parcelas futuras já lançadas.
+      var sit = situacaoDasFaturas(id);
+      var vencidas = sit.faturas.filter(function (f) { return f.situacao === 'vencida'; });
+      vencidas.forEach(function (f) {
+        topo.appendChild(no('div', 'linha-nota vermelho fatura-vencida',
+          'A fatura de ' + f.rotulo + ' (' + emReais(f.resta) + ') venceu em ' + dataBr(f.vence) +
+          ' e não consta pagamento. Ela continua ocupando o limite.'));
+      });
       if (cart.limite > 0) {
         topo.appendChild(no('div', 'rotulo', 'Limite'));
-        var usado = Math.max(aberta.total - aberta.pago, 0);
+        var usado = sit.usado;
         var livre = Math.max(cart.limite - usado, 0);
         var quanto = pct(usado, cart.limite);
         topo.appendChild(progresso(usado, cart.limite,
           quanto > 90 ? 'var(--vermelho)' : quanto > 70 ? 'var(--ouro)' : 'var(--verde)'));
         topo.appendChild(no('div', 'linha-nota privavel',
-          emReais(usado) + ' de ' + emReais(cart.limite) + ' · ' +
-          emReais(livre) + ' livre nesta fatura'));
+          emReais(usado) + ' em uso de ' + emReais(cart.limite) + ' · ' +
+          emReais(livre) + ' livre'));
         if (usado > cart.limite) {
           topo.appendChild(no('div', 'linha-nota vermelho',
-            'A fatura em aberto já passou do limite em ' + emReais(usado - cart.limite) + '.'));
+            'O que está em uso já passou do limite em ' + emReais(usado - cart.limite) + '.'));
         }
       }
 
@@ -11642,13 +11700,19 @@
       topoFat.style.marginBottom = '8px';
       cFat.appendChild(topoFat);
 
+      var situacoes = {};
+      sit.faturas.forEach(function (f) { situacoes[f.chave] = f; });
       todas.forEach(function (f) {
+        var st = situacoes[f.chave] || {};
         var linha = botao('linha linha-alvo', null, function () { abrirFaturaDoMes(id, f.chave); });
+        var rotSit = st.situacao === 'paga' ? 'paga' : st.situacao === 'vencida' ? 'vencida, sem pagamento'
+          : st.situacao === 'aberta' ? 'em aberto' : 'fechada';
         juntar(linha,
           juntar(no('div', 'linha-texto'),
             no('div', 'linha-titulo', f.rotulo),
             no('div', 'linha-sub', f.itens.length + ' lançamento(s)' +
-              (f.vence ? ' · vence em ' + dataBr(f.vence) : ''))),
+              (f.vence ? ' · vence em ' + dataBr(f.vence) : '')),
+            no('span', 'etiqueta situacao-fatura ' + (st.situacao || ''), rotSit)),
           juntar(no('div', 'linha-fim'),
             no('div', 'linha-valor num' + (f.total > 0 ? ' vermelho' : ''), emReais(f.total)))
         );
@@ -31061,6 +31125,15 @@
   }
 
   // O motivo do primeiro que bater, ou '' se nenhum bate.
+  // "Parcela 4/6" → { atual: 4, total: 6 }. Só quando ainda faltam parcelas.
+  function parcelaDoTexto(texto) {
+    var m = /parc(?:ela)?\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i.exec(String(texto || ''));
+    if (!m) return null;
+    var atual = +m[1], total = +m[2];
+    if (!atual || total > 72 || atual >= total) return null;
+    return { atual: atual, total: total, trecho: m[0] };
+  }
+
   function motivoDeJaTer(item, contaId) {
     var motivo = '';
     // Item de fatura entra com a data da fatura, não a da compra: quem já
@@ -31570,6 +31643,20 @@
             });
           });
         sub.appendChild(subEtiqueta);
+        // Compra parcelada na fatura (pedido de 19/11/2026): "Parcela 4/6"
+        // quer dizer que faltam a 5/6 e a 6/6. Pergunto em cada uma; só
+        // lança as próximas quem tocar aqui.
+        var pc = dados.fatura && !it.repetido ? parcelaDoTexto(it.descricao) : null;
+        if (pc) {
+          var faixaPc = pc.atual + 1 === pc.total ? pc.total + '/' + pc.total
+            : (pc.atual + 1) + '/' + pc.total + ' a ' + pc.total + '/' + pc.total;
+          sub.appendChild(botao('etiqueta-acao etiqueta-parcelas' + (it.lancarProximas ? ' ligada' : ''),
+            it.lancarProximas ? '✓ lança ' + faixaPc + ' nas próximas faturas'
+                              : 'lançar ' + faixaPc + ' nas próximas faturas?', function () {
+              it.lancarProximas = !it.lancarProximas;
+              montarFolhaExtrato();
+            }));
+        }
         if (it.foraDoSaldo) sub.appendChild(no('span', 'ja-tem fora-do-saldo', 'não bate com o saldo'));
         if (it.acertadoPeloSaldo) sub.appendChild(no('span', 'ja-tem acertado-pelo-saldo', 'sinal pelo saldo'));
         if (it.repetido) {
@@ -31694,6 +31781,11 @@
     var deQuem = dados.banco ? dados.banco.nome : 'banco não reconhecido';
     var oQue = dados.fatura ? 'fatura de cartão' : 'extrato de conta';
     var trocadas = escolhidos.filter(function (i) { return i.categoriaTrocada; }).length;
+    var futuras = 0;
+    if (dados.fatura) escolhidos.forEach(function (i) {
+      var pc = i.lancarProximas ? parcelaDoTexto(i.descricao) : null;
+      if (pc) futuras += pc.total - pc.atual;
+    });
 
     perguntar({
       titulo: 'É esse mesmo?',
@@ -31701,6 +31793,7 @@
              escolhidos.length + ' lançamento(s) em "' + (conta ? conta.nome : '') + '"' +
              (conta ? ' (' + conta.tipo + ')' : '') + '.' +
              (trocadas ? ' Você trocou ' + trocadas + ' categoria(s).' : '') +
+             (futuras ? ' E mais ' + futuras + ' parcela(s) nas próximas faturas.' : '') +
              ' Se não for isso, cancele e troque o banco ou a conta lá em cima.',
       ok: 'Sim, pode lançar'
     }, function () {
@@ -31713,15 +31806,36 @@
         dataFatura = dataNaFatura(achar(estado.contas, contaId), dados.vencimento);
         if (!dataFatura) escolhidos.forEach(function (it) { if (it.data > dataFatura) dataFatura = it.data; });
       }
+      var cartaoDaFatura = dados.fatura ? achar(estado.contas, contaId) : null;
       escolhidos.forEach(function (it, i) {
-        estado.lancamentos.push({
+        var reg = {
           id: novoId(), tipo: it.tipo, valor: it.valor,
           descricao: it.descricao, categoria: it.categoria,
           subcategoria: it.subcategoria || '',
           data: dataFatura || it.data, contaId: contaId, contaDestinoId: '',
           importacaoId: importacaoId,
           criadoEm: agora + i
-        });
+        };
+        estado.lancamentos.push(reg);
+        // As próximas parcelas, cada uma na fatura do mês dela. Com a data
+        // da fatura certa, quando aquela fatura for importada a parcela
+        // aparece como "já existe" e não duplica.
+        var pc = dados.fatura && it.lancarProximas ? parcelaDoTexto(it.descricao) : null;
+        if (!pc) return;
+        reg.grupo = novoId();
+        for (var k = 1; k <= pc.total - pc.atual; k++) {
+          var dataK = dados.vencimento && cartaoDaFatura
+            ? dataNaFatura(cartaoDaFatura, somaMeses(dados.vencimento, k)) : '';
+          if (!dataK) dataK = somaMeses(reg.data, k);
+          estado.lancamentos.push({
+            id: novoId(), tipo: it.tipo, valor: it.valor,
+            descricao: it.descricao.replace(pc.trecho, 'Parcela ' + (pc.atual + k) + '/' + pc.total).slice(0, 80),
+            categoria: it.categoria, subcategoria: it.subcategoria || '',
+            data: dataK, contaId: contaId, contaDestinoId: '',
+            importacaoId: importacaoId, grupo: reg.grupo,
+            criadoEm: agora + escolhidos.length + i * 80 + k
+          });
+        }
       });
 
       // O original vai junto, sem segurar a importação: os lançamentos já
