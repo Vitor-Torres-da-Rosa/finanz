@@ -923,6 +923,9 @@
   .etiqueta-acao { background: rgba(255,255,255,.05); border: 1px solid var(--borda);
     border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
   .etiqueta-dia { color: var(--suave); }
+  .linha-fatura-ligada { background: linear-gradient(90deg, rgba(233,180,76,.12), rgba(233,180,76,0) 70%);
+    box-shadow: inset 3px 0 0 var(--ouro); }
+  .etiqueta.fatura-ligada { display: inline-block; margin-top: 5px; font-size: 11px; color: var(--ouro); }
   .situacao-fatura { display: inline-block; margin-top: 5px; font-size: 11px; }
   .situacao-fatura.paga { color: var(--verde); }
   .situacao-fatura.vencida { color: var(--vermelho); }
@@ -2496,7 +2499,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.85.0';
+  var VERSAO = '5.86.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2505,6 +2508,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.86.0',
+      data: '2026-11-19',
+      itens: [
+        'O pagamento da fatura no banco agora reconhece a fatura do cartão quando o valor e o mês batem: a linha ganha a cor do cartão, mostra as categorias das compras e, tocando, abre a fatura. Vale para qualquer saída com o valor exato da fatura, mesmo categorizada de outro jeito.',
+        'O extrato do banco é a verdade: numa fatura ligada, os gastos contam pelas compras do cartão, no lugar do pagamento, sem dobrar. Fatura sem pagamento ligado não conta como gasto; pagamento sem fatura ligada continua contando. Nada é gravado: apagando a fatura, tudo volta a ser como era.',
+        'Corrigido: "Apagar todos os gastos" do cartão dava erro ao reabrir a tela.'
+      ]
+    },
     {
       versao: '5.85.0',
       data: '2026-11-19',
@@ -8191,7 +8203,39 @@
   // guardada até o próximo desenho ou a próxima gravação.
   var cacheDeCompras = {};
 
-  function limparCacheDeFatura() { cacheDeCompras = {}; }
+  function limparCacheDeFatura() { cacheDeCompras = {}; cacheLigacoes = null; }
+
+  // Fatura do cartão ligada ao pagamento no extrato do banco (pedido de
+  // 19/11/2026). O extrato do banco é a verdade: o pagamento é o dinheiro
+  // que saiu. As compras do cartão só servem para dizer em que ele foi
+  // gasto. Então, numa fatura ligada (pagamento do mesmo valor, no mesmo
+  // mês), as compras entram como gasto no lugar do pagamento; fatura sem
+  // pagamento ligado não entra como gasto, e pagamento sem fatura ligada
+  // continua contando como ele mesmo. Nada é gravado: apagando a fatura, a
+  // ligação some e tudo volta a ser como era.
+  var cacheLigacoes = null;
+  function ligacoesDeFatura() {
+    if (cacheLigacoes) return cacheLigacoes;
+    var lig = { pagamentos: {}, itens: {}, cartoes: {} };
+    estado.contas.forEach(function (c) {
+      if (!ehCartao(c)) return;
+      lig.cartoes[c.id] = true;
+      situacaoDasFaturas(c.id).faturas.forEach(function (f) {
+        if (!f.ligada || !f.pagamento || lig.pagamentos[f.pagamento.id]) return;
+        lig.pagamentos[f.pagamento.id] = { cartao: c, fatura: f };
+        f.itens.forEach(function (i) { lig.itens[i.id] = f; });
+      });
+    });
+    cacheLigacoes = lig;
+    return lig;
+  }
+
+  // As categorias das compras de uma fatura, da maior para a menor.
+  function categoriasDaFatura(f) {
+    var mapa = {};
+    f.itens.forEach(function (i) { if (i.tipo === 'saida') mapa[i.categoria] = (mapa[i.categoria] || 0) + i.valor; });
+    return Object.keys(mapa).sort(function (a, b) { return mapa[b] - mapa[a]; });
+  }
 
   function temComprasNoMes(ano, mes) {
     var chave = ano + '-' + mes;
@@ -8204,25 +8248,32 @@
   // A visão de consumo de uma lista: a mesma lista sem as faturas pagas,
   // mais o que saiu dela e por quê.
   function visaoDeConsumo(lista) {
-    if (!temComprasDeCartao(lista)) {
-      return { lista: lista, faturasPagas: [], valorDasFaturas: 0, modo: 'fatura' };
-    }
-    var faturas = [], valor = 0;
+    var lig = ligacoesDeFatura();
+    var faturas = [], valor = 0, semLigacao = 0;
     var fora = lista.filter(function (l) {
-      if (!ehPagamentoDeFatura(l)) return true;
-      faturas.push(l);
-      valor += l.valor;
-      return false;
+      if (l.tipo !== 'saida') return true;
+      // O pagamento ligado sai: no lugar dele entram as compras da fatura.
+      if (lig.pagamentos[l.id]) { faturas.push(l); valor += l.valor; return false; }
+      // Compra no cartão só conta quando a fatura dela está ligada.
+      if (lig.cartoes[l.contaId]) {
+        if (lig.itens[l.id]) return true;
+        semLigacao += l.valor;
+        return false;
+      }
+      return true;
     });
-    return { lista: fora, faturasPagas: faturas, valorDasFaturas: valor, modo: 'compras' };
+    return { lista: fora, faturasPagas: faturas, valorDasFaturas: valor,
+             comprasSemLigacao: semLigacao, modo: faturas.length ? 'compras' : 'fatura' };
   }
 
   // Este lançamento entra no total de despesas do mês dele? Serve para
   // marcar a linha em Transações sem recalcular o mês inteiro por linha.
   function contaComoDespesa(l) {
     if (l.tipo !== 'saida') return false;
-    if (!ehPagamentoDeFatura(l)) return true;
-    return !temComprasNoMes(+l.data.slice(0, 4), +l.data.slice(5, 7) - 1);
+    var lig = ligacoesDeFatura();
+    if (lig.pagamentos[l.id]) return false;
+    if (lig.cartoes[l.contaId]) return !!lig.itens[l.id];
+    return true;
   }
 
   // Saída de dinheiro de verdade: o que deixou uma conta. A compra no cartão
@@ -11550,9 +11601,17 @@
   function situacaoDasFaturas(id) {
     var cart = achar(estado.contas, id);
     var todas = faturasDoCartao(id).slice().reverse();
-    var pagamentos = estado.lancamentos.filter(function (l) {
-      return (l.tipo === 'transferencia' && l.contaDestinoId === id) || ehPagamentoDeFatura(l);
-    }).sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
+    // Primeiro o que diz que é pagamento de fatura (texto, categoria ou
+    // transferência para o cartão); depois qualquer saída de uma conta com
+    // o valor exato da fatura (pedido de 19/11/2026: "ou outro caso
+    // selecionado").
+    var proprios = [], outros = [];
+    estado.lancamentos.forEach(function (l) {
+      if ((l.tipo === 'transferencia' && l.contaDestinoId === id) || ehPagamentoDeFatura(l)) proprios.push(l);
+      else if (l.tipo === 'saida' && !l.parTransferencia && !ehCartao(achar(estado.contas, l.contaId))) outros.push(l);
+    });
+    var porData = function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; };
+    proprios.sort(porData); outros.sort(porData);
     var usados = {};
     var hoje = hojeTexto();
     todas.forEach(function (f) {
@@ -11562,14 +11621,23 @@
       var desde = f.ate || f.de || '';
       var limiteData = f.vence ? somaDias(f.vence, 20) : (f.ate ? somaDias(f.ate, 40) : '');
       var achou = null;
-      for (var i = 0; i < pagamentos.length; i++) {
-        var pg = pagamentos[i];
-        if (usados[pg.id]) continue;
-        if (desde && pg.data < desde) continue;
-        if (limiteData && pg.data > limiteData) continue;
-        if (Math.abs(pg.valor - resta) <= 100) { achou = pg; break; }
+      [[proprios, 100], [outros, 0]].forEach(function (grupo) {
+        if (achou) return;
+        for (var i = 0; i < grupo[0].length; i++) {
+          var pg = grupo[0][i];
+          if (usados[pg.id]) continue;
+          if (desde && pg.data < desde) continue;
+          if (limiteData && pg.data > limiteData) continue;
+          if (Math.abs(pg.valor - resta) <= grupo[1]) { achou = pg; break; }
+        }
+      });
+      if (achou) {
+        usados[achou.id] = true; f.situacao = 'paga'; f.pagaEm = achou.data; f.pagamento = achou;
+        // Ligada: o pagamento caiu no mesmo mês da fatura. Só aí as compras
+        // dela contam como gasto, no lugar do pagamento.
+        f.ligada = achou.data.slice(0, 7) === f.chave;
+        return;
       }
-      if (achou) { usados[achou.id] = true; f.situacao = 'paga'; f.pagaEm = achou.data; return; }
       if (f.ate && f.ate >= hoje) f.situacao = 'aberta';
       else if (f.vence && f.vence < hoje) f.situacao = 'vencida';
       else f.situacao = 'fechada';
@@ -11747,7 +11815,7 @@
             todosGastos.forEach(function (l) { fora[l.id] = true; marcarExcluido('lancamentos', l.id); });
             estado.lancamentos = estado.lancamentos.filter(function (l) { return !fora[l.id]; });
             salvar();
-            abrirFolhaCartao(id);
+            abrirTelaCartao(id);
             avisar(todosGastos.length + ' gasto(s) apagado(s).');
           });
         }));
@@ -22626,6 +22694,8 @@
   }
 
   function linhaLancamento(l) {
+    var ligadoL = ligacoesDeFatura().pagamentos[l.id];
+    if (ligadoL) return linhaDePagamentoLigado(l, ligadoL, '− ' + emReais(l.valor));
     var b = botao('linha', null, function () { abrirFolhaLancamento(l.id); });
     var cor = l.tipo === 'entrada' ? '#34D399' : l.tipo === 'saida' ? '#F87171' : '#60A5FA';
     var sinal = l.tipo === 'entrada' ? '+' : l.tipo === 'saida' ? '−' : '⇄';
@@ -22742,7 +22812,27 @@
     return 0;
   }
 
+  // A linha de um pagamento ligado a uma fatura: a cor do cartão, as
+  // categorias das compras e o toque abre a fatura.
+  function linhaDePagamentoLigado(l, ligado, valorTexto) {
+    var b = botao('linha linha-fatura-ligada', null, function () {
+      abrirFaturaDoMes(ligado.cartao.id, ligado.fatura.chave);
+    });
+    var cats = categoriasDaFatura(ligado.fatura);
+    juntar(b,
+      seloDeConta(ligado.cartao),
+      juntar(no('div', 'linha-texto'),
+        no('div', 'linha-titulo', l.descricao || 'Pagamento de fatura'),
+        no('div', 'linha-sub', 'Fatura ' + ligado.cartao.nome + ' · ' + (cats.slice(0, 3).join(', ') || 'compras') +
+          (cats.length > 3 ? ' e mais ' + (cats.length - 3) : '')),
+        no('span', 'etiqueta fatura-ligada', 'ver a fatura ›')),
+      juntar(no('div', 'linha-fim'), no('div', 'linha-valor num vermelho', valorTexto)));
+    return b;
+  }
+
   function linhaExtrato(l, id) {
+    var ligadoE = ligacoesDeFatura().pagamentos[l.id];
+    if (ligadoE) return linhaDePagamentoLigado(l, ligadoE, '− ' + emReais(l.valor));
     var efeito = efeitoNaConta(l, id);
     var b = botao('linha', null, function () { abrirFolhaLancamento(l.id); });
     var cor = efeito > 0 ? '#34D399' : efeito < 0 ? '#F87171' : '#60A5FA';
