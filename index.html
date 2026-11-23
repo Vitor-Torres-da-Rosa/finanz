@@ -2559,7 +2559,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.92.0';
+  var VERSAO = '5.93.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2568,6 +2568,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.93.0',
+      data: '2026-11-23',
+      itens: [
+        'Na parcela do cliente, o botão "Cliente não pagou" abre três caminhos: cobrar juros ou multa, mandar a cobrança no WhatsApp, ou dar a parcela como perdida.',
+        'Juros ou multa: em % (sobre o que falta na parcela) ou valor fixo, cobrados agora, na própria parcela, ou na próxima. A prévia mostra o novo valor antes de confirmar. Cobrando agora, o app pergunta se quer mandar a mensagem no WhatsApp, já com a parcela, os juros e o novo valor.',
+        '"Não vai pagar": o que faltava na parcela sai do que o cliente deve. O registro passa a valer menos (o faturamento e o "Falta" acompanham), e a observação dele guarda o que aconteceu. O que já tinha entrado na parcela continua.'
+      ]
+    },
     {
       versao: '5.92.0',
       data: '2026-11-19',
@@ -20966,6 +20975,13 @@
         voltarNavegacao();
         setTimeout(function () { abrirFolhaPagamento(clienteId, null, parcelaId); }, 250);
       }));
+      // Cliente não pagou (pedido de 23/11/2026): cobrar juros ou multa,
+      // mandar a cobrança, ou dar a parcela como perdida.
+      if (!parcelaPaga(parcela)) {
+        acoes.appendChild(botao('btn btn-fantasma botao-nao-pagou', 'Cliente não pagou', function () {
+          escolherNaoPagou(clienteId, parcela);
+        }));
+      }
       acoes.appendChild(botao('btn btn-fantasma', 'Salvar alterações', function () {
         var valor = digitosParaCentavos(campoValorEl.value);
         if (valor <= 0) { mostrarErro(forma, 'Informe o valor da parcela.'); return; }
@@ -21053,6 +21069,176 @@
       }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
+    });
+  }
+
+  // ---------- Cliente não pagou ----------
+
+  function proximaAbertaDoPlano(parcela) {
+    var plano = planoDaParcela(parcela);
+    var i = plano.indexOf(plano.filter(function (o) { return o.id === parcela.id; })[0]);
+    for (var k = i + 1; k < plano.length; k++) if (!parcelaPaga(plano[k])) return plano[k];
+    return null;
+  }
+
+  function escolherNaoPagou(clienteId, parcela) {
+    var falta = Math.max(parcela.valor - pagoNaParcela(parcela), 0);
+    abrirEscolha({ titulo: 'Cliente não pagou', semMarca: true, opcoes: [
+      { valor: 'juros', rotulo: 'Cobrar juros ou multa',
+        detalhe: 'Em % ou valor fixo, agora nesta parcela ou na próxima.' },
+      { valor: 'mensagem', rotulo: 'Mandar a cobrança no WhatsApp',
+        detalhe: 'Sem juros: a mensagem lembra o que está em aberto.' },
+      { valor: 'perdida', rotulo: 'Não vai pagar',
+        detalhe: 'Os ' + emReais(falta) + ' desta parcela saem do que ele deve.' }
+    ] }, function (v) {
+      if (!v) return;
+      var cliente = achar(estado.clientes, clienteId);
+      if (v === 'mensagem') { if (cliente) abrirWhatsapp(cliente, mensagemDeCobranca(cliente)); return; }
+      voltarNavegacao();
+      setTimeout(function () {
+        if (v === 'juros') abrirCobrarJuros(clienteId, parcela.id);
+        else darParcelaComoPerdida(clienteId, parcela.id);
+      }, 250);
+    });
+  }
+
+  function abrirCobrarJuros(clienteId, parcelaId) {
+    var parcela = achar(estado.parcelas, parcelaId);
+    var cliente = achar(estado.clientes, clienteId);
+    if (!parcela || !cliente) return;
+    var falta = Math.max(parcela.valor - pagoNaParcela(parcela), 0);
+    var proxima = proximaAbertaDoPlano(parcela);
+    var modo = 'pct', quando = 'agora';
+    empilhar({ tipo: 'aba', voltar: function () { abrirFolhaParcela(clienteId, parcelaId); } });
+
+    abrirFolha('Cobrar juros ou multa', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', 'Parcela ' + parcela.numero + ' de ' + parcela.total + ' de ' + cliente.nome +
+        ', ' + emReais(falta) + ' em aberto' + (parcela.vencimento < hojeTexto() ? ', venceu em ' + dataBr(parcela.vencimento) : '') + '.'));
+
+      var campoPct = entradaTextoNumero('', 'Ex.: 2');
+      campoPct.classList.add('campo-juros-pct');
+      var campoFixo = entradaValor(0, false);
+      campoFixo.classList.add('campo-juros-fixo');
+      var caixaPct = campo('Quanto, em %', campoPct);
+      var caixaFixo = campo('Quanto, em reais', campoFixo);
+      caixaFixo.hidden = true;
+      forma.appendChild(segmentosLocais([{ valor: 'pct', rotulo: 'Em %' }, { valor: 'fixo', rotulo: 'Valor fixo' }], modo, function (v) {
+        modo = v; caixaPct.hidden = v !== 'pct'; caixaFixo.hidden = v !== 'fixo'; atualizar();
+      }));
+      forma.appendChild(caixaPct);
+      forma.appendChild(caixaFixo);
+
+      forma.appendChild(no('div', 'rotulo', 'Quando cobrar'));
+      var opcoesQuando = [{ valor: 'agora', rotulo: 'Agora, nesta' }];
+      if (proxima) opcoesQuando.push({ valor: 'proxima', rotulo: 'Na próxima' });
+      forma.appendChild(segmentosLocais(opcoesQuando, quando, function (v) { quando = v; atualizar(); }));
+      if (!proxima) forma.appendChild(no('p', 'linha-sub', 'Esta é a última parcela em aberto: os juros entram nela.'));
+
+      var previa = no('div', 'linha-nota previa-juros');
+      forma.appendChild(previa);
+      function calcular() {
+        if (modo === 'fixo') return digitosParaCentavos(campoFixo.value);
+        var pctV = Math.min(Math.max(comoNumero(campoPct.value, 0), 0), 100);
+        return Math.round(falta * pctV / 100);
+      }
+      function atualizar() {
+        var j = calcular();
+        var alvo = quando === 'proxima' && proxima ? proxima : parcela;
+        previa.textContent = j > 0
+          ? emReais(j) + ' a mais. A parcela ' + alvo.numero + ' de ' + alvo.total + ' (' + dataBr(alvo.vencimento) + ') passa de ' +
+            emReais(alvo.valor) + ' para ' + emReais(alvo.valor + j) + '.'
+          : 'Diga quanto cobrar.';
+      }
+      campoPct.addEventListener('input', atualizar);
+      campoFixo.addEventListener('input', atualizar);
+      atualizar();
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Cobrar', function () {
+        var j = calcular();
+        if (j <= 0) { mostrarErro(forma, 'Diga quanto cobrar.'); return; }
+        var alvo = quando === 'proxima' && proxima ? proxima : parcela;
+        // Juros são dinheiro a mais a receber: entram como acréscimo do
+        // registro (igual aos do pagamento), e a parcela escolhida cresce
+        // junto. O reencaixe segura ela e deixa as outras como estão.
+        estado.servicos.push({
+          id: novoId(), clienteId: clienteId,
+          nome: (modo === 'pct' ? 'Juros' : 'Multa') + ' — parcela ' + parcela.numero + ' de ' + parcela.total,
+          tipo: TIPO_PADRAO, valor: j, acrescimoDe: parcela.servicoId || '',
+          data: hojeTexto(), obs: '', criadoEm: Date.now()
+        });
+        alvo.valor += j;
+        alvo.minimo = 0;
+        acertarParcelas(clienteId, null, alvo.id);
+        comMotivo('você cobrou ' + emReais(j) + ' de ' + (modo === 'pct' ? 'juros' : 'multa') + ' de ' + cliente.nome);
+        salvar();
+        voltarNavegacao();
+        avisar(emReais(j) + ' cobrados na parcela ' + alvo.numero + ' de ' + alvo.total + '.');
+        if (quando !== 'agora') return;
+        // Cobrou agora: oferece avisar a pessoa.
+        var primeiro = String(cliente.nome || '').split(' ')[0];
+        var msg = ['Oi, ' + primeiro + '! Tudo bem?', '',
+          'A parcela ' + alvo.numero + '/' + alvo.total + ', que venceu em ' + dataBr(alvo.vencimento) + ', ficou em aberto.',
+          'Com ' + emReais(j) + ' de ' + (modo === 'pct' ? 'juros' : 'multa') + ', o valor ficou em ' +
+            emReais(Math.max(alvo.valor - pagoNaParcela(alvo), 0)) + '.', '',
+          'Qualquer coisa é só me chamar. Obrigado!'].join('\n');
+        setTimeout(function () {
+          perguntar({ titulo: 'Mandar mensagem para ' + primeiro + '?',
+            texto: 'Abre o WhatsApp com a mensagem pronta: a parcela, os ' + (modo === 'pct' ? 'juros' : 'multa') +
+              ' e o novo valor. Quem envia é você.',
+            ok: 'Abrir o WhatsApp' }, function () { abrirWhatsapp(cliente, msg); });
+        }, 350);
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // Não vai pagar: o que faltava na parcela sai do que o cliente deve. O
+  // registro passa a valer menos (o faturamento e o "Falta" acompanham) e
+  // a observação dele guarda o que aconteceu.
+  function darParcelaComoPerdida(clienteId, parcelaId) {
+    var parcela = achar(estado.parcelas, parcelaId);
+    var cliente = achar(estado.clientes, clienteId);
+    if (!parcela || !cliente) return;
+    var servico = parcela.servicoId ? achar(estado.servicos, parcela.servicoId) : null;
+    var pago = pagoNaParcela(parcela);
+    var falta = Math.max(parcela.valor - pago, 0);
+    if (!servico) {
+      avisarCaixa('Falta dizer de qual registro é',
+        'Esta parcela não está ligada a um registro. Escolha em "Referente a" na parcela e tente de novo.');
+      return;
+    }
+    if (servico.valor - falta < 1) {
+      avisarCaixa('Nada deste registro foi pago',
+        'Tirando esta parcela, ' + servico.nome + ' ficaria sem valor. Se ninguém vai pagar nada dele, exclua o registro na ficha do cliente.');
+      return;
+    }
+    perguntar({
+      titulo: 'Dar a parcela ' + parcela.numero + ' de ' + parcela.total + ' como perdida?',
+      texto: cliente.nome + ' deixa de dever ' + emReais(falta) + '. ' + servico.nome + ' passa de ' + emReais(servico.valor) +
+        ' para ' + emReais(servico.valor - falta) + ', e o faturamento e o que falta receber diminuem junto.' +
+        (pago > 0 ? ' Os ' + emReais(pago) + ' que já entraram nela continuam.' : ''),
+      ok: 'Não vai pagar', tom: 'perigo',
+      copiaAntes: 'antes de dar como perdida a parcela ' + parcela.numero + ' de ' + parcela.total + ' de ' + cliente.nome
+    }, function () {
+      servico.valor -= falta;
+      var nota = emReais(falta) + ' da parcela ' + parcela.numero + '/' + parcela.total + ' não foram pagos (' + dataBr(hojeTexto()) + ').';
+      servico.obs = ((servico.obs ? servico.obs + ' · ' : '') + nota).slice(0, 200);
+      if (pago > 0) {
+        parcela.valor = pago;
+        parcela.quitadaEm = hojeTexto();
+        acertarParcelas(clienteId, null, parcela.id);
+      } else {
+        marcarExcluido('parcelas', parcela.id);
+        estado.parcelas = estado.parcelas.filter(function (p) { return p.id !== parcela.id; });
+        acertarParcelas(clienteId, null, null, servico.id);
+      }
+      comMotivo('você deu como perdidos ' + emReais(falta) + ' de ' + cliente.nome);
+      salvar();
+      if (typeof montarFichaCliente === 'function') montarFichaCliente(clienteId);
+      avisar(emReais(falta) + ' tirados do que ' + String(cliente.nome).split(' ')[0] + ' deve.');
     });
   }
 
