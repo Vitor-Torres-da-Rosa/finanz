@@ -28,6 +28,10 @@ casos, e não há erro de console.
   sozinha. Mexe em mais coisa que a 0009, então merece proposta própria.
 - [proposto 0008] Os juros de atraso apareciam na parcela e na mensagem do
   WhatsApp, mas não no "Falta" da ficha nem no resumo geral.
+- [proposto 0013] O "Ajustar saldo" (5.92) comparava o saldo digitado com o
+  saldo cheio, futuro dentro: aluguel agendado virava diferença e o app
+  oferecia lançar receita ou subir o saldo inicial por ela. Mesmo erro da
+  0012, em outro lugar.
 - abaterSobra marcava as parcelas cobertas pela sobra com a data de hoje,
   não com a data do pagamento: registrar no dia 11 um pagamento recebido no
   dia 5 gravava "quitada em 11". Corrigi e testei — mas as parcelas
