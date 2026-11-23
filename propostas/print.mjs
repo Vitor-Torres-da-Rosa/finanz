@@ -33,7 +33,7 @@ function copiarApp(deOnde) {
   for (const arq of ['index.html', 'sw.js', 'manifest.webmanifest']) {
     const destino = path.join(raiz, 'testes', 'appteste', arq);
     if (!deOnde) { fs.copyFileSync(path.join(raiz, arq), destino); continue; }
-    fs.writeFileSync(destino, execSync('git show ' + deOnde + ':' + arq, { cwd: raiz }));
+    fs.writeFileSync(destino, execSync('git show ' + deOnde + ':' + arq, { cwd: raiz, maxBuffer: 64 * 1024 * 1024 }));
   }
 }
 
