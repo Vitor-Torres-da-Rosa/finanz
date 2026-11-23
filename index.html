@@ -24041,13 +24041,28 @@
   function abrirAjusteDeSaldo(id) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
-    var noApp = saldoConta(id, null);
+    // O saldo de verdade é o de hoje: lançamento com data à frente (aluguel
+    // agendado, parcela do mês que vem) ainda não saiu do banco. Comparar
+    // com o saldo cheio inventava uma diferença e oferecia "consertá-la" no
+    // saldo inicial — o mesmo erro que a conferência tinha.
+    var hoje = hojeTexto();
+    var noApp = saldoConta(id, hoje);
+    var cheio = saldoConta(id, null);
+    var futuros = estado.lancamentos.filter(function (l) {
+      return l.data > hoje && (l.contaId === id || (l.tipo === 'transferencia' && l.contaDestinoId === id));
+    });
     abrirFolha('Ajustar saldo', function (folha) {
       var forma = no('div', 'forma');
       forma.appendChild(no('p', 'linha-sub', 'Diga quanto tem de verdade em ' + conta.nome + ' hoje. Depois você escolhe se a diferença vira uma receita ou despesa, ou se muda o saldo inicial.'));
       var info = cartao();
-      info.appendChild(no('div', 'rotulo', 'Saldo no app'));
+      info.appendChild(no('div', 'rotulo', 'Saldo no app hoje'));
       info.appendChild(no('div', 'valorao pequeno num' + (noApp < 0 ? ' vermelho' : ''), emReais(noApp)));
+      if (futuros.length) {
+        var dif = cheio - noApp;
+        info.appendChild(no('div', 'linha-nota ouro ajuste-futuro',
+          'Fora da conta: ' + futuros.length + ' lançamento(s) com data à frente (' +
+          (dif < 0 ? '− ' : '+ ') + emReais(Math.abs(dif)) + '). Eles ainda não aconteceram no banco. Com eles, a conta fica em ' + emReais(cheio) + '.'));
+      }
       forma.appendChild(info);
       var campoSaldo = entradaValor(Math.abs(noApp), true, true);
       if (noApp < 0) campoSaldo.value = '-' + emReais(Math.abs(noApp));
