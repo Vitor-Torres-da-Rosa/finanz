@@ -1731,7 +1731,18 @@
     font-weight: 700;
     flex: 0 0 auto;
   }
-  .cat-linha[aria-pressed="true"] .marca { background: var(--ouro); border-color: var(--ouro); }
+  .cat-linha[aria-pressed="true"] .marca, .cat-toggle[aria-pressed="true"] .marca { background: var(--ouro); border-color: var(--ouro); }
+  /* O valor gasto abre o detalhamento embaixo (pedido de 25/11/2026). */
+  .cat-bloco { padding: 0; gap: 0; }
+  .cat-bloco .cat-toggle { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 13px 0 13px 14px;
+    background: none; border: 0; color: inherit; text-align: left; font: inherit; }
+  .cat-bloco .cat-gasto { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 13px 14px 13px 10px; background: none; border: 0;
+    color: var(--suave); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .cat-bloco .cat-gasto .seta { color: var(--fraco); transition: transform .2s ease; font-size: 15px; }
+  .cat-bloco .cat-gasto.aberta .seta { transform: rotate(90deg); color: var(--ouro); }
+  .cat-bloco .cat-gasto.zero { color: var(--fraco); }
+  .cat-detalhe { padding: 0 14px 8px 40px; }
+  .cat-detalhe[hidden] { display: none; }
   .cat-linha .nome { flex: 1; min-width: 0; font-size: 15px; }
   .cat-linha .gasto { font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
   .cat-linha .gasto.zero { color: var(--fraco); }
@@ -29261,6 +29272,35 @@
 
   // O teto por categoria mede consumo, igual ao teto geral: a fatura paga
   // não conta de novo aqui.
+  // O que formou o gasto de uma categoria no mês: subcategorias, que abrem
+  // os gastos, que abrem de onde vieram. Mesma regra de conta do valor ao
+  // lado (a compra do cartão conta uma vez só).
+  function detalheDaCategoriaNoMes(nomeCat, voltar) {
+    var itens = visaoDeConsumo(lancamentosDoMes(mesAtivo.ano, mesAtivo.mes)).lista.filter(function (l) {
+      return l.tipo === 'saida' && l.categoria === nomeCat;
+    });
+    var arvore = compararComMesAnterior(itens, [], true)[0];
+    var caixa = no('div', 'cat-detalhe comparativo');
+    if (!arvore) return caixa;
+    arvore.subs.forEach(function (sb) {
+      caixa.appendChild(linhaQueAbre(sb.nome, sb.itens.length + (sb.itens.length === 1 ? ' gasto' : ' gastos'), emReais(sb.atual), function () {
+        var lista = no('div', 'comp-dentro');
+        sb.itens.forEach(function (l) {
+          var conta = achar(estado.contas, l.contaId);
+          var g = botao('comp-linha comp-gasto', null, function () { abrirFonteDoGasto(l, voltar); });
+          juntar(g, juntar(no('span', 'comp-nome'), no('b', null, l.descricao || l.categoria),
+              no('span', null, dataBr(l.data) + (conta ? ' · ' + conta.nome : ''))),
+            no('span', 'comp-fonte', fonteDoGasto(l)),
+            no('span', 'comp-dif', emReais(l.valor)));
+          lista.appendChild(g);
+        });
+        return lista;
+      }));
+    });
+    caixa.querySelectorAll('.comp-dif').forEach(function (d) { d.classList.add('neutro'); });
+    return caixa;
+  }
+
   function gastoDaCategoria(nomeCat) {
     var total = 0;
     visaoDeConsumo(lancamentosDoMes(mesAtivo.ano, mesAtivo.mes)).lista.forEach(function (l) {
@@ -29359,7 +29399,10 @@
         lista.textContent = '';
         categoriasDe('saida').forEach(function (nomeCat) {
           var gasto = gastoDaCategoria(nomeCat);
-          var linha = botao('cat-linha', null, function () {
+          // Marcar fica no nome; o valor gasto abre embaixo as subcategorias
+          // e cada gasto (pedido de 25/11/2026).
+          var linha = no('div', 'cat-linha cat-bloco');
+          var marcar = botao('cat-toggle', null, function () {
             if (estaMarcada(nomeCat)) {
               dados.categorias = dados.categorias.filter(function (c) { return c.nome !== nomeCat; });
             } else {
@@ -29367,12 +29410,24 @@
             }
             desenharLista();
           });
+          marcar.setAttribute('aria-pressed', estaMarcada(nomeCat) ? 'true' : 'false');
           linha.setAttribute('aria-pressed', estaMarcada(nomeCat) ? 'true' : 'false');
-          juntar(linha,
-            no('span', 'marca', estaMarcada(nomeCat) ? '✓' : ''),
-            no('span', 'nome', nomeCat),
-            no('span', 'gasto' + (gasto > 0 ? '' : ' zero'), gasto > 0 ? emReais(gasto) : '—')
-          );
+          juntar(marcar, no('span', 'marca', estaMarcada(nomeCat) ? '✓' : ''), no('span', 'nome', nomeCat));
+          var detalhe = null;
+          var valorBt = botao('cat-gasto' + (gasto > 0 ? '' : ' zero'), null, function () {
+            if (!gasto) return;
+            if (!detalhe) {
+              detalhe = detalheDaCategoriaNoMes(nomeCat, function () { abrirSeletorCategorias(dados); });
+              detalhe.hidden = true;
+              linha.parentNode.insertBefore(detalhe, linha.nextSibling);
+            }
+            detalhe.hidden = !detalhe.hidden;
+            valorBt.classList.toggle('aberta', !detalhe.hidden);
+            valorBt.setAttribute('aria-expanded', detalhe.hidden ? 'false' : 'true');
+          });
+          juntar(valorBt, no('span', 'gasto' + (gasto > 0 ? '' : ' zero'), gasto > 0 ? emReais(gasto) : '—'), gasto > 0 ? no('span', 'seta', '›') : null);
+          if (gasto > 0) valorBt.setAttribute('aria-label', 'Ver o que foi gasto em ' + nomeCat);
+          juntar(linha, marcar, valorBt);
           lista.appendChild(linha);
         });
 
