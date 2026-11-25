@@ -101,7 +101,7 @@ await page.waitForTimeout(4000);
 // A cópia à mão é o ponto de volta. Ela não é recolhida pela regra de uma
 // por dia, então serve de marco mesmo com outras saindo no caminho.
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 await page.click('#folha button:has-text("Guardar uma cópia agora")'); await page.waitForTimeout(7000);
 await page.click('#cortina', { force: true }).catch(() => {}); await page.waitForTimeout(900);
 
@@ -123,7 +123,7 @@ await ctx.route('**/rest/v1/**', (r) => {
 });
 
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 console.log('lista de cópias:', limpo(await page.textContent('#folha')).slice(0, 220));
 await page.click('#folha .linha:has-text("Cópia feita por você")'); await page.waitForTimeout(1500);
 console.log('caixa 1:', limpo(await page.textContent('#dialogoTitulo').catch(() => '(nenhuma)')),

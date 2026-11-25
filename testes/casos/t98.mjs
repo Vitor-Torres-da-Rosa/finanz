@@ -94,7 +94,7 @@ conferir('6. com os dados que estavam guardados', /543,21/.test(dentro), dentro.
 // --- e dá para tirar o backup, que é o ponto ---
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1600);
 const mais = limpo(await page.textContent('#telaMais'));
-conferir('7. o backup (com senha) está ao alcance', /Fazer backup \(com senha\)/.test(mais));
+conferir('7. o backup está ao alcance, em "Proteja seus dados"', /Proteja seus dados/.test(mais), (mais.match(/Proteja.{0,80}/) || [''])[0]);
 const baixou = page.waitForEvent('download', { timeout: 20000 });
 await gerarBackup(page);
 const arquivo = await baixou;

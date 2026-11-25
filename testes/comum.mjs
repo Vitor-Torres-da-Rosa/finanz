@@ -102,7 +102,7 @@ export async function abrirAnalise(page) {
 // um .finanz pede a senha antes de mostrar o "Restaurar este backup?".
 export const SENHA_DO_BACKUP = 'senha-do-teste';
 export async function gerarBackup(page, senha = SENHA_DO_BACKUP) {
-  await page.click('#telaMais .linha:has-text("Fazer backup")'); await page.waitForTimeout(900);
+  await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Gerar backup agora")'); await page.waitForTimeout(900);
   await page.fill('#folha .campo-senha-backup', senha);
   await page.fill('#folha .campo-senha-backup2', senha);
   await page.click('#folha .btn-ouro:has-text("Gerar backup")');

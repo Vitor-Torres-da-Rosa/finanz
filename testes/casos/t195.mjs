@@ -34,7 +34,7 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
 
 // Senhas diferentes não passam.
-await page.click('#telaMais .linha:has-text("Fazer backup")'); await page.waitForTimeout(800);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Gerar backup agora")'); await page.waitForTimeout(800);
 await page.fill('#folha .campo-senha-backup', 'minhasenha1'); await page.fill('#folha .campo-senha-backup2', 'outrasenha');
 await page.click('#folha .btn-ouro:has-text("Gerar backup")'); await page.waitForTimeout(500);
 conferir('1. as duas senhas precisam ser iguais', /As duas senhas não são iguais/.test(limpo(await page.textContent('#folha'))));
@@ -54,7 +54,7 @@ conferir('3. e comprimido: bem menor que os dados abertos', texto.length < abert
 // Restaurar: senha errada não abre; a certa abre.
 await page.evaluate(() => { localStorage.setItem('x', '1'); });
 page.on('filechooser', async (fc) => { await fc.setFiles(caminho); });
-await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(1500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Restaurar de um arquivo")'); await page.waitForTimeout(1500);
 await page.fill('#folha .campo-senha-restaurar', 'errada123');
 await page.click('#folha .btn-ouro:has-text("Abrir backup")'); await page.waitForTimeout(2500);
 conferir('4. senha errada: não abre e diz por quê', /Senha errada/.test(limpo(await page.textContent('#folha'))) && !(await page.locator('#dialogoFundo.aberta').count()));

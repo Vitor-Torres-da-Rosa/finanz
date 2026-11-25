@@ -113,7 +113,7 @@ conferir('6. a cópia é do estado de ANTES: dois lançamentos',
 
 // ---- e dá para voltar por ela ----
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 const naFolha = limpo(await page.textContent('#folha'));
 console.log('folha:', naFolha.slice(0, 300));
 conferir('7. a folha mostra a cópia pela frase, não só pela data',

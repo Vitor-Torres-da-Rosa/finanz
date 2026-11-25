@@ -113,7 +113,7 @@ conferir('1. a nuvem está com dezenas de cópias de alteração no mesmo dia',
 // Qualquer cópia nova dispara a limpeza. Uso o botão, que é o caminho da
 // pessoa.
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 await page.click('#folha button:has-text("Guardar uma cópia agora")'); await page.waitForTimeout(8000);
 
 const depois = await copias();

@@ -151,7 +151,7 @@ conferir('1. com os ' + (SEMEADOS + 1) + ' no aparelho, o total é −R$ 331,00'
 // ---- restaura o backup de um lançamento por cima de tudo isso ----
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(900);
 page.on('filechooser', async (fc) => { await fc.setFiles(arquivo); });
-await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Restaurar de um arquivo")'); await page.waitForTimeout(2500);
 await senhaDoBackup(page);
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(4000);
 await semDialogo();

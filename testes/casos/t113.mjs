@@ -107,7 +107,7 @@ conferir('2. mexer no app guardou uma cópia de alteração',
 
 // ---- ela aparece na folha, com a hora como identidade ----
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 const naFolha = limpo(await page.textContent('#folha'));
 console.log('folha:', naFolha.slice(0, 280));
 conferir('3. a folha explica que guarda a cada mexida',

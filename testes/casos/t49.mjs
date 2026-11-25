@@ -43,7 +43,7 @@ console.log('2. servidor agora tem A e B');
 
 // restaura o backup antigo (só tem A)
 page.on('filechooser', async fc => { await fc.setFiles(caminho); });
-await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(1500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Restaurar de um arquivo")'); await page.waitForTimeout(1500);
 await senhaDoBackup(page);
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(2000);
 await page.click('#navegacao button:has-text("Transações")'); await page.waitForTimeout(900);

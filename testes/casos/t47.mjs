@@ -41,7 +41,7 @@ console.log('   dados:', Object.keys((await decifrarBackup(page, txt)).dados));
 
 // restaurar
 page.on('filechooser', async fc => { await fc.setFiles(caminho); });
-await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(1500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Restaurar de um arquivo")'); await page.waitForTimeout(1500);
 await senhaDoBackup(page);
 console.log('2. aviso na tela:', await page.locator('#toque').textContent().catch(()=>'-'));
 console.log('   diálogo:', await page.locator('#dialogoTitulo').textContent().catch(()=>'-'), '|', await page.locator('#dialogoTexto').textContent().catch(()=>'-'));

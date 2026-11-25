@@ -131,7 +131,7 @@ conferir('9. e a conta segue vazia', aindaVazio.lancamentos === 0, String(aindaV
 
 // ---- e volta SE a pessoa pedir ----
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 const naFolha = limpo(await page.textContent('#folha'));
 conferir('10. a cópia de antes de apagar tudo está na lista',
   /Antes de apagar tudo/.test(naFolha), (naFolha.match(/Antes de apagar tudo[^›]*/) || ['(não achei)'])[0].slice(0, 80));

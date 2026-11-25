@@ -63,7 +63,7 @@ await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitF
 
 // A folha onde o defeito apareceu, e a frase inteira que tem que caber.
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
-await page.click('#telaMais .linha:has-text("Voltar a uma data")'); await page.waitForTimeout(2500);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 const presos = await cortados();
 conferir('1. a explicação de "Voltar a uma data" aparece inteira',
   presos.length === 0, JSON.stringify(presos));
@@ -78,7 +78,7 @@ await page.screenshot({ path: dir+'/z05-explicacao-inteira.png', fullPage: true 
 
 // Fecho a folha antes de varrer o resto: com ela aberta, o parágrafo dela
 // continuaria no DOM e apareceria em toda verificação seguinte.
-await page.click('#cortina', { force: true }).catch(() => {}); await page.waitForTimeout(900);
+for (let i = 0; i < 4 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(900); }
 
 // O resto do app: as cinco telas. Qualquer parágrafo cortado acusa, e a
 // tela de Planejar sozinha tinha três.

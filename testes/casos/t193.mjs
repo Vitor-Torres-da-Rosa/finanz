@@ -63,7 +63,7 @@ conferir('9. com extrato e 3 meses de lançamentos, o cartão some', (await page
 
 // Em Mais, dá para reler.
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
-await page.click('#telaMais .linha:has-text("Como seus dados são protegidos")'); await page.waitForTimeout(600);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Como seus dados são protegidos")'); await page.waitForTimeout(600);
 const m1 = await passo();
 conferir('10. em Mais, "Como seus dados são protegidos" mostra onde os dados ficam e quem vê', /Seus dados são seus/.test(m1) && /ponta a ponta/.test(m1) && /Ninguém mais lê/.test(m1), m1.slice(0, 120));
 await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
@@ -75,8 +75,11 @@ conferir('12. e o que nunca acontece, terminando em "Entendi", sem o aviso de pr
   (await bv.locator('.bv-alerta').count()) === 0 && (await bv.locator('button:has-text("Entendi")').count()) === 1, m3.slice(0, 120));
 await bv.locator('button:has-text("Entendi")').click(); await page.waitForTimeout(500);
 conferir('13. "Entendi" fecha', (await page.locator('.boas-vindas').count()) === 0);
-const mais = (await page.textContent('#telaMais')).replace(/\s+/g, ' ');
-conferir('14. a dica de escolher o arquivo fica logo abaixo de "Restaurar backup"', /Restaurar backup\s*Substitui os dados atuais\s*Se o celular não deixar escolher o arquivo/.test(mais), (mais.match(/Restaurar backup.{0,90}/) || [''])[0]);
+for (let i = 0; i < 4 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(700); }
+// 25/11/2026: o restaurar mora em Backups → No celular.
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800);
+const cel = (await page.textContent('#folha')).replace(/\s+/g, ' ');
+conferir('14. a dica de escolher o arquivo fica logo abaixo de "Restaurar de um arquivo"', /Restaurar de um arquivo\s*Troca tudo o que está no app pelo que está no arquivo\s*Se o celular não deixar escolher o arquivo/.test(cel), (cel.match(/Restaurar de um arquivo.{0,120}/) || [''])[0]);
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();

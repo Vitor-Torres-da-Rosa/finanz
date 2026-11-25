@@ -79,7 +79,7 @@ await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitF
 // --- restaurar, que é como a herança chega na vida real ---
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(900);
 page.on('filechooser', async fc => { await fc.setFiles(caminho); });
-await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(1800);
+await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800); await page.click('#folha .linha:has-text("Restaurar de um arquivo")'); await page.waitForTimeout(1800);
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);

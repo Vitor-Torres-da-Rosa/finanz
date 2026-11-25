@@ -2741,6 +2741,17 @@
   /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
   .modulos-lista .modulo-cartao[data-modulo="servicos"],
   .modulos-lista .modulo-cartao[data-modulo="estoque"] { grid-column: 1 / -1; }
+  /* Backups num lugar só */
+  .backup-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
+  .backup-botao { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 16px;
+    border: 1px solid rgba(233,180,76,.3); background: linear-gradient(160deg, rgba(36,29,17,.85), rgba(10,10,11,.9));
+    color: var(--texto); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+  .backup-botao b { font-size: 15px; }
+  .backup-icone { font-size: 22px; line-height: 1; }
+  .backup-sub { font-size: 12px; color: var(--fraco); line-height: 1.4; }
+  .backup-nota { padding: 10px 16px 16px; }
+  .cartao-proteja .linha-titulo { font-size: 16px; }
+  .rotulo-duvidas { margin: 18px 0 10px; }
   /* Estoque e Ferramentas */
   .est-item { border-bottom: 1px solid var(--borda); }
   .est-item:last-child { border-bottom: 0; }
@@ -2856,7 +2867,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.103.0';
+  var VERSAO = '5.104.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2865,6 +2876,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.104.0',
+      data: '2026-11-25',
+      itens: [
+        'Mais → "Proteja seus dados": uma entrada só para a senha dos dados, os backups e as dúvidas. Os itens soltos (Fazer backup, Restaurar, Voltar a uma data, Senha dos dados, Como seus dados são protegidos) foram para dentro dela.',
+        'Backups com dois botões: "Na nuvem" (as cópias automáticas, para voltar a uma data) e "No celular" (o arquivo .finanz: gerar, restaurar e a lista dos que você gerou neste aparelho). Cada um mostra o que tem guardado.',
+        'Dúvidas respondidas ali mesmo: o que é a senha dos dados, a diferença entre o backup da nuvem e o do celular, por que as senhas são diferentes, o que fazer se esquecer a senha ou perder o celular, e quem consegue ver os seus dados.'
+      ]
+    },
     {
       versao: '5.103.0',
       data: '2026-11-25',
@@ -29232,32 +29252,36 @@
 
     // Dados
     var cDados = cartao('liso');
-    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 3, itens: [
+    // Proteja seus dados (pedido de 25/11/2026): uma entrada só para a
+    // senha dos dados, os backups e as dúvidas sobre os dois.
+    var cProteja = cartao('liso cartao-proteja');
+    var bProteja = botao('linha botao-proteja', null, function () { abrirProtejaSeusDados(); });
+    juntar(bProteja, seloIcone('escudo', cofreLigado() ? '#34D399' : '#E9B44C'),
+      juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Proteja seus dados'),
+        no('div', 'linha-sub', rotuloDoCofreEmMais() + ' · ' + resumoDosBackupsDoCelular().toLowerCase())),
+      no('span', 'modulo-seta', '›'));
+    cProteja.appendChild(bProteja);
+    tela.appendChild(cProteja);
+
+    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 4, itens: [
         'Seus dados ficam na sua conta, na nuvem. Com a "Senha dos dados", eles sobem cifrados de ponta a ponta: só você consegue ler.',
-        'O backup é uma cópia em arquivo, para guardar fora da nuvem.',
-        'O backup sai cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre o arquivo, nem o Finanz: anote a senha num lugar seguro.',
-        'Restaurar um backup troca tudo o que está no app pelo que está no arquivo.',
-        '"Voltar a uma data" usa as cópias automáticas dos últimos 14 dias.'] });
+        'A senha dos dados e os backups (na nuvem e no celular) ficam em "Proteja seus dados", logo acima.',
+        'Exportar CSV tira os lançamentos para uma planilha. Importar e colar o extrato trazem os lançamentos do banco.'] });
     topoDados.style.padding = '16px 16px 0';
     topoDados.style.marginBottom = '8px';
     cDados.appendChild(topoDados);
 
     [
-      ['💾', 'Fazer backup (com senha)', 'Um arquivo .finanz cifrado com a sua senha', fazerBackup],
       ['📊', 'Exportar CSV', 'Lançamentos para planilha', exportarCsv],
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
-      ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
-      ['🕑', 'Voltar a uma data', 'Cópias automáticas dos últimos 14 dias', abrirFolhaInstantaneos],
       ['📜', 'Histórico do saldo', 'De onde veio cada mudança nos seus números',
         abrirFolhaHistorico],
       ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
-      ['🔐', 'Senha dos dados', rotuloDoCofreEmMais(), abrirFolhaCofre],
-      ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }]
+      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
       juntar(linha,
@@ -29267,13 +29291,6 @@
           no('div', 'linha-sub', o[2]))
       );
       cDados.appendChild(linha);
-      if (o[3] === 'arquivoRestaurar') {
-        var dica = no('div', 'linha-nota');
-        dica.style.padding = '2px 16px 12px';
-        dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador ' +
-          'de arquivos, toque em Compartilhar e escolha o Finanz.';
-        cDados.appendChild(dica);
-      }
     });
 
     if (NUVEM.ligada) {
@@ -36159,7 +36176,9 @@
         gerar.disabled = true; gerar.textContent = 'Cifrando…';
         var pacote = { app: 'finanz', versao: VERSAO, exportadoEm: new Date().toISOString(), dados: estado };
         cifrarBackup(JSON.stringify(pacote), s1.value).then(function (arquivo) {
-          baixarArquivo('finanz-backup-' + carimbo() + '.finanz', arquivo, 'application/octet-stream');
+          var nomeBk = 'finanz-backup-' + carimbo() + '.finanz';
+          baixarArquivo(nomeBk, arquivo, 'application/octet-stream');
+          anotarBackupDoCelular(nomeBk, arquivo.length);
           fecharFolha();
           avisar('Backup gerado, cifrado com a sua senha.');
         }).catch(function () {
@@ -36171,6 +36190,184 @@
       forma.appendChild(acoes);
       folha.appendChild(forma);
       setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+    });
+  }
+
+  var INFO_BACKUPS = [
+    'Na nuvem: o app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias. Com a senha dos dados ligada, essas cópias ficam cifradas com ela: sem a senha dos dados, ninguém abre, nem você.',
+    'No celular: o backup é um arquivo .finanz que você gera quando quiser e guarda onde preferir (no celular, no Drive, no e-mail). Ele tem uma senha própria, escolhida na hora, diferente da senha dos dados. Sem a senha do backup, ele também não abre.',
+    'O app neste celular guarda ainda uma cópia de trabalho, que abre com o seu login. Esquecendo a senha dos dados, este celular continua com tudo: dá para apagar a nuvem, criar uma senha nova e subir de novo.',
+    'Se perder o celular e a senha dos dados, o arquivo .finanz é a rede de segurança: num aparelho novo, restaure o arquivo e crie uma senha dos dados nova. Ele vale até a data em que foi gerado.',
+    'Na prática: anote as duas senhas num lugar seguro e gere um .finanz de vez em quando, guardado fora do celular.'
+  ];
+
+  // Os backups gerados neste aparelho: o app não enxerga os arquivos do
+  // celular, então guarda a lista de quando gerou cada um.
+  function chaveDosBackups() { return 'finanz.backups.v1:' + ((sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || 'local'); }
+  function backupsDoCelular() {
+    try { var l = JSON.parse(localStorage.getItem(chaveDosBackups()) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+  }
+  function anotarBackupDoCelular(nome, tamanho) {
+    var l = backupsDoCelular();
+    l.unshift({ quando: Date.now(), nome: nome, tamanho: tamanho });
+    try { localStorage.setItem(chaveDosBackups(), JSON.stringify(l.slice(0, 30))); } catch (e) { /* sem espaço */ }
+  }
+  function resumoDosBackupsDoCelular() {
+    var l = backupsDoCelular();
+    if (!l.length) return 'Nenhum gerado neste aparelho';
+    var d = new Date(l[0].quando);
+    return l.length + ' gerado(s) · último ' + (deData(d) === hojeTexto() ? 'hoje' : dataBr(deData(d)));
+  }
+
+  var DUVIDAS_DE_PROTECAO = [
+    ['O que é a senha dos dados?', [
+      'É a senha que embaralha (cifra) tudo o que vai para a nuvem: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.',
+      'Ela nunca sai do seu celular. Por isso ninguém além de você consegue ler o que está na nuvem: nem quem administra o servidor, nem o Supabase.',
+      'É diferente da senha de entrar na conta e da senha do backup.']],
+    ['O que é o backup na nuvem?', [
+      'O app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias. Serve para "voltar a uma data".',
+      'Com a senha dos dados ligada, essas cópias ficam cifradas com ela.']],
+    ['O que é o backup no celular?', [
+      'É um arquivo .finanz que você gera quando quiser e guarda onde preferir: no celular, no Drive, no e-mail.',
+      'Ele tem uma senha própria, escolhida na hora de gerar. Sem ela, o arquivo não abre.',
+      'Vale até a data em que foi gerado: o que entrar depois não está nele.']],
+    ['As senhas são diferentes?', [
+      'Sim. A senha dos dados abre a nuvem (os dados e as cópias automáticas). A senha do backup abre só o arquivo .finanz.',
+      'Pode até usar a mesma, mas anote as duas num lugar seguro.']],
+    ['E se eu esquecer a senha dos dados?', [
+      'A nuvem não abre mais, e não existe recuperação: nem você, nem quem desenvolve o app consegue abrir.',
+      'Mas este celular continua com tudo (a cópia de trabalho do app abre com o seu login). Em "Esqueci a senha", você apaga a nuvem, cria uma senha nova e o app sobe tudo de novo.']],
+    ['E se eu perder o celular?', [
+      'Num aparelho novo, entre na conta e digite a senha dos dados: tudo desce da nuvem.',
+      'Se perdeu o celular e esqueceu a senha dos dados, o arquivo .finanz é a rede de segurança: restaure ele e crie uma senha dos dados nova.']],
+    ['Quem consegue ver meus dados?', [
+      'Com a senha dos dados ligada, só você. O servidor guarda tudo embaralhado.',
+      'O servidor ainda vê o mínimo para funcionar: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.',
+      'Sem a senha dos dados criada, os dados ficam protegidos pelo login, mas quem administra o servidor consegue ler.']],
+    ['E o que eu compartilho com outra pessoa?', [
+      'As áreas do Empreendedor que você compartilha (Doces, Uber, Casa) a outra pessoa vê, porque é para isso que serve compartilhar.',
+      'Por enquanto, essas áreas ficam legíveis também no servidor. A versão cifrada do compartilhado está a caminho.']]
+  ];
+
+  function abrirProtejaSeusDados() {
+    abrirFolha('Proteja seus dados', function (folha) {
+      folha.appendChild(no('p', 'guia-intro', 'Tudo o que protege os seus dados num lugar só: a senha que cifra a nuvem, os backups e as respostas para as dúvidas mais comuns.'));
+
+      // Senha dos dados
+      var cs = cartao('cartao-senha-dados');
+      var ts = no('div', 'cartao-topo');
+      juntar(ts, no('div', 'cartao-titulo', 'Senha dos dados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      cs.appendChild(ts);
+      var semNuvem = !NUVEM.ligada || !sessaoNuvem;
+      var estadoTxt = semNuvem ? 'Só funciona com a conta na nuvem.'
+        : faltaNoBanco['cofre'] ? 'O servidor ainda não recebeu a atualização do cofre.'
+        : cofreLigado() ? 'Ligada ✓ Tudo o que vai para a nuvem sai cifrado com ela.'
+        : cofreTrancado() ? 'Trancada neste aparelho: digite a senha para abrir os dados da nuvem.'
+        : 'Ainda não criada: hoje quem administra o servidor consegue ler os seus dados.';
+      cs.appendChild(no('div', 'linha-nota estado-senha-dados ' + (cofreLigado() ? 'verde' : cofreTrancado() ? 'vermelho' : 'ouro'), estadoTxt));
+      var bs = no('div', 'duas');
+      bs.style.marginTop = '12px';
+      if (!semNuvem && !faltaNoBanco['cofre']) {
+        if (cofreLigado()) juntar(bs, botao('btn btn-fantasma botao-trocar-senha', 'Trocar a senha', function () { trocarSenhaDoCofre(); }));
+        else if (cofreTrancado()) juntar(bs, botao('btn btn-ouro', 'Digitar a senha', function () { abrirSenhaDoCofre(true); }),
+          botao('btn btn-fantasma', 'Esqueci a senha', function () { esqueciSenhaDoCofre(); }));
+        else juntar(bs, botao('btn btn-ouro botao-criar-senha-dados', 'Criar a senha dos dados', function () { abrirCriarCofre(); }));
+        cs.appendChild(bs);
+      }
+      folha.appendChild(cs);
+
+      // Backups
+      var cb = cartao('cartao-backups');
+      var tb = no('div', 'cartao-topo');
+      juntar(tb, no('div', 'cartao-titulo', 'Backups'), botaoDeInfo('mais.backups', 'Backups', INFO_BACKUPS));
+      cb.appendChild(tb);
+      var grade = no('div', 'backup-botoes');
+      grade.style.padding = '0';
+      grade.style.marginTop = '10px';
+      var subNuvem = no('span', 'backup-sub', semNuvem ? 'Entre na conta para usar' : 'Procurando as cópias…');
+      var bN = botao('backup-botao botao-backup-nuvem', null, function () { abrirFolhaInstantaneos(); });
+      juntar(bN, no('span', 'backup-icone', '☁'), no('b', null, 'Na nuvem'), subNuvem);
+      var bC = botao('backup-botao botao-backup-celular', null, function () { abrirBackupNoCelular(); });
+      juntar(bC, no('span', 'backup-icone', '📱'), no('b', null, 'No celular'), no('span', 'backup-sub', resumoDosBackupsDoCelular()));
+      juntar(grade, bN, bC);
+      cb.appendChild(grade);
+      cb.appendChild(no('div', 'linha-nota', 'As senhas são diferentes: a nuvem abre com a senha dos dados; o arquivo do celular, com a senha do backup.'));
+      if (!semNuvem) {
+        listarInstantaneos().then(function (lista) {
+          if (!lista.length) { subNuvem.textContent = 'Nenhuma cópia ainda'; return; }
+          var u = lista[0];
+          subNuvem.textContent = lista.length + ' cópia(s) · última ' + (u.dia === hojeTexto() ? 'hoje' : dataBr(u.dia)) + ' às ' + horaDe(u.criado_em);
+        }).catch(function () { subNuvem.textContent = 'Sem conexão agora'; });
+      }
+      folha.appendChild(cb);
+
+      // Dúvidas
+      folha.appendChild(no('div', 'rotulo rotulo-duvidas', 'Dúvidas'));
+      DUVIDAS_DE_PROTECAO.forEach(function (d, i) {
+        var bloco = no('div', 'guia-secao duvida');
+        bloco.setAttribute('data-duvida', String(i));
+        var cab = botao('guia-cab', null, function () {
+          var aberta = bloco.classList.toggle('aberta');
+          cab.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+        });
+        cab.setAttribute('aria-expanded', 'false');
+        juntar(cab, juntar(no('span', 'guia-textos'), no('b', null, d[0])), no('span', 'guia-seta', '›'));
+        var corpo = no('div', 'guia-corpo');
+        d[1].forEach(function (t) {
+          var l = no('div', 'guia-item');
+          juntar(l, no('span', 'guia-marca'), no('p', null, t));
+          corpo.appendChild(l);
+        });
+        juntar(bloco, cab, corpo);
+        folha.appendChild(bloco);
+      });
+
+      // Para ler mais
+      var cl = cartao('liso');
+      [['Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }],
+       ['Política de Privacidade', 'O texto completo', function () { abrirTexto('privacidade'); }],
+       ['Termos de Uso', 'As regras de uso do app', function () { abrirTexto('termos'); }]].forEach(function (x) {
+        var l = botao('linha', null, x[2]);
+        juntar(l, seloIcone('info', '#60A5FA'), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', x[0]), no('div', 'linha-sub', x[1])));
+        cl.appendChild(l);
+      });
+      folha.appendChild(cl);
+    });
+  }
+
+  function abrirBackupNoCelular() {
+    abrirFolha('Backup no celular', function (folha) {
+      var c = cartao();
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Arquivo .finanz, com senha própria'), botaoDeInfo('mais.backups', 'Backups', INFO_BACKUPS));
+      c.appendChild(topo);
+      c.appendChild(no('p', 'linha-sub', 'Um arquivo com tudo, cifrado com uma senha que você escolhe na hora — diferente da senha dos dados. Guarde fora do celular também (Drive, e-mail): se perder o celular, é com ele que você volta.'));
+      folha.appendChild(c);
+      var acoes = cartao('liso');
+      var gerar = botao('linha', null, function () { fazerBackup(); });
+      juntar(gerar, selo('#34D399', '💾'), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Gerar backup agora'), no('div', 'linha-sub', 'Escolha a senha do backup e salve o arquivo')));
+      acoes.appendChild(gerar);
+      var rest = rotuloDeArquivo('arquivoRestaurar', 'linha');
+      juntar(rest, selo('#60A5FA', '↺'), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Restaurar de um arquivo'), no('div', 'linha-sub', 'Troca tudo o que está no app pelo que está no arquivo')));
+      acoes.appendChild(rest);
+      var dica = no('div', 'linha-nota');
+      dica.style.padding = '2px 16px 12px';
+      dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador de arquivos, toque em Compartilhar e escolha o Finanz.';
+      acoes.appendChild(dica);
+      folha.appendChild(acoes);
+      var hist = cartao('liso cartao-backups-celular');
+      var th = no('div', 'cartao-topo'); th.style.padding = '16px 16px 4px';
+      th.appendChild(no('div', 'cartao-titulo', 'Gerados neste aparelho'));
+      hist.appendChild(th);
+      var l = backupsDoCelular();
+      if (!l.length) hist.appendChild(estadoVazio('Nenhum ainda', 'Os backups que você gerar aqui aparecem nesta lista, com a data. O arquivo fica onde você salvou (normalmente em Downloads).'));
+      l.forEach(function (b) {
+        var d = new Date(b.quando);
+        var dia = deData(d) === hojeTexto() ? 'hoje' : dataBr(deData(d));
+        hist.appendChild(linhaSimples({ titulo: dia + ' às ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'),
+          sub: b.nome || 'finanz-backup.finanz', valor: b.tamanho ? tamanhoDeArquivo(b.tamanho) : '', selo: selo('#34D399', '💾') }));
+      });
+      folha.appendChild(hist);
     });
   }
 
@@ -37210,12 +37407,18 @@
     // que é o item que fecha a folha e redesenha a tela ao voltar. Um
     // item 'aba' com voltar vazio por cima engolia o voltar — a folha
     // não fechava e a tela ficava mostrando os dados de antes.
-    abrirFolha('Voltar a uma data', function (folha) {
+    abrirFolha('Backup na nuvem', function (folha) {
       var forma = no('div');
+      var topoN = no('div', 'cartao-topo');
+      juntar(topoN, no('div', 'rotulo', 'Voltar a uma data'), botaoDeInfo('mais.backups', 'Backups', INFO_BACKUPS));
+      forma.appendChild(topoN);
       forma.appendChild(no('p', 'linha-sub',
         'O app guarda na nuvem uma cópia inteira dos seus dados sempre que você mexe em ' +
         'alguma coisa, mais uma por dia e uma antes de cada exclusão. Escolha uma cópia ' +
         'para voltar tudo ao que era nela.'));
+      forma.appendChild(no('p', 'linha-nota backup-nota-nuvem', cofreLigado()
+        ? 'Estas cópias estão cifradas com a sua senha dos dados: sem ela, ninguém abre.'
+        : 'Com a senha dos dados ligada (Mais → Senha dos dados), estas cópias passam a ficar cifradas com ela.'));
 
       // Guardar na hora. A automática sai uma vez por dia; quem vai mexer
       // em alguma coisa grande quer poder marcar o ponto antes, sem
