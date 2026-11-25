@@ -352,6 +352,25 @@
   .busca input { flex: 1; border: 0; background: none; outline: none; padding: 13px 0; font-size: 14.5px; }
   .busca .lupa { color: var(--suave); display: grid; place-items: center; flex: 0 0 auto; }
   .busca .lupa svg { width: 18px; height: 18px; }
+  /* O "x" de limpar a busca vinha azul do sistema; agora é dourado. */
+  .busca input::-webkit-search-cancel-button {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6l12 12M18 6 6 18' stroke='%23E9B44C' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+  }
+  /* Busca e filtros da lista de clientes (do 4º cliente em diante). */
+  .busca.busca-clientes { margin: 4px 16px 10px; background: var(--cartao-2); }
+  .busca.busca-clientes input { padding: 11px 0; }
+  .lista-clientes > .linha:first-child { border-top: 1px solid rgba(233,180,76,.14); }
+  .botao-filtro { margin: 0; width: 32px; height: 32px; }
+  .botao-filtro svg { width: 18px; height: 18px; }
+  .botao-filtro.ligado { border-color: rgba(233,180,76,.55); background: rgba(233,180,76,.10); }
+  .nota-filtro-clientes:empty { display: none; }
+  .nota-filtro-clientes {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 0 16px 10px; font-size: 12px; color: var(--suave);
+  }
+  .limpar-filtro { color: var(--ouro); font-size: 12.5px; font-weight: 600; padding: 4px 2px; }
+  .filtro-clientes .campo .chips { gap: 7px; }
 
   /* ---------- Navegação ---------- */
 
@@ -2559,7 +2578,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.93.0';
+  var VERSAO = '5.94.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2568,6 +2587,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.94.0',
+      data: '2026-11-25',
+      itens: [
+        'Clientes: do 4º cliente em diante aparece uma busca em cima da lista. Procura pelo nome ou pelo telefone, ignorando acento: "cacapava" acha "Caçapava vizinho", "4799" acha quem tem esse número.',
+        'Do lado do "+ Novo" fica o botão de filtros. Filtra por situação (atrasados, em aberto, cai hoje, quitados), pelo valor a receber (até R$ 500, de R$ 500 a R$ 5 mil, acima de R$ 5 mil) e pela data do último registro, e ordena por maior ou menor valor, próximo vencimento, registro mais recente ou nome. O número no botão diz quantos filtros estão ligados.',
+        'Com busca ou filtro ligado, a lista diz quantos clientes aparecem e quanto eles somam a receber, com um "Limpar" para voltar a ver todos.'
+      ]
+    },
     {
       versao: '5.93.0',
       data: '2026-11-23',
@@ -8918,6 +8946,7 @@
     alvo: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
     maleta: 'M4 8.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM9 8.5v-2a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6.5v2M3 13h18',
     mais: 'M12 5v14M5 12h14',
+    filtros: 'M4 6h8M16 6h4M12 6a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 12h2M10 12h10M6 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 18h10M18 18h2M14 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
     lupa: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM16.2 16.2 21 21',
     lapis: 'M4.5 19.5h4L19 9a2.12 2.12 0 0 0-3-3L5.5 16.5v3zM14.5 6.5l3 3',
     rota: 'M21 3 3 10.5l7.5 3 3 7.5z',
@@ -17515,9 +17544,25 @@
     tela.appendChild(cResumo);
 
     var cClientes = cartao('liso');
-    var topo = topoDeCartao('Clientes', '+ Novo', function () { abrirFolhaCliente(null); });
+    // Com a lista crescendo, procurar o nome rolando virou trabalho
+    // (pedido de 25/11/2026). Do 4º cliente em diante aparecem a busca e o
+    // botão de filtros ao lado do "+ Novo". Com filtro ligado, o botão
+    // continua lá mesmo abaixo de quatro, senão não haveria como desligar.
+    var comBusca = estado.clientes.length >= CLIENTES_PARA_BUSCA;
+    var nFiltros = filtrosDeClientesLigados();
+    var topo = topoDeCartao('Clientes', null, null);
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
+    var fimTopo = no('div', 'cartao-topo-fim');
+    if (comBusca || nFiltros) {
+      var bFiltro = botao('botao-info botao-filtro' + (nFiltros ? ' ligado' : ''), null, function () { abrirFiltroClientes(); });
+      bFiltro.setAttribute('aria-label', nFiltros ? 'Filtros dos clientes (' + nFiltros + ' ligado(s))' : 'Filtrar e ordenar clientes');
+      bFiltro.appendChild(icone('filtros'));
+      if (nFiltros) bFiltro.appendChild(no('span', 'selo-num', String(nFiltros)));
+      fimTopo.appendChild(bFiltro);
+    }
+    fimTopo.appendChild(botao('cartao-acao', '+ Novo', function () { abrirFolhaCliente(null); }));
+    topo.appendChild(fimTopo);
     cClientes.appendChild(topo);
 
     if (!estado.clientes.length) {
@@ -17528,62 +17573,312 @@
       b.style.width = 'calc(100% - 32px)';
       cClientes.appendChild(b);
     } else {
-      // Quem está atrasado sobe para o topo.
-      estado.clientes.slice().sort(function (a, b) {
-        var atA = clienteAtrasado(a.id) ? 1 : 0;
-        var atB = clienteAtrasado(b.id) ? 1 : 0;
-        if (atA !== atB) return atB - atA;
-        return resumoCliente(b.id).restante - resumoCliente(a.id).restante;
-      }).forEach(function (c) {
-        var r = resumoCliente(c.id);
-        var sit = situacaoCliente(c);
-        var atrasado = sit.classe === 'atrasado';
+      var listaCli = no('div', 'lista-clientes');
+      var notaCli = no('div', 'nota-filtro-clientes');
 
-        var linha = no('div', 'linha linha-dupla' + (atrasado ? ' atrasada' : ''));
-        var alvo = botao('linha-alvo', null, function () {
-          if (atrasado) { abrirResumoAtraso(c.id); return; }
-          abrirFichaCliente(c.id);
+      if (comBusca) {
+        var busca = no('div', 'busca busca-clientes');
+        var lupa = no('span', 'lupa');
+        lupa.appendChild(icone('lupa'));
+        busca.appendChild(lupa);
+        var campoBusca = no('input');
+        campoBusca.type = 'search';
+        campoBusca.id = 'buscaClientes';
+        campoBusca.placeholder = 'Buscar cliente por nome ou telefone';
+        campoBusca.setAttribute('aria-label', 'Buscar cliente');
+        campoBusca.autocomplete = 'off';
+        campoBusca.value = buscaClientes;
+        // Digitar redesenha só a lista: o campo fica onde está, com o
+        // teclado aberto.
+        campoBusca.addEventListener('input', function () {
+          buscaClientes = campoBusca.value;
+          preencherListaDeClientes(listaCli, notaCli);
         });
-
-        var texto = no('div', 'linha-texto');
-        texto.appendChild(no('div', 'linha-titulo', c.nome));
-        var sub = no('div', 'linha-sub');
-        var fones = telefonesDoCliente(c);
-        sub.appendChild(document.createTextNode(
-          servicosDoCliente(c.id).length + ' registro(s)' +
-          (fones.length ? ' · ' + telefoneBonito(fones[0].numero) : '') +
-          (fones.length > 1 ? ' +' + (fones.length - 1) : '')));
-        texto.appendChild(sub);
-
-        var fim = no('div', 'linha-fim');
-        fim.appendChild(no('div', 'linha-valor num ' +
-          (atrasado ? 'vermelho' : r.restante > 0 ? 'ouro' : 'verde'), emReais(r.restante)));
-        var caiHoje = !atrasado && parcelasDeHoje(c.id).length > 0;
-        fim.appendChild(caiHoje
-          ? no('span', 'etiqueta hoje', 'cai hoje')
-          : no('span', 'etiqueta ' + sit.classe, sit.texto));
-
-        juntar(alvo, selo(atrasado ? '#FF6B6B' : sit.classe === 'quitado' ? '#3DDC84' : '#E9B44C',
-          c.nome.charAt(0).toUpperCase()), texto, fim);
-        linha.appendChild(alvo);
-
-        if (r.restante > 0 && temWhatsapp(c)) {
-          var zap = botao('linha-acao', null, function () {
-            abrirWhatsapp(c, mensagemDeCobranca(c));
-          });
-          zap.setAttribute('aria-label', 'Falar com ' + c.nome + ' no WhatsApp');
-          zap.style.color = '#25D366';
-          zap.appendChild(iconeWhatsapp());
-          linha.appendChild(zap);
+        campoBusca.addEventListener('focus', function () { buscaClientesFocada = true; });
+        campoBusca.addEventListener('blur', function () { buscaClientesFocada = false; });
+        busca.appendChild(campoBusca);
+        cClientes.appendChild(busca);
+        // A sincronização redesenha a tela inteira. Se a pessoa estava
+        // digitando, o campo novo volta com o foco e o cursor no fim.
+        if (buscaClientesFocada) {
+          setTimeout(function () {
+            if (!campoBusca.isConnected) return;
+            campoBusca.focus();
+            var fim = campoBusca.value.length;
+            try { campoBusca.setSelectionRange(fim, fim); } catch (e) { /* type=search em alguns aparelhos */ }
+          }, 0);
         }
+      }
 
-        if (temEndereco(c)) linha.appendChild(botaoDeRota(c));
-
-        cClientes.appendChild(linha);
-      });
+      cClientes.appendChild(notaCli);
+      cClientes.appendChild(listaCli);
+      preencherListaDeClientes(listaCli, notaCli);
     }
     tela.appendChild(cClientes);
 
+  }
+
+  // ---- busca e filtros da lista de clientes ---------------------------
+
+  var CLIENTES_PARA_BUSCA = 4;
+  var buscaClientes = '';
+  var buscaClientesFocada = false;
+  var FILTRO_CLIENTES_PADRAO = { situacao: 'todos', valor: 'qualquer', periodo: 'qualquer', ordem: 'atrasados' };
+  var filtroClientes = Object.assign({}, FILTRO_CLIENTES_PADRAO);
+
+  var OPCOES_FILTRO_CLIENTES = {
+    situacao: [
+      { valor: 'todos', rotulo: 'Todos' },
+      { valor: 'atrasado', rotulo: 'Atrasados' },
+      { valor: 'aberto', rotulo: 'Em aberto' },
+      { valor: 'hoje', rotulo: 'Cai hoje' },
+      { valor: 'quitado', rotulo: 'Quitados' }
+    ],
+    valor: [
+      { valor: 'qualquer', rotulo: 'Qualquer valor' },
+      { valor: 'ate500', rotulo: 'Até R$ 500' },
+      { valor: 'ate5mil', rotulo: 'R$ 500 a R$ 5 mil' },
+      { valor: 'acima5mil', rotulo: 'Acima de R$ 5 mil' }
+    ],
+    periodo: [
+      { valor: 'qualquer', rotulo: 'Qualquer data' },
+      { valor: '30', rotulo: 'Últimos 30 dias' },
+      { valor: '90', rotulo: 'Últimos 3 meses' },
+      { valor: '365', rotulo: 'Último ano' },
+      { valor: 'antigos', rotulo: 'Há mais de 1 ano' }
+    ],
+    ordem: [
+      { valor: 'atrasados', rotulo: 'Atrasados primeiro' },
+      { valor: 'maior', rotulo: 'Maior valor a receber' },
+      { valor: 'menor', rotulo: 'Menor valor a receber' },
+      { valor: 'vencimento', rotulo: 'Próximo vencimento' },
+      { valor: 'recente', rotulo: 'Registro mais recente' },
+      { valor: 'nome', rotulo: 'Nome (A–Z)' }
+    ]
+  };
+
+  // A ordem não conta como filtro ligado: ela não esconde ninguém.
+  function filtrosDeClientesLigados() {
+    var n = 0;
+    ['situacao', 'valor', 'periodo'].forEach(function (k) {
+      if (filtroClientes[k] !== FILTRO_CLIENTES_PADRAO[k]) n += 1;
+    });
+    if (filtroClientes.ordem !== FILTRO_CLIENTES_PADRAO.ordem) n += 1;
+    return n;
+  }
+
+  function filtrosQueEscondemClientes() {
+    return ['situacao', 'valor', 'periodo'].some(function (k) {
+      return filtroClientes[k] !== FILTRO_CLIENTES_PADRAO[k];
+    });
+  }
+
+  // A data do registro mais novo do cliente (serviço ou venda), ou ''.
+  function ultimoRegistroDoCliente(id) {
+    var s = servicosDoCliente(id);
+    return s.length ? String(s[0].data || '') : '';
+  }
+
+  function dataMenosDias(dias) {
+    var d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - dias);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function clientePassaNoFiltro(c, termo) {
+    if (termo) {
+      var nome = paraBusca(c.nome);
+      var digitos = termo.replace(/\D/g, '');
+      var achou = nome.indexOf(termo) >= 0;
+      // Telefone: compara só os números, para "51 98" achar "(51) 98...".
+      if (!achou && digitos.length >= 2) {
+        achou = telefonesDoCliente(c).some(function (t) {
+          return String(t.numero || '').replace(/\D/g, '').indexOf(digitos) >= 0;
+        });
+      }
+      if (!achou) return false;
+    }
+
+    var f = filtroClientes;
+    if (f.situacao !== 'todos') {
+      if (f.situacao === 'hoje') {
+        if (clienteAtrasado(c.id) || !parcelasDeHoje(c.id).length) return false;
+      } else {
+        var sit = situacaoCliente(c);
+        // "Em aberto" é quem deve e está em dia; quem nunca teve registro
+        // não deve nada e fica de fora.
+        if (f.situacao === 'aberto' && (sit.classe !== 'aberto' || resumoCliente(c.id).restante <= 0)) return false;
+        if (f.situacao !== 'aberto' && sit.classe !== f.situacao) return false;
+      }
+    }
+
+    if (f.valor !== 'qualquer') {
+      // Os valores moram em centavos: R$ 500 são 50000.
+      var resta = resumoCliente(c.id).restante;
+      if (f.valor === 'ate500' && !(resta > 0 && resta <= 50000)) return false;
+      if (f.valor === 'ate5mil' && !(resta > 50000 && resta <= 500000)) return false;
+      if (f.valor === 'acima5mil' && !(resta > 500000)) return false;
+    }
+
+    if (f.periodo !== 'qualquer') {
+      var ult = ultimoRegistroDoCliente(c.id);
+      if (!ult) return false;
+      if (f.periodo === 'antigos') { if (ult >= dataMenosDias(365)) return false; }
+      else if (ult < dataMenosDias(+f.periodo)) return false;
+    }
+    return true;
+  }
+
+  function ordenarClientes(lista) {
+    var ordem = filtroClientes.ordem;
+    var porNome = function (a, b) { return String(a.nome).localeCompare(String(b.nome), 'pt-BR'); };
+    return lista.slice().sort(function (a, b) {
+      if (ordem === 'nome') return porNome(a, b);
+      if (ordem === 'maior' || ordem === 'menor') {
+        var d = resumoCliente(b.id).restante - resumoCliente(a.id).restante;
+        return (ordem === 'maior' ? d : -d) || porNome(a, b);
+      }
+      if (ordem === 'vencimento') {
+        // Atrasado vence "antes de hoje", então vem primeiro; sem data, no fim.
+        var va = clienteAtrasado(a.id) ? (atrasoDoCliente(a.id).desde || '0') : proximoVencimento(a.id);
+        var vb = clienteAtrasado(b.id) ? (atrasoDoCliente(b.id).desde || '0') : proximoVencimento(b.id);
+        if (resumoCliente(a.id).restante <= 0) va = '';
+        if (resumoCliente(b.id).restante <= 0) vb = '';
+        if (va !== vb) { if (!va) return 1; if (!vb) return -1; return va < vb ? -1 : 1; }
+        return porNome(a, b);
+      }
+      if (ordem === 'recente') {
+        var ra = ultimoRegistroDoCliente(a.id), rb = ultimoRegistroDoCliente(b.id);
+        if (ra !== rb) return ra < rb ? 1 : -1;
+        return porNome(a, b);
+      }
+      // Padrão de sempre: quem está atrasado sobe para o topo, depois quem deve mais.
+      var atA = clienteAtrasado(a.id) ? 1 : 0;
+      var atB = clienteAtrasado(b.id) ? 1 : 0;
+      if (atA !== atB) return atB - atA;
+      return resumoCliente(b.id).restante - resumoCliente(a.id).restante;
+    });
+  }
+
+  function preencherListaDeClientes(listaCli, notaCli) {
+    listaCli.textContent = '';
+    notaCli.textContent = '';
+    var termo = paraBusca(buscaClientes);
+    var visiveis = ordenarClientes(estado.clientes.filter(function (c) {
+      return clientePassaNoFiltro(c, termo);
+    }));
+
+    if (termo || filtrosQueEscondemClientes()) {
+      var soma = visiveis.reduce(function (s, c) { return s + Math.max(resumoCliente(c.id).restante, 0); }, 0);
+      notaCli.appendChild(no('span', null, visiveis.length + ' de ' + estado.clientes.length + ' cliente(s)' +
+        (visiveis.length ? ' · ' + emReais(soma) + ' a receber' : '')));
+      notaCli.appendChild(botao('limpar-filtro', 'Limpar', function () {
+        buscaClientes = '';
+        filtroClientes = Object.assign({}, FILTRO_CLIENTES_PADRAO);
+        desenhar();
+      }));
+    }
+
+    if (!visiveis.length) {
+      listaCli.appendChild(estadoVazio('Nenhum cliente encontrado',
+        termo ? 'Ninguém com "' + buscaClientes.trim() + '" no nome ou no telefone' +
+          (filtrosQueEscondemClientes() ? ' dentro dos filtros escolhidos.' : '.')
+          : 'Nenhum cliente bate com os filtros escolhidos.'));
+      return;
+    }
+    visiveis.forEach(function (c) { listaCli.appendChild(linhaDeCliente(c)); });
+  }
+
+  function linhaDeCliente(c) {
+    var r = resumoCliente(c.id);
+    var sit = situacaoCliente(c);
+    var atrasado = sit.classe === 'atrasado';
+
+    var linha = no('div', 'linha linha-dupla' + (atrasado ? ' atrasada' : ''));
+    var alvo = botao('linha-alvo', null, function () {
+      if (atrasado) { abrirResumoAtraso(c.id); return; }
+      abrirFichaCliente(c.id);
+    });
+
+    var texto = no('div', 'linha-texto');
+    texto.appendChild(no('div', 'linha-titulo', c.nome));
+    var sub = no('div', 'linha-sub');
+    var fones = telefonesDoCliente(c);
+    sub.appendChild(document.createTextNode(
+      servicosDoCliente(c.id).length + ' registro(s)' +
+      (fones.length ? ' · ' + telefoneBonito(fones[0].numero) : '') +
+      (fones.length > 1 ? ' +' + (fones.length - 1) : '')));
+    texto.appendChild(sub);
+
+    var fim = no('div', 'linha-fim');
+    fim.appendChild(no('div', 'linha-valor num ' +
+      (atrasado ? 'vermelho' : r.restante > 0 ? 'ouro' : 'verde'), emReais(r.restante)));
+    var caiHoje = !atrasado && parcelasDeHoje(c.id).length > 0;
+    fim.appendChild(caiHoje
+      ? no('span', 'etiqueta hoje', 'cai hoje')
+      : no('span', 'etiqueta ' + sit.classe, sit.texto));
+
+    juntar(alvo, selo(atrasado ? '#FF6B6B' : sit.classe === 'quitado' ? '#3DDC84' : '#E9B44C',
+      c.nome.charAt(0).toUpperCase()), texto, fim);
+    linha.appendChild(alvo);
+
+    if (r.restante > 0 && temWhatsapp(c)) {
+      var zap = botao('linha-acao', null, function () {
+        abrirWhatsapp(c, mensagemDeCobranca(c));
+      });
+      zap.setAttribute('aria-label', 'Falar com ' + c.nome + ' no WhatsApp');
+      zap.style.color = '#25D366';
+      zap.appendChild(iconeWhatsapp());
+      linha.appendChild(zap);
+    }
+
+    if (temEndereco(c)) linha.appendChild(botaoDeRota(c));
+    return linha;
+  }
+
+  // A folha dos filtros trabalha num rascunho: só "Aplicar" muda a lista.
+  function abrirFiltroClientes() {
+    var rascunho = Object.assign({}, filtroClientes);
+    abrirFolha('Filtrar clientes', function (folha) {
+      var forma = no('div', 'filtro-clientes');
+      var contador = botao('btn btn-ouro', '', function () {
+        filtroClientes = rascunho;
+        fecharFolha();
+        desenhar();
+      });
+      function atualizarContador() {
+        var salvo = filtroClientes;
+        filtroClientes = rascunho;
+        var termo = paraBusca(buscaClientes);
+        var n = estado.clientes.filter(function (c) { return clientePassaNoFiltro(c, termo); }).length;
+        filtroClientes = salvo;
+        contador.textContent = n ? 'Mostrar ' + n + ' cliente(s)' : 'Nenhum cliente com esses filtros';
+        contador.disabled = !n;
+      }
+      [
+        ['situacao', 'Situação'],
+        ['valor', 'Valor a receber'],
+        ['periodo', 'Último registro'],
+        ['ordem', 'Ordenar por']
+      ].forEach(function (grupo) {
+        forma.appendChild(campo(grupo[1], grupoChips(OPCOES_FILTRO_CLIENTES[grupo[0]], rascunho[grupo[0]], function (v) {
+          rascunho[grupo[0]] = v;
+          atualizarContador();
+        })));
+      });
+
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(contador);
+      acoes.appendChild(botao('btn btn-fantasma', 'Limpar filtros', function () {
+        filtroClientes = Object.assign({}, FILTRO_CLIENTES_PADRAO);
+        fecharFolha();
+        desenhar();
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      atualizarContador();
+    });
   }
 
   // O que venceu e ainda não foi pago, com o atalho para o WhatsApp.
