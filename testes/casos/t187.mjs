@@ -50,8 +50,8 @@ const chip = (grupo, rotulo) => page.click('#folha .campo:has-text("' + grupo + 
 const aplicar = () => page.click('#folha .acoes .btn-ouro');
 
 conferir('1. com 6 clientes, aparece a busca', (await card.locator('.busca-clientes input').count()) === 1);
-const lado = await card.locator('.cartao-topo-fim').evaluate(n => [...n.children].map(x => (x.classList.contains('botao-filtro') ? 'filtro' : x.textContent.trim())).join('|')).catch(() => '');
-conferir('2. o botão de filtros fica do lado do "+ Novo"', lado === 'filtro|+ Novo', lado);
+const lado = await card.locator('.cartao-topo-fim').evaluate(n => [...n.children].map(x => (x.classList.contains('botao-filtro') ? 'filtro' : x.classList.contains('dica-i-botao') ? 'i' : x.textContent.trim())).join('|')).catch(() => '');
+conferir('2. o botão de filtros fica do lado do "+ Novo"', lado === 'i|filtro|+ Novo', lado);
 await card.screenshot({ path: dir + '/z123-clientes-busca.png' });
 
 await card.locator('.busca-clientes input').fill('gust'); await page.waitForTimeout(300);

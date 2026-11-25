@@ -47,6 +47,8 @@ const ativa = async () => limpo(await page.textContent('#folha .mes-fatura.ativa
 const painel = async () => limpo(await page.textContent('#folha .painel-fatura').catch(() => ''));
 const meses = limpo(await page.textContent('#folha .meses-fatura').catch(() => ''));
 conferir('1. os meses de fatura ficam numa faixa no topo', /outubro.*novembro.*dezembro/.test(meses), meses);
+const vincDez = limpo(await page.textContent('#folha .vinculo-fatura').catch(() => ''));
+conferir('2b. dezembro é só a fatura, sem pagamento ligado', /Só a fatura\s*Nenhum pagamento no extrato/.test(vincDez), vincDez);
 conferir('2. abre na fatura aberta (dezembro)', (await ativa()) === 'dezembro' && /Fatura aberta/.test(await painel()), (await ativa()) + ' · ' + (await painel()).slice(0, 80));
 await page.locator('#folha .cartao-faturas-mes').scrollIntoViewIfNeeded();
 await page.locator('#folha .cartao-faturas-mes').screenshot({ path: dir + '/z113-fatura-dezembro.png' });
@@ -66,6 +68,12 @@ conferir('3. arrastando para o lado, vai para novembro', (await ativa()) === 'no
 conferir('4. novembro: paga, com a conta da fatura e o valor a pagar zerado',
   /Fatura paga/.test(nov) && /Compras e débitos\s*R\$ 2\.462,35/.test(nov) && /das quais parcelas\s*R\$ 2\.180,55/.test(nov) &&
   /Pago em 10\/11\/2026 · Banco Inter\s*− R\$ 2\.462,35/.test(nov) && /Valor a pagar\s*R\$ 0,00/.test(nov), nov.slice(0, 220));
+// O elo: novembro foi paga pelo Inter no mesmo mês, então está vinculada.
+const eloNov = await page.locator('#folha .mes-fatura[data-chave="2026-11"] .elo-fatura').count();
+const eloDez = await page.locator('#folha .mes-fatura[data-chave="2026-12"] .elo-fatura').count();
+const vincNov = limpo(await page.textContent('#folha .vinculo-fatura').catch(() => ''));
+conferir('4b. novembro tem o elo e diz que está vinculada ao extrato; dezembro não tem', eloNov === 1 && eloDez === 0 &&
+  /Vinculada ao extrato\s*O pagamento de 10\/11\/2026 no Banco Inter liga com ela/.test(vincNov), vincNov);
 const lanc = limpo(await page.textContent('#folha .cartao-faturas-mes').catch(() => ''));
 conferir('5. os lançamentos da fatura aparecem, com a parcela do lado', /JIM\.COM\* VITOR TORRES - Parcela 5\/10/.test(lanc) && /Parcela 5 de 10/.test(lanc));
 const falt = limpo(await page.textContent('#folha .parcelas-faltando').catch(() => ''));

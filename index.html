@@ -2409,6 +2409,18 @@
   .mes-fatura .ponto.paga { background: var(--verde); }
   .mes-fatura .ponto.vencida { background: var(--vermelho); }
   .mes-fatura .ponto.aberta, .mes-fatura .ponto.futura { background: var(--ouro); }
+  /* O elo no mês: a fatura está vinculada ao extrato (pedido de 25/11/2026). */
+  .mes-fatura .elo-fatura { display: inline-grid; vertical-align: middle; margin-left: 5px; color: var(--ouro); }
+  .mes-fatura .elo-fatura svg { width: 14px; height: 14px; }
+  .vinculo-fatura { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
+    font-size: 13px; line-height: 1.4; border: 1px solid var(--borda); color: var(--suave); }
+  .vinculo-fatura .elo-icone { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+    border: 1px solid currentColor; }
+  .vinculo-fatura .elo-icone svg { width: 16px; height: 16px; }
+  .vinculo-fatura strong { display: block; color: var(--texto); font-size: 13.5px; }
+  .vinculo-fatura.ligada { border-color: rgba(233,180,76,.5); background: rgba(233,180,76,.07); }
+  .vinculo-fatura.ligada .elo-icone { color: var(--ouro); }
+  .vinculo-fatura.outro-mes .elo-icone, .vinculo-fatura.so-fatura .elo-icone { color: var(--fraco); }
   .painel-fatura { padding: 14px 16px 6px; touch-action: pan-y; }
   .painel-fatura.entra-dir { animation: fatura-dir .28s ease; }
   .painel-fatura.entra-esq { animation: fatura-esq .28s ease; }
@@ -8831,7 +8843,7 @@
     topo.appendChild(t);
     var fim = info ? no('div', 'cartao-topo-fim') : topo;
     if (info) {
-      fim.appendChild(botaoDeInfo(info.chave, info.titulo || titulo, info.itens));
+      fim.appendChild(botaoDeInfo(info.chave + (info.versao > 1 ? '.v' + info.versao : ''), info.titulo || titulo, info.itens));
       topo.appendChild(fim);
     }
     if (textoAcao) {
@@ -8953,6 +8965,7 @@
     alvo: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
     maleta: 'M4 8.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM9 8.5v-2a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6.5v2M3 13h18',
     mais: 'M12 5v14M5 12h14',
+    elo: 'M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1',
     filtros: 'M4 6h8M16 6h4M12 6a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 12h2M10 12h10M6 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 18h10M18 18h2M14 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
     lupa: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM16.2 16.2 21 21',
     lapis: 'M4.5 19.5h4L19 9a2.12 2.12 0 0 0-3-3L5.5 16.5v3zM14.5 6.5l3 3',
@@ -12150,9 +12163,10 @@
     if (chaves.indexOf(escolhida) < 0) escolhida = aberta && chaves.indexOf(aberta.chave) >= 0 ? aberta.chave : chaves[chaves.length - 1];
 
     var c = cartao('liso cartao-faturas-mes');
-    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', itens: [
+    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', versao: 2, itens: [
       'Cada mês de fatura numa aba. Arraste para o lado, ou toque no mês lá em cima, para ver outra.',
       'O pontinho do mês diz a situação: verde é paga, dourado é aberta ou futura, vermelho é vencida sem pagamento.',
+      'O elo (🔗) do lado do mês quer dizer que a fatura está vinculada ao extrato: o pagamento dela apareceu numa conta sua, no mesmo valor e no mesmo mês. Aí as compras contam nos gastos, no lugar do pagamento. Sem o elo, é só a fatura: conta o pagamento, se houver.',
       'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
       'Compra parcelada com parcelas que ainda não estão nas próximas faturas aparece embaixo, com o botão para lançar. O app pergunta antes, uma por uma.'] });
     topo.style.padding = '16px 16px 0';
@@ -12177,6 +12191,12 @@
         b.setAttribute('aria-selected', f.chave === chave ? 'true' : 'false');
         b.setAttribute('data-chave', f.chave);
         b.appendChild(document.createTextNode(MESES[+p[1] - 1]));
+        if (f.ligada && f.pagamento) {
+          var elo = no('span', 'elo-fatura');
+          elo.appendChild(icone('elo'));
+          elo.setAttribute('aria-label', 'vinculada ao extrato');
+          b.appendChild(elo);
+        }
         b.appendChild(no('span', 'ponto ' + (f.situacao || '')));
         if (+p[0] !== anoHoje) b.appendChild(no('small', null, p[0]));
         faixa.appendChild(b);
@@ -12227,6 +12247,24 @@
       vencida: ['!', 'Fatura vencida, sem pagamento'], futura: ['›', 'Fatura futura'] };
     var n = nomes[f.situacao] || nomes.fechada;
     p.appendChild(juntar(no('div', 'situacao-grande ' + (f.situacao || 'fechada')), no('span', 'marca', n[0]), no('span', null, n[1])));
+
+    // Vinculada ao extrato ou só a fatura (pedido de 25/11/2026).
+    var contaDoPg = f.pagamento ? achar(estado.contas, f.pagamento.contaId) : null;
+    var mesDaFatura = MESES[+f.chave.slice(5, 7) - 1];
+    var vinc = f.ligada && f.pagamento ? ['ligada', 'Vinculada ao extrato',
+        'O pagamento de ' + dataBr(f.pagamento.data) + (contaDoPg ? ' no ' + contaDoPg.nome : '') +
+        ' liga com ela. As compras desta fatura contam nos gastos de ' + mesDaFatura + ', no lugar do pagamento.']
+      : f.pagamento ? ['outro-mes', 'Paga, mas fora do mês',
+        'O pagamento de ' + dataBr(f.pagamento.data) + (contaDoPg ? ' no ' + contaDoPg.nome : '') +
+        ' é de outro mês, então não vincula. Nos gastos entra o pagamento, não as compras.']
+      : ['so-fatura', 'Só a fatura',
+        f.situacao === 'paga' ? 'Quitada por crédito dentro do próprio cartão, sem pagamento no extrato de uma conta.'
+          : 'Nenhum pagamento no extrato das suas contas liga com ela (mesmo valor, mesmo mês). Por enquanto as compras não contam nos gastos.'];
+    var cxVinc = no('div', 'vinculo-fatura ' + vinc[0]);
+    var ic = no('span', 'elo-icone');
+    ic.appendChild(icone(vinc[0] === 'ligada' ? 'elo' : 'extrato'));
+    juntar(cxVinc, ic, juntar(no('div'), no('strong', null, vinc[1]), document.createTextNode(vinc[2])));
+    p.appendChild(cxVinc);
 
     var linhas = [];
     var compras = f.total;
@@ -17561,6 +17599,11 @@
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     var fimTopo = no('div', 'cartao-topo-fim');
+    fimTopo.appendChild(botaoDeInfo('clientes.lista', 'Clientes', [
+      'Cada cliente mostra quanto ainda falta receber dele e a situação: atrasado, em aberto, cai hoje ou quitado. Quem está atrasado sobe para o topo.',
+      'Com 4 clientes ou mais aparece a busca, pelo nome ou por um pedaço do telefone.',
+      'O botão de filtros mostra só uma situação, uma faixa de valor ou a data do último registro, e muda a ordem da lista. Com filtro ligado, ele mostra quantos estão ligados; "Limpar" volta tudo.',
+      'Na parcela de um cliente, "Cliente não pagou" cobra juros ou multa, manda a cobrança no WhatsApp ou dá a parcela como perdida.']));
     if (comBusca || nFiltros) {
       var bFiltro = botao('botao-info botao-filtro' + (nFiltros ? ' ligado' : ''), null, function () { abrirFiltroClientes(); });
       bFiltro.setAttribute('aria-label', nFiltros ? 'Filtros dos clientes (' + nFiltros + ' ligado(s))' : 'Filtrar e ordenar clientes');
