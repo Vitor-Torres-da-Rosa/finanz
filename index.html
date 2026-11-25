@@ -2880,7 +2880,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.106.0';
+  var VERSAO = '5.107.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2889,6 +2889,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.107.0',
+      data: '2026-11-25',
+      itens: [
+        'Compartilhado cifrado de ponta a ponta: com a senha dos dados dos dois lados, a área do Empreendedor que você compartilha (Doces, Uber, Casa) vai cifrada com uma chave só de vocês dois. O servidor não lê.',
+        'Cada pessoa ganha um par de chaves (a privada fica trancada com a senha dela). A chave da área vai no convite, embrulhada para quem foi convidado: só essa pessoa desembrulha.',
+        'Se quem foi convidado ainda não criou a senha dos dados, o app avisa: até criar, a área não abre, e nada dela sobe aberto. Depois de criar, quem compartilhou precisa abrir o app uma vez para liberar a chave.'
+      ]
+    },
     {
       versao: '5.106.0',
       data: '2026-11-25',
