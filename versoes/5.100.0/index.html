@@ -352,6 +352,8 @@
   .busca input { flex: 1; border: 0; background: none; outline: none; padding: 13px 0; font-size: 14.5px; }
   .busca .lupa { color: var(--suave); display: grid; place-items: center; flex: 0 0 auto; }
   .busca .lupa svg { width: 18px; height: 18px; }
+  .arquivos-soltos { margin: 0 16px 10px; font-size: 12.5px; color: var(--suave); line-height: 1.45; }
+  .arquivos-soltos .link-ouro { background: none; border: 0; padding: 0; color: var(--ouro); font-weight: 600; font-size: 12.5px; }
   /* O "x" de limpar a busca vinha azul do sistema; agora é dourado. */
   .busca input::-webkit-search-cancel-button {
     -webkit-appearance: none; appearance: none; width: 16px; height: 16px; cursor: pointer;
@@ -629,6 +631,104 @@
   .meta-legenda { display: flex; justify-content: space-between; font-size: 11.5px;
                   color: var(--fraco); margin-top: 6px; }
 
+  /* Boas-vindas de conta nova (pedido de 25/11/2026): como os dados ficam
+     guardados e protegidos, como o app lê os extratos, e o aviso grande de
+     que sem dados o app não consegue estimar nada. */
+  .boas-vindas { position: fixed; inset: 0; z-index: 400; background: #0A0806; display: flex; flex-direction: column;
+    padding: calc(22px + env(safe-area-inset-top)) 22px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; }
+  .bv-pular { align-self: flex-end; background: none; border: 0; color: var(--suave); font-size: 14px; padding: 6px 2px; }
+  .bv-passo { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 14px; max-width: 460px; margin: 0 auto; width: 100%; }
+  .bv-icone { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 28px;
+    background: rgba(233,180,76,.12); border: 1px solid rgba(233,180,76,.35); }
+  .bv-titulo { font-size: 24px; font-weight: 700; line-height: 1.2; margin: 0; }
+  .bv-item { display: flex; gap: 12px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; color: var(--suave); }
+  .bv-item b { color: var(--texto); font-weight: 600; }
+  .bv-item .bv-marca { flex: 0 0 auto; color: var(--ouro); font-weight: 700; margin-top: 1px; }
+  .bv-alerta { border: 2px solid var(--ouro); border-radius: 20px; padding: 18px; background: rgba(233,180,76,.10);
+    box-shadow: 0 0 0 6px rgba(233,180,76,.07); }
+  .bv-alerta .bv-titulo { color: var(--ouro); }
+  .bv-pontos { display: flex; justify-content: center; gap: 7px; margin: 16px 0 12px; }
+  .bv-pontos span { width: 7px; height: 7px; border-radius: 50%; background: var(--borda); transition: all .25s ease; }
+  .bv-pontos span.ativo { width: 22px; border-radius: 4px; background: var(--ouro); }
+  .bv-acoes { display: grid; gap: 10px; max-width: 460px; margin: 0 auto; width: 100%; }
+  /* O cartão de Início enquanto faltam dados. */
+  .cartao-faltam-dados { border: 2px solid var(--ouro) !important; background: linear-gradient(160deg, rgba(233,180,76,.16), rgba(233,180,76,.03)) !important; }
+  .cartao-faltam-dados .fd-titulo { display: flex; gap: 10px; align-items: center; font-size: 17px; font-weight: 700; color: var(--ouro); }
+  .cartao-faltam-dados p { margin: 8px 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--texto); }
+  .fd-linha { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(233,180,76,.2); font-size: 14px; }
+  .fd-linha .fd-check { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px;
+    border: 1.5px solid var(--fraco); color: transparent; }
+  .fd-linha.feito .fd-check { border-color: var(--verde); background: var(--verde); color: #0b0b0b; }
+  .fd-linha.feito .fd-nome { color: var(--suave); text-decoration: line-through; }
+  .fd-linha .fd-nome { flex: 1 1 auto; }
+  .fd-linha .btn-mini { flex: 0 0 auto; }
+  /* Renda fixa no topo de Investimentos (pedido de 25/11/2026): quadrados
+     que deslizam para o lado e andam sozinhos. */
+  .vitrine-rf { margin: 0 -16px 6px; }
+  .vitrine-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 16px 10px; }
+  .vitrine-titulo strong { font-size: 15px; }
+  .vitrine-trilho { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .vitrine-trilho::-webkit-scrollbar { display: none; }
+  .quadro-rf { flex: 0 0 158px; height: 168px; scroll-snap-align: start; border-radius: 18px; padding: 12px 13px;
+    background: linear-gradient(160deg, rgba(233,180,76,.10), rgba(255,255,255,.02)); border: 1px solid var(--borda);
+    display: flex; flex-direction: column; gap: 3px; position: relative; overflow: hidden; text-align: left; color: inherit; font: inherit; }
+  .quadro-rf .q-tipo { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ouro); }
+  .quadro-rf .q-nome { font-size: 12.5px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .quadro-rf .q-valor { font-size: 21px; font-weight: 700; color: var(--texto); letter-spacing: -.01em; }
+  .quadro-rf .q-sub { font-size: 11.5px; color: var(--suave); line-height: 1.35; }
+  .quadro-rf .q-var { font-size: 11.5px; font-weight: 600; }
+  .quadro-rf .q-var.sobe { color: var(--verde); } .quadro-rf .q-var.desce { color: var(--vermelho); }
+  .quadro-rf svg.q-linha { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 46px; opacity: .9; }
+  .quadro-rf .q-selo { position: absolute; top: 10px; right: 10px; font-size: 10px; color: var(--fraco); border: 1px solid var(--borda);
+    border-radius: 999px; padding: 0 6px; }
+  .quadro-rf.anotar { align-items: center; justify-content: center; text-align: center; border-style: dashed; color: var(--ouro); font-weight: 600; }
+  .quadro-rf.aviso { flex-basis: 260px; }
+  .vitrine-fonte { margin: 4px 16px 0; font-size: 11px; color: var(--fraco); line-height: 1.4; }
+  .tipos-invest { margin: 10px 0 12px; }
+  .tipos-invest .chip { white-space: nowrap; }
+  .oferta-linha .linha-sub b { color: var(--texto); font-weight: 600; }
+  /* Orçamento estourado (pedido de 25/11/2026): a barra do planejado com o
+     que passou em vermelho, onde mais saiu e dois caminhos lado a lado. */
+  .achado-sub { font-size: 12.5px; color: var(--suave); margin: -2px 0 0; }
+  .barra-orcamento { position: relative; height: 10px; border-radius: 6px; background: rgba(255,255,255,.07);
+    overflow: hidden; margin-top: 14px; display: flex; }
+  .barra-orcamento .dentro { background: var(--ouro); height: 100%; }
+  .barra-orcamento .passou { background: var(--vermelho); height: 100%; }
+  .barra-orcamento .marco { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--texto); opacity: .75; }
+  .legenda-orcamento { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--suave); margin-top: 8px; }
+  .legenda-orcamento b { color: var(--texto); font-weight: 600; }
+  .legenda-orcamento .vermelho b { color: var(--vermelho); }
+  /* O que subiu em relação ao mês passado (pedido de 25/11/2026): categoria
+     abre as subcategorias, subcategoria abre os gastos, gasto abre a fonte. */
+  .comparativo { margin-top: 12px; border-top: 1px solid var(--borda); }
+  .comp-linha { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: inherit;
+    text-align: left; padding: 10px 0; border-bottom: 1px solid rgba(198,158,78,.12); font: inherit; }
+  .comp-linha .comp-nome { flex: 1 1 auto; min-width: 0; }
+  .comp-linha .comp-nome b { display: block; font-size: 14px; font-weight: 600; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .comp-linha .comp-nome span { display: block; font-size: 12px; color: var(--suave); margin-top: 2px; }
+  .comp-linha .comp-dif { flex: 0 0 auto; font-weight: 700; font-size: 14px; color: var(--vermelho); }
+  .comp-linha .comp-seta { flex: 0 0 auto; color: var(--fraco); transition: transform .2s ease; font-size: 15px; }
+  .comp-linha.aberta .comp-seta { transform: rotate(90deg); color: var(--ouro); }
+  .comp-dentro { padding-left: 12px; border-left: 2px solid var(--borda); margin: 0 0 4px 4px; }
+  .comp-dentro[hidden] { display: none; }
+  .comp-dentro .comp-linha b { font-size: 13.5px; }
+  .comp-gasto .comp-dif { color: var(--texto); font-weight: 600; font-size: 13px; }
+  .comp-linha .comp-dif.caiu { color: var(--verde); }
+  .comp-linha .comp-dif.neutro { color: var(--texto); }
+  .comp-bola { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; }
+  .resumos-achado { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 12px; }
+  .resumo-achado { border: 1px solid var(--borda); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+  .resumo-achado span { display: block; font-size: 11px; color: var(--suave); }
+  .resumo-achado b { display: block; font-size: 14px; margin-top: 2px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rosca-achado { margin: 14px auto 4px; }
+  .rotulo-comparativo { margin-top: 14px; }
+  .comp-gasto .comp-fonte { flex: 0 0 auto; font-size: 11px; color: var(--ouro); border: 1px solid rgba(233,180,76,.4);
+    border-radius: 999px; padding: 1px 7px; }
+  .acoes-achado { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .acoes-achado button { min-height: 44px; border-radius: 12px; font-size: 13px; font-weight: 600; padding: 8px 10px;
+    border: 1px solid rgba(233,180,76,.45); background: rgba(233,180,76,.06); color: var(--ouro); }
+  .acoes-achado button.principal { background: linear-gradient(135deg, #F3D58C, #E9B44C 55%, #C9953A); color: #1A1306; border-color: transparent; }
   .btn-acao { margin-top: 14px; color: var(--ouro); font-size: 13.5px; font-weight: 600;
               padding: 10px 0; text-align: left; width: 100%; min-height: 44px; }
   .btn-acao:active { opacity: .6; }
@@ -2409,6 +2509,14 @@
   .mes-fatura .ponto.paga { background: var(--verde); }
   .mes-fatura .ponto.vencida { background: var(--vermelho); }
   .mes-fatura .ponto.aberta, .mes-fatura .ponto.futura { background: var(--ouro); }
+  /* O elo no mês: a fatura está vinculada ao extrato (pedido de 25/11/2026). */
+  .mes-fatura .elo-fatura { display: inline-grid; vertical-align: middle; margin-left: 5px; color: var(--ouro); }
+  .mes-fatura .elo-fatura svg { width: 14px; height: 14px; }
+  .situacao-grande { flex-wrap: wrap; }
+  .vinculo-fatura { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600; border: 1px solid var(--borda); color: var(--fraco); white-space: nowrap; }
+  .vinculo-fatura svg { width: 13px; height: 13px; }
+  .situacao-grande .vinculo-fatura.ligada { color: var(--ouro); border-color: rgba(233,180,76,.5); background: rgba(233,180,76,.08); }
   .painel-fatura { padding: 14px 16px 6px; touch-action: pan-y; }
   .painel-fatura.entra-dir { animation: fatura-dir .28s ease; }
   .painel-fatura.entra-esq { animation: fatura-esq .28s ease; }
@@ -2578,7 +2686,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.95.0';
+  var VERSAO = '5.100.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2587,6 +2695,54 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.100.0',
+      data: '2026-11-25',
+      itens: [
+        'Conta nova: as boas-vindas explicam onde seus dados ficam e quem vê, como o app lê os extratos (no seu celular, e você confere antes de entrar), o que nunca acontece (nada é vendido, compartilhado ou rastreado) e avisam bem grande que sem dados o app não consegue estimar seus gastos e receitas. Dá para reler em Mais, em "Como seus dados são protegidos".',
+        'No Início, enquanto faltam dados, um cartão grande em primeiro lugar mostra o que preencher: conta de banco, extrato importado, cartão e 3 meses de lançamentos, com o botão de cada um. Ele some quando o app já tem o que precisa.',
+        'Distribuição de gastos: saiu a nota "fatura paga ficou de fora" embaixo da lista. A conta é a mesma.'
+      ]
+    },
+    {
+      versao: '5.99.0',
+      data: '2026-11-25',
+      itens: [
+        'Investimentos: no topo, "Renda fixa hoje", com quadrados que deslizam para o lado e andam sozinhos. Selic, CDI e IPCA vêm do Banco Central, com a linha do último ano e quanto mudaram em 12 meses. Dois quadrados fazem a conta de um CDB a 110% do CDI e de uma LCI/LCA a 95%, com o líquido depois do imposto.',
+        'Você anota as ofertas que vê no banco ou na corretora (banco, tipo, taxa e vencimento) e elas viram quadrados também, da que mais rende líquido para a que menos. Ficam guardadas na sua conta. Sem um nome de banco anotado por você, o app não mostra oferta nenhuma: não existe fonte pública com as taxas de cada banco, e o app não inventa número.',
+        'Os tipos de investimento já estão para escolher (renda fixa, renda variável, fundos imobiliários, cripto, fundos, Tesouro, previdência e exterior). Por enquanto, só a renda fixa mostra conteúdo.',
+        'Mais: ficou só a saúde financeira. A análise do mês mora no sino.'
+      ]
+    },
+    {
+      versao: '5.98.0',
+      data: '2026-11-25',
+      itens: [
+        'Análise do mês: um relatório só, "Seus gastos de novembro". Em cima, quanto saiu, a diferença para o mês passado e o orçamento (com a barra do planejado e do que passou). No meio, a rosca. Embaixo, todas as categorias, com o valor do mês e o do mês anterior, da que mais subiu para a que mais caiu.',
+        'Tocando numa categoria abrem as subcategorias; numa subcategoria, cada gasto; e no gasto, de onde ele veio: o extrato importado, a fatura do cartão naquele mês ou o próprio lançamento. Ele junta os antigos "acima do padrão" e "orçamento estourado". Tem "Ver as saídas" e "Rever o planejamento".',
+        'Os outros cartões da análise falam mais claro: "Você guardou mais que a meta", "Você gastou menos com…", os meses pelo nome, e "sobrou" ou "faltou" no lugar de sinal de menos.'
+      ]
+    },
+    {
+      versao: '5.97.0',
+      data: '2026-11-25',
+      itens: [
+        'A carteira (dinheiro físico) também mostra os dias, contados desde o último lançamento dela. Lançamento agendado para depois de hoje não conta.',
+        'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia", em todas as contas e no sino.',
+        'Faturas: "Vinculada ao extrato", "Paga fora do mês" ou "Só a fatura" agora é uma etiqueta pequena do lado da situação, sem o texto embaixo. A explicação ficou no "i" das Faturas, que abre mais uma vez para mostrar.',
+        'Na tela do cartão saiu o "Últimos gastos": as compras de cada mês já aparecem em "Lançamentos desta fatura".',
+        'Extratos de uma conta: a contagem de arquivos guardados agora bate com a lista. Os arquivos que sobraram de importações já tiradas aparecem à parte, com o tamanho e um botão para apagar.',
+        'Parcelas: a sugestão de lançar fica embaixo dos lançamentos da fatura, na fatura onde a parcela deve cair e ainda não está, tenha ela outros lançamentos ou não. Em cada compra você escolhe lançar só a parcela daquele mês ou ela e as próximas.'
+      ]
+    },
+    {
+      versao: '5.96.0',
+      data: '2026-11-25',
+      itens: [
+        'Faturas do cartão: o mês que está vinculado ao extrato (o pagamento dele apareceu numa conta sua, no mesmo valor e no mesmo mês) ganha um elo do lado do nome. Dentro do mês, um quadro diz se a fatura está "Vinculada ao extrato", "Paga, mas fora do mês" ou se é "Só a fatura", e o que isso muda nos gastos.',
+        'O "i" acompanha o app: quando uma parte muda de um jeito importante, a explicação do "i" é atualizada e ele abre sozinho mais uma vez para mostrar o que mudou. O das Faturas já abre de novo com o elo. A lista de clientes ganhou o seu "i", com a busca, os filtros e o "Cliente não pagou".'
+      ]
+    },
     {
       versao: '5.95.0',
       data: '2026-11-25',
@@ -4660,6 +4816,8 @@
       propostas: [],
       // O que você já disse sobre cada despesa que se repete.
       revisados: {},
+      // Ofertas de renda fixa que a pessoa anotou (Investimentos).
+      ofertasRf: [],
       clientes: [],
       servicos: [],
       pagamentos: [],
@@ -5016,6 +5174,8 @@
         limpo.subcategoriasExtras[tipo] = guardado;
       });
     }
+
+    if (Array.isArray(bruto.ofertasRf)) limpo.ofertasRf = limparOfertasRf(bruto.ofertasRf);
 
     if (Array.isArray(bruto.importacoes)) {
       limpo.importacoes = bruto.importacoes.filter(function (i) {
@@ -6700,6 +6860,7 @@
       taxas: p.taxas && p.taxas.bandeiras ? p.taxas : {},
       meta_economia: p.metaEconomia || 20,
       revisados: estado.revisados || {},
+      ofertas_rf: estado.ofertasRf || [],
       orcamento_geral: estado.orcamentos.geral,
       objetivos: p.objetivos || []
     };
@@ -6736,7 +6897,8 @@
     lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
     servicos: ['despesas'],
     pagamentos: ['obs'],
-    contas: ['limite']
+    contas: ['limite'],
+    perfis: ['ofertas_rf']
   };
 
   function oQueFaltou(e, tabela) {
@@ -7106,6 +7268,7 @@
         novo.perfil.taxas = perfil.taxas;
       }
       if (perfil.revisados && typeof perfil.revisados === 'object') novo.revisados = perfil.revisados;
+      if (Array.isArray(perfil.ofertas_rf)) novo.ofertasRf = limparOfertasRf(perfil.ofertas_rf);
       novo.perfil.metaEconomia = perfil.meta_economia || 20;
       novo.perfil.negocio = perfil.negocio || '';
       novo.perfil.contato = perfil.contato || '';
@@ -8831,7 +8994,7 @@
     topo.appendChild(t);
     var fim = info ? no('div', 'cartao-topo-fim') : topo;
     if (info) {
-      fim.appendChild(botaoDeInfo(info.chave, info.titulo || titulo, info.itens));
+      fim.appendChild(botaoDeInfo(info.chave + (info.versao > 1 ? '.v' + info.versao : ''), info.titulo || titulo, info.itens));
       topo.appendChild(fim);
     }
     if (textoAcao) {
@@ -8953,6 +9116,7 @@
     alvo: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
     maleta: 'M4 8.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM9 8.5v-2a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6.5v2M3 13h18',
     mais: 'M12 5v14M5 12h14',
+    elo: 'M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1',
     filtros: 'M4 6h8M16 6h4M12 6a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 12h2M10 12h10M6 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 18h10M18 18h2M14 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
     lupa: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM16.2 16.2 21 21',
     lapis: 'M4.5 19.5h4L19 9a2.12 2.12 0 0 0-3-3L5.5 16.5v3zM14.5 6.5l3 3',
@@ -9883,6 +10047,143 @@
     rodape.appendChild(document.createTextNode('Já tem uma conta? '));
     rodape.appendChild(botao(null, 'Entrar', function () { cadastro = null; irEntrada('login'); }));
     folha.appendChild(rodape);
+  }
+
+  // ---------- Boas-vindas: dados, proteção e o aviso de preencher ----------
+  //
+  // Pedido do Vitor em 25/11/2026. Abre sozinha uma vez, na conta nova, e
+  // fica em Mais para reler. Tudo o que está escrito aqui é o que o app faz
+  // de fato (confira a Política de Privacidade, logo abaixo): os dados
+  // ficam guardados na conta, e por isso não dá para dizer que "nada é
+  // coletado" — dá para dizer, e é verdade, que nada é vendido, usado para
+  // propaganda ou rastreado.
+
+  function passosDeBoasVindas() {
+    var naNuvem = NUVEM.ligada;
+    return [
+      { icone: '🔒', titulo: 'Seus dados são seus', itens: naNuvem ? [
+        ['Guardados na sua conta.', 'Ficam no servidor do Finanz (Supabase, em São Paulo) e numa cópia no seu celular.'],
+        ['Só você vê os seus.', 'O próprio banco de dados só devolve as linhas de quem está logado, mesmo que alguém tente pedir outra coisa.'],
+        ['Cifrados no aparelho.', 'A cópia do celular é guardada com criptografia AES de 256 bits.'],
+        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
+      ] : [
+        ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
+        ['Cifrados.', 'Guardados com criptografia AES de 256 bits, com a chave tirada da sua senha.']
+      ] },
+      { icone: '📄', titulo: 'Como o app lê seus extratos', itens: [
+        ['A leitura é feita aqui, no seu celular.', 'O app abre o PDF, a planilha, o OFX ou o CSV e tira só data, descrição e valor de cada linha.'],
+        ['Você confere antes de entrar.', 'Tudo aparece numa lista para você marcar, desmarcar e trocar a categoria. Nada entra sozinho.'],
+        ['O arquivo original fica na sua conta.', 'Serve para baixar de novo ou reler o extrato. Dá para apagar quando quiser.'],
+        ['O app não entra no seu banco.', 'Ele nunca pede a senha do banco e não movimenta dinheiro: só lê o arquivo que você escolhe.']
+      ] },
+      { icone: '🛡️', titulo: 'O que nunca acontece', itens: [
+        ['Nada é vendido nem compartilhado.', 'Seus dados não vão para anunciantes, parceiros ou terceiros.'],
+        ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
+        ['Taxas públicas.', 'Em Investimentos, o app busca Selic, CDI e IPCA no Banco Central. Esse pedido não leva nenhum dado seu.'],
+        ['Atenção ao backup.', 'O arquivo de backup (JSON) sai sem criptografia: guarde em lugar seguro.']
+      ] },
+      { alerta: true, icone: '⚠️', titulo: 'Sem dados, o app não consegue te ajudar', texto:
+        'As estimativas de gastos e receitas, a análise do mês, a saúde financeira e os avisos saem dos seus lançamentos. ' +
+        'Com poucos dados, os números ficam vazios ou errados.', itens: [
+        ['Cadastre suas contas e cartões.', 'Cada banco que você usa, com o saldo de hoje.'],
+        ['Importe os extratos dos últimos 3 meses.', 'De cada conta e a fatura de cada cartão. É o que deixa as estimativas certas.'],
+        ['Mantenha em dia.', 'Do lado de cada conta aparece há quantos dias foi o último extrato. Importe de novo quando ficar dourado ou vermelho.']
+      ] }
+    ];
+  }
+
+  function chaveDeBoasVindas() {
+    var quem = (NUVEM.ligada && sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || 'local';
+    return 'finanz.boasvindas.' + quem;
+  }
+
+  // Conta nova (sem lançamento) que ainda não viu: abre sozinha. Nos testes
+  // automáticos não abre, a não ser que o teste peça.
+  function talvezBoasVindas() {
+    if (estado.lancamentos.length || document.querySelector('.boas-vindas')) return;
+    try {
+      if (localStorage.getItem(chaveDeBoasVindas())) return;
+      if (navigator.webdriver && localStorage.getItem('finanz.boasvindas.teste') !== '1') return;
+    } catch (e) { return; }
+    abrirBoasVindas();
+  }
+
+  function abrirBoasVindas() {
+    try { localStorage.setItem(chaveDeBoasVindas(), '1'); } catch (e) { /* sem espaço */ }
+    var passos = passosDeBoasVindas();
+    var atual = 0;
+    var tela = no('div', 'boas-vindas');
+    tela.setAttribute('role', 'dialog');
+    tela.setAttribute('aria-label', 'Antes de começar');
+    var pular = botao('bv-pular', 'Pular', function () { fechar(); });
+    var corpo = no('div', 'bv-passo');
+    var pontos = no('div', 'bv-pontos');
+    var acoes = no('div', 'bv-acoes');
+    juntar(tela, pular, corpo, pontos, acoes);
+    document.body.appendChild(tela);
+
+    function fechar() { if (tela.parentNode) tela.parentNode.removeChild(tela); desenhar(); }
+    function mostrar() {
+      var ps = passos[atual];
+      corpo.innerHTML = '';
+      var bloco = ps.alerta ? no('div', 'bv-alerta') : corpo;
+      if (ps.alerta) corpo.appendChild(bloco);
+      juntar(bloco, no('div', 'bv-icone', ps.icone), no('h2', 'bv-titulo', ps.titulo));
+      if (ps.texto) bloco.appendChild(no('p', 'bv-item', ps.texto));
+      ps.itens.forEach(function (it) {
+        var l = no('div', 'bv-item');
+        juntar(l, no('span', 'bv-marca', ps.alerta ? '→' : '✓'), juntar(no('span'), no('b', null, it[0] + ' '), document.createTextNode(it[1])));
+        bloco.appendChild(l);
+      });
+      pontos.innerHTML = '';
+      passos.forEach(function (x, i) { pontos.appendChild(no('span', i === atual ? 'ativo' : '')); });
+      acoes.innerHTML = '';
+      var ultimo = atual === passos.length - 1;
+      pular.hidden = ultimo;
+      acoes.appendChild(botao('btn btn-ouro', ultimo ? 'Entendi, vamos começar' : 'Próximo', function () {
+        if (ultimo) fechar(); else { atual++; mostrar(); tela.scrollTop = 0; }
+      }));
+      if (ultimo) {
+        acoes.appendChild(botao('btn btn-fantasma', 'Cadastrar minha primeira conta', function () {
+          fechar(); setTimeout(function () { abrirFolhaConta(null); }, 120);
+        }));
+      }
+    }
+    mostrar();
+  }
+
+  // O que já tem e o que falta para o app funcionar direito.
+  function faltaDeDados() {
+    var contasBanco = estado.contas.filter(function (c) { return !ehCartao(c) && c.tipo !== 'Dinheiro físico'; });
+    var extrato = (estado.importacoes || []).some(function (i) {
+      var c = achar(estado.contas, i.contaId); return c && !ehCartao(c);
+    });
+    var cartao_ = estado.contas.some(ehCartao);
+    var meses = mesesComLancamento().length;
+    var itens = [
+      { nome: 'Cadastrar uma conta de banco', feito: contasBanco.length > 0, rotulo: 'Cadastrar', abrir: function () { abrirFolhaConta(null); } },
+      { nome: 'Importar o extrato de uma conta', feito: extrato, rotulo: 'Importar', abrir: function () { abrirImportarExtrato(); } },
+      { nome: 'Cadastrar seu cartão (se tiver)', feito: cartao_, rotulo: 'Cadastrar', abrir: function () { abrirFolhaConta(null, true); } },
+      { nome: '3 meses de lançamentos (' + Math.min(meses, 3) + ' de 3)', feito: meses >= 3, rotulo: 'Importar', abrir: function () { abrirImportarExtrato(); } }
+    ];
+    return { itens: itens, pronto: extrato && meses >= 3 };
+  }
+
+  function cartaoFaltamDados() {
+    var f = faltaDeDados();
+    if (f.pronto) return null;
+    var c = cartao('cartao-faltam-dados');
+    var feitos = f.itens.filter(function (x) { return x.feito; }).length;
+    juntar(c, juntar(no('div', 'fd-titulo'), no('span', null, '⚠️'), no('span', null, 'O app precisa dos seus dados')),
+      no('p', null, 'Sem lançamentos, ele não consegue estimar seus gastos e receitas, montar a análise do mês nem calcular a saúde financeira. ' +
+        'Preencha o que falta abaixo (' + feitos + ' de ' + f.itens.length + ' feito' + (feitos === 1 ? '' : 's') + ').'));
+    f.itens.forEach(function (x) {
+      var l = no('div', 'fd-linha' + (x.feito ? ' feito' : ''));
+      juntar(l, no('span', 'fd-check', '✓'), no('span', 'fd-nome', x.nome), x.feito ? null : botao('btn-mini', x.rotulo, x.abrir));
+      c.appendChild(l);
+    });
+    c.appendChild(botao('btn-acao', 'Como seus dados são guardados e protegidos ›', function () { abrirBoasVindas(); }));
+    return c;
   }
 
   // ---------- Termos e privacidade ----------
@@ -10951,6 +11252,10 @@
     ajustarFab();
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
+    var faltam = cartaoFaltamDados();
+    if (faltam) tela.appendChild(faltam);
+    setTimeout(talvezBoasVindas, 300);
+
     // Patrimônio
     var cPat = cartao('cartao-destaque cartao-heroi');
     var topoPat = no('div', 'heroi-topo');
@@ -11074,18 +11379,17 @@
         return caixaSub;
       }));
     }
-    if (gastos.valorDasFaturas > 0) {
-      cGastos.appendChild(no('div', 'linha-nota',
-        emReais(gastos.valorDasFaturas) + ' de fatura paga ficou de fora: as compras do cartão ' +
-        'já estão contadas aqui, uma vez só.'));
-    }
+    // A nota "R$ X de fatura paga ficou de fora" saiu em 25/11/2026, a
+    // pedido: a conta continua a mesma (compra do cartão conta uma vez só).
     tela.appendChild(cGastos);
 
     // Contas
     var cContas = cartao('liso');
-    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira', { chave: 'inicio.contas', itens: [
+    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira', { chave: 'inicio.contas', versao: 2, itens: [
         'Cada conta mostra o saldo de hoje: o saldo inicial dela mais tudo o que entrou e saiu.',
         'A etiqueta embaixo do saldo diz há quantos dias vai o último extrato importado: verde até 7 dias, dourado até 20 e vermelho depois. Dourado ou vermelho, vale importar um novo.',
+        'Na carteira (dinheiro físico), que não tem extrato, a etiqueta conta desde o último lançamento dela.',
+        'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia".',
         'Toque na conta para ver os lançamentos dela, importar o extrato do banco ou ajustar o saldo. O lápis troca nome, tipo e saldo inicial.',
         '"Total em contas" soma só as contas. O que você deve no cartão aparece no cartão de Cartões.',
         '"+ Nova" cadastra outra conta, poupança, corretora ou a carteira de dinheiro.'] });
@@ -11105,8 +11409,35 @@
       if (!l.importacaoId || !l.contaId || !l.data) return;
       if (!extratoAte[l.contaId] || l.data > extratoAte[l.contaId]) extratoAte[l.contaId] = l.data;
     });
+    // Dinheiro físico não tem extrato: conta desde o último lançamento dele
+    // (pedido de 25/11/2026), pela data do lançamento. A hora em que foi
+    // criado não serve: o servidor carimba a hora da sincronização, e
+    // restaurar um backup faria tudo parecer de hoje. Lançamento com data
+    // à frente ainda não aconteceu e fica de fora.
+    var hojeTxt = hojeTexto();
+    var carteiraEm = {};
+    estado.lancamentos.forEach(function (l) {
+      var d = l.data;
+      if (!d || d > hojeTxt) return;
+      [l.contaId, l.contaDestinoId].forEach(function (id) {
+        if (id && (!carteiraEm[id] || d > carteiraEm[id])) carteiraEm[id] = d;
+      });
+    });
+    // Os dias contam pela data do calendário, não por 24 horas: atualizado
+    // dia 25 às 11h, dia 26 já é "1 dia" (pedido de 25/11/2026).
+    var etiquetaDeDias = function (desde, texto) {
+      var dias = Math.max(0, diasEntre(desde, hojeTxt));
+      var el = no('span', 'idade-extrato ' + (dias <= 7 ? 'em-dia' : dias <= 20 ? 'atencao' : 'velho'),
+        dias === 0 ? 'hoje' : dias === 1 ? '1 dia' : dias + ' dias');
+      el.title = texto + ' ' + dataCurta(desde);
+      el.setAttribute('aria-label', texto + ' ' + dataCurta(desde) + ', há ' + dias + ' dia(s)');
+      return el;
+    };
     var idadeDoExtrato = function (c) {
-      if (c.tipo === 'Dinheiro físico') return null;
+      if (c.tipo === 'Dinheiro físico') {
+        return carteiraEm[c.id] ? etiquetaDeDias(carteiraEm[c.id], 'Último lançamento em')
+          : no('span', 'idade-extrato', 'sem lançamento');
+      }
       var ate = extratoAte[c.id];
       if (!ate) return no('span', 'idade-extrato', 'sem extrato');
       var dias = Math.max(0, diasEntre(ate, hojeTexto()));
@@ -12091,21 +12422,8 @@
 
       folha.appendChild(cartaoFaturasPorMes(id, cart, sit, aberta));
 
-      // Últimos gastos, com a marca do cartão do lado para não confundir.
-      var recentes = estado.lancamentos.filter(function (l) { return l.contaId === id; })
-        .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; })
-        .slice(0, 12);
-
-      var cUlt = cartao('liso');
-      var topoUlt = topoDeCartao('Últimos gastos', null, null, null, { chave: 'cartao.ultimos', itens: [
-        'As 12 compras mais recentes deste cartão.',
-        'Toque numa compra para trocar a categoria, o valor ou a data. Trocando a categoria, o app pergunta se vale para as outras com o mesmo nome.',
-        'Compra parcelada mostra a parcela (por exemplo 4/6) numa etiqueta.'] });
-      topoUlt.style.padding = '16px 16px 0';
-      topoUlt.style.marginBottom = '8px';
-      cUlt.appendChild(topoUlt);
-      recentes.forEach(function (l) { cUlt.appendChild(linhaDeGasto(l, cart)); });
-      folha.appendChild(cUlt);
+      // "Últimos gastos" saiu em 25/11/2026, a pedido: repetia o que já
+      // aparece embaixo de cada mês, em "Lançamentos desta fatura".
 
       var todosGastos = estado.lancamentos.filter(function (l) { return l.contaId === id; });
       if (todosGastos.length) {
@@ -12150,11 +12468,14 @@
     if (chaves.indexOf(escolhida) < 0) escolhida = aberta && chaves.indexOf(aberta.chave) >= 0 ? aberta.chave : chaves[chaves.length - 1];
 
     var c = cartao('liso cartao-faturas-mes');
-    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', itens: [
+    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', versao: 3, itens: [
       'Cada mês de fatura numa aba. Arraste para o lado, ou toque no mês lá em cima, para ver outra.',
       'O pontinho do mês diz a situação: verde é paga, dourado é aberta ou futura, vermelho é vencida sem pagamento.',
+      'O elo (🔗) do lado do mês, e a etiqueta "Vinculada ao extrato" do lado da situação, querem dizer que o pagamento da fatura apareceu numa conta sua, no mesmo valor e no mesmo mês. Aí as compras contam nos gastos, no lugar do pagamento.',
+      '"Paga fora do mês": o pagamento existe, mas é de outro mês, então não vincula; nos gastos entra o pagamento, não as compras. "Só a fatura": nenhum pagamento no extrato liga com ela ainda, e as compras não contam nos gastos.',
       'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
-      'Compra parcelada com parcelas que ainda não estão nas próximas faturas aparece embaixo, com o botão para lançar. O app pergunta antes, uma por uma.'] });
+      'Embaixo dos lançamentos de cada mês aparecem as parcelas que deviam cair naquela fatura e ainda não estão lançadas (a 8/9 de uma compra que estava na 7/9 no mês anterior). Toque em "Lançar" e escolha: só a desta fatura, ou esta e as próximas.',
+      'Em "Lançamentos desta fatura", toque numa compra para trocar a categoria, o valor ou a data.'] });
     topo.style.padding = '16px 16px 0';
     c.appendChild(topo);
     var faixa = no('div', 'meses-fatura');
@@ -12177,6 +12498,12 @@
         b.setAttribute('aria-selected', f.chave === chave ? 'true' : 'false');
         b.setAttribute('data-chave', f.chave);
         b.appendChild(document.createTextNode(MESES[+p[1] - 1]));
+        if (f.ligada && f.pagamento) {
+          var elo = no('span', 'elo-fatura');
+          elo.appendChild(icone('elo'));
+          elo.setAttribute('aria-label', 'vinculada ao extrato');
+          b.appendChild(elo);
+        }
         b.appendChild(no('span', 'ponto ' + (f.situacao || '')));
         if (+p[0] !== anoHoje) b.appendChild(no('small', null, p[0]));
         faixa.appendChild(b);
@@ -12189,8 +12516,6 @@
       corpo.innerHTML = '';
       var f = faturas[chaves.indexOf(chave)];
       corpo.appendChild(painelDaFatura(id, cart, f, lado));
-      var faltando = parcelasQueFaltam(id, cart, f);
-      if (faltando.length) corpo.appendChild(caixaDeParcelasFaltando(id, cart, faltando));
       if (f.itens.length) {
         corpo.appendChild(no('div', 'subtitulo-fatura', 'Lançamentos desta fatura'));
         f.itens.slice().sort(function (a, b) {
@@ -12200,6 +12525,10 @@
       } else {
         corpo.appendChild(no('div', 'sanfona-vazio', 'Nenhum lançamento nesta fatura ainda.'));
       }
+      // As parcelas que faltam ficam embaixo dos lançamentos (pedido de
+      // 25/11/2026), em qualquer fatura onde elas deviam cair.
+      var faltando = parcelasQueFaltam(id, cart, f);
+      if (faltando.length) corpo.appendChild(caixaDeParcelasFaltando(id, cart, faltando));
     }
 
     // Arrastar para o lado troca de mês.
@@ -12226,7 +12555,15 @@
     var nomes = { paga: ['✓', 'Fatura paga'], aberta: ['◷', 'Fatura aberta'], fechada: ['▣', 'Fatura fechada'],
       vencida: ['!', 'Fatura vencida, sem pagamento'], futura: ['›', 'Fatura futura'] };
     var n = nomes[f.situacao] || nomes.fechada;
-    p.appendChild(juntar(no('div', 'situacao-grande ' + (f.situacao || 'fechada')), no('span', 'marca', n[0]), no('span', null, n[1])));
+    // Vinculada ao extrato ou só a fatura: uma etiqueta pequena do lado da
+    // situação (pedido de 25/11/2026). A explicação mora no "i" das Faturas.
+    var vinc = f.ligada && f.pagamento ? ['ligada', 'Vinculada ao extrato']
+      : f.pagamento ? ['outro-mes', 'Paga fora do mês'] : ['so-fatura', 'Só a fatura'];
+    var chipVinc = no('span', 'vinculo-fatura ' + vinc[0]);
+    chipVinc.appendChild(icone(vinc[0] === 'ligada' ? 'elo' : 'extrato'));
+    chipVinc.appendChild(document.createTextNode(vinc[1]));
+    p.appendChild(juntar(no('div', 'situacao-grande ' + (f.situacao || 'fechada')), no('span', 'marca', n[0]), no('span', null, n[1]), chipVinc));
+
 
     var linhas = [];
     var compras = f.total;
@@ -12260,29 +12597,48 @@
     return semAcentoSimples(String(descricao || '').replace(REGEX_PARCELA, '')).replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
-  // As parcelas que faltam lançar das compras desta fatura: "Parcela 5 de
-  // 10" quer a 6/10 até a 10/10, cada uma numa fatura seguinte.
+  // As parcelas que deviam cair nesta fatura e não estão nela (pedido de
+  // 25/11/2026). Olha as compras parceladas das faturas de antes: a "Parcela
+  // 7/9" de novembro quer a 8/9 em dezembro. Vale para qualquer fatura,
+  // tenha ela lançamentos ou não: a fatura que veio cheia do banco já traz a
+  // parcela, e aí não sobra nada para sugerir.
+  function mesesEntreChaves(a, b) {
+    return (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+  }
   function parcelasQueFaltam(id, cart, f) {
     var meus = estado.lancamentos.filter(function (o) { return o.contaId === id && o.tipo === 'saida'; });
-    var lista = [];
-    f.itens.forEach(function (l) {
-      if (l.tipo !== 'saida') return;
-      var pc = parcelaDoTexto(l.descricao);
-      if (!pc) return;
-      var base = nomeSemParcela(l.descricao);
-      var faltam = [];
-      for (var k = 1; k <= pc.total - pc.atual; k++) {
-        var numero = pc.atual + k;
-        var tem = meus.some(function (o) {
-          if (o.id === l.id || Math.abs(o.valor - l.valor) > 100) return false;
-          var m = REGEX_PARCELA.exec(o.descricao || '');
-          return !!m && +m[1] === numero && +m[2] === pc.total && nomeSemParcela(o.descricao) === base;
-        });
-        if (!tem) faltam.push(k);
-      }
-      if (faltam.length) lista.push({ l: l, pc: pc, faltam: faltam, chave: f.chave });
+    var existe = function (base, total, numero, valor) {
+      return meus.some(function (o) {
+        if (Math.abs(o.valor - valor) > 100) return false;
+        var m = REGEX_PARCELA.exec(o.descricao || '');
+        return !!m && +m[1] === numero && +m[2] === total && nomeSemParcela(o.descricao) === base;
+      });
+    };
+    var porCompra = {};
+    faturasDoCartao(id).forEach(function (fa) {
+      if (fa.chave >= f.chave) return;
+      fa.itens.forEach(function (l) {
+        if (l.tipo !== 'saida') return;
+        var pc = parcelaDoTexto(l.descricao);
+        if (!pc) return;
+        var numero = pc.atual + mesesEntreChaves(fa.chave, f.chave);
+        if (numero > pc.total) return;
+        var base = nomeSemParcela(l.descricao);
+        var chaveCompra = base + '|' + pc.total + '|' + Math.round(l.valor / 100);
+        // A mesma compra aparece em várias faturas (6/9, 7/9…): vale a mais nova.
+        if (porCompra[chaveCompra] && porCompra[chaveCompra].origem >= fa.chave) return;
+        porCompra[chaveCompra] = { l: l, pc: pc, base: base, numero: numero, origem: fa.chave };
+      });
     });
-    return lista;
+    var lista = [];
+    Object.keys(porCompra).forEach(function (k) {
+      var x = porCompra[k];
+      if (existe(x.base, x.pc.total, x.numero, x.l.valor)) return;
+      var faltam = [];
+      for (var n = x.numero; n <= x.pc.total; n++) if (!existe(x.base, x.pc.total, n, x.l.valor)) faltam.push(n);
+      lista.push({ l: x.l, pc: x.pc, numero: x.numero, faltam: faltam, chave: f.chave });
+    });
+    return lista.sort(function (a, b) { return b.l.valor - a.l.valor; });
   }
 
   function dataDaFaturaSeguinte(cart, chave, k) {
@@ -12291,55 +12647,57 @@
     return faturaDoCartao(cart, d.getFullYear(), d.getMonth()).ate;
   }
 
+  function nomeDaCompra(l) {
+    return String(l.descricao || '').replace(REGEX_PARCELA, '').replace(/[\s\-–·]+$/, '').trim() || l.descricao;
+  }
+
   function caixaDeParcelasFaltando(id, cart, faltando) {
     var cx = no('div', 'parcelas-faltando');
-    cx.appendChild(no('strong', null, faltando.length === 1 ? 'Compra parcelada' : faltando.length + ' compras parceladas'));
-    cx.appendChild(no('p', null, 'As próximas parcelas ainda não estão nas faturas seguintes. Quer lançar? O limite do cartão já conta com elas.'));
+    cx.appendChild(no('strong', null, faltando.length === 1 ? '1 parcela para esta fatura' : faltando.length + ' parcelas para esta fatura'));
+    cx.appendChild(no('p', null, 'Compras parceladas das faturas anteriores que deviam cair aqui e ainda não estão lançadas. O limite do cartão já conta com elas.'));
     faltando.forEach(function (x) {
-      var nums = x.faltam.map(function (k) { return x.pc.atual + k; });
-      var faixaTxt = nums.length === 1 ? nums[0] + '/' + x.pc.total : nums[0] + '/' + x.pc.total + ' a ' + nums[nums.length - 1] + '/' + x.pc.total;
       var linha = no('div', 'parcela-faltando');
       juntar(linha,
-        juntar(no('div', 'q'), document.createTextNode(String(x.l.descricao || '').replace(REGEX_PARCELA, '').replace(/[\s\-–·]+$/, '').trim() || x.l.descricao),
-          no('span', null, 'Parcela ' + x.pc.atual + ' de ' + x.pc.total + ' · falta' + (nums.length > 1 ? 'm ' : ' ') + nums.length + ' de ' + emReais(x.l.valor))),
-        botao('btn-mini', 'Lançar ' + faixaTxt, function () { lancarParcelasQueFaltam(id, cart, x, faixaTxt); }));
+        juntar(no('div', 'q'), document.createTextNode(nomeDaCompra(x.l)),
+          no('span', null, 'Parcela ' + x.numero + ' de ' + x.pc.total + ' · ' + emReais(x.l.valor))),
+        botao('btn-mini', 'Lançar ' + x.numero + '/' + x.pc.total, function () { lancarParcelasQueFaltam(id, cart, x); }));
       cx.appendChild(linha);
     });
     return cx;
   }
 
-  function lancarParcelasQueFaltam(id, cart, x, faixaTxt) {
-    var primeiro = dataDaFaturaSeguinte(cart, x.chave, x.faltam[0]);
-    var ultimo = dataDaFaturaSeguinte(cart, x.chave, x.faltam[x.faltam.length - 1]);
-    var mesesTxt = primeiro.slice(0, 7) === ultimo.slice(0, 7) ? 'na fatura de ' + MESES[+primeiro.slice(5, 7) - 1]
-      : 'uma em cada fatura, de ' + MESES[+primeiro.slice(5, 7) - 1] + ' a ' + MESES[+ultimo.slice(5, 7) - 1] +
-        (ultimo.slice(0, 4) !== primeiro.slice(0, 4) ? ' de ' + ultimo.slice(0, 4) : '');
-    perguntar({
-      titulo: 'Lançar as parcelas ' + faixaTxt + '?',
-      texto: '"' + (x.l.descricao || '') + '" está na parcela ' + x.pc.atual + ' de ' + x.pc.total + '. Vou lançar ' +
-        x.faltam.length + ' parcela(s) de ' + emReais(x.l.valor) + ', ' + mesesTxt + ', na categoria ' + x.l.categoria + '.' +
-        ' Quando essas faturas forem importadas, as parcelas aparecem como "já existe" e não duplicam.',
-      ok: 'Lançar'
-    }, function () {
+  // Pergunta antes, compra por compra: só a desta fatura, ou esta e as
+  // próximas (uma em cada fatura seguinte).
+  function lancarParcelasQueFaltam(id, cart, x) {
+    var mesTxt = function (k) { var d = dataDaFaturaSeguinte(cart, x.chave, k); return MESES[+d.slice(5, 7) - 1] + (d.slice(0, 4) !== x.chave.slice(0, 4) ? ' de ' + d.slice(0, 4) : ''); };
+    var opcoes = [{ valor: 'so', rotulo: 'Só a ' + x.numero + '/' + x.pc.total + ', nesta fatura',
+      detalhe: emReais(x.l.valor) + ' na fatura de ' + mesTxt(0) + '.' }];
+    if (x.faltam.length > 1) {
+      var ult = x.faltam[x.faltam.length - 1];
+      opcoes.push({ valor: 'todas', rotulo: 'Esta e as próximas: ' + x.numero + '/' + x.pc.total + ' a ' + ult + '/' + x.pc.total,
+        detalhe: x.faltam.length + ' parcelas de ' + emReais(x.l.valor) + ', uma em cada fatura, de ' + mesTxt(0) + ' a ' + mesTxt(ult - x.numero) + '.' });
+    }
+    abrirEscolha({ titulo: nomeDaCompra(x.l), semMarca: true, opcoes: opcoes }, function (v) {
+      if (!v) return;
       var l = achar(estado.lancamentos, x.l.id);
       if (!l) return;
       if (!l.grupo) l.grupo = novoId();
+      var numeros = v === 'todas' ? x.faltam : [x.numero];
       var agora = Date.now();
-      x.faltam.forEach(function (k, i) {
-        var numero = x.pc.atual + k;
+      numeros.forEach(function (n, i) {
         estado.lancamentos.push({
           id: novoId(), tipo: 'saida', valor: l.valor,
-          descricao: String(l.descricao).replace(x.pc.trecho, 'Parcela ' + numero + '/' + x.pc.total).slice(0, 80),
+          descricao: String(l.descricao).replace(x.pc.trecho, 'Parcela ' + n + '/' + x.pc.total).slice(0, 80),
           categoria: l.categoria, subcategoria: l.subcategoria || '',
-          data: dataDaFaturaSeguinte(cart, x.chave, k) || somaMeses(l.data, k),
+          data: dataDaFaturaSeguinte(cart, x.chave, n - x.numero) || somaMeses(l.data, n - x.pc.atual),
           contaId: id, contaDestinoId: '', importacaoId: l.importacaoId || undefined, grupo: l.grupo,
           criadoEm: agora + i
         });
       });
-      comMotivo('você lançou ' + x.faltam.length + ' parcela(s) futuras de ' + (l.descricao || 'uma compra'));
+      comMotivo('você lançou ' + numeros.length + ' parcela(s) de ' + nomeDaCompra(l));
       salvar();
       abrirTelaCartao(id);
-      avisar(x.faltam.length + ' parcela(s) lançada(s) nas próximas faturas.');
+      avisar(numeros.length === 1 ? 'Parcela ' + x.numero + '/' + x.pc.total + ' lançada.' : numeros.length + ' parcelas lançadas, uma em cada fatura.');
     });
   }
 
@@ -17561,6 +17919,11 @@
     topo.style.padding = '16px 16px 0';
     topo.style.marginBottom = '8px';
     var fimTopo = no('div', 'cartao-topo-fim');
+    fimTopo.appendChild(botaoDeInfo('clientes.lista', 'Clientes', [
+      'Cada cliente mostra quanto ainda falta receber dele e a situação: atrasado, em aberto, cai hoje ou quitado. Quem está atrasado sobe para o topo.',
+      'Com 4 clientes ou mais aparece a busca, pelo nome ou por um pedaço do telefone.',
+      'O botão de filtros mostra só uma situação, uma faixa de valor ou a data do último registro, e muda a ordem da lista. Com filtro ligado, ele mostra quantos estão ligados; "Limpar" volta tudo.',
+      'Na parcela de um cliente, "Cliente não pagou" cobra juros ou multa, manda a cobrança no WhatsApp ou dá a parcela como perdida.']));
     if (comBusca || nFiltros) {
       var bFiltro = botao('botao-info botao-filtro' + (nFiltros ? ' ligado' : ''), null, function () { abrirFiltroClientes(); });
       bFiltro.setAttribute('aria-label', nFiltros ? 'Filtros dos clientes (' + nFiltros + ' ligado(s))' : 'Filtrar e ordenar clientes');
@@ -17591,7 +17954,7 @@
         var campoBusca = no('input');
         campoBusca.type = 'search';
         campoBusca.id = 'buscaClientes';
-        campoBusca.placeholder = 'Buscar cliente por nome ou telefone';
+        campoBusca.placeholder = 'Buscar por nome ou telefone';
         campoBusca.setAttribute('aria-label', 'Buscar cliente');
         campoBusca.autocomplete = 'off';
         campoBusca.value = buscaClientes;
@@ -24640,6 +25003,7 @@
       var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
         'Toque num extrato para ver os detalhes, baixar o arquivo guardado ou tirar tudo o que ele trouxe de uma vez.',
+        'O número de arquivos no topo conta só os dos extratos da lista. Arquivo que sobrou de importação já tirada aparece à parte, com "Apagar".',
         '"+ Importar" lê o extrato do banco em PDF, Excel, OFX ou CSV. Lançamento que já existe na conta vem desmarcado, para não entrar duas vezes.'] });
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
@@ -24664,18 +25028,39 @@
       if (!semExtrato) folha.appendChild(cExt);
       if (levas.length) {
         listarArquivosDeExtrato(id).then(function (lista) {
-          var soma = 0, quantos = 0;
+          // Conta só os arquivos dos extratos que estão na lista (pedido de
+          // 25/11/2026: "11 arquivos" com 6 extratos não batia). O que sobrou
+          // de importação já tirada aparece à parte, com o botão de apagar.
+          var soma = 0, quantos = 0, soltos = [], somaSoltos = 0;
           (lista || []).forEach(function (a) {
             var t = inteiro(a.tamanho);
-            soma += t; quantos++;
             var linha = linhasDasLevas[a.importacao_id];
-            var sub = linha && linha.querySelector('.linha-sub');
+            if (!linha) { soltos.push(a.id); somaSoltos += t; return; }
+            soma += t; quantos++;
+            var sub = linha.querySelector('.linha-sub');
             // Na frente: o fim da linha é cortado quando o nome do arquivo é comprido.
             if (sub) sub.textContent = tamanhoDeArquivo(t) + ' · ' + sub.textContent;
           });
           totalArquivos.textContent = quantos
             ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total'
             : 'Nenhum arquivo guardado na nuvem para esta conta.';
+          if (soltos.length) {
+            var sobra = no('div', 'arquivos-soltos');
+            sobra.appendChild(no('span', null, soltos.length + ' arquivo(s) de importações que já foram tiradas ainda ocupam ' + tamanhoDeArquivo(somaSoltos) + '. '));
+            sobra.appendChild(botao('link-ouro', 'Apagar', function () {
+              perguntar({
+                titulo: 'Apagar ' + soltos.length + ' arquivo(s) que sobraram?',
+                texto: 'São originais de extratos que você já tirou do app: os lançamentos deles não existem mais. Os extratos da lista continuam com os arquivos deles.',
+                ok: 'Apagar', tom: 'perigo'
+              }, function () {
+                apagarArquivosDeExtrato(soltos).then(function () {
+                  avisar(soltos.length + ' arquivo(s) apagado(s).');
+                  abrirExtratoConta(id);
+                }).catch(function () { avisarCaixa('Não consegui apagar agora', 'Confira a internet e tente de novo.'); });
+              });
+            }));
+            totalArquivos.parentNode.insertBefore(sobra, totalArquivos.nextSibling);
+          }
         }).catch(function () { totalArquivos.textContent = ''; });
       }
 
@@ -24739,10 +25124,334 @@
 
   // ---------- Tela: Investimentos ----------
 
+  // ---------- Renda fixa: taxas oficiais e ofertas anotadas ----------
+  //
+  // De onde vem cada número (25/11/2026): Selic, CDI e IPCA são do Banco
+  // Central (o SGS, a série pública). As ofertas com nome de banco são as
+  // que a própria pessoa anotou — não existe fonte pública com as ofertas
+  // de cada banco, e o app não inventa taxa. O resto é conta em cima disso.
+
+  var SERIES_BC = [
+    { chave: 'selic', serie: 432, nome: 'Selic', sub: 'meta do Banco Central' },
+    { chave: 'cdi', serie: 4389, nome: 'CDI', sub: 'base dos CDBs, LCIs e LCAs' },
+    { chave: 'ipca', serie: 13522, nome: 'IPCA', sub: 'inflação em 12 meses' }
+  ];
+  var taxasBC = null;
+  var buscandoTaxasBC = false;
+  var tipoInvestimento = 'rf';
+
+  function limparOfertasRf(lista) {
+    var TIPOS = ['CDB', 'LCI', 'LCA', 'LC', 'LIG', 'CRI', 'CRA', 'Debênture', 'Tesouro'];
+    return (lista || []).filter(function (o) { return o && typeof o === 'object' && o.id; }).slice(0, 60).map(function (o) {
+      return {
+        id: String(o.id).slice(0, 40), banco: String(o.banco || '').slice(0, 40),
+        tipo: TIPOS.indexOf(o.tipo) >= 0 ? o.tipo : 'CDB',
+        indexador: ['cdi', 'pre', 'ipca'].indexOf(o.indexador) >= 0 ? o.indexador : 'cdi',
+        taxa: Math.max(0, Math.min(300, Number(o.taxa) || 0)),
+        vencimento: /^\d{4}-\d{2}-\d{2}$/.test(o.vencimento || '') ? o.vencimento : '',
+        criadoEm: Number(o.criadoEm) || 0
+      };
+    });
+  }
+
+  function dataBC(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+
+  // As três séries do último ano. Guardo a última resposta boa: sem
+  // internet, o app mostra a de antes com a data dela, nunca um número feito.
+  function carregarTaxasBC() {
+    if (!taxasBC) {
+      try { taxasBC = JSON.parse(localStorage.getItem('finanz.taxasBC') || 'null'); } catch (e) { taxasBC = null; }
+    }
+    var velho = !taxasBC || !taxasBC.quando || Date.now() - taxasBC.quando > 6 * 3600 * 1000;
+    // Falhou há pouco: espera um minuto antes de tentar de novo. Sem isso,
+    // cada falha redesenhava a tela, que tentava de novo, sem parar.
+    var esperando = taxasBC && taxasBC.falhou && Date.now() - taxasBC.falhou < 60000;
+    if (!velho || esperando || buscandoTaxasBC || !window.fetch) return;
+    buscandoTaxasBC = true;
+    var ate = new Date(), de = new Date(ate.getFullYear() - 1, ate.getMonth(), ate.getDate());
+    Promise.all(SERIES_BC.map(function (x) {
+      var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.' + x.serie + '/dados?formato=json&dataInicial=' +
+        encodeURIComponent(dataBC(de)) + '&dataFinal=' + encodeURIComponent(dataBC(ate));
+      return fetch(url).then(function (r) { if (!r.ok) throw new Error('BC ' + r.status); return r.json(); })
+        .then(function (lista) {
+          var pontos = (lista || []).map(function (p) {
+            var d = String(p.data || '').split('/');
+            return { data: d[2] + '-' + d[1] + '-' + d[0], valor: parseFloat(String(p.valor).replace(',', '.')) };
+          }).filter(function (p) { return isFinite(p.valor) && /^\d{4}-\d{2}-\d{2}$/.test(p.data); });
+          if (!pontos.length) throw new Error('série vazia');
+          return pontos;
+        });
+    })).then(function (res) {
+      var novo = { quando: Date.now() };
+      SERIES_BC.forEach(function (x, i) { novo[x.chave] = res[i]; });
+      taxasBC = novo;
+      try { localStorage.setItem('finanz.taxasBC', JSON.stringify(novo)); } catch (e) { /* sem espaço */ }
+    }).catch(function () {
+      if (taxasBC) taxasBC.falhou = Date.now(); else taxasBC = { falhou: Date.now() };
+    }).then(function () {
+      buscandoTaxasBC = false;
+      if (telaAtiva === 'investimentos') desenharInvestimentos();
+    });
+  }
+
+  function ultimaTaxa(chave) {
+    var s = taxasBC && taxasBC[chave];
+    return s && s.length ? s[s.length - 1] : null;
+  }
+
+  // Uma linha fina com a série, no pé do quadrado.
+  function linhaDaSerie(pontos, cor) {
+    var svg = svgNo('svg', { viewBox: '0 0 100 30', preserveAspectRatio: 'none', 'class': 'q-linha' });
+    if (!pontos || pontos.length < 2) return svg;
+    // Um ponto por semana basta para o desenho.
+    var passo = Math.max(1, Math.floor(pontos.length / 52));
+    var amostra = pontos.filter(function (p, i) { return i % passo === 0 || i === pontos.length - 1; });
+    var vs = amostra.map(function (p) { return p.valor; });
+    var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
+    var alto = max - min || 1;
+    var xy = amostra.map(function (p, i) {
+      return (i / (amostra.length - 1) * 100).toFixed(1) + ',' + (26 - (p.valor - min) / alto * 20).toFixed(1);
+    });
+    svg.appendChild(svgNo('polyline', { points: xy.join(' '), fill: 'none', stroke: cor, 'stroke-width': 1.6,
+      'vector-effect': 'non-scaling-stroke', 'stroke-linejoin': 'round' }));
+    return svg;
+  }
+
+  function pctBr(n, casas) { return (Math.round(n * Math.pow(10, casas)) / Math.pow(10, casas)).toFixed(casas).replace('.', ',') + '%'; }
+
+  // IR da renda fixa, pela tabela regressiva. LCI, LCA, LIG, CRI e CRA de
+  // pessoa física são isentos.
+  function aliquotaIR(tipo, dias) {
+    if (['LCI', 'LCA', 'LIG', 'CRI', 'CRA'].indexOf(tipo) >= 0) return 0;
+    if (dias <= 180) return 22.5;
+    if (dias <= 360) return 20;
+    if (dias <= 720) return 17.5;
+    return 15;
+  }
+
+  // Quanto a oferta paga por ano, bruto e líquido, com o CDI e o IPCA de hoje.
+  function rendimentoDaOferta(o) {
+    var cdi = ultimaTaxa('cdi'), ipca = ultimaTaxa('ipca');
+    var bruto = null;
+    if (o.indexador === 'cdi') bruto = cdi ? cdi.valor * o.taxa / 100 : null;
+    else if (o.indexador === 'pre') bruto = o.taxa;
+    else bruto = ipca ? ((1 + ipca.valor / 100) * (1 + o.taxa / 100) - 1) * 100 : null;
+    if (bruto == null) return null;
+    var dias = o.vencimento ? Math.max(1, diasEntre(hojeTexto(), o.vencimento)) : 721;
+    var ir = aliquotaIR(o.tipo, dias);
+    return { bruto: bruto, liquido: bruto * (1 - ir / 100), ir: ir, dias: dias };
+  }
+
+  function textoDaTaxa(o) {
+    if (o.indexador === 'cdi') return pctBr(o.taxa, o.taxa % 1 ? 1 : 0) + ' do CDI';
+    if (o.indexador === 'pre') return pctBr(o.taxa, 2) + ' a.a. prefixado';
+    return 'IPCA + ' + pctBr(o.taxa, 2);
+  }
+
+  function ofertasOrdenadas() {
+    return (estado.ofertasRf || []).map(function (o) { return { o: o, r: rendimentoDaOferta(o) }; })
+      .sort(function (a, b) { return (b.r ? b.r.liquido : -1) - (a.r ? a.r.liquido : -1); });
+  }
+
+  function vitrineRendaFixa() {
+    carregarTaxasBC();
+    var caixa = no('div', 'vitrine-rf');
+    var tit = no('div', 'vitrine-titulo');
+    tit.appendChild(no('strong', null, 'Renda fixa hoje'));
+    tit.appendChild(botaoDeInfo('invest.vitrine', 'Renda fixa hoje', [
+      'Selic, CDI e IPCA vêm do Banco Central, com a linha do último ano e quanto mudaram em 12 meses.',
+      'Os quadrados de CDB e LCI/LCA mostram a conta com o CDI de hoje: quanto rende por ano, e o líquido depois do imposto (LCI e LCA são isentas).',
+      'Os quadrados com nome de banco são as ofertas que você anotou, da que mais rende líquido para a que menos. Toque em "Anotar uma oferta" para pôr a que viu no seu banco ou corretora.',
+      'Os quadrados andam sozinhos; arraste para o lado para ver no seu tempo.']));
+    caixa.appendChild(tit);
+    var trilho = no('div', 'vitrine-trilho');
+    caixa.appendChild(trilho);
+
+    var temTaxas = !!ultimaTaxa('cdi');
+    SERIES_BC.forEach(function (x) {
+      var serie = taxasBC && taxasBC[x.chave];
+      if (!serie || !serie.length) return;
+      var atual = serie[serie.length - 1], primeiro = serie[0];
+      var dif = atual.valor - primeiro.valor;
+      var q = no('div', 'quadro-rf');
+      juntar(q, no('span', 'q-tipo', x.nome), no('span', 'q-nome', x.sub),
+        no('span', 'q-valor num', pctBr(atual.valor, 2)),
+        no('span', 'q-var ' + (dif > 0.004 ? 'sobe' : dif < -0.004 ? 'desce' : ''),
+          (dif > 0.004 ? '↑ ' : dif < -0.004 ? '↓ ' : '') + pctBr(Math.abs(dif), 2).replace('%', ' p.p.') + ' em 12 meses'),
+        no('span', 'q-sub', 'ao ano · ' + dataBr(atual.data)),
+        linhaDaSerie(serie, x.chave === 'ipca' ? '#FB7185' : '#E9B44C'));
+      trilho.appendChild(q);
+    });
+
+    if (temTaxas) {
+      var cdi = ultimaTaxa('cdi').valor;
+      [['CDB', 110, 'cdi'], ['LCI / LCA', 95, 'cdi']].forEach(function (ex) {
+        var r = rendimentoDaOferta({ tipo: ex[0] === 'CDB' ? 'CDB' : 'LCI', indexador: ex[2], taxa: ex[1], vencimento: '' });
+        var q = no('div', 'quadro-rf');
+        juntar(q, no('span', 'q-tipo', ex[0]), no('span', 'q-nome', ex[1] + '% do CDI'),
+          no('span', 'q-valor num', pctBr(r.liquido, 2)),
+          no('span', 'q-sub', r.ir ? 'líquido ao ano (bruto ' + pctBr(r.bruto, 2) + ', IR ' + pctBr(r.ir, 0) + ')'
+            : 'ao ano, sem imposto · igual a um CDB de ' + pctBr(ex[1] / 0.85, 0) + ' do CDI'),
+          no('span', 'q-selo', 'conta'));
+        trilho.appendChild(q);
+      });
+    }
+
+    ofertasOrdenadas().forEach(function (x) {
+      var q = botao('quadro-rf', null, function () { abrirFolhaOfertaRf(x.o.id); });
+      juntar(q, no('span', 'q-tipo', x.o.tipo), no('span', 'q-nome', x.o.banco || 'Sem banco'),
+        no('span', 'q-valor num', x.r ? pctBr(x.r.liquido, 2) : textoDaTaxa(x.o)),
+        no('span', 'q-sub', x.r ? textoDaTaxa(x.o) + ' · líquido ao ano' + (x.o.vencimento ? ' · vence ' + dataBr(x.o.vencimento) : '')
+          : 'sem o CDI de hoje para fazer a conta'),
+        no('span', 'q-selo', 'anotada'));
+      trilho.appendChild(q);
+    });
+
+    if (!temTaxas) {
+      var av = no('div', 'quadro-rf aviso');
+      juntar(av, no('span', 'q-tipo', 'Taxas do Banco Central'),
+        no('span', 'q-sub', buscandoTaxasBC || !(taxasBC && taxasBC.falhou)
+          ? 'Buscando Selic, CDI e IPCA…' : 'Não consegui buscar as taxas agora. Confira a internet; tento de novo quando você voltar aqui.'));
+      trilho.insertBefore(av, trilho.firstChild);
+    }
+    trilho.appendChild(juntar(botao('quadro-rf anotar', null, function () { abrirFolhaOfertaRf(null); }),
+      no('span', null, '+ Anotar uma oferta')));
+
+    var fonte = [];
+    if (temTaxas) fonte.push('Selic, CDI e IPCA: Banco Central, atualizado em ' + dataBr(deData(new Date(taxasBC.quando))) + '.');
+    fonte.push('Com nome de banco, só as ofertas que você anotou. "Conta" é simulação com o CDI de hoje.');
+    caixa.appendChild(no('div', 'vitrine-fonte', fonte.join(' ')));
+
+    andarSozinho(trilho);
+    return caixa;
+  }
+
+  // Os quadrados andam sozinhos, um por vez; quando a pessoa toca, param um
+  // pouco. Quem pediu menos movimento no aparelho não vê nada andando.
+  var relogioVitrine = null;
+  function andarSozinho(trilho) {
+    clearInterval(relogioVitrine);
+    try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) { /* sem matchMedia */ }
+    var paradoAte = 0;
+    var parar = function () { paradoAte = Date.now() + 8000; };
+    trilho.addEventListener('touchstart', parar, { passive: true });
+    trilho.addEventListener('pointerdown', parar);
+    trilho.addEventListener('wheel', parar, { passive: true });
+    relogioVitrine = setInterval(function () {
+      if (!trilho.isConnected) { clearInterval(relogioVitrine); return; }
+      if (Date.now() < paradoAte || document.hidden || telaAtiva !== 'investimentos') return;
+      var q = trilho.querySelector('.quadro-rf');
+      if (!q) return;
+      var passo = q.offsetWidth + 12;
+      var fim = trilho.scrollWidth - trilho.clientWidth;
+      var alvo = trilho.scrollLeft + passo >= fim - 4 ? 0 : trilho.scrollLeft + passo;
+      try { trilho.scrollTo({ left: alvo, behavior: 'smooth' }); } catch (e) { trilho.scrollLeft = alvo; }
+    }, 3500);
+  }
+
+  var TIPOS_INVEST = [
+    { valor: 'rf', rotulo: 'Renda fixa' }, { valor: 'rv', rotulo: 'Renda variável' },
+    { valor: 'fii', rotulo: 'Fundos imobiliários' }, { valor: 'cripto', rotulo: 'Cripto (Bitcoin)' },
+    { valor: 'fundos', rotulo: 'Fundos' }, { valor: 'tesouro', rotulo: 'Tesouro Direto' },
+    { valor: 'prev', rotulo: 'Previdência' }, { valor: 'exterior', rotulo: 'Exterior' }
+  ];
+  function rotuloDoTipo(v) { var t = TIPOS_INVEST.filter(function (x) { return x.valor === v; })[0]; return t ? t.rotulo : ''; }
+
+  function seletorDeTipos() {
+    var chips = grupoChips(TIPOS_INVEST, tipoInvestimento, function (v) { tipoInvestimento = v; desenharInvestimentos(); });
+    chips.classList.add('tipos-invest');
+    return chips;
+  }
+
+  function cartaoOfertasRf() {
+    var c = cartao('liso');
+    var topo = topoDeCartao('Ofertas anotadas', '+ Anotar', function () { abrirFolhaOfertaRf(null); }, null, { chave: 'invest.ofertas', itens: [
+      'As ofertas de renda fixa que você viu no seu banco ou corretora: banco, tipo, taxa e vencimento.',
+      'O app faz a conta com o CDI e o IPCA de hoje e põe a que mais rende líquido (depois do imposto) em primeiro, também nos quadrados lá em cima.',
+      'Toque numa oferta para mudar ou apagar. Elas ficam guardadas na sua conta.'] });
+    topo.style.padding = '16px 16px 0';
+    topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    var lista = ofertasOrdenadas();
+    if (!lista.length) {
+      c.appendChild(no('div', 'sanfona-vazio', 'Nenhuma oferta anotada ainda. Viu um CDB, LCI ou LCA interessante? Anote aqui para comparar.'));
+      return c;
+    }
+    lista.forEach(function (x) {
+      c.appendChild(linhaSimples({
+        titulo: x.o.tipo + ' · ' + (x.o.banco || 'Sem banco'),
+        sub: textoDaTaxa(x.o) + (x.o.vencimento ? ' · vence ' + dataBr(x.o.vencimento) : ''),
+        valor: x.r ? pctBr(x.r.liquido, 2) + ' líq.' : '',
+        selo: seloIcone('extrato', '#E9B44C'),
+        aoTocar: function () { abrirFolhaOfertaRf(x.o.id); }
+      }));
+    });
+    return c;
+  }
+
+  function abrirFolhaOfertaRf(id) {
+    var existente = id ? achar(estado.ofertasRf || [], id) : null;
+    var r = existente ? JSON.parse(JSON.stringify(existente)) : { id: novoId(), banco: '', tipo: 'CDB', indexador: 'cdi', taxa: 0, vencimento: '' };
+    abrirFolha(existente ? 'Oferta anotada' : 'Anotar uma oferta', function (folha) {
+      var forma = no('div', 'forma');
+      var campoBanco = no('input', 'entrada');
+      campoBanco.type = 'text'; campoBanco.placeholder = 'Ex.: Banco Inter, XP, Nubank'; campoBanco.value = r.banco;
+      campoBanco.classList.add('campo-banco-oferta');
+      forma.appendChild(campo('Banco ou corretora', campoBanco));
+      forma.appendChild(no('div', 'rotulo', 'Tipo'));
+      forma.appendChild(grupoChips(['CDB', 'LCI', 'LCA', 'LC', 'CRI', 'CRA', 'Debênture', 'Tesouro'], r.tipo, function (v) { r.tipo = v; }));
+      forma.appendChild(no('div', 'rotulo', 'Como rende'));
+      forma.appendChild(segmentosLocais([{ valor: 'cdi', rotulo: '% do CDI' }, { valor: 'pre', rotulo: 'Prefixado' }, { valor: 'ipca', rotulo: 'IPCA +' }],
+        r.indexador, function (v) { r.indexador = v; }));
+      var campoTaxa = entradaTextoNumero(r.taxa || '', 'Ex.: 110');
+      campoTaxa.classList.add('campo-taxa-oferta');
+      forma.appendChild(campo('Taxa (%)', campoTaxa));
+      var campoVence = entradaData(r.vencimento || '');
+      forma.appendChild(campo('Vencimento (opcional)', campoVence));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        r.banco = campoBanco.value.trim();
+        r.taxa = comoNumero(campoTaxa.value, 0);
+        // O campo de data nasce com hoje: vencimento de hoje ou antes é "sem vencimento".
+        r.vencimento = ehData(campoVence.value) && campoVence.value > hojeTexto() ? campoVence.value : '';
+        if (!r.taxa || r.taxa <= 0) { mostrarErro(forma, 'Diga a taxa da oferta.'); return; }
+        if (!estado.ofertasRf) estado.ofertasRf = [];
+        var limpa = limparOfertasRf([Object.assign({}, r, { criadoEm: r.criadoEm || Date.now() })])[0];
+        if (existente) estado.ofertasRf = estado.ofertasRf.map(function (o) { return o.id === limpa.id ? limpa : o; });
+        else estado.ofertasRf.push(limpa);
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar(existente ? 'Oferta atualizada.' : 'Oferta anotada.');
+      }));
+      if (existente) acoes.appendChild(botao('btn btn-perigo', 'Apagar esta oferta', function () {
+        estado.ofertasRf = estado.ofertasRf.filter(function (o) { return o.id !== existente.id; });
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar('Oferta apagada.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
   function desenharInvestimentos() {
     var tela = $('telaInvestimentos');
     tela.textContent = '';
     tela.appendChild(cabecalho('Investimentos', null, false));
+
+    // Renda fixa no topo e os tipos de investimento (pedido de 25/11/2026).
+    tela.appendChild(vitrineRendaFixa());
+    tela.appendChild(seletorDeTipos());
+    if (tipoInvestimento !== 'rf') {
+      var breve = cartao('liso');
+      breve.appendChild(estadoVazio(rotuloDoTipo(tipoInvestimento) + ' em breve',
+        'Ainda não mostro ' + rotuloDoTipo(tipoInvestimento).toLowerCase() + ' aqui. Por enquanto, os quadrados de cima são de renda fixa.'));
+      tela.appendChild(breve);
+    } else {
+      tela.appendChild(cartaoOfertasRf());
+    }
 
     var total = totalInvestido(null);
     var aplicado = totalAplicado();
@@ -25498,13 +26207,16 @@
     return Math.round((sobra / entradas) * 100);
   }
 
+  // Escrito para quem lê de passagem (25/11/2026): o que entrou, o que
+  // saiu, o que sobrou, e a meta em reais.
   function fraseDoGuardado(sobra, entradas, meta) {
-    if (sobra > 0) {
-      return 'Você guardou ' + taxaDeGuardado(sobra, entradas) + '% e sua meta é ' + meta + '%.';
-    }
-    if (sobra === 0) return 'Você guardou zero este mês. Sua meta é ' + meta + '%.';
-    return 'Você guardou zero este mês: saiu ' + emReais(-sobra) +
-           ' a mais do que entrou. Sua meta é ' + meta + '%.';
+    var alvo = Math.round(entradas * meta / 100);
+    var saiu = entradas - sobra;
+    var comeco = 'Entraram ' + emReais(entradas) + ' e saíram ' + emReais(saiu) + '. ';
+    var fim = 'Sua meta é guardar ' + meta + '% do que entra, ou seja, ' + emReais(alvo) + '.';
+    if (sobra > 0) return comeco + 'Sobraram ' + emReais(sobra) + ' (' + taxaDeGuardado(sobra, entradas) + '%). ' + fim;
+    if (sobra === 0) return comeco + 'Não sobrou nada. ' + fim;
+    return comeco + 'Saiu ' + emReais(-sobra) + ' a mais do que entrou. ' + fim;
   }
 
   // O quanto sobrou nos meses fechados, para a meta não ficar presa ao
@@ -25529,12 +26241,12 @@
     var h = historicoDeSobra(ano, mes, 3);
     if (!h.length) return null;
     return {
-      rotulo: 'Últimos meses:',
+      rotulo: 'Nos meses anteriores:',
       itens: h.map(function (x) {
         return {
-          texto: MESES[x.mes].slice(0, 3).toLowerCase() + ' ' +
-                 (x.sobra > 0 ? emReais(x.sobra) + ' (' + x.taxa + '%)'
-                              : x.sobra === 0 ? emReais(0) : '−' + emReais(-x.sobra)),
+          texto: MESES[x.mes] + ' ' +
+                 (x.sobra > 0 ? 'sobrou ' + emReais(x.sobra)
+                              : x.sobra === 0 ? 'empatou' : 'faltou ' + emReais(-x.sobra)),
           cor: x.sobra > 0 ? 'var(--verde)' : x.sobra === 0 ? 'var(--texto)' : 'var(--vermelho)'
         };
       })
@@ -25667,6 +26379,129 @@
   // completa, longe da tela principal.
 
   // Quando o histórico é sempre o mesmo valor, "entre X e X" não é faixa.
+  // Categoria por categoria, o que este mês gastou a mais que o anterior,
+  // com as subcategorias e os gastos de cada uma.
+  function compararComMesAnterior(atual, anterior, todas) {
+    var arvore = {};
+    function no_(cat) {
+      return arvore[cat] = arvore[cat] || { nome: cat, atual: 0, antes: 0, subs: {} };
+    }
+    function sub_(c, nome) {
+      return c.subs[nome] = c.subs[nome] || { nome: nome, atual: 0, antes: 0, itens: [] };
+    }
+    (atual || []).forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var c = no_(l.categoria || 'Outros'), sb = sub_(c, l.subcategoria || 'Sem subcategoria');
+      c.atual += l.valor; sb.atual += l.valor; sb.itens.push(l);
+    });
+    (anterior || []).forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var c = no_(l.categoria || 'Outros'), sb = sub_(c, l.subcategoria || 'Sem subcategoria');
+      c.antes += l.valor; sb.antes += l.valor;
+    });
+    return Object.keys(arvore).map(function (k) {
+      var c = arvore[k];
+      c.dif = c.atual - c.antes;
+      c.subs = Object.keys(c.subs).map(function (n) {
+        var sb = c.subs[n];
+        sb.dif = sb.atual - sb.antes;
+        sb.itens.sort(function (a, b) { return b.valor - a.valor; });
+        return sb;
+      }).filter(function (sb) { return sb.atual > 0; })
+        .sort(function (a, b) { return b.dif - a.dif; });
+      return c;
+    }).filter(function (c) { return todas ? c.atual > 0 : c.dif >= 100; })
+      .sort(function (a, b) { return b.dif - a.dif || b.atual - a.atual; });
+  }
+
+  // Abre a fonte de um gasto: a fatura do cartão no mês dela, o extrato de
+  // onde ele veio, ou o próprio lançamento quando foi feito à mão.
+  function abrirFonteDoGasto(l, voltar) {
+    var conta = achar(estado.contas, l.contaId);
+    var abrir;
+    if (conta && ehCartao(conta)) {
+      var fat = faturasDoCartao(conta.id).filter(function (f) { return f.itens.some(function (i) { return i.id === l.id; }); })[0];
+      abrir = function () { if (fat) mesDaFaturaNaTela[conta.id] = fat.chave; abrirTelaCartao(conta.id); };
+    } else if (l.importacaoId && achar(estado.importacoes || [], l.importacaoId)) {
+      abrir = function () { abrirLevaDeExtrato(l.contaId, l.importacaoId); };
+    } else {
+      abrir = function () { abrirFolhaLancamento(l.id); };
+    }
+    if (voltar && $('folha').classList.contains('aberta')) porCima(voltar, abrir);
+    else abrir();
+  }
+
+  function fonteDoGasto(l) {
+    var conta = achar(estado.contas, l.contaId);
+    if (conta && ehCartao(conta)) return 'cartão';
+    if (l.importacaoId && achar(estado.importacoes || [], l.importacaoId)) return 'extrato';
+    return 'lançamento';
+  }
+
+  function linhaQueAbre(nome, detalhe, dif, aoAbrir) {
+    var dentro = null;
+    var b = botao('comp-linha', null, function () {
+      if (!dentro) { dentro = aoAbrir(); dentro.hidden = true; b.parentNode.insertBefore(dentro, b.nextSibling); }
+      dentro.hidden = !dentro.hidden;
+      b.classList.toggle('aberta', !dentro.hidden);
+      b.setAttribute('aria-expanded', dentro.hidden ? 'false' : 'true');
+    });
+    juntar(b, juntar(no('span', 'comp-nome'), no('b', null, nome), no('span', null, detalhe)),
+      no('span', 'comp-dif', dif), no('span', 'comp-seta', '›'));
+    b.setAttribute('aria-expanded', 'false');
+    return b;
+  }
+
+  function pintarDif(linha, dif, comparando) {
+    var d = linha.querySelector('.comp-dif');
+    if (!d || !comparando) { if (d) d.classList.add('neutro'); return; }
+    d.classList.add(dif > 0 ? 'subiu' : dif < 0 ? 'caiu' : 'neutro');
+  }
+
+  function listaComparativa(comp) {
+    var voltar = function () { abrirAnaliseCompleta(comp.ano, comp.numMes); };
+    var lista = no('div', 'comparativo');
+    var difTxt = function (d) { return d > 0 ? '+' + emReais(d) : d < 0 ? '−' + emReais(-d) : 'igual'; };
+    // Sem o mês anterior não há o que comparar: em vez de repetir o valor,
+    // diz quanto a categoria pesa no mês.
+    var detalheDe = function (x, teto) {
+      var base = comp.mesAnt ? comp.mes + ' ' + emReais(x.atual) + ' · ' + comp.mesAnt + ' ' + emReais(x.antes)
+        : Math.round(pct(x.atual, comp.total)) + '% dos gastos';
+      return base + (teto ? ' · teto ' + emReais(teto) + (x.atual > teto ? ' (passou ' + emReais(x.atual - teto) + ')' : '') : '');
+    };
+    comp.categorias.forEach(function (c) {
+      var linhaCat = linhaQueAbre(c.nome, detalheDe(c, comp.tetos && comp.tetos[c.nome]),
+        comp.mesAnt ? difTxt(c.dif) : emReais(c.atual), function () {
+          var subs = no('div', 'comp-dentro');
+          c.subs.forEach(function (sb) {
+            var linhaSub = linhaQueAbre(sb.nome, detalheDe(sb),
+              comp.mesAnt ? difTxt(sb.dif) : emReais(sb.atual), function () {
+                var itens = no('div', 'comp-dentro');
+                sb.itens.forEach(function (l) {
+                  var conta = achar(estado.contas, l.contaId);
+                  var g = botao('comp-linha comp-gasto', null, function () { abrirFonteDoGasto(l, voltar); });
+                  juntar(g, juntar(no('span', 'comp-nome'), no('b', null, l.descricao || l.categoria),
+                      no('span', null, dataBr(l.data) + (conta ? ' · ' + conta.nome : ''))),
+                    no('span', 'comp-fonte', fonteDoGasto(l)),
+                    no('span', 'comp-dif', emReais(l.valor)));
+                  itens.appendChild(g);
+                });
+                return itens;
+              });
+            pintarDif(linhaSub, sb.dif, comp.mesAnt);
+            subs.appendChild(linhaSub);
+          });
+          return subs;
+        });
+      pintarDif(linhaCat, c.dif, comp.mesAnt);
+      var bola = no('span', 'comp-bola');
+      bola.style.background = corDeCategoria(c.nome);
+      linhaCat.insertBefore(bola, linhaCat.firstChild);
+      lista.appendChild(linhaCat);
+    });
+    return lista;
+  }
+
   function comoVoceCostuma(p) {
     if (p.de === p.ate) return 'Você costuma gastar ' + emReais(p.mediana);
     return 'Você costuma ficar entre ' + emReais(p.de) + ' e ' + emReais(p.ate);
@@ -25761,17 +26596,63 @@
     });
     foraDoPadrao.sort(function (a, b) { return b.acima - a.acima; });
 
-    foraDoPadrao.slice(0, 2).forEach(function (f, i) {
+    // Um relatório só para os gastos do mês (pedido de 25/11/2026): os
+    // resumos em cima (quanto saiu, a diferença para o mês passado e o
+    // orçamento), a rosca no meio e embaixo as categorias, que abrem as
+    // subcategorias, os gastos e a fonte de cada um. Ele junta o que antes
+    // eram três cartões: o "acima do padrão", o "orçamento estourado" e o
+    // "onde gastou mais".
+    var comparativo = base.total > 0 ? compararComMesAnterior(base.base, baseAnt ? baseAnt.base : [], true) : [];
+    if (comparativo.length) {
+      var difTotal = baseAnt ? base.total - baseAnt.total : 0;
+      var planejado = estado.orcamentos.geral > 0 ? estado.orcamentos.geral : 0;
+      var estourou = planejado && base.total > planejado;
+      var tetosCat = estado.orcamentos.categorias || {};
+      var acoesRel = [{ rotulo: 'Ver as saídas', principal: true, abrir: function () { irParaTransacoes('saida', ''); } }];
+      acoesRel.push({ rotulo: planejado ? 'Rever o planejamento' : 'Planejar o mês', abrir: function () {
+        if ($('folha').classList.contains('aberta')) { fecharFolha(); setTimeout(function () { abrirFolhaOrcamento(); }, 260); }
+        else abrirFolhaOrcamento();
+      } });
+      juntarAchado({
+        id: 'gastos-mes', prioridade: estourou || difTotal > 0 ? 1 : 2, icone: '📊',
+        tom: estourou ? 'ruim' : difTotal > 0 ? 'atencao' : 'info',
+        titulo: 'Seus gastos de ' + MESES[mes],
+        valor: emReais(base.total), valorCor: 'var(--texto)',
+        subValor: baseAnt ? (difTotal > 0 ? emReais(difTotal) + ' a mais que em ' + MESES[ant.mes]
+          : difTotal < 0 ? emReais(-difTotal) + ' a menos que em ' + MESES[ant.mes] : 'o mesmo que em ' + MESES[ant.mes]) : '',
+        explicacao: '',
+        resumos: [
+          baseAnt ? { rotulo: 'vs. ' + MESES[ant.mes], valor: (difTotal > 0 ? '+' : difTotal < 0 ? '−' : '') + emReais(Math.abs(difTotal)),
+            cor: difTotal > 0 ? 'var(--vermelho)' : difTotal < 0 ? 'var(--verde)' : '' } : null,
+          planejado ? { rotulo: estourou ? 'Acima do orçamento' : 'Do orçamento', valor: estourou ? '+' + emReais(base.total - planejado)
+            : Math.round(base.total / planejado * 100) + '%', cor: estourou ? 'var(--vermelho)' : 'var(--verde)' } : null
+        ].filter(Boolean),
+        orcamento: planejado ? { gasto: base.total, planejado: planejado } : null,
+        rosca: { lista: base.lista, total: base.total },
+        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: baseAnt ? MESES[ant.mes] : '', ano: ano, numMes: mes, tetos: tetosCat, total: base.total },
+        acoes: acoesRel,
+        info: { chave: 'analise.gastos', itens: [
+          'Em cima: quanto saiu no mês, a diferença para o mês passado (vermelho subiu, verde caiu) e, se você planejou, quanto do orçamento foi usado.',
+          'No meio, a rosca mostra para onde foi o dinheiro, com as mesmas cores das categorias.',
+          'Embaixo, cada categoria com o valor do mês e o do mês passado, da que mais subiu para a que mais caiu. Toque nela para abrir as subcategorias; na subcategoria, para ver cada gasto.',
+          'Tocando num gasto, o app abre de onde ele veio: o extrato importado, a fatura do cartão naquele mês, ou o próprio lançamento. O voltar do celular traz de volta para a análise.'] }
+      });
+    }
+
+    // Sem gasto no mês não há relatório; o "acima do padrão" também não
+    // teria o que dizer. Fica o laço, desligado, para o caso raro.
+    if (!comparativo.length && false) foraDoPadrao.slice(0, 2).forEach(function (f, i) {
       juntarAchado({
         id: 'padrao-' + f.nome, prioridade: i === 0 ? 1 : 2, icone: '🔎', tom: 'atencao',
-        titulo: f.nome + ' acima do seu padrão',
+        titulo: 'Você gastou mais que o normal com ' + f.nome,
         valor: '+' + emReais(f.acima), valorCor: 'var(--vermelho)',
-        explicacao: 'Este mês: ' + emReais(f.valor) + '. ' + comoVoceCostuma(f.padrao) + '.',
+        subValor: 'a mais que o normal (+' + f.pct.toFixed(0) + '%)',
+        explicacao: 'Em ' + MESES[mes] + ' foram ' + emReais(f.valor) + ' com ' + f.nome + '. ' +
+          comoVoceCostuma(f.padrao) + ' por mês.',
         detalhes: [
-          { rotulo: 'Este mês', valor: emReais(f.valor) },
-          { rotulo: 'Seu padrão', valor: f.padrao.de === f.padrao.ate ? emReais(f.padrao.mediana)
-              : emReais(f.padrao.de) + ' – ' + emReais(f.padrao.ate) },
-          { rotulo: 'Diferença', valor: '+' + f.pct.toFixed(0) + '%' }
+          { rotulo: 'Em ' + MESES[mes], valor: emReais(f.valor) },
+          { rotulo: 'Normal nos outros meses', valor: f.padrao.de === f.padrao.ate ? emReais(f.padrao.mediana)
+              : emReais(f.padrao.de) + ' a ' + emReais(f.padrao.ate) }
         ],
         acao: { rotulo: 'Ver lançamentos', abrir: function () { irParaTransacoes('saida', f.nome); } }
       });
@@ -25812,10 +26693,11 @@
         } else {
           juntarAchado({
             id: 'fatura-subiu', prioridade: 1, icone: '💳', tom: 'atencao',
-            titulo: 'Sua fatura aumentou',
+            titulo: 'A fatura do cartão aumentou',
             valor: '+' + emReais(subiu), valorCor: 'var(--vermelho)',
-            explicacao: 'De ' + emReais(faturaAnt.total) + ' para ' + emReais(fatura.total) +
-              ' em relação ao mês anterior.',
+            subValor: 'a mais que em ' + MESES[ant.mes],
+            explicacao: 'Em ' + MESES[ant.mes] + ' as compras no cartão somaram ' + emReais(faturaAnt.total) +
+              '; em ' + MESES[mes] + ', ' + emReais(fatura.total) + '.',
             rotuloDetalhes: 'O que mudou',
             detalhes: mudancas.slice(0, 3).map(function (m) {
               return { rotulo: m.nome, valor: '+' + emReais(m.dif) };
@@ -25848,8 +26730,9 @@
       if (falta > 0) {
         juntarAchado({
           id: 'meta-economia', prioridade: sobra <= 0 ? 1 : 2, icone: '🎯', tom: 'atencao',
-          titulo: 'Sua meta de economia',
-          valor: emReais(falta) + ' abaixo', valorCor: 'var(--ouro)',
+          titulo: 'Faltou para a meta de economia',
+          valor: emReais(falta), valorCor: 'var(--ouro)',
+          subValor: 'faltam para chegar na meta de ' + meta + '%',
           explicacao: fraseDoGuardado(sobra, t.entradas, meta),
           progresso: { feito: Math.max(sobra, 0), alvo: alvo },
           nota: notaDoHistorico(ano, mes),
@@ -25859,9 +26742,10 @@
       } else {
         juntarAchado({
           id: 'meta-batida', prioridade: 3, icone: '🎉', tom: 'bom',
-          titulo: 'Meta de economia batida',
-          valor: taxaDeGuardado(sobra, t.entradas) + '% guardados', valorCor: 'var(--verde)',
-          explicacao: 'Acima da sua meta de ' + meta + '%. Sobraram ' + emReais(sobra) + '.',
+          titulo: 'Você guardou mais que a meta',
+          valor: emReais(sobra), valorCor: 'var(--verde)',
+          subValor: 'sobrou em ' + MESES[mes] + ' (' + taxaDeGuardado(sobra, t.entradas) + '% do que entrou)',
+          explicacao: fraseDoGuardado(sobra, t.entradas, meta) + ' Passou dela em ' + emReais(sobra - alvo) + '.',
           progresso: { feito: sobra, alvo: alvo },
           nota: notaDoHistorico(ano, mes),
           acao: null
@@ -25869,17 +26753,7 @@
       }
     }
 
-    // 5) Orçamento estourado.
-    if (estado.orcamentos.geral > 0 && base.total > estado.orcamentos.geral) {
-      juntarAchado({
-        id: 'orcamento', prioridade: 1, icone: '📊', tom: 'ruim',
-        titulo: 'Orçamento do mês estourado',
-        valor: '+' + emReais(base.total - estado.orcamentos.geral), valorCor: 'var(--vermelho)',
-        explicacao: 'Você planejou ' + emReais(estado.orcamentos.geral) + ' e gastou ' +
-          emReais(base.total) + '.',
-        acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
-      });
-    }
+    // 5) O orçamento mora no relatório dos gastos do mês, lá em cima.
 
     // 6) Despesas que se repetem — o total comprometido não é economia.
     var recorrentes = despesasRecorrentes();
@@ -25915,11 +26789,12 @@
           icone: '📈', tom: difProj > 0 ? 'atencao' : 'bom',
           titulo: 'Estimativa para o fim do mês',
           valor: '≈ ' + emReais(projetado), valorCor: difProj > 0 ? 'var(--ouro)' : 'var(--verde)',
-          explicacao: 'Você já gastou ' + emReais(base.total) + ' em ' + dia + ' dias. ' +
-            'Mantendo o ritmo, fecharia perto disso — é estimativa, não certeza.',
+          subValor: 'é quanto o mês deve fechar, no ritmo de hoje',
+          explicacao: 'Em ' + dia + ' dias você gastou ' + emReais(base.total) + '. Se continuar assim até o fim de ' +
+            MESES[mes] + ', o mês fecha perto de ' + emReais(projetado) + '. É estimativa, não certeza.',
           detalhes: [
-            { rotulo: 'Seu padrão', valor: emReais(pad.mediana) },
-            { rotulo: 'Diferença estimada', valor: comSinal(difProj) }
+            { rotulo: 'Seus meses costumam fechar em', valor: emReais(pad.mediana) },
+            { rotulo: difProj > 0 ? 'Ficaria acima do normal em' : 'Ficaria abaixo do normal em', valor: emReais(Math.abs(difProj)) }
           ],
           acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
         });
@@ -25941,10 +26816,11 @@
       if (quedas.length) {
         juntarAchado({
           id: 'queda', prioridade: 3, icone: '↓', tom: 'bom',
-          titulo: quedas[0].nome + ' caiu',
-          valor: '−' + emReais(quedas[0].dif), valorCor: 'var(--verde)',
-          explicacao: 'De ' + emReais(quedas[0].antes) + ' para ' +
-            emReais(quedas[0].antes - quedas[0].dif) + ' em relação ao mês anterior.',
+          titulo: 'Você gastou menos com ' + quedas[0].nome,
+          valor: emReais(quedas[0].dif), valorCor: 'var(--verde)',
+          subValor: 'a menos que em ' + MESES[ant.mes],
+          explicacao: 'Em ' + MESES[ant.mes] + ' foram ' + emReais(quedas[0].antes) + ' com ' + quedas[0].nome +
+            '; em ' + MESES[mes] + ', ' + emReais(quedas[0].antes - quedas[0].dif) + '.',
           acao: { rotulo: 'Ver lançamentos',
                   abrir: function () { irParaTransacoes('saida', quedas[0].nome); } }
         });
@@ -26120,6 +26996,11 @@
     var topo = no('div', 'achado-topo');
     topo.appendChild(no('span', 'achado-icone', a.icone));
     topo.appendChild(no('span', 'achado-titulo', a.titulo));
+    if (a.info) {
+      var bi = botaoDeInfo(a.info.chave, a.titulo, a.info.itens);
+      bi.style.marginLeft = 'auto';
+      topo.appendChild(bi);
+    }
     c.appendChild(topo);
 
     if (a.valor) {
@@ -26127,7 +27008,58 @@
       if (a.valorCor) v.style.color = a.valorCor;
       c.appendChild(v);
     }
-    c.appendChild(no('p', 'achado-texto', a.explicacao));
+    if (a.subValor) c.appendChild(no('div', 'achado-sub', a.subValor));
+    if (a.explicacao) c.appendChild(no('p', 'achado-texto', a.explicacao));
+
+    if (a.resumos && a.resumos.length) {
+      var rs = no('div', 'resumos-achado');
+      a.resumos.forEach(function (x) {
+        var r = no('div', 'resumo-achado');
+        var v = no('b', 'num', x.valor);
+        if (x.cor) v.style.color = x.cor;
+        juntar(r, no('span', null, x.rotulo), v);
+        rs.appendChild(r);
+      });
+      c.appendChild(rs);
+    }
+
+    if (a.orcamento) {
+      // O planejado é o marco; o que passou dele fica em vermelho.
+      var total = Math.max(a.orcamento.gasto, a.orcamento.planejado, 1);
+      var bo = no('div', 'barra-orcamento');
+      var dentroO = no('div', 'dentro');
+      dentroO.style.width = (Math.min(a.orcamento.gasto, a.orcamento.planejado) / total * 100) + '%';
+      bo.appendChild(dentroO);
+      if (a.orcamento.gasto > a.orcamento.planejado) {
+        var passou = no('div', 'passou');
+        passou.style.width = ((a.orcamento.gasto - a.orcamento.planejado) / total * 100) + '%';
+        bo.appendChild(passou);
+        var marco = no('div', 'marco');
+        marco.style.left = (a.orcamento.planejado / total * 100) + '%';
+        bo.appendChild(marco);
+      }
+      c.appendChild(bo);
+      var legO = no('div', 'legenda-orcamento');
+      juntar(legO,
+        juntar(no('span'), document.createTextNode('Planejado '), no('b', null, emReais(a.orcamento.planejado))),
+        juntar(no('span', a.orcamento.gasto > a.orcamento.planejado ? 'vermelho' : ''), document.createTextNode('Gasto '),
+          no('b', null, emReais(a.orcamento.gasto) + ' · ' + Math.round(a.orcamento.gasto / a.orcamento.planejado * 100) + '%')));
+      c.appendChild(legO);
+    }
+
+    if (a.rosca && a.rosca.total > 0) {
+      var segR = comCores(a.rosca.lista.slice(0, 6));
+      var restoR = a.rosca.lista.slice(6).reduce(function (t, x) { return t + x.valor; }, 0);
+      if (restoR > 0) segR.push({ nome: 'Demais', valor: restoR, cor: '#4B5A6B' });
+      var rc = rosca(segR, a.rosca.total, 'Gastos');
+      rc.classList.add('rosca-achado');
+      c.appendChild(rc);
+    }
+    if (a.comparativo) {
+      if (a.comparativo.mesAnt) c.appendChild(no('div', 'rotulo rotulo-comparativo', 'Por categoria, comparando com ' + a.comparativo.mesAnt));
+      else c.appendChild(no('div', 'rotulo rotulo-comparativo', 'Por categoria'));
+      c.appendChild(listaComparativa(a.comparativo));
+    }
 
     if (a.progresso) {
       var barra = no('div', 'meta-barra');
@@ -26136,8 +27068,8 @@
       barra.appendChild(dentro);
       c.appendChild(barra);
       var leg = no('div', 'meta-legenda');
-      leg.appendChild(no('span', null, emReais(a.progresso.feito) + ' guardados'));
-      leg.appendChild(no('span', null, 'meta ' + emReais(a.progresso.alvo)));
+      leg.appendChild(no('span', null, 'Sobrou ' + emReais(a.progresso.feito)));
+      leg.appendChild(no('span', null, 'Meta ' + emReais(a.progresso.alvo)));
       c.appendChild(leg);
     }
 
@@ -26165,7 +27097,11 @@
       c.appendChild(d);
     }
 
-    if (a.acao) {
+    if (a.acoes && a.acoes.length) {
+      var ac = no('div', 'acoes-achado');
+      a.acoes.forEach(function (x) { ac.appendChild(botao(x.principal ? 'principal' : '', x.rotulo, x.abrir)); });
+      c.appendChild(ac);
+    } else if (a.acao) {
       var b = botao('btn-acao', a.acao.rotulo + ' ›', a.acao.abrir);
       c.appendChild(b);
     }
@@ -26364,7 +27300,7 @@
     var an = analiseDoMes(ano, mes);
     abrirFolha('Análise de ' + MESES[mes], function (folha) {
       var forma = no('div');
-      var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Pequenos sinais']];
+      var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Também vale saber']];
       faixas.forEach(function (f) {
         var doNivel = an.achados.filter(function (a) { return f[0] === 1 ? a.prioridade <= 1 : a.prioridade === f[0]; });
         if (!doNivel.length) return;
@@ -26384,55 +27320,11 @@
 
   // O bloco de análise no topo do Mais. Em cinco segundos: como estou, o que
   // pede atenção, e o que dá para fazer.
+  // Em Mais fica só a saúde financeira (pedido de 25/11/2026). Os avisos
+  // e a análise completa moram no sino e na análise do mês.
   function blocoDeAnalise() {
     var caixa = no('div');
-    var ano = mesAtivo.ano, mes = mesAtivo.mes;
-    var an = analiseDoMes(ano, mes);
-
-    caixa.appendChild(cartaoDeSaude(ano, mes));
-
-    // Sem histórico não há análise: dizer qualquer coisa aqui seria inventar.
-    if (an.meses < 2 && !an.achados.length) {
-      var vazio = cartao();
-      vazio.appendChild(no('div', 'rotulo', 'Ainda conhecendo seu padrão'));
-      vazio.appendChild(no('p', 'achado-texto',
-        'Registre seus lançamentos por mais alguns meses. A partir daí eu comparo você ' +
-        'com você mesmo e mostro o que mudou.'));
-      caixa.appendChild(vazio);
-      return caixa;
-    }
-
-    if (!an.principais.length) {
-      var tudoBem = cartao('achado tom-bom');
-      var topoOk = no('div', 'achado-topo');
-      topoOk.appendChild(no('span', 'achado-icone', '✓'));
-      topoOk.appendChild(no('span', 'achado-titulo', 'Tudo dentro do padrão'));
-      tudoBem.appendChild(topoOk);
-      tudoBem.appendChild(no('p', 'achado-texto',
-        'Seus gastos estão perto do que costumam ser. Nada pedindo atenção neste mês.'));
-      caixa.appendChild(tudoBem);
-    } else {
-      an.principais.forEach(function (a, i) { caixa.appendChild(cartaoDeAchado(a, i)); });
-    }
-
-    if (an.proxima) {
-      var prox = cartao('proxima');
-      var topoP = no('div', 'achado-topo');
-      topoP.appendChild(no('span', 'achado-icone', '🚀'));
-      topoP.appendChild(no('span', 'achado-titulo', 'Próxima ação'));
-      prox.appendChild(topoP);
-      prox.appendChild(no('p', 'achado-texto', frasePraAcao(an.proxima)));
-      prox.appendChild(botao('btn btn-ouro', an.proxima.acao.rotulo, an.proxima.acao.abrir));
-      caixa.appendChild(prox);
-    }
-
-    var verTudo = botao('linha linha-verTudo', null, function () { abrirAnaliseCompleta(ano, mes); });
-    juntar(verTudo,
-      juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', 'Ver análise completa'),
-        no('div', 'linha-sub', an.achados.length + ' observação(ões) sobre ' + MESES[mes])),
-      no('div', 'linha-nota', '›'));
-    caixa.appendChild(verTudo);
+    caixa.appendChild(cartaoDeSaude(mesAtivo.ano, mesAtivo.mes));
     return caixa;
   }
 
@@ -26442,9 +27334,10 @@
     if (a.id === 'meta-economia') return 'Veja em quais categorias existe espaço para chegar mais perto da sua meta.';
     if (a.id === 'recorrentes') return 'Você tem despesas que se repetem todo mês. Vale conferir se todas ainda fazem sentido.';
     if (a.id === 'saldo') return 'Este mês saiu mais do que entrou. Olhar as maiores saídas ajuda a entender por quê.';
-    if (a.id === 'orcamento') return 'O mês passou do que você tinha planejado. Vale ver onde a diferença aconteceu.';
+
     if (a.id === 'projecao') return 'No ritmo atual o mês fecharia acima do seu costume. Dá tempo de ajustar.';
     if (a.id.indexOf('padrao-') === 0) return a.titulo + '. Ver de onde veio a diferença ajuda a decidir o que fazer.';
+    if (a.id === 'gastos-mes') return 'Veja para onde foi o dinheiro do mês, categoria por categoria, e o que mudou desde o mês passado.';
     return a.explicacao;
   }
 
@@ -26508,7 +27401,8 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
+      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
+      ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', abrirBoasVindas]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
       juntar(linha,
@@ -33650,6 +34544,23 @@
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,nome,tipo,tamanho,criado_em' + filtro, {});
     }).then(function (r) { return r || []; }).catch(function () { return []; });
+  }
+
+  // Apaga de uma vez os arquivos pelos ids, em grupos de 80.
+  function apagarArquivosDeExtrato(ids) {
+    if (!NUVEM.ligada || !sessaoNuvem || !ids.length) return Promise.resolve();
+    var grupos = [];
+    for (var i = 0; i < ids.length; i += 80) grupos.push(ids.slice(i, i + 80));
+    return comTokenValido().then(function () {
+      return grupos.reduce(function (antes, g) {
+        return antes.then(function () {
+          var lista = g.map(function (x) { return '"' + String(x).replace(/"/g, '') + '"'; }).join(',');
+          return pedirNuvem('/rest/v1/arquivos_extrato?id=in.(' + encodeURIComponent(lista) + ')', {
+            metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        });
+      }, Promise.resolve());
+    });
   }
 
   // O conteúdo do arquivo como o banco entregou. Serve para salvar no
