@@ -652,6 +652,12 @@
   .bv-pontos span.ativo { width: 22px; border-radius: 4px; background: var(--ouro); }
   .bv-acoes { display: grid; gap: 10px; max-width: 460px; margin: 0 auto; width: 100%; }
   /* O cartão de Início enquanto faltam dados. */
+  .cartao-novidades { border: 1px solid rgba(233,180,76,.55) !important; background: linear-gradient(160deg, rgba(233,180,76,.12), rgba(10,10,11,.92)) !important; }
+  .novidades-titulo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; }
+  .novidades-brilho { font-size: 18px; }
+  .novidades-fechar { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--borda); background: none; color: var(--fraco); font: inherit; cursor: pointer; }
+  .novidades-lista { margin: 10px 0 0; padding-left: 18px; }
+  .novidades-lista li { font-size: 13px; line-height: 1.55; color: var(--suave); margin-bottom: 8px; }
   .cartao-faltam-dados { border: 2px solid var(--ouro) !important; background: linear-gradient(160deg, rgba(233,180,76,.16), rgba(233,180,76,.03)) !important; }
   .cartao-faltam-dados .fd-titulo { display: flex; gap: 10px; align-items: center; font-size: 17px; font-weight: 700; color: var(--ouro); }
   .cartao-faltam-dados p { margin: 8px 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--texto); }
@@ -2874,7 +2880,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.105.0';
+  var VERSAO = '5.106.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2883,6 +2889,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.106.0',
+      data: '2026-11-25',
+      itens: [
+        'Quando o app atualiza, as novidades aparecem aqui no Início, no topo. "Entendi" fecha; "Ver tudo" mostra cada versão. Pulou várias versões? Aparece o que mudou em todas desde a última vez.'
+      ]
+    },
     {
       versao: '5.105.0',
       data: '2026-11-25',
@@ -12390,6 +12403,9 @@
     }));
 
     ajustarFab();
+    // Atualizou? As novidades aparecem no topo, até a pessoa dar "Entendi".
+    var nov = cartaoNovidades();
+    if (nov) tela.appendChild(nov);
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
     var faltam = cartaoFaltamDados();
@@ -29439,6 +29455,60 @@
     if (!sessao) return '';
     var conta = achar(lerContas(), sessao.contaId);
     return conta ? conta.email : '';
+  }
+
+  // ---------- Novidades no Início depois de atualizar (pedido de 25/11/2026) ----------
+  var CHAVE_VERSAO_VISTA = 'finanz.versaoVista';
+  function compararVersao(a, b) {
+    var x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+    for (var i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); }
+    return 0;
+  }
+  function marcarVersaoVista() {
+    try { localStorage.setItem(CHAVE_VERSAO_VISTA, VERSAO); } catch (e) { /* sem espaço */ }
+  }
+  function novidadesNaoVistas() {
+    var vista = '';
+    try { vista = localStorage.getItem(CHAVE_VERSAO_VISTA) || ''; } catch (e) { vista = ''; }
+    if (vista === VERSAO) return [];
+    if (!vista) {
+      // Primeira vez neste aparelho: conta nova não precisa do histórico;
+      // quem já usava vê só o desta versão.
+      if (estaVazio(estado)) { marcarVersaoVista(); return []; }
+      return NOVIDADES.filter(function (n) { return n.versao === VERSAO; });
+    }
+    return NOVIDADES.filter(function (n) { return compararVersao(n.versao, vista) > 0 && compararVersao(n.versao, VERSAO) <= 0; });
+  }
+  function cartaoNovidades() {
+    if (navigator.webdriver) {
+      var querTeste = false;
+      try { querTeste = localStorage.getItem('finanz.novidades.teste') === '1'; } catch (e) { querTeste = false; }
+      if (!querTeste) return null;
+    }
+    var lista = novidadesNaoVistas();
+    if (!lista.length) return null;
+    var c = cartao('cartao-novidades');
+    var topo = no('div', 'cartao-topo');
+    var fechar = function () { marcarVersaoVista(); if (c.parentNode) c.parentNode.removeChild(c); };
+    var x = botao('novidades-fechar', '✕', fechar);
+    x.setAttribute('aria-label', 'Fechar as novidades');
+    juntar(topo, juntar(no('div', 'novidades-titulo'), no('span', 'novidades-brilho', '✨'),
+      no('span', null, 'Novidades da versão ' + VERSAO)), x);
+    c.appendChild(topo);
+    if (lista.length > 1) c.appendChild(no('div', 'linha-nota', lista.length + ' versões desde a última vez que você abriu o app.'));
+    var itens = [];
+    lista.forEach(function (n) { n.itens.forEach(function (t) { itens.push(t); }); });
+    var MOSTRAR = 4;
+    var ul = no('ul', 'novidades-lista');
+    itens.slice(0, MOSTRAR).forEach(function (t) { ul.appendChild(no('li', null, t)); });
+    c.appendChild(ul);
+    var acoes = no('div', 'duas');
+    acoes.style.marginTop = '12px';
+    juntar(acoes,
+      botao('btn btn-fantasma', itens.length > MOSTRAR ? 'Ver tudo (' + itens.length + ')' : 'Ver todas as versões', function () { abrirNovidades(); }),
+      botao('btn btn-ouro botao-novidades-ok', 'Entendi', fechar));
+    c.appendChild(acoes);
+    return c;
   }
 
   function abrirNovidades() {
