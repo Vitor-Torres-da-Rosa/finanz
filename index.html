@@ -27128,34 +27128,11 @@
 
   // O bloco de análise no topo do Mais. Em cinco segundos: como estou, o que
   // pede atenção, e o que dá para fazer.
+  // Em Mais fica só a saúde financeira (pedido de 25/11/2026). Os avisos
+  // e a análise completa moram no sino e na análise do mês.
   function blocoDeAnalise() {
     var caixa = no('div');
-    var ano = mesAtivo.ano, mes = mesAtivo.mes;
-    var an = analiseDoMes(ano, mes);
-
-    caixa.appendChild(cartaoDeSaude(ano, mes));
-
-    // Sem histórico não há análise: dizer qualquer coisa aqui seria inventar.
-    if (an.meses < 2 && !an.achados.length) {
-      var vazio = cartao();
-      vazio.appendChild(no('div', 'rotulo', 'Ainda conhecendo seu padrão'));
-      vazio.appendChild(no('p', 'achado-texto',
-        'Registre seus lançamentos por mais alguns meses. A partir daí eu comparo você ' +
-        'com você mesmo e mostro o que mudou.'));
-      caixa.appendChild(vazio);
-      return caixa;
-    }
-
-    // Em Mais não ficam cartões de aviso (pedido de 25/11/2026): a nota da
-    // saúde e o caminho para a análise completa bastam. Os avisos moram na
-    // análise e no sino.
-    var verTudo = botao('linha linha-verTudo', null, function () { abrirAnaliseCompleta(ano, mes); });
-    juntar(verTudo,
-      juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', 'Ver análise completa'),
-        no('div', 'linha-sub', an.achados.length + ' observação(ões) sobre ' + MESES[mes])),
-      no('div', 'linha-nota', '›'));
-    caixa.appendChild(verTudo);
+    caixa.appendChild(cartaoDeSaude(mesAtivo.ano, mesAtivo.mes));
     return caixa;
   }
 
