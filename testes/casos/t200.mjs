@@ -39,13 +39,16 @@ await page.locator('#telaMais .botao-proteja').screenshot({ path: dir + '/z200-e
 await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(900);
 await page.waitForFunction(() => !/Procurando/.test((document.querySelector('#folha .botao-backup-nuvem') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
 const hub = limpo(await page.textContent('#folha'));
-conferir('2. dentro: senha dos dados, backups com as senhas diferentes, dúvidas e os textos completos',
+conferir('2. dentro: senha dos dados, backups com as senhas diferentes e os textos completos, sem a lista solta de dúvidas',
   /Senha dos dados/.test(hub) && /Backup na nuvem/.test(hub) && /Backup no celular/.test(hub) && /senhas são diferentes/.test(hub) &&
-  await page.locator('#folha .duvida').count() >= 7 && /Política de Privacidade/.test(hub) && /Como seus dados são protegidos/.test(hub), hub.slice(0, 200));
+  await page.locator('#folha .duvida').count() === 0 && /Política de Privacidade/.test(hub) && /Como seus dados são protegidos/.test(hub), hub.slice(0, 200));
 await page.screenshot({ path: dir + '/z200-proteja.png', fullPage: true });
-await page.click('#folha .duvida:has-text("As senhas são diferentes?") .guia-cab'); await page.waitForTimeout(300);
-const resp = limpo(await page.textContent('#folha .duvida.aberta'));
-conferir('3. as dúvidas abrem no toque e respondem', /senha do backup abre só o arquivo \.finanz/.test(resp), resp.slice(0, 160));
+await page.click('#folha [data-dica="mais.protecao"]'); await page.waitForTimeout(600);
+const resp = limpo(await page.evaluate(() => { const d = document.querySelector('.dica-flutuante, .dica-pop, [role="dialog"].dica'); return d ? d.textContent : document.body.innerText; }));
+conferir('3. as dúvidas ficam no "i": pergunta e resposta', /As senhas são diferentes\?/.test(resp) && /senha do backup abre só o arquivo \.finanz/.test(resp) &&
+  /E se eu esquecer a senha dos dados\?/.test(resp) && await page.locator('.dica-pergunta').count() >= 7, resp.slice(0, 160));
+await page.screenshot({ path: dir + '/z200-duvidas-no-i.png' });
+await page.mouse.click(10, 10); await page.waitForTimeout(500);
 
 // nuvem
 await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);

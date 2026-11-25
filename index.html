@@ -2758,7 +2758,7 @@
   .backup-sub { font-size: 12px; color: var(--fraco); line-height: 1.4; }
   .backup-nota { padding: 10px 16px 16px; }
   .cartao-proteja .linha-titulo { font-size: 16px; }
-  .rotulo-duvidas { margin: 18px 0 10px; }
+  .dica-par .dica-pergunta { display: block; margin-bottom: 3px; color: var(--texto); }
   /* Estoque e Ferramentas */
   .est-item { border-bottom: 1px solid var(--borda); }
   .est-item:last-child { border-bottom: 0; }
@@ -12870,7 +12870,16 @@
     pop.setAttribute('role', 'dialog');
     pop.appendChild(no('strong', null, titulo));
     var ul = no('ul');
-    itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
+    // Item em par [pergunta, resposta]: a pergunta em negrito, a resposta embaixo.
+    itens.forEach(function (t) {
+      if (Array.isArray(t)) {
+        var li = no('li', 'dica-par');
+        juntar(li, no('b', 'dica-pergunta', t[0]), no('span', null, t[1]));
+        ul.appendChild(li);
+        return;
+      }
+      ul.appendChild(no('li', null, t));
+    });
     pop.appendChild(ul);
     pop.appendChild(no('div', 'dica-pop-rodape', 'Toque fora para fechar. O "i" mostra de novo.'));
     pop.style.width = largura + 'px';
@@ -36285,7 +36294,9 @@
 
       var semNuvem = !NUVEM.ligada || !sessaoNuvem;
       var cx = cartao('liso cartao-proteja-opcoes');
-      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.backups', itens: INFO_BACKUPS });
+      // As dúvidas moram no "i" (pedido de 25/11/2026): pergunta e resposta.
+      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.protecao', titulo: 'Dúvidas sobre senha e backups',
+        itens: DUVIDAS_DE_PROTECAO.map(function (d) { return [d[0], d[1].join(' ')]; }) });
       topoP.style.padding = '16px 16px 0';
       topoP.style.marginBottom = '6px';
       cx.appendChild(topoP);
@@ -36313,27 +36324,6 @@
         }).catch(function () { subNuvem.textContent = 'Sem conexão agora'; });
       }
       folha.appendChild(cx);
-
-      // Dúvidas
-      folha.appendChild(no('div', 'rotulo rotulo-duvidas', 'Dúvidas'));
-      DUVIDAS_DE_PROTECAO.forEach(function (d, i) {
-        var bloco = no('div', 'guia-secao duvida');
-        bloco.setAttribute('data-duvida', String(i));
-        var cab = botao('guia-cab', null, function () {
-          var aberta = bloco.classList.toggle('aberta');
-          cab.setAttribute('aria-expanded', aberta ? 'true' : 'false');
-        });
-        cab.setAttribute('aria-expanded', 'false');
-        juntar(cab, juntar(no('span', 'guia-textos'), no('b', null, d[0])), no('span', 'guia-seta', '›'));
-        var corpo = no('div', 'guia-corpo');
-        d[1].forEach(function (t) {
-          var l = no('div', 'guia-item');
-          juntar(l, no('span', 'guia-marca'), no('p', null, t));
-          corpo.appendChild(l);
-        });
-        juntar(bloco, cab, corpo);
-        folha.appendChild(bloco);
-      });
 
       // Para ler mais
       var cl = cartao('liso');
