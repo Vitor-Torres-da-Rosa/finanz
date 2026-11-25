@@ -2739,7 +2739,30 @@
   /* Empreendedor: os módulos em quadros, dois a dois. */
   .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
-  .modulos-lista .modulo-cartao[data-modulo="servicos"] { grid-column: 1 / -1; }
+  .modulos-lista .modulo-cartao[data-modulo="servicos"],
+  .modulos-lista .modulo-cartao[data-modulo="estoque"] { grid-column: 1 / -1; }
+  /* Estoque e Ferramentas */
+  .est-item { border-bottom: 1px solid var(--borda); }
+  .est-item:last-child { border-bottom: 0; }
+  .est-item > .linha { border-bottom: 0; }
+  .est-acoes { display: flex; gap: 8px; padding: 0 16px 14px 64px; flex-wrap: wrap; }
+  .est-acoes .btn-mini { flex: 0 0 auto; }
+  .est-situacao { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px;
+    background: rgba(233,180,76,.14); color: var(--ouro); vertical-align: middle; }
+  .est-situacao.manutencao { background: rgba(255,107,107,.14); color: var(--vermelho); }
+  .est-situacao.baixa { background: rgba(140,140,140,.18); color: var(--fraco); }
+  .est-obra-hoje { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .est-obra-hoje .rotulo { margin: 0; }
+  .est-passo { display: flex; align-items: center; gap: 6px; }
+  .est-passo button { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--borda); background: rgba(255,255,255,.03);
+    color: var(--texto); font: inherit; font-size: 18px; cursor: pointer; }
+  .est-passo .num { min-width: 42px; text-align: center; font-weight: 700; }
+  .est-linha-passo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+  .est-linha-passo:last-child { border-bottom: 0; }
+  .est-linha-passo .t { min-width: 0; }
+  .est-linha-passo .t b { display: block; font-size: 14px; }
+  .est-linha-passo .t span { display: block; font-size: 12px; color: var(--fraco); }
+  .est-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 0; font-weight: 700; }
   /* Chips de filtro soltos no módulo (Registros, Gastos): respiro antes do cartão. */
   .modulo-corpo > .chips { margin-bottom: 16px; }
   /* Redesenho da mesma tela (sincronizou, salvou, o relógio andou): nada de
@@ -2850,7 +2873,10 @@
         'O que já estava na nuvem é convertido sozinho: sobe cifrado, o app confere que abre e só então apaga a versão aberta.',
         'Em outro aparelho, o app pede a senha dos dados uma vez. Não existe recuperação: esquecendo, "Esqueci a senha" deixa você apagar a nuvem e recomeçar (ou restaurar um backup .finanz).',
         'Com a senha dos dados, o "Conferido ✓" usa a mesma senha: uma senha só para tudo.',
-        'As áreas do Empreendedor compartilhadas com outra pessoa ainda ficam abertas para ela; a versão cifrada do compartilhado vem a seguir.'
+        'As áreas do Empreendedor compartilhadas com outra pessoa ainda ficam abertas para ela; a versão cifrada do compartilhado vem a seguir.',
+        'Novo no Empreendedor: Estoque e Ferramentas. Cada ferramenta com data e valor da compra, vida útil, situação, cada uso e cada manutenção; cada consumível (disco de corte, broca…) com quantidade, mínimo e custo. "Usei hoje" e "−1 usei" anotam com um toque na "obra de hoje".',
+        'Estoque: "Registrar uso" anota várias coisas de uma vez numa obra; "Obras" mostra o custo de material de cada obra (consumíveis + desgaste das ferramentas); "Estimar uma obra" soma o material de uma obra nova, podendo partir de uma que você já fez.',
+        'Abertura: tocar num item abre só aquele assunto; o botão "Como funciona, termos e privacidade" saiu.'
       ]
     },
     {
@@ -5017,6 +5043,9 @@
       doceCompras: [],
       doceAjustes: [],
       doceCustos: [],
+      // Estoque e Ferramentas (pedido de 25/11/2026).
+      estoqueItens: [],
+      estoqueMovs: [],
       doceMembros: [],
       // Contas de casa (pedido de 09/11/2026): só a base para dividir as
       // contas com quem mora junto. Não entra nas despesas.
@@ -5858,6 +5887,30 @@
 
     // Resumo dos Doces: os custos operacionais e os membros da empresa,
     // cada um com a parte dele no lucro.
+    // Estoque e Ferramentas: o item (ferramenta ou consumível) e cada
+    // movimento dele (entrada, saída, uso, manutenção, ajuste).
+    limpo.estoqueItens = lista('estoqueItens').map(function (x) {
+      var vida = Math.round(Number(x.vidaUtil) || 0);
+      var min = Number(x.minimo);
+      return { id: x.id, tipo: x.tipo === 'consumivel' ? 'consumivel' : 'ferramenta',
+               nome: texto(x.nome).slice(0, 80) || 'Item', categoria: texto(x.categoria).slice(0, 40),
+               marca: texto(x.marca).slice(0, 80), unidade: texto(x.unidade).slice(0, 12) || 'un',
+               minimo: isFinite(min) && min > 0 ? Math.round(min * 1000) / 1000 : 0,
+               custo: positivo(x.custo), dataCompra: soData(x.dataCompra) || '',
+               vidaUtil: Math.max(0, Math.min(1000000, vida)),
+               situacao: ['ok', 'manutencao', 'emprestada', 'baixa'].indexOf(x.situacao) >= 0 ? x.situacao : 'ok',
+               obs: texto(x.obs).slice(0, 300), criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.estoqueMovs = lista('estoqueMovs').map(function (x) {
+      var q = Number(x.quantidade);
+      return { id: x.id, itemId: texto(x.itemId),
+               tipo: ['entrada', 'saida', 'uso', 'manutencao', 'ajuste'].indexOf(x.tipo) >= 0 ? x.tipo : 'saida',
+               data: soData(x.data) || hojeTexto(),
+               quantidade: isFinite(q) ? Math.max(-1000000, Math.min(1000000, Math.round(q * 1000) / 1000)) : 0,
+               valor: positivo(x.valor), obra: texto(x.obra).slice(0, 80), clienteId: texto(x.clienteId),
+               obs: texto(x.obs).slice(0, 200), criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.itemId; });
+
     limpo.doceCustos = lista('doceCustos').map(function (x) {
       return { id: x.id, descricao: texto(x.descricao).slice(0, 80) || 'Custo', valor: positivo(x.valor),
                data: soData(x.data) || hojeTexto(), compraId: texto(x.compraId).slice(0, 80),
@@ -6804,12 +6857,28 @@
     return codigo === '42703' || codigo === 'PGRST204' || /column .* does not exist|could not find the .* column/i.test(msg);
   }
 
+  // O que o servidor disse do cofre fica guardado aqui: reabrir o app sem
+  // nada ter mudado não pode custar um pedido a mais (o carimbo muda quando
+  // o cofre muda, porque ele mora no perfil).
+  function chaveDaInfoDoCofre() { return 'finanz.cofreinfo.v1:' + ((sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || ''); }
+  function guardarInfoDoCofre(info) {
+    try { localStorage.setItem(chaveDaInfoDoCofre(), JSON.stringify({ info: info || null })); } catch (e) { /* sem espaço */ }
+  }
+  function infoDoCofreGuardada() {
+    try { var g = JSON.parse(localStorage.getItem(chaveDaInfoDoCofre()) || 'null'); return g && 'info' in g ? g : null; }
+    catch (e) { return null; }
+  }
+
   // Antes de cada sincronia: o cofre desta conta existe? A chave está aqui?
-  function prepararCofre() {
+  function prepararCofre(talvezMudou) {
     if (faltaNoBanco['cofre']) return Promise.resolve();
     var uid = sessaoNuvem.usuario.id;
-    return pedirNuvem('/rest/v1/perfis?select=cofre&id=eq.' + encodeURIComponent(uid), {}).then(function (r) {
+    var guardada = talvezMudou === false ? infoDoCofreGuardada() : null;
+    var pedido = guardada ? Promise.resolve([{ cofre: guardada.info }])
+      : pedirNuvem('/rest/v1/perfis?select=cofre&id=eq.' + encodeURIComponent(uid), {});
+    return pedido.then(function (r) {
       var info = r && r[0] ? r[0].cofre : null;
+      if (!guardada) guardarInfoDoCofre(info);
       cofre.lido = true;
       if (!info || !info.kdf || !info.chave) {
         cofre.info = null; cofre.ativo = false; cofre.chave = null;
@@ -6887,6 +6956,7 @@
         throw e;
       }
       cofre.info = info; cofre.ativo = true; cofre.chave = cm; cofre.sal = sal;
+      guardarInfoDoCofre(info);
       return guardarChaveDoCofre(cm, sal);
     }).then(function () {
       // Tudo sobe de novo, agora cifrado.
@@ -6920,6 +6990,7 @@
       });
     }).then(function () {
       esquecerChaveDoCofre();
+      guardarInfoDoCofre(null);
       estado.carimbo = '';
     });
   }
@@ -7045,7 +7116,7 @@
         info.convertido = new Date().toISOString();
         return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
           metodo: 'PATCH', corpo: { cofre: info }, cabecalhos: { 'Prefer': 'return=minimal' }
-        }).then(function () { cofre.info = info; });
+        }).then(function () { cofre.info = info; guardarInfoDoCofre(info); });
       });
       return t2;
     }).then(function () {
@@ -7224,6 +7295,7 @@
               metodo: 'PATCH', corpo: { cofre: novo }, cabecalhos: { 'Prefer': 'return=minimal' }
             }).then(function () {
               cofre.info = novo; cofre.chave = cm; cofre.sal = sal;
+              guardarInfoDoCofre(novo);
               return guardarChaveDoCofre(cm, sal);
             });
           });
@@ -7241,7 +7313,7 @@
     });
   }
 
-  function textoDoCofre() {
+  function rotuloDoCofreEmMais() {
     if (!NUVEM.ligada || !sessaoNuvem) return 'Só com a conta na nuvem';
     if (faltaNoBanco['cofre']) return 'O servidor ainda não tem o cofre';
     if (cofreLigado()) return 'Ligada: seus dados sobem cifrados';
@@ -7287,6 +7359,7 @@
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes',
     doce_custo: 'doceCustos', doce_membro: 'doceMembros',
+    estoque_item: 'estoqueItens', estoque_mov: 'estoqueMovs',
     casa_membro: 'casaMembros', casa_conta: 'casaContas', casa_compra: 'casaCompras'
   };
 
@@ -8520,9 +8593,9 @@
     return comTokenValido().then(function () {
       return carregarCompartilhamentos();
     }).then(function () {
-      return prepararCofre();
-    }).then(function () {
       return carimboDaConta();
+    }).then(function (carimbo) {
+      return prepararCofre(!carimbo || carimbo !== estado.carimbo).then(function () { return carimbo; });
     }).then(function (carimbo) {
       // Sem carimbo (banco antigo) o app não sabe, então assume que mudou
       // e faz como sempre fez.
@@ -8787,6 +8860,7 @@
     var orc = e.orcamentos || {};
     return (quantas(e.servicos) + quantas(e.pagamentos) + quantas(e.parcelas)
       + quantas(e.propostas) + quantas(e.importacoes) + quantas(e.tiposRegistro)
+      + quantas(e.estoqueItens)
       + quantas((e.categoriasExtras || {}).saida)
       + quantas((e.categoriasExtras || {}).entrada)
       + chavesDe(e.regrasCategoria) + chavesDe(orc.categorias)
@@ -13769,6 +13843,7 @@
     servicos: { titulo: 'Serviços e Vendas', icone: 'ferramenta' },
     uber: { titulo: 'Uber e Corridas', icone: 'carro' },
     doces: { titulo: 'Venda de Doces', icone: 'doce' },
+    estoque: { titulo: 'Estoque e Ferramentas', icone: 'pacote' },
     painel: { titulo: 'Resumo do Empreendedor', icone: 'painel' }
   };
 
@@ -14204,6 +14279,12 @@
       { rotulo: 'Meu lucro ' + noPeriodoCurto(), valor: emReais(meuDoces), cor: meuDoces < 0 ? 'vermelho' : 'verde' }));
     // O quarto quadro (Painel geral) saiu: ele repetia o resumo, que agora
     // é a primeira coisa da tela e continua abrindo o painel.
+    // Estoque e Ferramentas (pedido de 25/11/2026), na linha inteira.
+    var est = numerosDoEstoque();
+    lista.appendChild(cartaoDeModulo('estoque', 'Ferramentas, consumíveis, usos, manutenção e custo das obras',
+      est.acabando
+        ? { rotulo: est.acabando + ' acabando', valor: emReais(est.valor), cor: 'vermelho' }
+        : { rotulo: 'Valor em estoque', valor: emReais(est.valor), cor: 'ouro' }));
 
     var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
     var fAnt = faixaDoMes(ant.ano, ant.mes);
@@ -14259,8 +14340,710 @@
     if (moduloEmp === 'servicos') desenharServicos(corpo);
     else if (moduloEmp === 'uber') desenharUber(corpo);
     else if (moduloEmp === 'doces') desenharDoces(corpo);
+    else if (moduloEmp === 'estoque') desenharEstoque(corpo);
     else desenharPainel(corpo);
     return true;
+  }
+
+  // =========================================================================
+  // Estoque e Ferramentas (pedido do Vitor em 25/11/2026)
+  //
+  // Ferramentas: compra, valor, vida útil, situação, cada uso e cada
+  // manutenção. Consumíveis (disco de corte, broca…): quantidade, mínimo,
+  // custo, entradas e saídas. Cada uso e saída pode levar a obra (o cliente
+  // ou um nome livre), e daí sai o custo de material de cada obra e a
+  // estimativa de uma obra nova. Registrar tem de ser rápido: "Usei hoje"
+  // é um toque, com a "obra de hoje" já escolhida.
+  // =========================================================================
+
+  var abaEstoque = 'resumo';
+  var obraDeHoje = '';      // nome da obra do dia (sessão)
+  var obraDeHojeCliente = '';
+
+  var CATEGORIAS_FERRAMENTA = ['Elétrica', 'Manual', 'Corte', 'Furação', 'Medição', 'Outra'];
+  var CATEGORIAS_CONSUMIVEL = ['Corte', 'Furação', 'Fixação', 'Abrasivos', 'Elétrica', 'Outra'];
+  var UNIDADES_ESTOQUE = ['un', 'caixa', 'pacote', 'm', 'kg', 'L'];
+  var SITUACOES_FERRAMENTA = [
+    { valor: 'ok', rotulo: 'Em uso' }, { valor: 'manutencao', rotulo: 'Em manutenção' },
+    { valor: 'emprestada', rotulo: 'Emprestada' }, { valor: 'baixa', rotulo: 'Fora de uso' }
+  ];
+
+  function qtdBr(q) {
+    var n = Math.round((Number(q) || 0) * 1000) / 1000;
+    return String(n).replace('.', ',');
+  }
+  function lerQtd(t) {
+    var n = parseFloat(String(t || '').replace(/\./g, '').replace(',', '.'));
+    return isFinite(n) ? Math.round(n * 1000) / 1000 : 0;
+  }
+
+  function movsDoItem(id) {
+    return estado.estoqueMovs.filter(function (m) { return m.itemId === id; })
+      .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : b.criadoEm - a.criadoEm; });
+  }
+
+  function qtdEmEstoque(item) {
+    return Math.round(estado.estoqueMovs.reduce(function (t, m) {
+      if (m.itemId !== item.id) return t;
+      if (m.tipo === 'entrada' || m.tipo === 'ajuste') return t + m.quantidade;
+      if (m.tipo === 'saida') return t - m.quantidade;
+      return t;
+    }, 0) * 1000) / 1000;
+  }
+
+  // Custo de uma unidade: o da última compra com valor; sem compra, o
+  // custo que a pessoa pôs no item.
+  function custoUnitario(item) {
+    var ult = null;
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.itemId === item.id && m.tipo === 'entrada' && m.valor > 0 && m.quantidade > 0 &&
+          (!ult || m.data > ult.data || (m.data === ult.data && m.criadoEm > ult.criadoEm))) ult = m;
+    });
+    return ult ? Math.round(ult.valor / ult.quantidade) : item.custo;
+  }
+
+  function usosDaFerramenta(item) {
+    var usos = 0, ultimo = '', manut = 0, nManut = 0;
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.itemId !== item.id) return;
+      if (m.tipo === 'uso') { usos += Math.max(1, m.quantidade || 1); if (m.data > ultimo) ultimo = m.data; }
+      if (m.tipo === 'manutencao') { manut += m.valor; nManut++; }
+    });
+    return { usos: usos, ultimo: ultimo, manutencao: manut, nManut: nManut };
+  }
+
+  // Quanto cada uso da ferramenta custa: o desgaste (preço ÷ vida útil em
+  // usos) mais a manutenção dividida pelos usos que já houve.
+  function custoPorUso(item) {
+    var u = usosDaFerramenta(item);
+    var desgaste = item.vidaUtil > 0 ? Math.round(item.custo / item.vidaUtil) : 0;
+    var manut = u.usos > 0 ? Math.round(u.manutencao / u.usos) : 0;
+    return desgaste + manut;
+  }
+
+  function numerosDoEstoque() {
+    var valor = 0, acabando = 0, ferr = 0, emManut = 0, cons = 0;
+    (estado.estoqueItens || []).forEach(function (it) {
+      if (it.tipo === 'ferramenta') {
+        if (it.situacao !== 'baixa') { valor += it.custo; ferr++; }
+        if (it.situacao === 'manutencao') emManut++;
+        return;
+      }
+      cons++;
+      var q = qtdEmEstoque(it);
+      valor += Math.round(Math.max(q, 0) * custoUnitario(it));
+      if (it.minimo > 0 && q <= it.minimo) acabando++;
+    });
+    return { valor: valor, acabando: acabando, ferramentas: ferr, emManutencao: emManut, consumiveis: cons };
+  }
+
+  function nomeDaObra(m) {
+    if (m.clienteId) {
+      var c = achar(estado.clientes || [], m.clienteId);
+      if (c) return c.nome;
+    }
+    return m.obra || 'Sem obra';
+  }
+
+  // O custo de material de cada obra no período.
+  function obrasDoPeriodo(de, ate) {
+    var porObra = {};
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.data < de || m.data > ate) return;
+      if (m.tipo !== 'saida' && m.tipo !== 'uso') return;
+      var it = achar(estado.estoqueItens, m.itemId);
+      if (!it) return;
+      var chave = m.clienteId ? 'c:' + m.clienteId : 'o:' + (m.obra || '');
+      var o = porObra[chave] || (porObra[chave] = { chave: chave, nome: nomeDaObra(m), clienteId: m.clienteId, obra: m.obra,
+        consumiveis: 0, ferramentas: 0, movs: [], ultima: '' });
+      var v = m.tipo === 'saida' ? Math.round(m.quantidade * custoUnitario(it)) : Math.max(1, m.quantidade || 1) * custoPorUso(it);
+      if (m.tipo === 'saida') o.consumiveis += v; else o.ferramentas += v;
+      o.movs.push({ m: m, it: it, valor: v });
+      if (m.data > o.ultima) o.ultima = m.data;
+    });
+    return Object.keys(porObra).map(function (k) { return porObra[k]; })
+      .sort(function (a, b) { return (b.consumiveis + b.ferramentas) - (a.consumiveis + a.ferramentas); });
+  }
+
+  // As obras para escolher: clientes recentes e nomes já usados.
+  function opcoesDeObra() {
+    var vistos = {}, ops = [];
+    estado.estoqueMovs.slice().sort(function (a, b) { return b.criadoEm - a.criadoEm; }).forEach(function (m) {
+      var chave = m.clienteId ? 'c:' + m.clienteId : m.obra ? 'o:' + m.obra : '';
+      if (!chave || vistos[chave] || ops.length >= 8) return;
+      vistos[chave] = true;
+      ops.push({ nome: nomeDaObra(m), clienteId: m.clienteId, obra: m.clienteId ? '' : m.obra });
+    });
+    (estado.clientes || []).slice(-12).reverse().forEach(function (c) {
+      if (vistos['c:' + c.id] || ops.length >= 14) return;
+      vistos['c:' + c.id] = true;
+      ops.push({ nome: c.nome, clienteId: c.id, obra: '' });
+    });
+    return ops;
+  }
+
+  // Escolher a obra: chips das recentes e um campo para uma nova.
+  function escolhaDeObra(inicial, aoMudar) {
+    var caixa = no('div', 'est-escolha-obra');
+    var atual = { nome: inicial.nome || '', clienteId: inicial.clienteId || '', obra: inicial.obra || '' };
+    var ops = opcoesDeObra();
+    var chips = grupoChips([{ rotulo: 'Sem obra', valor: '' }].concat(ops.map(function (o, i) { return { rotulo: o.nome, valor: String(i + 1) }; })),
+      atual.nome ? String(ops.map(function (o) { return o.nome; }).indexOf(atual.nome) + 1) : '', function (v) {
+        if (!v) { atual = { nome: '', clienteId: '', obra: '' }; campoNova.value = ''; }
+        else { var o = ops[+v - 1]; atual = { nome: o.nome, clienteId: o.clienteId || '', obra: o.obra || '' }; campoNova.value = ''; }
+        aoMudar(atual);
+      });
+    var campoNova = no('input', 'entrada campo-obra-nova');
+    campoNova.type = 'text';
+    campoNova.placeholder = 'Ou escreva uma obra nova';
+    campoNova.addEventListener('input', function () {
+      var t = campoNova.value.trim().slice(0, 80);
+      atual = { nome: t, clienteId: '', obra: t };
+      Array.prototype.forEach.call(chips.querySelectorAll('.chip'), function (c) { c.setAttribute('aria-pressed', 'false'); });
+      aoMudar(atual);
+    });
+    juntar(caixa, chips, campoNova);
+    return caixa;
+  }
+
+  function anotarMov(mov) {
+    mov.id = novoId();
+    mov.criadoEm = Date.now();
+    estado.estoqueMovs.push(mov);
+  }
+
+  // Um toque: a ferramenta foi usada hoje, na obra de hoje.
+  function useiHoje(item) {
+    anotarMov({ itemId: item.id, tipo: 'uso', data: hojeTexto(), quantidade: 1, valor: 0,
+                obra: obraDeHojeCliente ? '' : obraDeHoje, clienteId: obraDeHojeCliente, obs: '' });
+    salvar(); desenhar();
+    avisar('Uso anotado' + (obraDeHoje ? ' em ' + obraDeHoje : '') + '.');
+  }
+
+  // Um toque: saiu uma unidade do consumível.
+  function saiuUm(item) {
+    anotarMov({ itemId: item.id, tipo: 'saida', data: hojeTexto(), quantidade: 1, valor: 0,
+                obra: obraDeHojeCliente ? '' : obraDeHoje, clienteId: obraDeHojeCliente, obs: '' });
+    salvar(); desenhar();
+    var q = qtdEmEstoque(item);
+    avisar('Saiu 1 ' + item.unidade + ' de ' + item.nome + '. Ficam ' + qtdBr(q) + '.');
+  }
+
+  function desenharEstoque(corpo) {
+    corpo.appendChild(abasDeModulo([
+      { valor: 'resumo', rotulo: 'Resumo' }, { valor: 'ferramentas', rotulo: 'Ferramentas' },
+      { valor: 'consumiveis', rotulo: 'Consumíveis' }, { valor: 'obras', rotulo: 'Obras' }
+    ], abaEstoque, function (v) { abaEstoque = v; }));
+
+    // A obra de hoje: o que "Usei hoje" e "−1" usam sem perguntar.
+    var oh = cartao('liso');
+    oh.style.padding = '12px 16px';
+    var topoOh = no('div', 'cartao-topo');
+    juntar(topoOh, no('div', 'rotulo', 'Obra de hoje: ' + (obraDeHoje || 'nenhuma')),
+      botao('btn-mini botao-obra-hoje', obraDeHoje ? 'Trocar' : 'Escolher', function () { abrirObraDeHoje(); }));
+    topoOh.style.marginBottom = '0';
+    oh.appendChild(topoOh);
+    corpo.appendChild(oh);
+
+    if (abaEstoque === 'ferramentas') return desenharEstoqueLista(corpo, 'ferramenta');
+    if (abaEstoque === 'consumiveis') return desenharEstoqueLista(corpo, 'consumivel');
+    if (abaEstoque === 'obras') return desenharEstoqueObras(corpo);
+    desenharEstoqueResumo(corpo);
+  }
+
+  function abrirObraDeHoje() {
+    abrirFolha('Obra de hoje', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', '"Usei hoje" e "−1" anotam nesta obra, sem perguntar. Vale enquanto o app estiver aberto.'));
+      var esc = { nome: obraDeHoje, clienteId: obraDeHojeCliente, obra: obraDeHojeCliente ? '' : obraDeHoje };
+      forma.appendChild(escolhaDeObra(esc, function (o) { esc = o; }));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Usar esta obra', function () {
+        obraDeHoje = esc.nome; obraDeHojeCliente = esc.clienteId || '';
+        fecharFolha(); desenhar();
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function desenharEstoqueResumo(corpo) {
+    var n = numerosDoEstoque();
+    var faixa = faixaDoMesAtivo();
+    var gasto = 0, manut = 0;
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.data < faixa.de || m.data > faixa.ate) return;
+      var it = achar(estado.estoqueItens, m.itemId);
+      if (!it) return;
+      if (m.tipo === 'saida') gasto += Math.round(m.quantidade * custoUnitario(it));
+      if (m.tipo === 'manutencao') manut += m.valor;
+    });
+    var c = cartao();
+    c.appendChild(topoDeCartao('Seu estoque', null, null, null, { chave: 'estoque.resumo', itens: [
+      'Valor em estoque: o que você pagou nas ferramentas em uso mais os consumíveis que ainda tem, pelo custo da última compra.',
+      'Usado ' + noPeriodoCurto() + ': os consumíveis que saíram no período, pelo custo de cada um. Manutenção: o que você gastou consertando ferramentas.',
+      '"Obra de hoje", lá em cima, é a obra que "Usei hoje" e "−1" anotam sem perguntar.',
+      '"Registrar uso" anota de uma vez várias ferramentas e consumíveis numa obra. "Estimar uma obra" soma o material de uma obra nova.'] }));
+    c.appendChild(gradeDeTiles([
+      tile('Valor em estoque', emReais(n.valor), 'ouro'),
+      tile('Ferramentas', n.ferramentas + (n.emManutencao ? ' · ' + n.emManutencao + ' em manut.' : ''), ''),
+      tile('Consumíveis', n.consumiveis + (n.acabando ? ' · ' + n.acabando + ' acabando' : ''), n.acabando ? 'vermelho' : ''),
+      tile('Usado ' + noPeriodoCurto(), emReais(gasto), ''),
+      tile('Manutenção', emReais(manut), manut ? 'vermelho' : ''),
+      tile('Obras ' + noPeriodoCurto(), String(obrasDoPeriodo(faixa.de, faixa.ate).filter(function (o) { return o.chave !== 'o:'; }).length), '')
+    ], 2));
+    var duas = no('div', 'duas');
+    duas.style.marginTop = '14px';
+    juntar(duas,
+      botao('btn btn-ouro botao-registrar-uso', 'Registrar uso', function () { abrirRegistrarUso(); }),
+      botao('btn btn-fantasma botao-estimar-obra', 'Estimar uma obra', function () { abrirEstimarObra(); }));
+    c.appendChild(duas);
+    corpo.appendChild(c);
+
+    var acabando = estado.estoqueItens.filter(function (it) {
+      return it.tipo === 'consumivel' && it.minimo > 0 && qtdEmEstoque(it) <= it.minimo;
+    });
+    if (acabando.length) {
+      var ca = cartao('liso cartao-acabando');
+      var t = no('div', 'cartao-topo'); t.style.padding = '16px 16px 4px';
+      juntar(t, no('div', 'cartao-titulo', 'Acabando'), no('span', 'linha-nota vermelho', acabando.length + ' item(ns) no mínimo ou abaixo'));
+      ca.appendChild(t);
+      acabando.forEach(function (it) {
+        ca.appendChild(linhaSimples({ titulo: it.nome, sub: 'Mínimo ' + qtdBr(it.minimo) + ' ' + it.unidade,
+          valor: qtdBr(qtdEmEstoque(it)) + ' ' + it.unidade, cor: 'vermelho', selo: seloIcone('pacote', '#FF6B6B'),
+          aoTocar: function () { abrirMovEstoque(it.id, 'entrada'); } }));
+      });
+      corpo.appendChild(ca);
+    }
+    if (!estado.estoqueItens.length) {
+      var vz = cartao('liso');
+      vz.appendChild(estadoVazio('Nada no estoque ainda', 'Cadastre suas ferramentas em "Ferramentas" e os consumíveis (disco de corte, broca…) em "Consumíveis".'));
+      corpo.appendChild(vz);
+    }
+  }
+
+  function desenharEstoqueLista(corpo, tipo) {
+    var ehF = tipo === 'ferramenta';
+    var c = cartao('liso');
+    var topo = topoDeCartao(ehF ? 'Ferramentas' : 'Consumíveis', '+ Novo', function () { abrirFolhaItemEstoque(null, tipo); }, ehF ? 'ferramenta' : 'pacote',
+      ehF ? { chave: 'estoque.ferramentas', itens: [
+        'Cada ferramenta com o valor pago, a data da compra, quantas vezes foi usada e quando foi a última.',
+        '"Usei hoje" anota um uso na obra de hoje, com um toque. "Manutenção" anota o conserto, com o custo.',
+        'Pondo a vida útil (quantos usos ela aguenta), o app calcula quanto cada uso custa e põe isso no custo da obra.',
+        'Toque na ferramenta para ver o histórico inteiro, editar ou apagar um uso.'] }
+      : { chave: 'estoque.consumiveis', itens: [
+        'Disco de corte, broca, parafuso, fita: cada um com a quantidade que você tem, o mínimo e o custo da unidade.',
+        '"−1" tira uma unidade na obra de hoje, com um toque. "+ Entrada" anota uma compra, com o valor pago.',
+        'Chegou no mínimo, o item fica vermelho e aparece em "Acabando", no Resumo.',
+        'Toque no consumível para tirar outra quantidade, ajustar o estoque ou ver o histórico.'] });
+    topo.style.padding = '16px 16px 0'; topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    var itens = estado.estoqueItens.filter(function (it) { return it.tipo === tipo; })
+      .sort(function (a, b) { return (a.situacao === 'baixa') - (b.situacao === 'baixa') || a.nome.localeCompare(b.nome); });
+    if (!itens.length) {
+      c.appendChild(estadoVazio(ehF ? 'Nenhuma ferramenta' : 'Nenhum consumível',
+        ehF ? 'Toque em "+ Novo" para cadastrar furadeira, esmerilhadeira, serra…' : 'Toque em "+ Novo" para cadastrar disco de corte, broca, parafuso…'));
+    }
+    itens.forEach(function (it) {
+      var bloco = no('div', 'est-item');
+      bloco.setAttribute('data-item', it.id);
+      if (ehF) {
+        var u = usosDaFerramenta(it);
+        var partes = [];
+        if (it.marca) partes.push(it.marca);
+        if (it.dataCompra) partes.push('comprada em ' + dataBr(it.dataCompra));
+        partes.push(u.usos + (u.usos === 1 ? ' uso' : ' usos'));
+        if (u.ultimo) { var d = diasEntre(u.ultimo, hojeTexto()); partes.push('último ' + (d <= 0 ? 'hoje' : d === 1 ? 'ontem' : 'há ' + d + ' dias')); }
+        var lin = linhaSimples({ titulo: it.nome, sub: partes.join(' · '), valor: emReais(it.custo),
+          nota: custoPorUso(it) ? emReais(custoPorUso(it)) + '/uso' : '', selo: seloIcone('ferramenta', it.situacao === 'manutencao' ? '#FF6B6B' : '#E9B44C'),
+          aoTocar: function () { abrirFichaEstoque(it.id); } });
+        if (it.situacao !== 'ok') {
+          var sit = SITUACOES_FERRAMENTA.filter(function (x) { return x.valor === it.situacao; })[0];
+          var tt = lin.querySelector('.linha-titulo');
+          if (tt && sit) tt.appendChild(no('span', 'est-situacao ' + it.situacao, sit.rotulo));
+        }
+        bloco.appendChild(lin);
+        if (it.situacao !== 'baixa') {
+          var ac = no('div', 'est-acoes');
+          juntar(ac,
+            botao('btn-mini botao-usei-hoje', 'Usei hoje', function () { useiHoje(it); }),
+            botao('btn-mini', 'Manutenção', function () { abrirMovEstoque(it.id, 'manutencao'); }));
+          bloco.appendChild(ac);
+        }
+      } else {
+        var q = qtdEmEstoque(it);
+        var baixo = it.minimo > 0 && q <= it.minimo;
+        var lc = linhaSimples({ titulo: it.nome, sub: [it.categoria, emReais(custoUnitario(it)) + '/' + it.unidade,
+            it.minimo ? 'mínimo ' + qtdBr(it.minimo) : ''].filter(Boolean).join(' · '),
+          valor: qtdBr(q) + ' ' + it.unidade, cor: baixo ? 'vermelho' : '', nota: baixo ? 'acabando' : '', corNota: 'vermelho',
+          selo: seloIcone('pacote', baixo ? '#FF6B6B' : '#E9B44C'), aoTocar: function () { abrirFichaEstoque(it.id); } });
+        bloco.appendChild(lc);
+        var ac2 = no('div', 'est-acoes');
+        var menos = botao('btn-mini botao-menos-um', '−1 usei', function () { saiuUm(it); });
+        if (q <= 0) menos.disabled = true;
+        juntar(ac2, menos, botao('btn-mini botao-entrada', '+ Entrada', function () { abrirMovEstoque(it.id, 'entrada'); }));
+        bloco.appendChild(ac2);
+      }
+      c.appendChild(bloco);
+    });
+    corpo.appendChild(c);
+  }
+
+  function desenharEstoqueObras(corpo) {
+    var faixa = faixaDoMesAtivo();
+    var obras = obrasDoPeriodo(faixa.de, faixa.ate);
+    var c = cartao('liso');
+    var topo = topoDeCartao('Obras ' + dePeriodoEmp(), null, null, 'maleta', { chave: 'estoque.obras', itens: [
+      'O custo de material de cada obra no período: os consumíveis que saíram nela e os usos de ferramenta.',
+      'Consumível conta pelo custo da última compra; ferramenta, pelo custo por uso (preço ÷ vida útil, mais a manutenção dividida pelos usos).',
+      'A obra é o cliente (de Serviços e Vendas) ou um nome que você escreveu. Toque numa obra para ver item por item.'] });
+    topo.style.padding = '16px 16px 0'; topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    if (!obras.length) c.appendChild(estadoVazio('Nenhuma obra no período', 'Quando você anotar um uso ou uma saída numa obra, ela aparece aqui com o custo.'));
+    obras.forEach(function (o) {
+      var total = o.consumiveis + o.ferramentas;
+      c.appendChild(linhaSimples({ titulo: o.nome, sub: o.movs.length + ' registro(s) · consumíveis ' + emReais(o.consumiveis) + ' · ferramentas ' + emReais(o.ferramentas),
+        valor: emReais(total), nota: o.ultima ? 'último ' + dataCurta(o.ultima) : '', selo: seloIcone('maleta', '#E9B44C'),
+        aoTocar: function () { abrirObraEstoque(o); } }));
+    });
+    corpo.appendChild(c);
+  }
+
+  function abrirObraEstoque(o) {
+    abrirFolha(o.nome, function (folha) {
+      var c = cartao();
+      c.appendChild(gradeDeTiles([
+        tile('Consumíveis', emReais(o.consumiveis), ''), tile('Ferramentas', emReais(o.ferramentas), ''),
+        tile('Material', emReais(o.consumiveis + o.ferramentas), 'ouro')], 3));
+      folha.appendChild(c);
+      var l = cartao('liso');
+      o.movs.sort(function (a, b) { return a.m.data < b.m.data ? 1 : -1; }).forEach(function (x) {
+        l.appendChild(linhaSimples({ titulo: x.it.nome, sub: dataBr(x.m.data) + ' · ' + (x.m.tipo === 'uso' ? 'uso' : qtdBr(x.m.quantidade) + ' ' + x.it.unidade),
+          valor: emReais(x.valor), selo: seloIcone(x.it.tipo === 'ferramenta' ? 'ferramenta' : 'pacote', '#E9B44C') }));
+      });
+      folha.appendChild(l);
+    });
+  }
+
+  function abrirFolhaItemEstoque(id, tipo) {
+    var it = id ? achar(estado.estoqueItens, id) : null;
+    tipo = it ? it.tipo : tipo;
+    var ehF = tipo === 'ferramenta';
+    abrirFolha(it ? 'Editar ' + it.nome : ehF ? 'Nova ferramenta' : 'Novo consumível', function (folha) {
+      var forma = no('div', 'forma');
+      var nome = no('input', 'entrada campo-nome-item'); nome.type = 'text'; nome.value = it ? it.nome : '';
+      nome.placeholder = ehF ? 'Ex.: Esmerilhadeira 4½"' : 'Ex.: Disco de corte 4½"';
+      forma.appendChild(campo('Nome', nome));
+      var cat = it ? it.categoria : '';
+      forma.appendChild(campo('Categoria', grupoChips(ehF ? CATEGORIAS_FERRAMENTA : CATEGORIAS_CONSUMIVEL, cat, function (v) { cat = v; })));
+      var marcaC = no('input', 'entrada'); marcaC.type = 'text'; marcaC.value = it ? it.marca : ''; marcaC.placeholder = 'Marca e modelo (opcional)';
+      forma.appendChild(campo('Marca e modelo', marcaC));
+      var valor, dataC, vida, unidade = it ? it.unidade : 'un', qtdIni, minimo, situacao = it ? it.situacao : 'ok';
+      if (ehF) {
+        dataC = entradaData(it && it.dataCompra ? it.dataCompra : hojeTexto());
+        forma.appendChild(campo('Data da compra', dataC));
+        valor = entradaValor(it ? it.custo : 0);
+        valor.classList.add('campo-valor-item');
+        forma.appendChild(campo('Valor pago', valor));
+        vida = entradaTextoNumero(it && it.vidaUtil ? it.vidaUtil : '', 'Ex.: 300 (opcional)');
+        vida.classList.add('campo-vida-util');
+        forma.appendChild(campo('Vida útil (quantos usos aguenta)', vida));
+        forma.appendChild(campo('Situação', grupoChips(SITUACOES_FERRAMENTA, situacao, function (v) { situacao = v; })));
+      } else {
+        forma.appendChild(campo('Unidade', grupoChips(UNIDADES_ESTOQUE, unidade, function (v) { unidade = v; })));
+        if (!it) {
+          qtdIni = entradaTextoNumero('', 'Ex.: 10');
+          qtdIni.classList.add('campo-qtd-inicial');
+          forma.appendChild(campo('Quantidade que você tem agora', qtdIni));
+        }
+        valor = entradaValor(it ? it.custo : 0);
+        valor.classList.add('campo-valor-item');
+        forma.appendChild(campo('Custo de cada unidade', valor));
+        minimo = entradaTextoNumero(it && it.minimo ? it.minimo : '', 'Ex.: 3 (opcional)');
+        minimo.classList.add('campo-minimo');
+        forma.appendChild(campo('Avisar quando chegar em', minimo));
+      }
+      var obs = no('input', 'entrada'); obs.type = 'text'; obs.value = it ? it.obs : ''; obs.placeholder = 'Opcional';
+      forma.appendChild(campo('Observação', obs));
+      var acoes = no('div', 'acoes');
+      if (it) acoes.appendChild(botao('btn btn-fantasma', 'Apagar', function () {
+        perguntar({ titulo: 'Apagar ' + it.nome + '?', texto: 'O item e o histórico dele saem do estoque.', ok: 'Apagar', tom: 'perigo' }, function () {
+          estado.estoqueMovs = estado.estoqueMovs.filter(function (m) {
+            if (m.itemId !== it.id) return true;
+            marcarExcluido('empreendedor_registros', m.id);
+            return false;
+          });
+          estado.estoqueItens = estado.estoqueItens.filter(function (x) { return x.id !== it.id; });
+          marcarExcluido('empreendedor_registros', it.id);
+          salvar(); fecharFolha(); desenhar();
+        });
+      }));
+      acoes.appendChild(botao('btn btn-ouro botao-salvar-item', 'Salvar', function () {
+        if (!nome.value.trim()) { mostrarErro(forma, 'Dê um nome ao item.'); return; }
+        var reg = it || { id: novoId(), tipo: tipo, criadoEm: Date.now() };
+        reg.nome = nome.value.trim().slice(0, 80);
+        reg.categoria = cat || '';
+        reg.marca = marcaC.value.trim().slice(0, 80);
+        reg.custo = digitosParaCentavos(valor.value);
+        reg.obs = obs.value.trim().slice(0, 300);
+        if (ehF) {
+          reg.dataCompra = dataC.value || '';
+          reg.vidaUtil = Math.max(0, Math.round(lerQtd(vida.value)));
+          reg.situacao = situacao;
+          reg.unidade = 'un'; reg.minimo = 0;
+        } else {
+          reg.unidade = unidade || 'un';
+          reg.minimo = Math.max(0, lerQtd(minimo.value));
+          reg.situacao = 'ok'; reg.vidaUtil = 0; reg.dataCompra = reg.dataCompra || '';
+        }
+        if (!it) {
+          estado.estoqueItens.push(reg);
+          var q0 = qtdIni ? lerQtd(qtdIni.value) : 0;
+          if (q0 > 0) anotarMov({ itemId: reg.id, tipo: 'entrada', data: hojeTexto(), quantidade: q0,
+            valor: Math.round(q0 * reg.custo), obra: '', clienteId: '', obs: 'estoque inicial' });
+        }
+        salvar(); fecharFolha(); desenhar();
+        avisar(it ? 'Item atualizado.' : 'Item cadastrado.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // Entrada, saída, uso, manutenção ou ajuste de um item.
+  function abrirMovEstoque(itemId, tipo) {
+    var it = achar(estado.estoqueItens, itemId);
+    if (!it) return;
+    var titulos = { entrada: 'Entrada de ' + it.nome, saida: 'Saída de ' + it.nome, uso: 'Uso de ' + it.nome,
+                    manutencao: 'Manutenção de ' + it.nome, ajuste: 'Ajustar o estoque de ' + it.nome };
+    abrirFolha(titulos[tipo], function (folha) {
+      var forma = no('div', 'forma');
+      var data = entradaData(hojeTexto());
+      var qtd = null, valor = null, desc = null, obra = { nome: obraDeHoje, clienteId: obraDeHojeCliente, obra: obraDeHojeCliente ? '' : obraDeHoje };
+      var depois = it.situacao === 'manutencao' ? 'ok' : it.situacao;
+      if (tipo === 'entrada' || tipo === 'saida' || tipo === 'ajuste') {
+        qtd = entradaTextoNumero(tipo === 'ajuste' ? qtdBr(qtdEmEstoque(it)) : '1', '');
+        qtd.classList.add('campo-qtd-mov');
+        forma.appendChild(campo(tipo === 'ajuste' ? 'Quanto tem de verdade (' + it.unidade + ')' : 'Quantidade (' + it.unidade + ')', qtd));
+      }
+      if (tipo === 'entrada' || tipo === 'manutencao') {
+        valor = entradaValor(0);
+        valor.classList.add('campo-valor-mov');
+        forma.appendChild(campo(tipo === 'entrada' ? 'Quanto pagou no total' : 'Quanto custou', valor));
+      }
+      if (tipo === 'manutencao') {
+        desc = no('input', 'entrada campo-desc-mov'); desc.type = 'text'; desc.placeholder = 'Ex.: troca das escovas';
+        forma.appendChild(campo('O que foi feito', desc));
+        forma.appendChild(campo('Depois disso, a ferramenta está', grupoChips(SITUACOES_FERRAMENTA, depois, function (v) { depois = v; })));
+      }
+      if (tipo === 'saida' || tipo === 'uso') forma.appendChild(campo('Obra', escolhaDeObra(obra, function (o) { obra = o; })));
+      forma.appendChild(campo('Data', data));
+      var obs = null;
+      if (tipo !== 'manutencao') { obs = no('input', 'entrada'); obs.type = 'text'; obs.placeholder = 'Opcional'; forma.appendChild(campo('Observação', obs)); }
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro botao-salvar-mov', 'Salvar', function () {
+        var q = qtd ? lerQtd(qtd.value) : 1;
+        if (tipo === 'ajuste') {
+          var dif = Math.round((q - qtdEmEstoque(it)) * 1000) / 1000;
+          if (!dif) { fecharFolha(); return; }
+          anotarMov({ itemId: it.id, tipo: 'ajuste', data: data.value || hojeTexto(), quantidade: dif, valor: 0, obra: '', clienteId: '', obs: (obs && obs.value.trim()) || 'ajuste' });
+        } else {
+          if ((tipo === 'entrada' || tipo === 'saida') && !(q > 0)) { mostrarErro(forma, 'Diga a quantidade.'); return; }
+          if (tipo === 'saida' && q > qtdEmEstoque(it)) { mostrarErro(forma, 'Só tem ' + qtdBr(qtdEmEstoque(it)) + ' ' + it.unidade + ' no estoque.'); return; }
+          anotarMov({ itemId: it.id, tipo: tipo, data: data.value || hojeTexto(), quantidade: q,
+            valor: valor ? digitosParaCentavos(valor.value) : 0,
+            obra: (tipo === 'saida' || tipo === 'uso') && !obra.clienteId ? (obra.obra || obra.nome || '') : '',
+            clienteId: (tipo === 'saida' || tipo === 'uso') ? (obra.clienteId || '') : '',
+            obs: desc ? desc.value.trim().slice(0, 200) : (obs ? obs.value.trim().slice(0, 200) : '') });
+          if (tipo === 'manutencao') it.situacao = depois;
+        }
+        salvar(); fecharFolha(); desenhar();
+        avisar('Anotado.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function abrirFichaEstoque(id) {
+    var it = achar(estado.estoqueItens, id);
+    if (!it) return;
+    var ehF = it.tipo === 'ferramenta';
+    abrirFolha(it.nome, function (folha) {
+      var c = cartao();
+      if (ehF) {
+        var u = usosDaFerramenta(it);
+        c.appendChild(gradeDeTiles([
+          tile('Valor pago', emReais(it.custo), 'ouro'),
+          tile('Usos', String(u.usos), ''),
+          tile('Custo por uso', custoPorUso(it) ? emReais(custoPorUso(it)) : '—', ''),
+          tile('Manutenção', emReais(u.manutencao) + (u.nManut ? ' · ' + u.nManut + 'x' : ''), u.manutencao ? 'vermelho' : ''),
+          tile('Comprada em', it.dataCompra ? dataBr(it.dataCompra) : '—', ''),
+          tile('Vida útil', it.vidaUtil ? it.vidaUtil + ' usos' + (u.usos ? ' · ' + Math.round(u.usos / it.vidaUtil * 100) + '% usada' : '') : '—', '')
+        ], 2));
+      } else {
+        var q = qtdEmEstoque(it);
+        c.appendChild(gradeDeTiles([
+          tile('Em estoque', qtdBr(q) + ' ' + it.unidade, it.minimo && q <= it.minimo ? 'vermelho' : 'ouro'),
+          tile('Custo da unidade', emReais(custoUnitario(it)), ''),
+          tile('Valor parado', emReais(Math.round(Math.max(q, 0) * custoUnitario(it))), ''),
+          tile('Mínimo', it.minimo ? qtdBr(it.minimo) + ' ' + it.unidade : '—', '')
+        ], 2));
+      }
+      var bts = no('div', 'duas');
+      bts.style.marginTop = '14px';
+      if (ehF) juntar(bts, botao('btn btn-ouro', 'Registrar uso', function () { abrirMovEstoque(it.id, 'uso'); }),
+                     botao('btn btn-fantasma', 'Manutenção', function () { abrirMovEstoque(it.id, 'manutencao'); }));
+      else juntar(bts, botao('btn btn-ouro botao-saida', 'Tirar do estoque', function () { abrirMovEstoque(it.id, 'saida'); }),
+                  botao('btn btn-fantasma', '+ Entrada', function () { abrirMovEstoque(it.id, 'entrada'); }));
+      c.appendChild(bts);
+      var bts2 = no('div', 'duas');
+      bts2.style.marginTop = '8px';
+      juntar(bts2, botao('btn btn-fantasma', 'Editar', function () { abrirFolhaItemEstoque(it.id); }),
+        ehF ? no('span') : botao('btn btn-fantasma', 'Ajustar estoque', function () { abrirMovEstoque(it.id, 'ajuste'); }));
+      c.appendChild(bts2);
+      folha.appendChild(c);
+
+      var h = cartao('liso cartao-historico-item');
+      var th = no('div', 'cartao-topo'); th.style.padding = '16px 16px 4px';
+      th.appendChild(no('div', 'cartao-titulo', 'Histórico'));
+      h.appendChild(th);
+      var movs = movsDoItem(it.id);
+      if (!movs.length) h.appendChild(estadoVazio('Nada anotado ainda', ehF ? 'Os usos e as manutenções aparecem aqui.' : 'As entradas e saídas aparecem aqui.'));
+      var NOMES = { entrada: 'Entrada', saida: 'Saída', uso: 'Uso', manutencao: 'Manutenção', ajuste: 'Ajuste' };
+      movs.slice(0, 200).forEach(function (m) {
+        var sub = dataBr(m.data) + (m.tipo === 'saida' || m.tipo === 'uso' ? ' · ' + nomeDaObra(m) : '') + (m.obs ? ' · ' + m.obs : '');
+        var val = m.tipo === 'entrada' ? '+' + qtdBr(m.quantidade) + ' ' + it.unidade
+          : m.tipo === 'saida' ? '−' + qtdBr(m.quantidade) + ' ' + it.unidade
+          : m.tipo === 'ajuste' ? (m.quantidade > 0 ? '+' : '−') + qtdBr(Math.abs(m.quantidade)) + ' ' + it.unidade
+          : m.tipo === 'manutencao' ? emReais(m.valor) : '1 uso';
+        h.appendChild(linhaSimples({ titulo: NOMES[m.tipo], sub: sub, valor: val,
+          nota: m.tipo === 'entrada' && m.valor ? emReais(m.valor) : '',
+          cor: m.tipo === 'entrada' ? 'verde' : m.tipo === 'manutencao' ? 'vermelho' : '',
+          selo: seloIcone(m.tipo === 'manutencao' ? 'ferramenta' : m.tipo === 'uso' ? 'relogio' : 'pacote', '#E9B44C'),
+          aoTocar: function () {
+            perguntar({ titulo: 'Apagar este registro?', texto: NOMES[m.tipo] + ' de ' + dataBr(m.data) + '.', ok: 'Apagar', tom: 'perigo' }, function () {
+              estado.estoqueMovs = estado.estoqueMovs.filter(function (x) { return x.id !== m.id; });
+              marcarExcluido('empreendedor_registros', m.id);
+              salvar(); desenhar();
+              fecharFolha(); setTimeout(function () { abrirFichaEstoque(it.id); }, 260);
+            });
+          } }));
+      });
+      folha.appendChild(h);
+    });
+  }
+
+  // Várias coisas de uma vez, numa obra: marca as ferramentas e põe a
+  // quantidade dos consumíveis.
+  function abrirRegistrarUso() {
+    var ferr = estado.estoqueItens.filter(function (it) { return it.tipo === 'ferramenta' && it.situacao !== 'baixa'; });
+    var cons = estado.estoqueItens.filter(function (it) { return it.tipo === 'consumivel'; });
+    if (!ferr.length && !cons.length) { avisarCaixa('Nada no estoque ainda', 'Cadastre primeiro as ferramentas e os consumíveis.'); return; }
+    abrirFolha('Registrar uso', function (folha) {
+      var forma = no('div', 'forma');
+      var obra = { nome: obraDeHoje, clienteId: obraDeHojeCliente, obra: obraDeHojeCliente ? '' : obraDeHoje };
+      forma.appendChild(campo('Obra', escolhaDeObra(obra, function (o) { obra = o; })));
+      var data = entradaData(hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var quant = {};
+      var lista = cartao('liso');
+      lista.style.padding = '4px 16px';
+      ferr.concat(cons).forEach(function (it) {
+        quant[it.id] = 0;
+        var l = no('div', 'est-linha-passo');
+        l.setAttribute('data-item', it.id);
+        var t = no('div', 't');
+        juntar(t, no('b', null, it.nome), no('span', null, it.tipo === 'ferramenta' ? 'ferramenta · usos' : 'tem ' + qtdBr(qtdEmEstoque(it)) + ' ' + it.unidade));
+        var passo = no('div', 'est-passo');
+        var n = no('span', 'num', '0');
+        var menos = botao(null, '−', function () { quant[it.id] = Math.max(0, quant[it.id] - 1); n.textContent = qtdBr(quant[it.id]); });
+        var mais = botao('passo-mais', '+', function () { quant[it.id] = quant[it.id] + 1; n.textContent = qtdBr(quant[it.id]); });
+        juntar(passo, menos, n, mais);
+        juntar(l, t, passo);
+        lista.appendChild(l);
+      });
+      forma.appendChild(lista);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro botao-salvar-uso', 'Salvar', function () {
+        var feitos = 0, faltou = [];
+        ferr.concat(cons).forEach(function (it) {
+          var q = quant[it.id];
+          if (!q) return;
+          if (it.tipo === 'consumivel' && q > qtdEmEstoque(it)) { faltou.push(it.nome); return; }
+          anotarMov({ itemId: it.id, tipo: it.tipo === 'ferramenta' ? 'uso' : 'saida', data: data.value || hojeTexto(),
+            quantidade: q, valor: 0, obra: obra.clienteId ? '' : (obra.obra || obra.nome || ''), clienteId: obra.clienteId || '', obs: '' });
+          feitos++;
+        });
+        if (faltou.length) { mostrarErro(forma, 'Não tem tudo isso no estoque: ' + faltou.join(', ') + '.'); return; }
+        if (!feitos) { mostrarErro(forma, 'Marque pelo menos um item.'); return; }
+        salvar(); fecharFolha(); desenhar();
+        avisar(feitos + ' item(ns) anotado(s)' + (obra.nome ? ' em ' + obra.nome : '') + '.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // Quanto de material uma obra nova vai gastar. Dá para partir de uma
+  // obra que já aconteceu.
+  function abrirEstimarObra() {
+    var itens = estado.estoqueItens.filter(function (it) { return it.situacao !== 'baixa'; });
+    if (!itens.length) { avisarCaixa('Nada no estoque ainda', 'Cadastre primeiro as ferramentas e os consumíveis.'); return; }
+    abrirFolha('Estimar uma obra', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', 'Diga o que a obra vai usar. O app soma pelo custo de cada consumível e pelo custo por uso de cada ferramenta.'));
+      var quant = {}, nums = {};
+      var total = no('div', 'est-total');
+      var mao = entradaValor(0);
+      mao.classList.add('campo-mao-de-obra');
+      function somar() {
+        var mat = 0;
+        itens.forEach(function (it) {
+          var q = quant[it.id] || 0;
+          mat += it.tipo === 'ferramenta' ? q * custoPorUso(it) : Math.round(q * custoUnitario(it));
+        });
+        var m = digitosParaCentavos(mao.value);
+        total.textContent = '';
+        juntar(total, no('span', null, 'Material ' + emReais(mat) + (m ? ' + mão de obra ' + emReais(m) : '')),
+          no('span', 'num ouro estimativa-total', emReais(mat + m)));
+      }
+      mao.addEventListener('input', somar);
+      // Partir de uma obra que já aconteceu.
+      var passadas = obrasDoPeriodo('0000-01-01', '9999-12-31').filter(function (o) { return o.chave !== 'o:'; }).slice(0, 8);
+      if (passadas.length) {
+        forma.appendChild(campo('Partir de uma obra que já fez', grupoChips(passadas.map(function (o, i) { return { rotulo: o.nome, valor: String(i) }; }), '', function (v) {
+          var o = passadas[+v];
+          itens.forEach(function (it) { quant[it.id] = 0; });
+          o.movs.forEach(function (x) { quant[x.it.id] = (quant[x.it.id] || 0) + (x.m.tipo === 'uso' ? Math.max(1, x.m.quantidade || 1) : x.m.quantidade); });
+          itens.forEach(function (it) { if (nums[it.id]) nums[it.id].textContent = qtdBr(quant[it.id] || 0); });
+          somar();
+        })));
+      }
+      var lista = cartao('liso');
+      lista.style.padding = '4px 16px';
+      itens.forEach(function (it) {
+        quant[it.id] = 0;
+        var l = no('div', 'est-linha-passo');
+        l.setAttribute('data-item', it.id);
+        var t = no('div', 't');
+        juntar(t, no('b', null, it.nome), no('span', null, it.tipo === 'ferramenta'
+          ? (custoPorUso(it) ? emReais(custoPorUso(it)) + ' por uso' : 'sem vida útil: não entra no custo')
+          : emReais(custoUnitario(it)) + ' por ' + it.unidade));
+        var passo = no('div', 'est-passo');
+        var n = nums[it.id] = no('span', 'num', '0');
+        var menos = botao(null, '−', function () { quant[it.id] = Math.max(0, (quant[it.id] || 0) - 1); n.textContent = qtdBr(quant[it.id]); somar(); });
+        var mais = botao('passo-mais', '+', function () { quant[it.id] = (quant[it.id] || 0) + 1; n.textContent = qtdBr(quant[it.id]); somar(); });
+        juntar(passo, menos, n, mais);
+        juntar(l, t, passo);
+        lista.appendChild(l);
+      });
+      forma.appendChild(lista);
+      forma.appendChild(campo('Mão de obra (opcional)', mao));
+      forma.appendChild(total);
+      somar();
+      folha.appendChild(forma);
+    });
   }
 
   // ---------- Painel geral ----------
@@ -28473,7 +29256,7 @@
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
-      ['🔐', 'Senha dos dados', textoDoCofre(), abrirFolhaCofre],
+      ['🔐', 'Senha dos dados', rotuloDoCofreEmMais(), abrirFolhaCofre],
       ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
