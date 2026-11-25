@@ -631,6 +631,32 @@
   .meta-legenda { display: flex; justify-content: space-between; font-size: 11.5px;
                   color: var(--fraco); margin-top: 6px; }
 
+  /* Renda fixa no topo de Investimentos (pedido de 25/11/2026): quadrados
+     que deslizam para o lado e andam sozinhos. */
+  .vitrine-rf { margin: 0 -16px 6px; }
+  .vitrine-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 16px 10px; }
+  .vitrine-titulo strong { font-size: 15px; }
+  .vitrine-trilho { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .vitrine-trilho::-webkit-scrollbar { display: none; }
+  .quadro-rf { flex: 0 0 158px; height: 168px; scroll-snap-align: start; border-radius: 18px; padding: 12px 13px;
+    background: linear-gradient(160deg, rgba(233,180,76,.10), rgba(255,255,255,.02)); border: 1px solid var(--borda);
+    display: flex; flex-direction: column; gap: 3px; position: relative; overflow: hidden; text-align: left; color: inherit; font: inherit; }
+  .quadro-rf .q-tipo { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ouro); }
+  .quadro-rf .q-nome { font-size: 12.5px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .quadro-rf .q-valor { font-size: 21px; font-weight: 700; color: var(--texto); letter-spacing: -.01em; }
+  .quadro-rf .q-sub { font-size: 11.5px; color: var(--suave); line-height: 1.35; }
+  .quadro-rf .q-var { font-size: 11.5px; font-weight: 600; }
+  .quadro-rf .q-var.sobe { color: var(--verde); } .quadro-rf .q-var.desce { color: var(--vermelho); }
+  .quadro-rf svg.q-linha { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 46px; opacity: .9; }
+  .quadro-rf .q-selo { position: absolute; top: 10px; right: 10px; font-size: 10px; color: var(--fraco); border: 1px solid var(--borda);
+    border-radius: 999px; padding: 0 6px; }
+  .quadro-rf.anotar { align-items: center; justify-content: center; text-align: center; border-style: dashed; color: var(--ouro); font-weight: 600; }
+  .quadro-rf.aviso { flex-basis: 260px; }
+  .vitrine-fonte { margin: 4px 16px 0; font-size: 11px; color: var(--fraco); line-height: 1.4; }
+  .tipos-invest { margin: 10px 0 12px; }
+  .tipos-invest .chip { white-space: nowrap; }
+  .oferta-linha .linha-sub b { color: var(--texto); font-weight: 600; }
   /* Orçamento estourado (pedido de 25/11/2026): a barra do planejado com o
      que passou em vermelho, onde mais saiu e dois caminhos lado a lado. */
   .achado-sub { font-size: 12.5px; color: var(--suave); margin: -2px 0 0; }
@@ -4740,6 +4766,8 @@
       propostas: [],
       // O que você já disse sobre cada despesa que se repete.
       revisados: {},
+      // Ofertas de renda fixa que a pessoa anotou (Investimentos).
+      ofertasRf: [],
       clientes: [],
       servicos: [],
       pagamentos: [],
@@ -5096,6 +5124,8 @@
         limpo.subcategoriasExtras[tipo] = guardado;
       });
     }
+
+    if (Array.isArray(bruto.ofertasRf)) limpo.ofertasRf = limparOfertasRf(bruto.ofertasRf);
 
     if (Array.isArray(bruto.importacoes)) {
       limpo.importacoes = bruto.importacoes.filter(function (i) {
@@ -6780,6 +6810,7 @@
       taxas: p.taxas && p.taxas.bandeiras ? p.taxas : {},
       meta_economia: p.metaEconomia || 20,
       revisados: estado.revisados || {},
+      ofertas_rf: estado.ofertasRf || [],
       orcamento_geral: estado.orcamentos.geral,
       objetivos: p.objetivos || []
     };
@@ -6816,7 +6847,8 @@
     lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
     servicos: ['despesas'],
     pagamentos: ['obs'],
-    contas: ['limite']
+    contas: ['limite'],
+    perfis: ['ofertas_rf']
   };
 
   function oQueFaltou(e, tabela) {
@@ -7186,6 +7218,7 @@
         novo.perfil.taxas = perfil.taxas;
       }
       if (perfil.revisados && typeof perfil.revisados === 'object') novo.revisados = perfil.revisados;
+      if (Array.isArray(perfil.ofertas_rf)) novo.ofertasRf = limparOfertasRf(perfil.ofertas_rf);
       novo.perfil.metaEconomia = perfil.meta_economia || 20;
       novo.perfil.negocio = perfil.negocio || '';
       novo.perfil.contato = perfil.contato || '';
@@ -24903,10 +24936,330 @@
 
   // ---------- Tela: Investimentos ----------
 
+  // ---------- Renda fixa: taxas oficiais e ofertas anotadas ----------
+  //
+  // De onde vem cada número (25/11/2026): Selic, CDI e IPCA são do Banco
+  // Central (o SGS, a série pública). As ofertas com nome de banco são as
+  // que a própria pessoa anotou — não existe fonte pública com as ofertas
+  // de cada banco, e o app não inventa taxa. O resto é conta em cima disso.
+
+  var SERIES_BC = [
+    { chave: 'selic', serie: 432, nome: 'Selic', sub: 'meta do Banco Central' },
+    { chave: 'cdi', serie: 4389, nome: 'CDI', sub: 'base dos CDBs, LCIs e LCAs' },
+    { chave: 'ipca', serie: 13522, nome: 'IPCA', sub: 'inflação em 12 meses' }
+  ];
+  var taxasBC = null;
+  var buscandoTaxasBC = false;
+  var tipoInvestimento = 'rf';
+
+  function limparOfertasRf(lista) {
+    var TIPOS = ['CDB', 'LCI', 'LCA', 'LC', 'LIG', 'CRI', 'CRA', 'Debênture', 'Tesouro'];
+    return (lista || []).filter(function (o) { return o && typeof o === 'object' && o.id; }).slice(0, 60).map(function (o) {
+      return {
+        id: String(o.id).slice(0, 40), banco: String(o.banco || '').slice(0, 40),
+        tipo: TIPOS.indexOf(o.tipo) >= 0 ? o.tipo : 'CDB',
+        indexador: ['cdi', 'pre', 'ipca'].indexOf(o.indexador) >= 0 ? o.indexador : 'cdi',
+        taxa: Math.max(0, Math.min(300, Number(o.taxa) || 0)),
+        vencimento: /^\d{4}-\d{2}-\d{2}$/.test(o.vencimento || '') ? o.vencimento : '',
+        criadoEm: Number(o.criadoEm) || 0
+      };
+    });
+  }
+
+  function dataBC(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+
+  // As três séries do último ano. Guardo a última resposta boa: sem
+  // internet, o app mostra a de antes com a data dela, nunca um número feito.
+  function carregarTaxasBC() {
+    if (!taxasBC) {
+      try { taxasBC = JSON.parse(localStorage.getItem('finanz.taxasBC') || 'null'); } catch (e) { taxasBC = null; }
+    }
+    var velho = !taxasBC || !taxasBC.quando || Date.now() - taxasBC.quando > 6 * 3600 * 1000;
+    if (!velho || buscandoTaxasBC || !window.fetch) return;
+    buscandoTaxasBC = true;
+    var ate = new Date(), de = new Date(ate.getFullYear() - 1, ate.getMonth(), ate.getDate());
+    Promise.all(SERIES_BC.map(function (x) {
+      var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.' + x.serie + '/dados?formato=json&dataInicial=' +
+        encodeURIComponent(dataBC(de)) + '&dataFinal=' + encodeURIComponent(dataBC(ate));
+      return fetch(url).then(function (r) { if (!r.ok) throw new Error('BC ' + r.status); return r.json(); })
+        .then(function (lista) {
+          var pontos = (lista || []).map(function (p) {
+            var d = String(p.data || '').split('/');
+            return { data: d[2] + '-' + d[1] + '-' + d[0], valor: parseFloat(String(p.valor).replace(',', '.')) };
+          }).filter(function (p) { return isFinite(p.valor) && /^\d{4}-\d{2}-\d{2}$/.test(p.data); });
+          if (!pontos.length) throw new Error('série vazia');
+          return pontos;
+        });
+    })).then(function (res) {
+      var novo = { quando: Date.now() };
+      SERIES_BC.forEach(function (x, i) { novo[x.chave] = res[i]; });
+      taxasBC = novo;
+      try { localStorage.setItem('finanz.taxasBC', JSON.stringify(novo)); } catch (e) { /* sem espaço */ }
+    }).catch(function () {
+      if (taxasBC) taxasBC.falhou = Date.now(); else taxasBC = { falhou: Date.now() };
+    }).then(function () {
+      buscandoTaxasBC = false;
+      if (telaAtiva === 'investimentos') desenharInvestimentos();
+    });
+  }
+
+  function ultimaTaxa(chave) {
+    var s = taxasBC && taxasBC[chave];
+    return s && s.length ? s[s.length - 1] : null;
+  }
+
+  // Uma linha fina com a série, no pé do quadrado.
+  function linhaDaSerie(pontos, cor) {
+    var svg = svgNo('svg', { viewBox: '0 0 100 30', preserveAspectRatio: 'none', 'class': 'q-linha' });
+    if (!pontos || pontos.length < 2) return svg;
+    // Um ponto por semana basta para o desenho.
+    var passo = Math.max(1, Math.floor(pontos.length / 52));
+    var amostra = pontos.filter(function (p, i) { return i % passo === 0 || i === pontos.length - 1; });
+    var vs = amostra.map(function (p) { return p.valor; });
+    var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
+    var alto = max - min || 1;
+    var xy = amostra.map(function (p, i) {
+      return (i / (amostra.length - 1) * 100).toFixed(1) + ',' + (26 - (p.valor - min) / alto * 20).toFixed(1);
+    });
+    svg.appendChild(svgNo('polyline', { points: xy.join(' '), fill: 'none', stroke: cor, 'stroke-width': 1.6,
+      'vector-effect': 'non-scaling-stroke', 'stroke-linejoin': 'round' }));
+    return svg;
+  }
+
+  function pctBr(n, casas) { return (Math.round(n * Math.pow(10, casas)) / Math.pow(10, casas)).toFixed(casas).replace('.', ',') + '%'; }
+
+  // IR da renda fixa, pela tabela regressiva. LCI, LCA, LIG, CRI e CRA de
+  // pessoa física são isentos.
+  function aliquotaIR(tipo, dias) {
+    if (['LCI', 'LCA', 'LIG', 'CRI', 'CRA'].indexOf(tipo) >= 0) return 0;
+    if (dias <= 180) return 22.5;
+    if (dias <= 360) return 20;
+    if (dias <= 720) return 17.5;
+    return 15;
+  }
+
+  // Quanto a oferta paga por ano, bruto e líquido, com o CDI e o IPCA de hoje.
+  function rendimentoDaOferta(o) {
+    var cdi = ultimaTaxa('cdi'), ipca = ultimaTaxa('ipca');
+    var bruto = null;
+    if (o.indexador === 'cdi') bruto = cdi ? cdi.valor * o.taxa / 100 : null;
+    else if (o.indexador === 'pre') bruto = o.taxa;
+    else bruto = ipca ? ((1 + ipca.valor / 100) * (1 + o.taxa / 100) - 1) * 100 : null;
+    if (bruto == null) return null;
+    var dias = o.vencimento ? Math.max(1, diasEntre(hojeTexto(), o.vencimento)) : 721;
+    var ir = aliquotaIR(o.tipo, dias);
+    return { bruto: bruto, liquido: bruto * (1 - ir / 100), ir: ir, dias: dias };
+  }
+
+  function textoDaTaxa(o) {
+    if (o.indexador === 'cdi') return pctBr(o.taxa, o.taxa % 1 ? 1 : 0) + ' do CDI';
+    if (o.indexador === 'pre') return pctBr(o.taxa, 2) + ' a.a. prefixado';
+    return 'IPCA + ' + pctBr(o.taxa, 2);
+  }
+
+  function ofertasOrdenadas() {
+    return (estado.ofertasRf || []).map(function (o) { return { o: o, r: rendimentoDaOferta(o) }; })
+      .sort(function (a, b) { return (b.r ? b.r.liquido : -1) - (a.r ? a.r.liquido : -1); });
+  }
+
+  function vitrineRendaFixa() {
+    carregarTaxasBC();
+    var caixa = no('div', 'vitrine-rf');
+    var tit = no('div', 'vitrine-titulo');
+    tit.appendChild(no('strong', null, 'Renda fixa hoje'));
+    tit.appendChild(botaoDeInfo('invest.vitrine', 'Renda fixa hoje', [
+      'Selic, CDI e IPCA vêm do Banco Central, com a linha do último ano e quanto mudaram em 12 meses.',
+      'Os quadrados de CDB e LCI/LCA mostram a conta com o CDI de hoje: quanto rende por ano, e o líquido depois do imposto (LCI e LCA são isentas).',
+      'Os quadrados com nome de banco são as ofertas que você anotou, da que mais rende líquido para a que menos. Toque em "Anotar uma oferta" para pôr a que viu no seu banco ou corretora.',
+      'Os quadrados andam sozinhos; arraste para o lado para ver no seu tempo.']));
+    caixa.appendChild(tit);
+    var trilho = no('div', 'vitrine-trilho');
+    caixa.appendChild(trilho);
+
+    var temTaxas = !!ultimaTaxa('cdi');
+    SERIES_BC.forEach(function (x) {
+      var serie = taxasBC && taxasBC[x.chave];
+      if (!serie || !serie.length) return;
+      var atual = serie[serie.length - 1], primeiro = serie[0];
+      var dif = atual.valor - primeiro.valor;
+      var q = no('div', 'quadro-rf');
+      juntar(q, no('span', 'q-tipo', x.nome), no('span', 'q-nome', x.sub),
+        no('span', 'q-valor num', pctBr(atual.valor, 2)),
+        no('span', 'q-var ' + (dif > 0.004 ? 'sobe' : dif < -0.004 ? 'desce' : ''),
+          (dif > 0.004 ? '↑ ' : dif < -0.004 ? '↓ ' : '') + pctBr(Math.abs(dif), 2).replace('%', ' p.p.') + ' em 12 meses'),
+        no('span', 'q-sub', 'ao ano · ' + dataBr(atual.data)),
+        linhaDaSerie(serie, x.chave === 'ipca' ? '#FB7185' : '#E9B44C'));
+      trilho.appendChild(q);
+    });
+
+    if (temTaxas) {
+      var cdi = ultimaTaxa('cdi').valor;
+      [['CDB', 110, 'cdi'], ['LCI / LCA', 95, 'cdi']].forEach(function (ex) {
+        var r = rendimentoDaOferta({ tipo: ex[0] === 'CDB' ? 'CDB' : 'LCI', indexador: ex[2], taxa: ex[1], vencimento: '' });
+        var q = no('div', 'quadro-rf');
+        juntar(q, no('span', 'q-tipo', ex[0]), no('span', 'q-nome', ex[1] + '% do CDI'),
+          no('span', 'q-valor num', pctBr(r.liquido, 2)),
+          no('span', 'q-sub', r.ir ? 'líquido ao ano (bruto ' + pctBr(r.bruto, 2) + ', IR ' + pctBr(r.ir, 0) + ')'
+            : 'ao ano, sem imposto · igual a um CDB de ' + pctBr(ex[1] / 0.85, 0) + ' do CDI'),
+          no('span', 'q-selo', 'conta'));
+        trilho.appendChild(q);
+      });
+    }
+
+    ofertasOrdenadas().forEach(function (x) {
+      var q = botao('quadro-rf', null, function () { abrirFolhaOfertaRf(x.o.id); });
+      juntar(q, no('span', 'q-tipo', x.o.tipo), no('span', 'q-nome', x.o.banco || 'Sem banco'),
+        no('span', 'q-valor num', x.r ? pctBr(x.r.liquido, 2) : textoDaTaxa(x.o)),
+        no('span', 'q-sub', x.r ? textoDaTaxa(x.o) + ' · líquido ao ano' + (x.o.vencimento ? ' · vence ' + dataBr(x.o.vencimento) : '')
+          : 'sem o CDI de hoje para fazer a conta'),
+        no('span', 'q-selo', 'anotada'));
+      trilho.appendChild(q);
+    });
+
+    if (!temTaxas) {
+      var av = no('div', 'quadro-rf aviso');
+      juntar(av, no('span', 'q-tipo', 'Taxas do Banco Central'),
+        no('span', 'q-sub', buscandoTaxasBC || !(taxasBC && taxasBC.falhou)
+          ? 'Buscando Selic, CDI e IPCA…' : 'Não consegui buscar as taxas agora. Confira a internet; tento de novo quando você voltar aqui.'));
+      trilho.insertBefore(av, trilho.firstChild);
+    }
+    trilho.appendChild(juntar(botao('quadro-rf anotar', null, function () { abrirFolhaOfertaRf(null); }),
+      no('span', null, '+ Anotar uma oferta')));
+
+    var fonte = [];
+    if (temTaxas) fonte.push('Selic, CDI e IPCA: Banco Central, atualizado em ' + dataBr(deData(new Date(taxasBC.quando))) + '.');
+    fonte.push('Com nome de banco, só as ofertas que você anotou. "Conta" é simulação com o CDI de hoje.');
+    caixa.appendChild(no('div', 'vitrine-fonte', fonte.join(' ')));
+
+    andarSozinho(trilho);
+    return caixa;
+  }
+
+  // Os quadrados andam sozinhos, um por vez; quando a pessoa toca, param um
+  // pouco. Quem pediu menos movimento no aparelho não vê nada andando.
+  var relogioVitrine = null;
+  function andarSozinho(trilho) {
+    clearInterval(relogioVitrine);
+    try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) { /* sem matchMedia */ }
+    var paradoAte = 0;
+    var parar = function () { paradoAte = Date.now() + 8000; };
+    trilho.addEventListener('touchstart', parar, { passive: true });
+    trilho.addEventListener('pointerdown', parar);
+    trilho.addEventListener('wheel', parar, { passive: true });
+    relogioVitrine = setInterval(function () {
+      if (!trilho.isConnected) { clearInterval(relogioVitrine); return; }
+      if (Date.now() < paradoAte || document.hidden || telaAtiva !== 'investimentos') return;
+      var q = trilho.querySelector('.quadro-rf');
+      if (!q) return;
+      var passo = q.offsetWidth + 12;
+      var fim = trilho.scrollWidth - trilho.clientWidth;
+      var alvo = trilho.scrollLeft + passo >= fim - 4 ? 0 : trilho.scrollLeft + passo;
+      try { trilho.scrollTo({ left: alvo, behavior: 'smooth' }); } catch (e) { trilho.scrollLeft = alvo; }
+    }, 3500);
+  }
+
+  var TIPOS_INVEST = [
+    { valor: 'rf', rotulo: 'Renda fixa' }, { valor: 'rv', rotulo: 'Renda variável' },
+    { valor: 'fii', rotulo: 'Fundos imobiliários' }, { valor: 'cripto', rotulo: 'Cripto (Bitcoin)' },
+    { valor: 'fundos', rotulo: 'Fundos' }, { valor: 'tesouro', rotulo: 'Tesouro Direto' },
+    { valor: 'prev', rotulo: 'Previdência' }, { valor: 'exterior', rotulo: 'Exterior' }
+  ];
+  function rotuloDoTipo(v) { var t = TIPOS_INVEST.filter(function (x) { return x.valor === v; })[0]; return t ? t.rotulo : ''; }
+
+  function seletorDeTipos() {
+    var chips = grupoChips(TIPOS_INVEST, tipoInvestimento, function (v) { tipoInvestimento = v; desenharInvestimentos(); });
+    chips.classList.add('tipos-invest');
+    return chips;
+  }
+
+  function cartaoOfertasRf() {
+    var c = cartao('liso');
+    var topo = topoDeCartao('Ofertas anotadas', '+ Anotar', function () { abrirFolhaOfertaRf(null); }, null, { chave: 'invest.ofertas', itens: [
+      'As ofertas de renda fixa que você viu no seu banco ou corretora: banco, tipo, taxa e vencimento.',
+      'O app faz a conta com o CDI e o IPCA de hoje e põe a que mais rende líquido (depois do imposto) em primeiro, também nos quadrados lá em cima.',
+      'Toque numa oferta para mudar ou apagar. Elas ficam guardadas na sua conta.'] });
+    topo.style.padding = '16px 16px 0';
+    topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    var lista = ofertasOrdenadas();
+    if (!lista.length) {
+      c.appendChild(no('div', 'sanfona-vazio', 'Nenhuma oferta anotada ainda. Viu um CDB, LCI ou LCA interessante? Anote aqui para comparar.'));
+      return c;
+    }
+    lista.forEach(function (x) {
+      c.appendChild(linhaSimples({
+        titulo: x.o.tipo + ' · ' + (x.o.banco || 'Sem banco'),
+        sub: textoDaTaxa(x.o) + (x.o.vencimento ? ' · vence ' + dataBr(x.o.vencimento) : ''),
+        valor: x.r ? pctBr(x.r.liquido, 2) + ' líq.' : '',
+        selo: seloIcone('extrato', '#E9B44C'),
+        aoTocar: function () { abrirFolhaOfertaRf(x.o.id); }
+      }));
+    });
+    return c;
+  }
+
+  function abrirFolhaOfertaRf(id) {
+    var existente = id ? achar(estado.ofertasRf || [], id) : null;
+    var r = existente ? JSON.parse(JSON.stringify(existente)) : { id: novoId(), banco: '', tipo: 'CDB', indexador: 'cdi', taxa: 0, vencimento: '' };
+    abrirFolha(existente ? 'Oferta anotada' : 'Anotar uma oferta', function (folha) {
+      var forma = no('div', 'forma');
+      var campoBanco = no('input', 'entrada');
+      campoBanco.type = 'text'; campoBanco.placeholder = 'Ex.: Banco Inter, XP, Nubank'; campoBanco.value = r.banco;
+      campoBanco.classList.add('campo-banco-oferta');
+      forma.appendChild(campo('Banco ou corretora', campoBanco));
+      forma.appendChild(no('div', 'rotulo', 'Tipo'));
+      forma.appendChild(grupoChips(['CDB', 'LCI', 'LCA', 'LC', 'CRI', 'CRA', 'Debênture', 'Tesouro'], r.tipo, function (v) { r.tipo = v; }));
+      forma.appendChild(no('div', 'rotulo', 'Como rende'));
+      forma.appendChild(segmentosLocais([{ valor: 'cdi', rotulo: '% do CDI' }, { valor: 'pre', rotulo: 'Prefixado' }, { valor: 'ipca', rotulo: 'IPCA +' }],
+        r.indexador, function (v) { r.indexador = v; }));
+      var campoTaxa = entradaTextoNumero(r.taxa || '', 'Ex.: 110');
+      campoTaxa.classList.add('campo-taxa-oferta');
+      forma.appendChild(campo('Taxa (%)', campoTaxa));
+      var campoVence = entradaData(r.vencimento || '');
+      forma.appendChild(campo('Vencimento (opcional)', campoVence));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        r.banco = campoBanco.value.trim();
+        r.taxa = comoNumero(campoTaxa.value, 0);
+        r.vencimento = ehData(campoVence.value) ? campoVence.value : '';
+        if (!r.taxa || r.taxa <= 0) { mostrarErro(forma, 'Diga a taxa da oferta.'); return; }
+        if (!estado.ofertasRf) estado.ofertasRf = [];
+        var limpa = limparOfertasRf([Object.assign({}, r, { criadoEm: r.criadoEm || Date.now() })])[0];
+        if (existente) estado.ofertasRf = estado.ofertasRf.map(function (o) { return o.id === limpa.id ? limpa : o; });
+        else estado.ofertasRf.push(limpa);
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar(existente ? 'Oferta atualizada.' : 'Oferta anotada.');
+      }));
+      if (existente) acoes.appendChild(botao('btn btn-perigo', 'Apagar esta oferta', function () {
+        estado.ofertasRf = estado.ofertasRf.filter(function (o) { return o.id !== existente.id; });
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar('Oferta apagada.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
   function desenharInvestimentos() {
     var tela = $('telaInvestimentos');
     tela.textContent = '';
     tela.appendChild(cabecalho('Investimentos', null, false));
+
+    // Renda fixa no topo e os tipos de investimento (pedido de 25/11/2026).
+    tela.appendChild(vitrineRendaFixa());
+    tela.appendChild(seletorDeTipos());
+    if (tipoInvestimento !== 'rf') {
+      var breve = cartao('liso');
+      breve.appendChild(estadoVazio(rotuloDoTipo(tipoInvestimento) + ' em breve',
+        'Ainda não mostro ' + rotuloDoTipo(tipoInvestimento).toLowerCase() + ' aqui. Por enquanto, os quadrados de cima são de renda fixa.'));
+      tela.appendChild(breve);
+    } else {
+      tela.appendChild(cartaoOfertasRf());
+    }
 
     var total = totalInvestido(null);
     var aplicado = totalAplicado();
@@ -26793,30 +27146,9 @@
       return caixa;
     }
 
-    if (!an.principais.length) {
-      var tudoBem = cartao('achado tom-bom');
-      var topoOk = no('div', 'achado-topo');
-      topoOk.appendChild(no('span', 'achado-icone', '✓'));
-      topoOk.appendChild(no('span', 'achado-titulo', 'Tudo dentro do padrão'));
-      tudoBem.appendChild(topoOk);
-      tudoBem.appendChild(no('p', 'achado-texto',
-        'Seus gastos estão perto do que costumam ser. Nada pedindo atenção neste mês.'));
-      caixa.appendChild(tudoBem);
-    } else {
-      an.principais.forEach(function (a, i) { caixa.appendChild(cartaoDeAchado(a, i)); });
-    }
-
-    if (an.proxima) {
-      var prox = cartao('proxima');
-      var topoP = no('div', 'achado-topo');
-      topoP.appendChild(no('span', 'achado-icone', '🚀'));
-      topoP.appendChild(no('span', 'achado-titulo', 'Próxima ação'));
-      prox.appendChild(topoP);
-      prox.appendChild(no('p', 'achado-texto', frasePraAcao(an.proxima)));
-      prox.appendChild(botao('btn btn-ouro', an.proxima.acao.rotulo, an.proxima.acao.abrir));
-      caixa.appendChild(prox);
-    }
-
+    // Em Mais não ficam cartões de aviso (pedido de 25/11/2026): a nota da
+    // saúde e o caminho para a análise completa bastam. Os avisos moram na
+    // análise e no sino.
     var verTudo = botao('linha linha-verTudo', null, function () { abrirAnaliseCompleta(ano, mes); });
     juntar(verTudo,
       juntar(no('div', 'linha-texto'),

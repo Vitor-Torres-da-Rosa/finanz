@@ -74,6 +74,8 @@ create table if not exists public.perfis (
   negocio          text   not null default '',
   contato          text   not null default '',
   meta_economia    smallint not null default 20,
+  -- Ofertas de renda fixa que a pessoa anotou (banco, tipo, taxa, prazo).
+  ofertas_rf       jsonb  not null default '[]'::jsonb check (jsonb_typeof(ofertas_rf) = 'array'),
   criado_em             timestamptz not null default now(),
   atualizado_em         timestamptz not null default now()
 );
