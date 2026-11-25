@@ -75,6 +75,35 @@ const ext = limpo(await page.textContent('#folha .cartao-extratos'));
 conferir('3b. a conta diz quanto os arquivos ocupam, no total e em cada extrato', /1 arquivo\(s\) guardado\(s\) na sua conta · \d+ KB no total/.test(ext) &&
   /\d+ KB · inter-sinais\.pdf · 7 lançamento\(s\)/.test(ext), ext.slice(0, 200));
 await page.locator('#folha .cartao-extratos').screenshot({ path: dir + '/z105-tamanho-extratos.png' }).catch(() => {});
+
+// 25/11/2026: arquivo que sobrou de importação já tirada não entra na conta
+// dos guardados; aparece à parte, com o botão de apagar.
+const nuvem = (metodo, caminho, corpo) => page.evaluate(async ({ metodo, caminho, corpo }) => {
+  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).access_token;
+  const cfg = window.FINANZ_CONFIG;
+  const r = await fetch(cfg.supabaseUrl + caminho, { method: metodo, body: corpo ? JSON.stringify(corpo) : undefined,
+    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'return=minimal' } });
+  return r.status === 204 || r.status === 201 ? [] : r.json().catch(() => []);
+}, { metodo, caminho, corpo });
+const jaTem = await nuvem('GET', '/rest/v1/arquivos_extrato?select=id,conta_id,user_id');
+const dono = jaTem[0];
+for (const k of [1, 2]) {
+  await nuvem('POST', '/rest/v1/arquivos_extrato', [{ id: 'solto-' + k + '-' + Date.now(), user_id: dono.user_id, importacao_id: 'leva-que-sumiu-' + k,
+    conta_id: dono.conta_id, nome: 'velho' + k + '.pdf', tipo: 'application/pdf', tamanho: 50000, conteudo: 'JVBERi0=' }]);
+}
+for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(800);
+await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")'); await page.waitForTimeout(1200);
+await page.waitForSelector('#folha .arquivos-soltos', { timeout: 15000 }).catch(() => {});
+const ext2 = limpo(await page.textContent('#folha .cartao-extratos'));
+conferir('3d. a contagem só leva os arquivos dos extratos da lista; os que sobraram aparecem à parte',
+  /1 arquivo\(s\) guardado\(s\) na sua conta/.test(ext2) && /2 arquivo\(s\) de importações que já foram tiradas ainda ocupam 98 KB\. Apagar/.test(ext2), ext2.slice(0, 220));
+await page.locator('#folha .cartao-extratos').screenshot({ path: dir + '/z129-arquivos-soltos.png' }).catch(() => {});
+await page.click('#folha .arquivos-soltos button:has-text("Apagar")'); await page.waitForTimeout(600);
+await page.click('#dialogoAcoes button:has-text("Apagar")'); await page.waitForTimeout(2500);
+const depoisSoltos = await nuvem('GET', '/rest/v1/arquivos_extrato?select=id');
+conferir('3e. apagando, só os que sobraram somem; o do extrato fica', depoisSoltos.length === 1 && depoisSoltos[0].id === dono.id &&
+  !(await page.locator('#folha .arquivos-soltos').count()), depoisSoltos.length);
 await abrirLeva();
 await page.waitForSelector('#folha .botao-reler:not([disabled])', { timeout: 20000 });
 const dentro = limpo(await page.textContent('#folha'));

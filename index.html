@@ -352,6 +352,8 @@
   .busca input { flex: 1; border: 0; background: none; outline: none; padding: 13px 0; font-size: 14.5px; }
   .busca .lupa { color: var(--suave); display: grid; place-items: center; flex: 0 0 auto; }
   .busca .lupa svg { width: 18px; height: 18px; }
+  .arquivos-soltos { margin: 0 16px 10px; font-size: 12.5px; color: var(--suave); line-height: 1.45; }
+  .arquivos-soltos .link-ouro { background: none; border: 0; padding: 0; color: var(--ouro); font-weight: 600; font-size: 12.5px; }
   /* O "x" de limpar a busca vinha azul do sistema; agora é dourado. */
   .busca input::-webkit-search-cancel-button {
     -webkit-appearance: none; appearance: none; width: 16px; height: 16px; cursor: pointer;
@@ -2603,6 +2605,7 @@
         'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia", em todas as contas e no sino.',
         'Faturas: "Vinculada ao extrato", "Paga fora do mês" ou "Só a fatura" agora é uma etiqueta pequena do lado da situação, sem o texto embaixo. A explicação ficou no "i" das Faturas, que abre mais uma vez para mostrar.',
         'Na tela do cartão saiu o "Últimos gastos": as compras de cada mês já aparecem em "Lançamentos desta fatura".',
+        'Extratos de uma conta: a contagem de arquivos guardados agora bate com a lista. Os arquivos que sobraram de importações já tiradas aparecem à parte, com o tamanho e um botão para apagar.',
         'Parcelas: a sugestão de lançar fica embaixo dos lançamentos da fatura, na fatura onde a parcela deve cair e ainda não está, tenha ela outros lançamentos ou não. Em cada compra você escolhe lançar só a parcela daquele mês ou ela e as próximas.'
       ]
     },
@@ -24729,6 +24732,7 @@
       var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
         'Toque num extrato para ver os detalhes, baixar o arquivo guardado ou tirar tudo o que ele trouxe de uma vez.',
+        'O número de arquivos no topo conta só os dos extratos da lista. Arquivo que sobrou de importação já tirada aparece à parte, com "Apagar".',
         '"+ Importar" lê o extrato do banco em PDF, Excel, OFX ou CSV. Lançamento que já existe na conta vem desmarcado, para não entrar duas vezes.'] });
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
@@ -24753,18 +24757,39 @@
       if (!semExtrato) folha.appendChild(cExt);
       if (levas.length) {
         listarArquivosDeExtrato(id).then(function (lista) {
-          var soma = 0, quantos = 0;
+          // Conta só os arquivos dos extratos que estão na lista (pedido de
+          // 25/11/2026: "11 arquivos" com 6 extratos não batia). O que sobrou
+          // de importação já tirada aparece à parte, com o botão de apagar.
+          var soma = 0, quantos = 0, soltos = [], somaSoltos = 0;
           (lista || []).forEach(function (a) {
             var t = inteiro(a.tamanho);
-            soma += t; quantos++;
             var linha = linhasDasLevas[a.importacao_id];
-            var sub = linha && linha.querySelector('.linha-sub');
+            if (!linha) { soltos.push(a.id); somaSoltos += t; return; }
+            soma += t; quantos++;
+            var sub = linha.querySelector('.linha-sub');
             // Na frente: o fim da linha é cortado quando o nome do arquivo é comprido.
             if (sub) sub.textContent = tamanhoDeArquivo(t) + ' · ' + sub.textContent;
           });
           totalArquivos.textContent = quantos
             ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total'
             : 'Nenhum arquivo guardado na nuvem para esta conta.';
+          if (soltos.length) {
+            var sobra = no('div', 'arquivos-soltos');
+            sobra.appendChild(no('span', null, soltos.length + ' arquivo(s) de importações que já foram tiradas ainda ocupam ' + tamanhoDeArquivo(somaSoltos) + '. '));
+            sobra.appendChild(botao('link-ouro', 'Apagar', function () {
+              perguntar({
+                titulo: 'Apagar ' + soltos.length + ' arquivo(s) que sobraram?',
+                texto: 'São originais de extratos que você já tirou do app: os lançamentos deles não existem mais. Os extratos da lista continuam com os arquivos deles.',
+                ok: 'Apagar', tom: 'perigo'
+              }, function () {
+                apagarArquivosDeExtrato(soltos).then(function () {
+                  avisar(soltos.length + ' arquivo(s) apagado(s).');
+                  abrirExtratoConta(id);
+                }).catch(function () { avisarCaixa('Não consegui apagar agora', 'Confira a internet e tente de novo.'); });
+              });
+            }));
+            totalArquivos.parentNode.insertBefore(sobra, totalArquivos.nextSibling);
+          }
         }).catch(function () { totalArquivos.textContent = ''; });
       }
 
@@ -33739,6 +33764,23 @@
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,nome,tipo,tamanho,criado_em' + filtro, {});
     }).then(function (r) { return r || []; }).catch(function () { return []; });
+  }
+
+  // Apaga de uma vez os arquivos pelos ids, em grupos de 80.
+  function apagarArquivosDeExtrato(ids) {
+    if (!NUVEM.ligada || !sessaoNuvem || !ids.length) return Promise.resolve();
+    var grupos = [];
+    for (var i = 0; i < ids.length; i += 80) grupos.push(ids.slice(i, i + 80));
+    return comTokenValido().then(function () {
+      return grupos.reduce(function (antes, g) {
+        return antes.then(function () {
+          var lista = g.map(function (x) { return '"' + String(x).replace(/"/g, '') + '"'; }).join(',');
+          return pedirNuvem('/rest/v1/arquivos_extrato?id=in.(' + encodeURIComponent(lista) + ')', {
+            metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
+          });
+        });
+      }, Promise.resolve());
+    });
   }
 
   // O conteúdo do arquivo como o banco entregou. Serve para salvar no
