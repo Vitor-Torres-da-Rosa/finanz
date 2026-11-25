@@ -2590,7 +2590,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.95.0';
+  var VERSAO = '5.96.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2599,6 +2599,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.96.0',
+      data: '2026-11-25',
+      itens: [
+        'Faturas do cartão: o mês que está vinculado ao extrato (o pagamento dele apareceu numa conta sua, no mesmo valor e no mesmo mês) ganha um elo do lado do nome. Dentro do mês, um quadro diz se a fatura está "Vinculada ao extrato", "Paga, mas fora do mês" ou se é "Só a fatura", e o que isso muda nos gastos.',
+        'O "i" acompanha o app: quando uma parte muda de um jeito importante, a explicação do "i" é atualizada e ele abre sozinho mais uma vez para mostrar o que mudou. O das Faturas já abre de novo com o elo. A lista de clientes ganhou o seu "i", com a busca, os filtros e o "Cliente não pagou".'
+      ]
+    },
     {
       versao: '5.95.0',
       data: '2026-11-25',
@@ -17634,7 +17642,7 @@
         var campoBusca = no('input');
         campoBusca.type = 'search';
         campoBusca.id = 'buscaClientes';
-        campoBusca.placeholder = 'Buscar cliente por nome ou telefone';
+        campoBusca.placeholder = 'Buscar por nome ou telefone';
         campoBusca.setAttribute('aria-label', 'Buscar cliente');
         campoBusca.autocomplete = 'off';
         campoBusca.value = buscaClientes;
