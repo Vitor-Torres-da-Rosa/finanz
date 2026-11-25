@@ -28,24 +28,26 @@ const itens = await page.$$eval('#entrada .vantagem', ns => ns.map(n => ({ tag: 
 conferir('5. os 9 itens são botões, com o "+" no canto e "Saiba mais"', itens.length === 9 && itens.every(x => x.tag === 'BUTTON' && x.guia && /\+/.test(x.mais) && /Saiba mais/.test(x.saiba)),
   JSON.stringify(itens.slice(0, 2)));
 await page.locator('#entrada .vantagem[data-guia="dados"]').click(); await page.waitForTimeout(1200);
-const titulo = (await page.textContent('#folha')).replace(/\s+/g, ' ');
 const abertas = await page.$$eval('#folha .guia-secao.aberta', ns => ns.map(n => n.getAttribute('data-assunto')));
+const nSo = await page.locator('#folha .guia-secao').count();
 const dados = (await page.locator('#folha .guia-secao[data-assunto="dados"]').textContent()).replace(/\s+/g, ' ');
-conferir('6. "Dados protegidos" abre o guia já no assunto, com o detalhe honesto', /Como o Finanz funciona/.test(titulo) && abertas.join() === 'dados' &&
-  /ponta a ponta/.test(dados) && /Ninguém mais lê/.test(dados) && /Ainda abertos/.test(dados) && /HTTPS/.test(dados), abertas.join() + ' | ' + dados.slice(0, 120));
+conferir('6. "Dados protegidos" abre só aquele assunto, aberto, com o detalhe honesto', nSo === 1 && abertas.join() === 'dados' &&
+  /ponta a ponta/.test(dados) && /Ninguém mais lê/.test(dados) && /Ainda abertos/.test(dados) && /HTTPS/.test(dados), nSo + ' | ' + dados.slice(0, 120));
 await page.screenshot({ path: dir + '/z197-guia-dados.png' });
+await page.click('#folha .botao-guia-todos'); await page.waitForTimeout(1200);
 const nAssuntos = await page.locator('#folha .guia-secao').count();
+const nAbertos = await page.locator('#folha .guia-secao.aberta').count();
 await page.click('#folha .guia-secao[data-assunto="termos"] .guia-cab'); await page.waitForTimeout(300);
 const termos = (await page.locator('#folha .guia-secao[data-assunto="termos"]').textContent()).replace(/\s+/g, ' ');
-conferir('7. o guia tem todos os assuntos, e os termos de uso abrem no toque', nAssuntos === 13 && /não movimenta valores/.test(termos) &&
-  await page.locator('#folha .guia-secao[data-assunto="termos"].aberta').count() === 1, nAssuntos + ' | ' + termos.slice(0, 100));
+conferir('7. "Ver todos os assuntos" abre o guia inteiro, fechado; os termos abrem no toque', nAssuntos === 13 && nAbertos === 0 &&
+  /não movimenta valores/.test(termos) && !/código de recuperação/.test(termos) &&
+  await page.locator('#folha .guia-secao[data-assunto="termos"].aberta').count() === 1, nAssuntos + '/' + nAbertos + ' | ' + termos.slice(0, 100));
 await page.click('#folha .btn-fantasma:has-text("Fechar")'); await page.waitForTimeout(800);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; }); await page.waitForTimeout(300);
-await page.click('#entrada .ent-guia-link'); await page.waitForTimeout(1000);
-conferir('8. o link "Como o Finanz funciona" abre o guia com tudo fechado', await page.locator('#folha .guia-secao').count() === 13 &&
-  await page.locator('#folha .guia-secao.aberta').count() === 0);
-await page.screenshot({ path: dir + '/z197-guia-todos.png' });
-await page.click('#folha .btn-fantasma:has-text("Fechar")'); await page.waitForTimeout(800);
+const fim = (await page.textContent('#entrada')).replace(/\s+/g, ' ');
+conferir('8. sem o botão do meio; a linha dos Termos de Uso e da Política fica', await page.locator('#entrada .ent-guia-link').count() === 0 &&
+  /Termos de Uso/.test(fim) && /Política de Privacidade/.test(fim));
+await page.screenshot({ path: dir + '/z197-abertura-fim.png' });
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 0; }); await page.waitForTimeout(300);
 await page.screenshot({ path: dir + '/z197-abertura-itens.png' });
 

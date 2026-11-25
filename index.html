@@ -10354,11 +10354,6 @@
       });
     });
 
-    var guiaLink = botao('ent-guia-link', null, function () { abrirGuia(''); });
-    guiaLink.appendChild(icone('info'));
-    guiaLink.appendChild(no('span', null, 'Como funciona, termos e privacidade'));
-    guiaLink.appendChild(no('span', 'ent-guia-seta', '›'));
-    folha.appendChild(guiaLink);
 
     var fundo = no('div', 'ent-fundo');
 
@@ -11071,7 +11066,7 @@
         'O Finanz é um app de controle financeiro pessoal. Ele ajuda você a registrar e enxergar o seu dinheiro, mas não movimenta valores, não faz pagamentos e não dá recomendação de investimento.',
         'Os números que aparecem aqui vêm do que você mesmo cadastra. Projeções, como a de aposentadoria, são estimativas matemáticas e não promessa de rendimento.',
         'O app é fornecido como está, sem garantia. Confira sempre os valores oficiais no seu banco ou corretora antes de tomar decisões.',
-        'Você é responsável por guardar sua senha e o código de recuperação. Sem eles não há como abrir seus dados.'
+        'Você é responsável por guardar a sua senha de login e a senha dos dados. A senha dos dados não tem recuperação: sem ela, ninguém consegue abrir os dados cifrados na nuvem, nem o Finanz.'
       ]
     },
     privacidade: {
@@ -11180,11 +11175,15 @@
     ];
   }
 
+  // Vindo de um item da abertura, mostra só aquele assunto, aberto (pedido
+  // de 25/11/2026); "Ver todos os assuntos" abre o guia inteiro, fechado.
   function abrirGuia(assunto) {
-    abrirFolha('Como o Finanz funciona', function (folha) {
-      folha.appendChild(no('p', 'guia-intro', 'Tudo o que o app faz, onde os seus dados ficam e as regras de uso. Toque num assunto para abrir.'));
+    var todos = guiaDoFinanz();
+    var so = assunto ? todos.filter(function (x) { return x.id === assunto; }) : [];
+    abrirFolha(so.length ? so[0].titulo : 'Como o Finanz funciona', function (folha) {
+      if (!so.length) folha.appendChild(no('p', 'guia-intro', 'Tudo o que o app faz, onde os seus dados ficam e as regras de uso. Toque num assunto para abrir.'));
       var alvo = null;
-      guiaDoFinanz().forEach(function (sec) {
+      (so.length ? so : todos).forEach(function (sec) {
         var bloco = no('div', 'guia-secao' + (sec.id === assunto ? ' aberta' : ''));
         bloco.setAttribute('data-assunto', sec.id);
         var cab = botao('guia-cab', null, function () {
@@ -11210,9 +11209,14 @@
         if (sec.id === assunto) alvo = bloco;
       });
       var acoes = no('div', 'acoes');
+      if (so.length) {
+        acoes.appendChild(botao('btn btn-fantasma botao-guia-todos', 'Ver todos os assuntos', function () {
+          voltarNavegacao();
+          setTimeout(function () { abrirGuia(''); }, 280);
+        }));
+      }
       acoes.appendChild(botao('btn btn-fantasma', 'Fechar', function () { voltarNavegacao(); }));
       folha.appendChild(acoes);
-      if (alvo) setTimeout(function () { try { alvo.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* velho */ } }, 420);
     });
   }
 
