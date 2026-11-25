@@ -2697,7 +2697,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.101.0';
+  var VERSAO = '5.102.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2706,6 +2706,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.102.0',
+      data: '2026-11-25',
+      itens: [
+        'Conferido ✓: em "Conferir esta conta", quando o saldo bate com o banco, você confirma que está tudo certo. Os arquivos dos extratos da conta deixam de ser guardados como vieram do banco: fica só o que o app leu deles, compacto e cifrado com a "senha dos extratos". Reler e Relançar continuam funcionando; baixar o PDF original deixa de dar.',
+        'A senha dos extratos é criada na primeira conferência e pedida uma vez enquanto o app está aberto. Não dá para recuperá-la; esquecendo, os lançamentos continuam todos no app.',
+        'O extrato conferido fica guardado sem prazo. O que não foi conferido continua saindo sozinho depois de 6 meses.',
+        'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.'
+      ]
+    },
     {
       versao: '5.101.0',
       data: '2026-11-25',
@@ -5211,7 +5221,7 @@
           saldoExtrato: i.saldoExtrato == null ? null : inteiro(i.saldoExtrato),
           de: soData(i.de), ate: soData(i.ate)
         };
-      }).slice(-60);
+      }).slice(-300);
     }
 
     if (bruto.revisados && typeof bruto.revisados === 'object') {
@@ -24429,9 +24439,80 @@
       conf.appendChild(ajustar);
       forma.appendChild(conf);
 
+      // ---- conferido (pedido de 25/11/2026) ----
+      // Se o saldo bate e os lançamentos estão certos, a pessoa confirma, e
+      // os arquivos da conta viram a versão compacta e cifrada.
+      var cConf = cartao('cartao-conferido');
+      var topoConf = no('div', 'cartao-topo');
+      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido', 'Conferido ✓', [
+        'Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
+        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado com a senha dos extratos: fica bem menor, e só quem tem a senha lê.',
+        '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
+        'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
+        'Extrato importado depois chega como PDF de novo: é só conferir outra vez.']));
+      cConf.appendChild(topoConf);
+      var estadoConf = no('div', 'linha-nota estado-conferido', 'Vendo os arquivos guardados...');
+      cConf.appendChild(estadoConf);
+      var notaBate = no('div', 'linha-nota vermelho', 'O saldo do banco ainda não bate com o app. Acerte a diferença antes de conferir.');
+      notaBate.style.display = 'none';
+      cConf.appendChild(notaBate);
+      var paraConferir = [];
+      var bateComBanco = true;
+      var botaoConferido = botao('btn btn-ouro botao-conferido', 'Conferido ✓', function () {
+        if (!paraConferir.length || !bateComBanco) return;
+        perguntar({
+          titulo: 'Marcar como conferido?',
+          texto: 'Você confirma que o saldo e os lançamentos de "' + conta.nome + '" estão certos.\n\n' +
+                 'Os ' + paraConferir.length + ' arquivo(s) desta conta deixam de ser guardados como vieram do banco: ' +
+                 'fica só o que o app leu deles, compacto e cifrado com a senha dos extratos.\n\n' +
+                 '"Reler e corrigir" e "Relançar" continuam funcionando. Baixar o PDF original deixa de dar.',
+          ok: 'Conferido ✓'
+        }, function () {
+          var lista = paraConferir.slice();
+          setTimeout(function () { conferirExtratosDaConta(id, lista); }, 260);
+        });
+      });
+      botaoConferido.style.marginTop = '10px';
+      botaoConferido.disabled = true;
+      cConf.appendChild(botaoConferido);
+      function atualizarConferido() {
+        botaoConferido.disabled = !(paraConferir.length && bateComBanco);
+        notaBate.style.display = paraConferir.length && !bateComBanco ? '' : 'none';
+      }
+      var levasDaConta = {};
+      (estado.importacoes || []).forEach(function (i) { if (i.contaId === id) levasDaConta[i.id] = true; });
+      if (!NUVEM.ligada || !sessaoNuvem) {
+        estadoConf.textContent = 'Os arquivos dos extratos ficam guardados na nuvem. Entre na sua conta para conferir.';
+        botaoConferido.style.display = 'none';
+      } else {
+        listarArquivosDeExtrato(id).then(function (lista) {
+          var daConta = (lista || []).filter(function (a) { return levasDaConta[a.importacao_id]; });
+          var jaFeitos = daConta.filter(ehConferido);
+          paraConferir = daConta.filter(function (a) { return !ehConferido(a); });
+          if (!daConta.length) {
+            estadoConf.textContent = 'Nenhum arquivo de extrato guardado nesta conta.';
+            botaoConferido.style.display = 'none';
+          } else if (!paraConferir.length) {
+            estadoConf.textContent = 'Conferido ✓ ' + (jaFeitos.length === 1 ? 'O extrato desta conta está guardado'
+              : 'Os ' + jaFeitos.length + ' extratos desta conta estão guardados') + ' na versão compacta e cifrada.';
+            estadoConf.className = 'linha-nota verde estado-conferido';
+            botaoConferido.style.display = 'none';
+          } else {
+            var pesa = paraConferir.reduce(function (t, a) { return t + inteiro(a.tamanho); }, 0);
+            estadoConf.textContent = (jaFeitos.length ? jaFeitos.length + ' extrato(s) já conferido(s). ' : '') +
+              paraConferir.length + ' arquivo(s) ainda como vieram do banco (' + tamanhoDeArquivo(pesa) + '). ' +
+              'Se o saldo bate e os lançamentos estão certos, marque como conferido.';
+          }
+          atualizarConferido();
+        });
+      }
+      forma.appendChild(cConf);
+
       function medirDiferenca() {
         var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
+        bateComBanco = !falta;
+        atualizarConferido();
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
           diferenca.className = 'linha-nota verde';
@@ -24668,6 +24749,11 @@
               Array.prototype.forEach.call(caixaB.querySelectorAll('button'), function (b) {
                 b.disabled = false;
               });
+              if (ehConferido(guardados[i.id])) {
+                var bb = caixaB.querySelector('button');
+                bb.textContent = 'Conferido ✓';
+                bb.disabled = true;
+              }
               return;
             }
             // Sem arquivo: em vez de botão morto, o motivo.
@@ -24872,14 +24958,19 @@
       reler.style.marginTop = '8px';
       listarArquivosDeExtrato(contaId).then(function (lista) {
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
-        if (tamanhoEl) tamanhoEl.textContent = a ? tamanhoDeArquivo(a.tamanho) : 'não guardado';
+        if (tamanhoEl) tamanhoEl.textContent = a ? tamanhoDeArquivo(a.tamanho) + (ehConferido(a) ? ' · conferido ✓' : '') : 'não guardado';
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
-        baixar.disabled = false;
-        baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';
-        baixar.onclick = function () {
-          avisar('Baixando...');
-          baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
-        };
+        if (ehConferido(a)) {
+          // O PDF deu lugar à versão compacta: baixar não tem o que baixar.
+          baixar.textContent = 'PDF trocado pela versão compacta';
+        } else {
+          baixar.disabled = false;
+          baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';
+          baixar.onclick = function () {
+            avisar('Baixando...');
+            baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
+          };
+        }
         if (vieram.length) {
           c.appendChild(reler);
           c.appendChild(no('div', 'linha-nota', 'Lê o arquivo de novo e acerta só o que estiver com o sinal trocado (receita lançada como despesa ou o contrário). Valor, data e descrição ficam como estão.'));
@@ -25020,10 +25111,11 @@
         .sort(function (a, b) { return (b.ate || '') < (a.ate || '') ? -1 : (b.ate || '') > (a.ate || '') ? 1 : (b.quando || 0) - (a.quando || 0); });
       var semExtrato = conta.tipo === 'Dinheiro físico' && !levas.length;
       var cExt = cartao('liso cartao-extratos');
-      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', itens: [
+      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', versao: 2, itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
-        'Toque num extrato para ver os detalhes, baixar o arquivo guardado ou tirar tudo o que ele trouxe de uma vez.',
-        'O número de arquivos no topo conta só os dos extratos da lista. Arquivo que sobrou de importação já tirada aparece à parte, com "Apagar".',
+        'Toque num extrato para ver os detalhes, baixar o arquivo guardado, reler ou tirar tudo o que ele trouxe de uma vez.',
+        'O número de arquivos no topo conta só os dos extratos da lista. O arquivo de uma importação que você tirou é apagado sozinho, sem perguntar.',
+        '"conferido ✓" é o extrato que você conferiu em "Conferir esta conta": ele fica guardado numa versão compacta e cifrada com a senha dos extratos.',
         '"+ Importar" lê o extrato do banco em PDF, Excel, OFX ou CSV. Lançamento que já existe na conta vem desmarcado, para não entrar duas vezes.'] });
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
@@ -25051,36 +25143,23 @@
           // Conta só os arquivos dos extratos que estão na lista (pedido de
           // 25/11/2026: "11 arquivos" com 6 extratos não batia). O que sobrou
           // de importação já tirada aparece à parte, com o botão de apagar.
-          var soma = 0, quantos = 0, soltos = [], somaSoltos = 0;
+          // O que sobrou de importação já tirada não conta aqui: sai sozinho
+          // na limpeza do dia (pedido de 25/11/2026), sem perguntar.
+          var soma = 0, quantos = 0, conferidos = 0;
           (lista || []).forEach(function (a) {
             var t = inteiro(a.tamanho);
             var linha = linhasDasLevas[a.importacao_id];
-            if (!linha) { soltos.push(a.id); somaSoltos += t; return; }
+            if (!linha) return;
             soma += t; quantos++;
+            if (ehConferido(a)) conferidos++;
             var sub = linha.querySelector('.linha-sub');
             // Na frente: o fim da linha é cortado quando o nome do arquivo é comprido.
-            if (sub) sub.textContent = tamanhoDeArquivo(t) + ' · ' + sub.textContent;
+            if (sub) sub.textContent = tamanhoDeArquivo(t) + (ehConferido(a) ? ' · conferido ✓' : '') + ' · ' + sub.textContent;
           });
           totalArquivos.textContent = quantos
-            ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total'
+            ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total' +
+              (conferidos ? ' · ' + conferidos + ' conferido(s) ✓' : '')
             : 'Nenhum arquivo guardado na nuvem para esta conta.';
-          if (soltos.length) {
-            var sobra = no('div', 'arquivos-soltos');
-            sobra.appendChild(no('span', null, soltos.length + ' arquivo(s) de importações que já foram tiradas ainda ocupam ' + tamanhoDeArquivo(somaSoltos) + '. '));
-            sobra.appendChild(botao('link-ouro', 'Apagar', function () {
-              perguntar({
-                titulo: 'Apagar ' + soltos.length + ' arquivo(s) que sobraram?',
-                texto: 'São originais de extratos que você já tirou do app: os lançamentos deles não existem mais. Os extratos da lista continuam com os arquivos deles.',
-                ok: 'Apagar', tom: 'perigo'
-              }, function () {
-                apagarArquivosDeExtrato(soltos).then(function () {
-                  avisar(soltos.length + ' arquivo(s) apagado(s).');
-                  abrirExtratoConta(id);
-                }).catch(function () { avisarCaixa('Não consegui apagar agora', 'Confira a internet e tente de novo.'); });
-              });
-            }));
-            totalArquivos.parentNode.insertBefore(sobra, totalArquivos.nextSibling);
-          }
         }).catch(function () { totalArquivos.textContent = ''; });
       }
 
@@ -33240,6 +33319,13 @@
   function lerUmExtrato(arquivo, ancora, entregar) {
     var nome = nomeDoArquivo(arquivo);
 
+    // Extrato conferido sendo relançado: o que o app leu já está aqui.
+    if (arquivo && arquivo.conteudoConferido) {
+      var lidoC = lidoDoConteudo(arquivo.conteudoConferido, nome);
+      entregar(lidoC, lidoC && lidoC.itens.length ? '' : 'formato');
+      return;
+    }
+
     bytesDoArquivo(arquivo, ancora).then(function (bytes) {
       var comeco = Extrato.textoDeBytes(bytes.subarray(0, 2048));
 
@@ -34147,7 +34233,7 @@
         saldoExtrato: dados.saldoFinal == null ? null : dados.saldoFinal,
         de: quando[0], ate: quando[quando.length - 1]
       });
-      if (estado.importacoes.length > 60) estado.importacoes = estado.importacoes.slice(-60);
+      if (estado.importacoes.length > 300) estado.importacoes = estado.importacoes.slice(-300);
       comMotivo('você importou ' + escolhidos.length + ' lançamento(s) de ' +
         ((dados.arquivo && dados.arquivo.name) || (dados.banco && dados.banco.nome) || 'um extrato'));
       // O extrato quase sempre é de outro mês. Sem levar a tela para a data
@@ -34257,17 +34343,38 @@
   }
 
   function decifrarBackup(pacote, senha) {
-    var sal = deBase64(pacote.kdf.sal), iv = deBase64(pacote.cifra.iv);
+    var sal = deBase64(pacote.kdf.sal);
     return chaveDoBackup(senha, sal, Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP).then(function (chave) {
-      return window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, chave, deBase64(pacote.dados));
-    }).then(function (claro) {
+      return decifrarComChave(pacote, chave);
+    }).then(function (texto) { return JSON.parse(texto); });
+  }
+
+  // Comprime e cifra um texto com uma chave já pronta. Devolve as partes
+  // que vão no pacote: o iv, se foi comprimido e os dados.
+  function cifrarComChave(texto, chave) {
+    var cru = new TextEncoder().encode(texto);
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return passarPor(cru, 'CompressionStream', 'gzip').then(function (comprimido) {
+      return window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, chave, comprimido || cru).then(function (cifrado) {
+        return {
+          comprimido: comprimido ? 'gzip' : '',
+          cifra: { nome: 'AES-GCM', iv: paraBase64(iv) },
+          dados: paraBase64(new Uint8Array(cifrado))
+        };
+      });
+    });
+  }
+
+  function decifrarComChave(pacote, chave) {
+    var iv = deBase64(pacote.cifra.iv);
+    return window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, chave, deBase64(pacote.dados)).then(function (claro) {
       var bytes = new Uint8Array(claro);
       if (pacote.comprimido !== 'gzip') return bytes;
       return passarPor(bytes, 'DecompressionStream', 'gzip').then(function (d) {
-        if (!d) throw new Error('Este aparelho não consegue descomprimir o backup.');
+        if (!d) throw new Error('Este aparelho não consegue descomprimir o arquivo.');
         return d;
       });
-    }).then(function (bytes) { return JSON.parse(new TextDecoder('utf-8').decode(bytes)); });
+    }).then(function (bytes) { return new TextDecoder('utf-8').decode(bytes); });
   }
 
   function fazerBackup() {
@@ -34678,10 +34785,14 @@
     }).then(function () {
       var corteArquivo = new Date();
       corteArquivo.setMonth(corteArquivo.getMonth() - MESES_DE_EXTRATO);
+      // O conferido fica sem prazo: é pequeno, e foi a pessoa que disse
+      // que estava certo.
       return pedirNuvem('/rest/v1/arquivos_extrato?criado_em=lt.' +
-        encodeURIComponent(corteArquivo.toISOString()), {
+        encodeURIComponent(corteArquivo.toISOString()) + '&tipo=neq.' + encodeURIComponent(TIPO_CONFERIDO), {
         metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
       });
+    }).then(function () {
+      return apagarArquivosSemDono();
     }).catch(function () { return null; });
   }
 
@@ -34760,6 +34871,14 @@
     }).then(function (r) {
       var linha = r && r[0];
       if (!linha) throw new Error('não achei esse arquivo');
+      // O conferido não é o arquivo do banco: é o pacote cifrado com o que
+      // o app leu dele.
+      if (linha.tipo === TIPO_CONFERIDO) {
+        var pac = null;
+        try { pac = JSON.parse(linha.conteudo); } catch (e) { pac = null; }
+        if (!pac || !pac.kdf || !pac.cifra) throw new Error('o extrato conferido está estragado');
+        return { conferido: pac, nome: linha.nome, tipo: linha.tipo };
+      }
       return { bytes: deBase64(linha.conteudo), nome: linha.nome, tipo: linha.tipo };
     });
   }
@@ -34780,6 +34899,19 @@
     avisar('Baixando o arquivo guardado...');
     return bytesDeArquivoDeExtrato(a.id).then(function (x) {
       var nome = x.nome || a.nome || 'extrato';
+      if (x.conferido) {
+        // Conferido: abre com a senha dos extratos e entra na fila com o
+        // que o app tinha lido, como se fosse o arquivo.
+        return conteudoDoConferido(x.conferido).then(function (c) {
+          var arqC;
+          try { arqC = new File([''], nome, { type: 'text/plain' }); }
+          catch (e) { arqC = new Blob([''], { type: 'text/plain' }); arqC.name = nome; }
+          arqC.conteudoConferido = c;
+          if ($('folha').classList.contains('aberta')) fecharFolha();
+          limparAviso();
+          setTimeout(function () { lerVariosExtratos([arqC], null, ['']); }, 260);
+        });
+      }
       var tipo = x.tipo || a.tipo || 'application/octet-stream';
       var arq;
       try {
@@ -34793,27 +34925,254 @@
       fecharFolha();
       limparAviso();
       setTimeout(function () { lerVariosExtratos([arq], null, ['']); }, 260);
-    }).catch(function () {
+    }).catch(function (e) {
+      if (e && e.message === 'sem senha') { limparAviso(); return; }
       avisar('Não consegui baixar o arquivo para relançar.');
+    });
+  }
+
+  // ---------- Extratos conferidos (pedido de 25/11/2026) ----------
+  //
+  // Quando a pessoa confere a conta e diz que está tudo certo, os arquivos
+  // dela deixam de ser guardados como vieram do banco. Fica só o que o app
+  // leu deles (as linhas do PDF, as linhas da planilha ou o texto do OFX e
+  // do CSV), comprimido e cifrado no celular com a "senha dos extratos".
+  // "Reler e corrigir" e "Relançar" continuam funcionando, porque o leitor
+  // de hoje lê de novo essas mesmas linhas. O que se perde é o PDF original.
+  // A chave vive só na memória, enquanto o app está aberto.
+  var TIPO_CONFERIDO = 'application/vnd.finanz.conferido';
+  var chaveDosExtratos = null;
+
+  function ehConferido(a) { return !!a && a.tipo === TIPO_CONFERIDO; }
+
+  // Os bytes do arquivo do banco → o que o leitor usa.
+  function conteudoDoArquivo(bytes, nome) {
+    var n = String(nome || '').toLowerCase();
+    var comeco = Extrato.textoDeBytes(bytes.subarray(0, 2048));
+    if (comeco.indexOf('%PDF') >= 0 || /\.pdf$/.test(n)) {
+      return Extrato.lerPdf(bytes, '').then(function (r) {
+        if (!r || r.precisaSenha) return { precisaSenha: true };
+        return { origem: 'pdf', linhas: r.linhas || [] };
+      });
+    }
+    if ((bytes[0] === 0x50 && bytes[1] === 0x4B) || /\.xlsx?$/.test(n)) {
+      return Extrato.lerXlsx(bytes).then(function (linhas) { return { origem: 'tabela', linhas: linhas || [] }; });
+    }
+    var texto;
+    try { texto = new TextDecoder('utf-8').decode(bytes); } catch (e) { texto = Extrato.textoDeBytes(bytes); }
+    if (/\uFFFD/.test(texto.slice(0, 4000))) texto = Extrato.textoDeBytes(bytes);
+    return Promise.resolve({ origem: 'texto', texto: texto });
+  }
+
+  // O que foi guardado → o "lido" de sempre, pelo leitor de hoje.
+  function lidoDoConteudo(c, nome) {
+    var n = String(nome || '').toLowerCase();
+    if (c.origem === 'pdf') return Extrato.lerLinhas(c.linhas || [], n);
+    if (c.origem === 'tabela') return Extrato.lerTabela(c.linhas || [], n);
+    var t = String(c.texto || '');
+    if (/<OFX|OFXHEADER|<STMTTRN>/i.test(t.slice(0, 6000))) return Extrato.lerOfx(t, n);
+    return Extrato.lerCsv(t, n);
+  }
+
+  function fecharConferido(c, nome, k) {
+    var texto = JSON.stringify({ nome: nome, origem: c.origem, linhas: c.linhas, texto: c.texto });
+    return cifrarComChave(texto, k.chave).then(function (x) {
+      return JSON.stringify({
+        app: 'finanz', formato: 'extrato-conferido', versao: 1, conferidoEm: new Date().toISOString(),
+        kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: k.voltas, sal: k.sal },
+        comprimido: x.comprimido, cifra: x.cifra, dados: x.dados
+      });
+    });
+  }
+
+  // Abre um conferido: pede a senha se a chave ainda não está na memória.
+  function conteudoDoConferido(pacote) {
+    return chaveParaPacote(pacote).then(function (k) {
+      return decifrarComChave(pacote, k.chave);
+    }).then(function (t) { return JSON.parse(t); });
+  }
+
+  function chaveParaPacote(pacote) {
+    if (chaveDosExtratos && chaveDosExtratos.sal === pacote.kdf.sal) return Promise.resolve(chaveDosExtratos);
+    var voltas = Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP;
+    return pedirSenhaDosExtratos(false, function (senha) {
+      return chaveDoBackup(senha, deBase64(pacote.kdf.sal), voltas).then(function (chave) {
+        // Abrir o próprio pacote é a prova de que a senha está certa.
+        return decifrarComChave(pacote, chave).then(function () {
+          return { chave: chave, sal: pacote.kdf.sal, voltas: voltas };
+        });
+      });
+    }).then(function (k) { chaveDosExtratos = k; return k; });
+  }
+
+  // Para conferir: se já existe algum conferido na conta da pessoa, a senha
+  // tem de ser a mesma dele; se é o primeiro, a senha nasce agora.
+  function chaveParaConferir() {
+    if (chaveDosExtratos) return Promise.resolve(chaveDosExtratos);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=id,tamanho&tipo=eq.' +
+        encodeURIComponent(TIPO_CONFERIDO) + '&order=tamanho.asc&limit=1', {});
+    }).then(function (r) {
+      if (r && r[0]) return bytesDeArquivoDeExtrato(r[0].id).then(function (x) { return chaveParaPacote(x.conferido); });
+      return pedirSenhaDosExtratos(true, function (senha) {
+        var sal = window.crypto.getRandomValues(new Uint8Array(16));
+        return chaveDoBackup(senha, sal, VOLTAS_DO_BACKUP).then(function (chave) {
+          return { chave: chave, sal: paraBase64(sal), voltas: VOLTAS_DO_BACKUP };
+        });
+      }).then(function (k) { chaveDosExtratos = k; return k; });
+    });
+  }
+
+  function pedirSenhaDosExtratos(criar, provar) {
+    return new Promise(function (resolver, recusar) {
+      abrirFolha('Senha dos extratos', function (folha) {
+        var forma = no('div', 'forma');
+        var topo = no('div', 'cartao-topo');
+        juntar(topo, no('div', 'rotulo', criar ? 'Crie a senha dos extratos' : 'Digite a senha dos extratos'),
+          botaoDeInfo('conta.senha-extratos', 'Senha dos extratos', [
+            'Os extratos conferidos ficam guardados cifrados com esta senha: sem ela, ninguém lê o conteúdo desses arquivos.',
+            'O app pede a senha uma vez enquanto está aberto, quando precisa dela: para conferir, reler ou relançar um extrato conferido.',
+            'Não dá para recuperar a senha. Se você esquecer, os seus lançamentos continuam todos no app; só não dá mais para reler os extratos conferidos.',
+            'Ela não é a senha da sua conta nem a do backup. Anote num lugar seguro.']));
+        forma.appendChild(topo);
+        var s1 = no('input', 'entrada campo-senha-extratos'); s1.type = 'password';
+        s1.autocomplete = criar ? 'new-password' : 'current-password';
+        if (criar) s1.placeholder = 'Pelo menos 6 caracteres';
+        forma.appendChild(campo('Senha', s1));
+        var s2 = null;
+        if (criar) {
+          s2 = no('input', 'entrada campo-senha-extratos2'); s2.type = 'password'; s2.autocomplete = 'new-password';
+          s2.placeholder = 'Repita a senha';
+          forma.appendChild(campo('Repita a senha', s2));
+        }
+        var acoes = no('div', 'acoes');
+        var seguir = botao('btn btn-ouro', 'Continuar', function () {
+          if (!s1.value) { mostrarErro(forma, 'Digite a senha.'); return; }
+          if (criar && s1.value.length < 6) { mostrarErro(forma, 'A senha precisa de pelo menos 6 caracteres.'); return; }
+          if (criar && s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas não são iguais.'); return; }
+          seguir.disabled = true; seguir.textContent = 'Um momento…';
+          provar(s1.value).then(function (k) {
+            fecharFolha();
+            setTimeout(function () { resolver(k); }, 260);
+          }).catch(function () {
+            seguir.disabled = false; seguir.textContent = 'Continuar';
+            mostrarErro(forma, criar ? 'Não consegui criar a senha neste aparelho.' : 'Senha errada.');
+          });
+        });
+        var desistir = botao('btn btn-fantasma', 'Agora não', function () {
+          fecharFolha();
+          recusar(new Error('sem senha'));
+        });
+        juntar(acoes, desistir, seguir);
+        forma.appendChild(acoes);
+        folha.appendChild(forma);
+        setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+      });
+    });
+  }
+
+  // Troca os arquivos da conta pela versão conferida, um de cada vez. Só
+  // troca quando o texto guardado lê lançamentos de novo e o pacote abre
+  // com a chave: na dúvida, o original fica.
+  function conferirExtratosDaConta(id, arquivos) {
+    if (!(window.crypto && window.crypto.subtle)) {
+      avisarCaixa('Este navegador não cifra', 'Para conferir, abra o app num navegador atualizado (Chrome, Safari ou Firefox).');
+      return;
+    }
+    chaveParaConferir().then(function (k) {
+      var feitos = 0, comSenha = 0, falhas = 0, antes = 0, depois = 0;
+      return arquivos.reduce(function (p, a, idx) {
+        return p.then(function () {
+          avisar('Conferindo ' + (idx + 1) + ' de ' + arquivos.length + '...');
+          return bytesDeArquivoDeExtrato(a.id).then(function (x) {
+            if (x.conferido) return;
+            var nome = x.nome || a.nome || 'extrato';
+            return conteudoDoArquivo(x.bytes, nome).then(function (c) {
+              if (c.precisaSenha) { comSenha++; return; }
+              var lido = lidoDoConteudo(c, nome);
+              if (!lido || !lido.itens || !lido.itens.length) { falhas++; return; }
+              return fecharConferido(c, nome, k).then(function (texto) {
+                return decifrarComChave(JSON.parse(texto), k.chave).then(function () {
+                  return pedirNuvem('/rest/v1/arquivos_extrato?id=eq.' + encodeURIComponent(a.id), {
+                    metodo: 'PATCH',
+                    corpo: { tipo: TIPO_CONFERIDO, conteudo: texto, tamanho: texto.length },
+                    cabecalhos: { 'Prefer': 'return=minimal' }
+                  });
+                }).then(function () {
+                  feitos++;
+                  antes += inteiro(a.tamanho) || x.bytes.length;
+                  depois += texto.length;
+                });
+              });
+            });
+          }).catch(function () { falhas++; });
+        });
+      }, comTokenValido()).then(function () {
+        limparAviso();
+        var partes = [];
+        if (feitos) partes.push(feitos + ' extrato(s) conferido(s) ✓. Os arquivos foram de ' + tamanhoDeArquivo(antes) +
+          ' para ' + tamanhoDeArquivo(depois) + ', cifrados com a senha dos extratos.');
+        if (comSenha) partes.push(comSenha + ' PDF(s) têm senha do banco e ficaram como vieram.');
+        if (falhas) partes.push(falhas + ' arquivo(s) não deu para trocar agora e ficaram como vieram. Confira a internet e tente de novo.');
+        if (!partes.length) partes.push('Não havia arquivo para conferir.');
+        avisarCaixa(feitos ? 'Conferido ✓' : 'Nada foi trocado', partes.join('\n\n'), function () {
+          setTimeout(function () { abrirFolhaConferencia(id); }, 200);
+        });
+      });
+    }).catch(function () { limparAviso(); });
+  }
+
+  // O arquivo que perdeu o dono sai sozinho (pedido de 25/11/2026). Três
+  // travas: nenhuma importação aponta para ele, nenhum lançamento veio
+  // dele, e ele subiu há mais de um dia (a importação feita agora em outro
+  // celular pode ainda não ter chegado aqui).
+  function apagarArquivosSemDono() {
+    var imps = estado.importacoes || [];
+    if (!imps.length && !estado.lancamentos.length) return Promise.resolve(0);
+    var vivos = {};
+    imps.forEach(function (i) { vivos[i.id] = true; });
+    estado.lancamentos.forEach(function (l) { if (l.importacaoId) vivos[l.importacaoId] = true; });
+    var corte = Date.now() - 24 * 60 * 60 * 1000;
+    return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,criado_em', {}).then(function (r) {
+      var soltos = (r || []).filter(function (a) {
+        var t = Date.parse(a.criado_em);
+        return !vivos[a.importacao_id] && isFinite(t) && t < corte;
+      }).map(function (a) { return a.id; });
+      if (!soltos.length) return 0;
+      return apagarArquivosDeExtrato(soltos).then(function () { return soltos.length; });
     });
   }
 
   // Lê de novo o arquivo de um extrato já importado e compara com o que
   // entrou. Só o tipo (receita ou despesa) e a categoria podem mudar, e só
   // depois de a pessoa ver a lista e confirmar.
-  function relerECorrigirExtrato(contaId, impId, a) {
-    avisar('Relendo o arquivo guardado...');
-    bytesDeArquivoDeExtrato(a.id).then(function (x) {
+  // O "lido" do arquivo guardado: do original, pelo leitor de sempre, ou do
+  // conferido, com a senha dos extratos.
+  function lidoDoArquivoGuardado(a) {
+    return bytesDeArquivoDeExtrato(a.id).then(function (x) {
       var nome = x.nome || a.nome || 'extrato';
+      if (x.conferido) {
+        return conteudoDoConferido(x.conferido).then(function (c) { return lidoDoConteudo(c, nome); });
+      }
       var tipo = x.tipo || a.tipo || 'application/octet-stream';
       var arq;
       try { arq = new File([x.bytes], nome, { type: tipo }); }
       catch (e) { arq = new Blob([x.bytes], { type: tipo }); arq.name = nome; }
-      lerUmExtrato(arq, '', function (lido) {
+      return new Promise(function (resolver) { lerUmExtrato(arq, '', function (lido) { resolver(lido); }); });
+    });
+  }
+
+  function relerECorrigirExtrato(contaId, impId, a) {
+    avisar('Relendo o arquivo guardado...');
+    lidoDoArquivoGuardado(a).then(function (lido) {
         limparAviso();
         var vieram = estado.lancamentos.filter(function (l) {
           return l.importacaoId === impId && (l.tipo === 'entrada' || l.tipo === 'saida');
         });
+        if (!$('folha').classList.contains('aberta') || !$('folha').querySelector('.botao-reler')) {
+          // Veio da senha: a folha do extrato já tinha dado lugar a ela.
+          abrirLevaDeExtrato(contaId, impId);
+        }
         if (!lido || !lido.itens.length) {
           avisarCaixa('Não consegui reler', 'O arquivo guardado não trouxe lançamentos que eu soubesse ler. Nada foi mudado.', function () {});
           return;
@@ -34848,9 +35207,9 @@
             avisar(trocas.length + ' lançamento(s) corrigido(s).');
           }, 260);
         });
-      });
-    }).catch(function () {
+    }).catch(function (e) {
       limparAviso();
+      if (e && e.message === 'sem senha') return;
       avisar('Não consegui baixar o arquivo para reler.');
     });
   }
