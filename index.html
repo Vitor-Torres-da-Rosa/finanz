@@ -642,6 +642,23 @@
   .legenda-orcamento { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--suave); margin-top: 8px; }
   .legenda-orcamento b { color: var(--texto); font-weight: 600; }
   .legenda-orcamento .vermelho b { color: var(--vermelho); }
+  /* O que subiu em relação ao mês passado (pedido de 25/11/2026): categoria
+     abre as subcategorias, subcategoria abre os gastos, gasto abre a fonte. */
+  .comparativo { margin-top: 12px; border-top: 1px solid var(--borda); }
+  .comp-linha { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: inherit;
+    text-align: left; padding: 10px 0; border-bottom: 1px solid rgba(198,158,78,.12); font: inherit; }
+  .comp-linha .comp-nome { flex: 1 1 auto; min-width: 0; }
+  .comp-linha .comp-nome b { display: block; font-size: 14px; font-weight: 600; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .comp-linha .comp-nome span { display: block; font-size: 12px; color: var(--suave); margin-top: 2px; }
+  .comp-linha .comp-dif { flex: 0 0 auto; font-weight: 700; font-size: 14px; color: var(--vermelho); }
+  .comp-linha .comp-seta { flex: 0 0 auto; color: var(--fraco); transition: transform .2s ease; font-size: 15px; }
+  .comp-linha.aberta .comp-seta { transform: rotate(90deg); color: var(--ouro); }
+  .comp-dentro { padding-left: 12px; border-left: 2px solid var(--borda); margin: 0 0 4px 4px; }
+  .comp-dentro[hidden] { display: none; }
+  .comp-dentro .comp-linha b { font-size: 13.5px; }
+  .comp-gasto .comp-dif { color: var(--texto); font-weight: 600; font-size: 13px; }
+  .comp-gasto .comp-fonte { flex: 0 0 auto; font-size: 11px; color: var(--ouro); border: 1px solid rgba(233,180,76,.4);
+    border-radius: 999px; padding: 1px 7px; }
   .acoes-achado { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
   .acoes-achado button { min-height: 44px; border-radius: 12px; font-size: 13px; font-weight: 600; padding: 8px 10px;
     border: 1px solid rgba(233,180,76,.45); background: rgba(233,180,76,.06); color: var(--ouro); }
@@ -25799,6 +25816,110 @@
   // completa, longe da tela principal.
 
   // Quando o histórico é sempre o mesmo valor, "entre X e X" não é faixa.
+  // Categoria por categoria, o que este mês gastou a mais que o anterior,
+  // com as subcategorias e os gastos de cada uma.
+  function compararComMesAnterior(atual, anterior) {
+    var arvore = {};
+    function no_(cat) {
+      return arvore[cat] = arvore[cat] || { nome: cat, atual: 0, antes: 0, subs: {} };
+    }
+    function sub_(c, nome) {
+      return c.subs[nome] = c.subs[nome] || { nome: nome, atual: 0, antes: 0, itens: [] };
+    }
+    (atual || []).forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var c = no_(l.categoria || 'Outros'), sb = sub_(c, l.subcategoria || 'Sem subcategoria');
+      c.atual += l.valor; sb.atual += l.valor; sb.itens.push(l);
+    });
+    (anterior || []).forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var c = no_(l.categoria || 'Outros'), sb = sub_(c, l.subcategoria || 'Sem subcategoria');
+      c.antes += l.valor; sb.antes += l.valor;
+    });
+    return Object.keys(arvore).map(function (k) {
+      var c = arvore[k];
+      c.dif = c.atual - c.antes;
+      c.subs = Object.keys(c.subs).map(function (n) {
+        var sb = c.subs[n];
+        sb.dif = sb.atual - sb.antes;
+        sb.itens.sort(function (a, b) { return b.valor - a.valor; });
+        return sb;
+      }).filter(function (sb) { return sb.atual > 0; })
+        .sort(function (a, b) { return b.dif - a.dif; });
+      return c;
+    }).filter(function (c) { return c.dif >= 100; })
+      .sort(function (a, b) { return b.dif - a.dif; });
+  }
+
+  // Abre a fonte de um gasto: a fatura do cartão no mês dela, o extrato de
+  // onde ele veio, ou o próprio lançamento quando foi feito à mão.
+  function abrirFonteDoGasto(l, voltar) {
+    var conta = achar(estado.contas, l.contaId);
+    var abrir;
+    if (conta && ehCartao(conta)) {
+      var fat = faturasDoCartao(conta.id).filter(function (f) { return f.itens.some(function (i) { return i.id === l.id; }); })[0];
+      abrir = function () { if (fat) mesDaFaturaNaTela[conta.id] = fat.chave; abrirTelaCartao(conta.id); };
+    } else if (l.importacaoId && achar(estado.importacoes || [], l.importacaoId)) {
+      abrir = function () { abrirLevaDeExtrato(l.contaId, l.importacaoId); };
+    } else {
+      abrir = function () { abrirFolhaLancamento(l.id); };
+    }
+    if (voltar && $('folha').classList.contains('aberta')) porCima(voltar, abrir);
+    else abrir();
+  }
+
+  function fonteDoGasto(l) {
+    var conta = achar(estado.contas, l.contaId);
+    if (conta && ehCartao(conta)) return 'cartão';
+    if (l.importacaoId && achar(estado.importacoes || [], l.importacaoId)) return 'extrato';
+    return 'lançamento';
+  }
+
+  function linhaQueAbre(nome, detalhe, dif, aoAbrir) {
+    var dentro = null;
+    var b = botao('comp-linha', null, function () {
+      if (!dentro) { dentro = aoAbrir(); dentro.hidden = true; b.parentNode.insertBefore(dentro, b.nextSibling); }
+      dentro.hidden = !dentro.hidden;
+      b.classList.toggle('aberta', !dentro.hidden);
+      b.setAttribute('aria-expanded', dentro.hidden ? 'false' : 'true');
+    });
+    juntar(b, juntar(no('span', 'comp-nome'), no('b', null, nome), no('span', null, detalhe)),
+      no('span', 'comp-dif', dif), no('span', 'comp-seta', '›'));
+    b.setAttribute('aria-expanded', 'false');
+    return b;
+  }
+
+  function listaComparativa(comp) {
+    var voltar = function () { abrirAnaliseCompleta(comp.ano, comp.numMes); };
+    var lista = no('div', 'comparativo');
+    comp.categorias.forEach(function (c) {
+      lista.appendChild(linhaQueAbre(c.nome,
+        comp.mes + ' ' + emReais(c.atual) + ' · ' + comp.mesAnt + ' ' + emReais(c.antes),
+        '+' + emReais(c.dif), function () {
+          var subs = no('div', 'comp-dentro');
+          c.subs.forEach(function (sb) {
+            subs.appendChild(linhaQueAbre(sb.nome,
+              comp.mes + ' ' + emReais(sb.atual) + ' · ' + comp.mesAnt + ' ' + emReais(sb.antes),
+              (sb.dif >= 0 ? '+' : '−') + emReais(Math.abs(sb.dif)), function () {
+                var itens = no('div', 'comp-dentro');
+                sb.itens.forEach(function (l) {
+                  var conta = achar(estado.contas, l.contaId);
+                  var g = botao('comp-linha comp-gasto', null, function () { abrirFonteDoGasto(l, voltar); });
+                  juntar(g, juntar(no('span', 'comp-nome'), no('b', null, l.descricao || l.categoria),
+                      no('span', null, dataBr(l.data) + (conta ? ' · ' + conta.nome : ''))),
+                    no('span', 'comp-fonte', fonteDoGasto(l)),
+                    no('span', 'comp-dif', emReais(l.valor)));
+                  itens.appendChild(g);
+                });
+                return itens;
+              }));
+          });
+          return subs;
+        }));
+    });
+    return lista;
+  }
+
   function comoVoceCostuma(p) {
     if (p.de === p.ate) return 'Você costuma gastar ' + emReais(p.mediana);
     return 'Você costuma ficar entre ' + emReais(p.de) + ' e ' + emReais(p.ate);
@@ -25893,7 +26014,24 @@
     });
     foraDoPadrao.sort(function (a, b) { return b.acima - a.acima; });
 
-    foraDoPadrao.slice(0, 2).forEach(function (f, i) {
+    // O que subiu em relação ao mês passado, categoria por categoria e
+    // subcategoria por subcategoria, na ponta do lápis (pedido de 25/11/2026).
+    // Com o mês anterior para comparar, este cartão substitui os de "acima
+    // do padrão": é a mesma pergunta, respondida inteira.
+    var comparativo = baseAnt ? compararComMesAnterior(base.base, baseAnt.base) : [];
+    if (comparativo.length) {
+      var aMais = comparativo.reduce(function (t, c) { return t + c.dif; }, 0);
+      juntarAchado({
+        id: 'a-mais', prioridade: 1, icone: '🔎', tom: 'atencao',
+        titulo: 'Onde você gastou mais que em ' + MESES[ant.mes],
+        valor: '+' + emReais(aMais), valorCor: 'var(--vermelho)',
+        subValor: 'a mais, somando ' + (comparativo.length === 1 ? 'a categoria que subiu' : 'as ' + comparativo.length + ' categorias que subiram'),
+        explicacao: 'Toque numa categoria para ver as subcategorias; numa subcategoria, para ver cada gasto; e no gasto, para abrir de onde ele veio.',
+        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: MESES[ant.mes], ano: ano, numMes: mes }
+      });
+    }
+
+    if (!comparativo.length) foraDoPadrao.slice(0, 2).forEach(function (f, i) {
       juntarAchado({
         id: 'padrao-' + f.nome, prioridade: i === 0 ? 1 : 2, icone: '🔎', tom: 'atencao',
         titulo: 'Você gastou mais que o normal com ' + f.nome,
@@ -26281,6 +26419,8 @@
     if (a.subValor) c.appendChild(no('div', 'achado-sub', a.subValor));
     if (a.explicacao) c.appendChild(no('p', 'achado-texto', a.explicacao));
 
+    if (a.comparativo) c.appendChild(listaComparativa(a.comparativo));
+
     if (a.orcamento) {
       // O planejado é o marco; o que passou dele fica em vermelho.
       var total = Math.max(a.orcamento.gasto, a.orcamento.planejado, 1);
@@ -26625,6 +26765,7 @@
     if (a.id === 'orcamento') return 'O mês passou do que você tinha planejado. Vale ver onde a diferença aconteceu.';
     if (a.id === 'projecao') return 'No ritmo atual o mês fecharia acima do seu costume. Dá tempo de ajustar.';
     if (a.id.indexOf('padrao-') === 0) return a.titulo + '. Ver de onde veio a diferença ajuda a decidir o que fazer.';
+    if (a.id === 'a-mais') return 'Algumas categorias subiram em relação ao mês passado. Vale ver, gasto por gasto, de onde veio a diferença.';
     return a.explicacao;
   }
 
