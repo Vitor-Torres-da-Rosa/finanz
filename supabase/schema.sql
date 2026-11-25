@@ -789,3 +789,8 @@ grant execute on function public.carimbo_da_conta() to authenticated;
 alter table public.instantaneos drop constraint if exists instantaneos_so_cifrado;
 alter table public.instantaneos
   add constraint instantaneos_so_cifrado check (dados like 'cofre1:%') not valid;
+
+-- (migracao-22.sql: apaga as cópias abertas antigas e valida a regra)
+delete from public.instantaneos where dados not like 'cofre1:%';
+
+alter table public.instantaneos validate constraint instantaneos_so_cifrado;
