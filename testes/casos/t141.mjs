@@ -52,8 +52,9 @@ await page.click('#telaInicio .segmentos button:has-text("Empreendedor")'); awai
 const modulos = await page.$$eval('#telaInicio .modulo-cartao .modulo-titulo', ns => ns.map(n => n.textContent));
 // Pedido de 02/11/2026: o quadro "Painel geral" saiu (repetia o resumo), o
 // resumo é a primeira coisa da tela e Distribuição virou Venda de Doces.
-conferir('1. o Empreendedor mostra os três módulos, sem o quadro do painel',
-  modulos.join('|') === 'Serviços e Vendas|Uber e Corridas|Venda de Doces', modulos.join(' | '));
+// 25/11/2026: entrou o quarto, Estoque e Ferramentas.
+conferir('1. o Empreendedor mostra os módulos, sem o quadro do painel',
+  modulos.join('|') === 'Serviços e Vendas|Uber e Corridas|Venda de Doces|Estoque e Ferramentas', modulos.join(' | '));
 conferir('2. e o resumo do mês vem primeiro, antes dos módulos', await page.evaluate(() => {
   const r = document.querySelector('#telaInicio .cartao-resumo-emp');
   const l = document.querySelector('#telaInicio .modulos-lista');
