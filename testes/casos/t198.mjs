@@ -70,6 +70,14 @@ await p1.screenshot({ path: dir + '/z198-proteja.png' });
 await p1.click('#folha .botao-criar-senha-dados'); await p1.waitForTimeout(700);
 await p1.fill('#folha .campo-senha-dados', SENHA_DADOS);
 await p1.fill('#folha .campo-senha-dados2', 'outra-coisa-99');
+// O olho mostra o que foi digitado (pedido de 25/11/2026).
+await p1.click('#folha .senha-com-olho:has(.campo-senha-dados) .olho-senha'); await p1.waitForTimeout(200);
+const tipoVisto = await p1.getAttribute('#folha .campo-senha-dados', 'type');
+await p1.screenshot({ path: dir + '/z198-olho.png' });
+await p1.click('#folha .senha-com-olho:has(.campo-senha-dados) .olho-senha'); await p1.waitForTimeout(200);
+const tipoDeNovo = await p1.getAttribute('#folha .campo-senha-dados', 'type');
+conferir('3c. o olho mostra a senha e esconde de novo; os dois campos têm olho', tipoVisto === 'text' && tipoDeNovo === 'password' &&
+  await p1.locator('#folha .olho-senha').count() === 2, tipoVisto + '/' + tipoDeNovo);
 await p1.click('#folha .botao-criar-cofre'); await p1.waitForTimeout(300);
 conferir('4. as duas senhas precisam ser iguais', /não são iguais/.test(limpo(await p1.textContent('#folha'))));
 await p1.fill('#folha .campo-senha-dados2', SENHA_DADOS);

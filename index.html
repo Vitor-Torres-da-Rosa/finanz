@@ -2741,6 +2741,13 @@
   /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
   .modulos-lista .modulo-cartao[data-modulo="servicos"],
   .modulos-lista .modulo-cartao[data-modulo="estoque"] { grid-column: 1 / -1; }
+  /* O olho dos campos de senha */
+  .senha-com-olho { position: relative; }
+  .senha-com-olho > input { width: 100%; padding-right: 52px; }
+  .olho-senha { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px;
+    display: grid; place-items: center; border: 0; background: none; color: var(--fraco); cursor: pointer; border-radius: 10px; }
+  .olho-senha[aria-pressed="true"] { color: var(--ouro); }
+  .olho-senha svg { width: 20px; height: 20px; }
   /* Backups num lugar só */
   .backup-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
   .backup-botao { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 16px;
@@ -2882,7 +2889,8 @@
       itens: [
         'Mais → "Proteja seus dados": uma entrada só para a senha dos dados, os backups e as dúvidas. Os itens soltos (Fazer backup, Restaurar, Voltar a uma data, Senha dos dados, Como seus dados são protegidos) foram para dentro dela.',
         'Backups com dois botões: "Na nuvem" (as cópias automáticas, para voltar a uma data) e "No celular" (o arquivo .finanz: gerar, restaurar e a lista dos que você gerou neste aparelho). Cada um mostra o que tem guardado.',
-        'Dúvidas respondidas ali mesmo: o que é a senha dos dados, a diferença entre o backup da nuvem e o do celular, por que as senhas são diferentes, o que fazer se esquecer a senha ou perder o celular, e quem consegue ver os seus dados.'
+        'Dúvidas respondidas ali mesmo: o que é a senha dos dados, a diferença entre o backup da nuvem e o do celular, por que as senhas são diferentes, o que fazer se esquecer a senha ou perder o celular, e quem consegue ver os seus dados.',
+        'Todo campo de senha ganhou o olho: toque para ver o que digitou e toque de novo para esconder.'
       ]
     },
     {
@@ -29600,13 +29608,35 @@
 
   function campo(rotulo, controle) {
     var c = no('div', 'campo');
+    // Campo de senha ganha o olho, para conferir o que digitou (pedido de
+    // 25/11/2026). Vale para toda senha que passa por aqui.
+    var ehSenha = controle && controle.tagName === 'INPUT' && controle.type === 'password';
+    if (ehSenha && !controle.id) controle.id = proximoId();
     if (rotulo) {
       var l = no('label', null, rotulo);
       if (controle.id) l.htmlFor = controle.id;
       c.appendChild(l);
     }
-    c.appendChild(controle);
+    c.appendChild(ehSenha ? senhaComOlho(controle) : controle);
     return c;
+  }
+
+  function senhaComOlho(input) {
+    var caixa = no('div', 'senha-com-olho');
+    var olho = botao('olho-senha', null, function () {
+      var escondida = input.type === 'password';
+      input.type = escondida ? 'text' : 'password';
+      olho.textContent = '';
+      olho.appendChild(icone(escondida ? 'olhoFechado' : 'olho'));
+      olho.setAttribute('aria-label', escondida ? 'Esconder a senha' : 'Mostrar a senha');
+      olho.setAttribute('aria-pressed', escondida ? 'true' : 'false');
+      try { input.focus(); } catch (e) { /* teclado */ }
+    });
+    olho.appendChild(icone('olho'));
+    olho.setAttribute('aria-label', 'Mostrar a senha');
+    olho.setAttribute('aria-pressed', 'false');
+    juntar(caixa, input, olho);
+    return caixa;
   }
 
   var contadorCampo = 0;
