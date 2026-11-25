@@ -1316,6 +1316,39 @@
   }
   #entrada .ent-folha { position: relative; z-index: 1; }
 
+  /* A seta da abertura (pedido de 25/11/2026): diz, sem palavra, que tem
+     mais embaixo. Some quando a pessoa desce. */
+  .ent-seta {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + var(--baixo));
+    z-index: 3;
+    width: 40px;
+    height: 40px;
+    margin-left: -20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(233, 180, 76, .35);
+    background: rgba(10, 8, 6, .55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    color: var(--ouro);
+    cursor: pointer;
+    opacity: .9;
+    transition: opacity .35s ease;
+    animation: ent-seta-anda 1.8s ease-in-out infinite;
+  }
+  .ent-seta svg { width: 20px; height: 20px; filter: drop-shadow(0 0 5px rgba(233, 180, 76, .5)); }
+  .ent-seta.sumiu { opacity: 0; pointer-events: none; }
+  @keyframes ent-seta-anda {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .ent-seta { animation: none; } }
+
   .ent-folha {
     min-height: 100%;
     max-width: 460px;
@@ -9468,6 +9501,24 @@
     raiz.setAttribute('data-tela', telaEntrada);
     var folha = no('div', 'ent-folha');
     raiz.appendChild(folha);
+    raiz.onscroll = null;
+    if (telaEntrada === 'abertura') {
+      // Seta que convida a descer: some quando a pessoa desce ou quando
+      // tudo já cabe na tela.
+      var seta = botao('ent-seta', null, function () {
+        raiz.scrollBy({ top: Math.round(raiz.clientHeight * 0.7), behavior: 'smooth' });
+      });
+      seta.setAttribute('aria-label', 'Descer para ver mais');
+      seta.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+      raiz.appendChild(seta);
+      var verSeta = function () {
+        var falta = raiz.scrollHeight - raiz.clientHeight - raiz.scrollTop;
+        seta.classList.toggle('sumiu', raiz.scrollTop > 24 || falta < 24);
+      };
+      raiz.onscroll = verSeta;
+      setTimeout(verSeta, 60);
+      setTimeout(verSeta, 600);
+    }
     raiz.scrollTop = 0;
 
     if (telaEntrada === 'abertura') montarAbertura(folha);
