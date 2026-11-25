@@ -1,7 +1,7 @@
-// Pedido do Vitor em 25/11/2026: na conta nova, as boas-vindas explicam
-// onde os dados ficam, como são protegidos e como o app lê os extratos, e
-// avisam bem grande que sem dados o app não consegue estimar nada. No
-// Início, um cartão grande lista o que falta preencher.
+// Pedido do Vitor em 25/11/2026: na conta nova, um aviso bem grande de que
+// sem dados o app não consegue estimar nada (a proteção dos dados fica em
+// Mais, "Como seus dados são protegidos", e na abertura do app). No Início,
+// um cartão grande lista o que falta preencher.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -26,19 +26,10 @@ await page.waitForSelector('.boas-vindas', { timeout: 8000 }).catch(() => {});
 const bv = page.locator('.boas-vindas');
 conferir('1. conta nova: as boas-vindas abrem sozinhas', (await bv.count()) === 1);
 const passo = async () => limpo(await bv.locator('.bv-passo').textContent().catch(() => ''));
-const p1 = await passo();
-conferir('2. primeiro: onde os dados ficam e quem vê', /Seus dados são seus/.test(p1) && /Só você vê os seus/.test(p1) && /AES de 256 bits/.test(p1), p1.slice(0, 160));
-await page.screenshot({ path: dir + '/z133-boas-vindas-1.png' });
-await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
-const p2 = await passo();
-conferir('3. depois: como o app lê os extratos', /Como o app lê seus extratos/.test(p2) && /A leitura é feita aqui, no seu celular/.test(p2) && /nunca pede a senha do banco/.test(p2), p2.slice(0, 160));
-await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
-const p3 = await passo();
-conferir('4. o que nunca acontece', /Nada é vendido nem compartilhado/.test(p3) && /Sem rastreamento/.test(p3), p3.slice(0, 120));
-await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
 const p4 = await passo();
-conferir('5. por último, o aviso grande de preencher os dados', /Sem dados, o app não consegue te ajudar/.test(p4) && /Importe os extratos dos últimos 3 meses/.test(p4) &&
-  (await bv.locator('.bv-alerta').count()) === 1, p4.slice(0, 160));
+conferir('2. a conta nova abre direto no aviso grande de preencher os dados, sem as páginas sobre a proteção (essas ficam em Mais)',
+  /Sem dados, o app não consegue te ajudar/.test(p4) && /Importe os extratos dos últimos 3 meses/.test(p4) &&
+  (await bv.locator('.bv-alerta').count()) === 1 && !/Seus dados são seus/.test(p4) && (await bv.locator('.bv-pontos span').count()) === 1, p4.slice(0, 160));
 await page.screenshot({ path: dir + '/z134-boas-vindas-aviso.png' });
 await bv.locator('button:has-text("Entendi, vamos começar")').click(); await page.waitForTimeout(800);
 conferir('6. "Entendi" fecha', (await page.locator('.boas-vindas').count()) === 0);
@@ -73,7 +64,19 @@ conferir('9. com extrato e 3 meses de lançamentos, o cartão some', (await page
 // Em Mais, dá para reler.
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
 await page.click('#telaMais .linha:has-text("Como seus dados são protegidos")'); await page.waitForTimeout(600);
-conferir('10. em Mais, "Como seus dados são protegidos" abre de novo', /Seus dados são seus/.test(await passo()));
+const m1 = await passo();
+conferir('10. em Mais, "Como seus dados são protegidos" mostra onde os dados ficam e quem vê', /Seus dados são seus/.test(m1) && /Só você vê os seus/.test(m1) && /AES de 256 bits/.test(m1), m1.slice(0, 120));
+await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
+const m2 = await passo();
+conferir('11. depois, como o app lê os extratos', /Como o app lê seus extratos/.test(m2) && /nunca pede a senha do banco/.test(m2), m2.slice(0, 120));
+await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
+const m3 = await passo();
+conferir('12. e o que nunca acontece, terminando em "Entendi", sem o aviso de preencher', /Nada é vendido nem compartilhado/.test(m3) &&
+  (await bv.locator('.bv-alerta').count()) === 0 && (await bv.locator('button:has-text("Entendi")').count()) === 1, m3.slice(0, 120));
+await bv.locator('button:has-text("Entendi")').click(); await page.waitForTimeout(500);
+conferir('13. "Entendi" fecha', (await page.locator('.boas-vindas').count()) === 0);
+const mais = (await page.textContent('#telaMais')).replace(/\s+/g, ' ');
+conferir('14. a dica de escolher o arquivo fica logo abaixo de "Restaurar backup"', /Restaurar backup\s*Substitui os dados atuais\s*Se o celular não deixar escolher o arquivo/.test(mais), (mais.match(/Restaurar backup.{0,90}/) || [''])[0]);
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();

@@ -2746,7 +2746,9 @@
         'Conferido ✓: em "Conferir esta conta", quando o saldo bate com o banco, você confirma que está tudo certo. Os arquivos dos extratos da conta deixam de ser guardados como vieram do banco: fica só o que o app leu deles, compacto e cifrado com a "senha dos extratos". Reler e Relançar continuam funcionando; baixar o PDF original deixa de dar.',
         'A senha dos extratos é criada na primeira conferência e pedida uma vez enquanto o app está aberto. Não dá para recuperá-la; esquecendo, os lançamentos continuam todos no app.',
         'O extrato conferido fica guardado sem prazo. O que não foi conferido continua saindo sozinho depois de 6 meses.',
-        'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.'
+        'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.',
+        'Na abertura do app, uma seta dourada e discreta, que sobe e desce, mostra que tem mais embaixo. Tocar nela desce a tela; descendo, ela some.',
+        'Conta nova: abre direto o aviso de preencher os dados. As páginas sobre a proteção dos dados ficam só em Mais, em "Como seus dados são protegidos".'
       ]
     },
     {
@@ -10189,9 +10191,13 @@
     abrirBoasVindas();
   }
 
-  function abrirBoasVindas() {
-    try { localStorage.setItem(chaveDeBoasVindas(), '1'); } catch (e) { /* sem espaço */ }
-    var passos = passosDeBoasVindas();
+  // Conta nova: só o aviso de preencher os dados (pedido de 25/11/2026: a
+  // proteção dos dados já aparece na abertura do app). Em Mais, "Como seus
+  // dados são protegidos" mostra as três páginas sobre os dados.
+  function abrirBoasVindas(soDados) {
+    soDados = soDados === true;
+    if (!soDados) { try { localStorage.setItem(chaveDeBoasVindas(), '1'); } catch (e) { /* sem espaço */ } }
+    var passos = passosDeBoasVindas().filter(function (x) { return soDados ? !x.alerta : x.alerta; });
     var atual = 0;
     var tela = no('div', 'boas-vindas');
     tela.setAttribute('role', 'dialog');
@@ -10221,10 +10227,10 @@
       acoes.innerHTML = '';
       var ultimo = atual === passos.length - 1;
       pular.hidden = ultimo;
-      acoes.appendChild(botao('btn btn-ouro', ultimo ? 'Entendi, vamos começar' : 'Próximo', function () {
+      acoes.appendChild(botao('btn btn-ouro', ultimo ? (soDados ? 'Entendi' : 'Entendi, vamos começar') : 'Próximo', function () {
         if (ultimo) fechar(); else { atual++; mostrar(); tela.scrollTop = 0; }
       }));
-      if (ultimo) {
+      if (ultimo && !soDados) {
         acoes.appendChild(botao('btn btn-fantasma', 'Cadastrar minha primeira conta', function () {
           fechar(); setTimeout(function () { abrirFolhaConta(null); }, 120);
         }));
@@ -27552,7 +27558,7 @@
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
-      ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', abrirBoasVindas]
+      ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
       juntar(linha,
@@ -27562,13 +27568,14 @@
           no('div', 'linha-sub', o[2]))
       );
       cDados.appendChild(linha);
+      if (o[3] === 'arquivoRestaurar') {
+        var dica = no('div', 'linha-nota');
+        dica.style.padding = '2px 16px 12px';
+        dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador ' +
+          'de arquivos, toque em Compartilhar e escolha o Finanz.';
+        cDados.appendChild(dica);
+      }
     });
-
-    var dica = no('div', 'linha-nota');
-    dica.style.padding = '2px 16px 16px';
-    dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador ' +
-      'de arquivos, toque em Compartilhar e escolha o Finanz.';
-    cDados.appendChild(dica);
 
     if (NUVEM.ligada) {
       var sinc = botao('linha', null, function () {
