@@ -74,7 +74,7 @@ await page.click('#telaInicio .cartao:has-text("Cartões") .linha-alvo'); await 
 console.log('7. tela do cartão:', await page.textContent('#folhaTitulo'));
 console.log('   fatura aberta:', (await page.textContent('#folha .cartao')).replace(/\s+/g,' ').slice(0,170));
 console.log('   faturas:', await page.$$eval('#folha .mes-fatura', ns=>ns.map(x=>x.textContent.replace(/\s+/g,' '))));
-console.log('   últimos gastos:', await page.locator('#folha .cartao:has-text("Últimos gastos") .linha-alvo').count());
+console.log('   lançamentos da fatura:', await page.locator('#folha .cartao-faturas-mes .linha-alvo').count());
 await page.screenshot({ path: dir+'/f04-tela-cartao.png', fullPage:true });
 // abre uma fatura
 await page.click('#folha .mes-fatura >> nth=0'); await page.waitForTimeout(1200);
