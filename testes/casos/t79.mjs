@@ -1,6 +1,6 @@
 // O app virou Finanz: nome, ícone e manifesto. Os dados de quem já usava
 // continuam onde estavam — a troca de nome não pode apagar nada.
-import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { chromium, dir, amostras, ENDERECO, gerarBackup } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -51,12 +51,8 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(700);
 const chaves = await page.evaluate(() => Object.keys(localStorage).filter(k => k.indexOf('caixa.') === 0));
 console.log('10. chaves de dados preservadas:', chaves.sort());
 // backup sai com o nome novo
-const nomeBkp = await page.evaluate(() => new Promise(res => {
-  const orig = HTMLAnchorElement.prototype.click;
-  let nome = '';
-  HTMLAnchorElement.prototype.click = function () { if (this.download) nome = this.download; };
-  document.querySelectorAll('#telaMais .linha').forEach(l => { if (/Fazer backup/.test(l.textContent)) l.click(); });
-  setTimeout(() => { HTMLAnchorElement.prototype.click = orig; res(nome); }, 800);
-}));
+const baixandoBkp = page.waitForEvent('download', { timeout: 20000 });
+await gerarBackup(page);
+const nomeBkp = (await baixandoBkp).suggestedFilename();
 console.log('11. nome do arquivo de backup:', nomeBkp);
 await browser.close();

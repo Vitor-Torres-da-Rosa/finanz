@@ -6,7 +6,7 @@
 // fora. Os dados estavam guardados e cifrados aqui o tempo todo, sem
 // porta. Este teste é essa porta.
 import fs from 'node:fs';
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, gerarBackup, decifrarBackup } from '../comum.mjs';
 import { irParaClientes } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -94,17 +94,19 @@ conferir('6. com os dados que estavam guardados', /543,21/.test(dentro), dentro.
 // --- e dá para tirar o backup, que é o ponto ---
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1600);
 const mais = limpo(await page.textContent('#telaMais'));
-conferir('7. o backup em JSON está ao alcance', /Fazer backup/.test(mais));
+conferir('7. o backup (com senha) está ao alcance', /Fazer backup \(com senha\)/.test(mais));
 const baixou = page.waitForEvent('download', { timeout: 20000 });
-await page.click('#telaMais .linha:has-text("Fazer backup")');
+await gerarBackup(page);
 const arquivo = await baixou;
 console.log('arquivo:', arquivo.suggestedFilename());
-conferir('8. e o arquivo sai mesmo', /finanz-backup-.*\.json/.test(arquivo.suggestedFilename()),
+conferir('8. e o arquivo sai mesmo, como .finanz', /finanz-backup-.*\.finanz$/.test(arquivo.suggestedFilename()),
   arquivo.suggestedFilename());
 
 // --- o que o arquivo leva dentro ---
 const caminho = await arquivo.path();
-const pacote = JSON.parse(fs.readFileSync(caminho, 'utf8'));
+const cifrado = fs.readFileSync(caminho, 'utf8');
+conferir('8b. o arquivo vai cifrado: nada dos dados aparece em texto', JSON.parse(cifrado).formato === 'backup-cifrado' && !/Gustavo do teste|Motor retificado/.test(cifrado));
+const pacote = await decifrarBackup(page, cifrado);
 const d = pacote.dados || {};
 console.log('o backup tem:', Object.keys(d).join(', '));
 conferir('9. o backup leva o caixa', (d.lancamentos || []).length >= 1 && (d.contas || []).length >= 1,

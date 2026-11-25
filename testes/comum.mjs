@@ -97,3 +97,32 @@ export async function abrirAnalise(page) {
   const ver = page.locator('#folha button:has-text("Ver a análise de")');
   if (await ver.count()) { await ver.click(); await page.waitForTimeout(1200); }
 }
+
+// Backup com senha (25/11/2026): gerar pede a senha duas vezes; restaurar
+// um .finanz pede a senha antes de mostrar o "Restaurar este backup?".
+export const SENHA_DO_BACKUP = 'senha-do-teste';
+export async function gerarBackup(page, senha = SENHA_DO_BACKUP) {
+  await page.click('#telaMais .linha:has-text("Fazer backup")'); await page.waitForTimeout(900);
+  await page.fill('#folha .campo-senha-backup', senha);
+  await page.fill('#folha .campo-senha-backup2', senha);
+  await page.click('#folha .btn-ouro:has-text("Gerar backup")');
+}
+export async function senhaDoBackup(page, senha = SENHA_DO_BACKUP) {
+  await page.waitForSelector('#folha .campo-senha-restaurar', { timeout: 8000 }).catch(() => {});
+  if (!(await page.locator('#folha .campo-senha-restaurar').count())) return;
+  await page.fill('#folha .campo-senha-restaurar', senha);
+  await page.click('#folha .btn-ouro:has-text("Abrir backup")'); await page.waitForTimeout(1800);
+}
+// Abre um .finanz no navegador, com o mesmo algoritmo do app.
+export async function decifrarBackup(page, texto, senha = SENHA_DO_BACKUP) {
+  return page.evaluate(async ({ texto, senha }) => {
+    const p = JSON.parse(texto);
+    const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']);
+    const chave = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(p.kdf.sal), iterations: p.kdf.voltas, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    let bytes = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(p.cifra.iv) }, chave, b64(p.dados)));
+    if (p.comprimido === 'gzip') bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }, { texto, senha });
+}

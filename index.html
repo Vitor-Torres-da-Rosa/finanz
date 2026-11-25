@@ -2697,7 +2697,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.100.0';
+  var VERSAO = '5.101.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2706,6 +2706,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.101.0',
+      data: '2026-11-25',
+      itens: [
+        'Backup com senha: "Fazer backup" pede uma senha (duas vezes) e gera um arquivo .finanz cifrado (AES-GCM de 256 bits) e comprimido. Sem a senha, ninguém abre, nem o Finanz. Para restaurar, escolha o arquivo e digite a senha. Os backups antigos em JSON continuam abrindo.',
+        'Planejamento: na escolha de categorias, tocar no valor gasto abre embaixo as subcategorias, cada uma com quantos gastos tem e o total; na subcategoria, cada gasto; e no gasto, de onde ele veio. Tocar no nome continua marcando a categoria.',
+        'O orçamento do mês e a escolha de categorias ganharam o "i", no lugar das explicações soltas.'
+      ]
+    },
     {
       versao: '5.100.0',
       data: '2026-11-25',
@@ -10091,7 +10100,7 @@
         ['Nada é vendido nem compartilhado.', 'Seus dados não vão para anunciantes, parceiros ou terceiros.'],
         ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
         ['Taxas públicas.', 'Em Investimentos, o app busca Selic, CDI e IPCA no Banco Central. Esse pedido não leva nenhum dado seu.'],
-        ['Atenção ao backup.', 'O arquivo de backup (JSON) sai sem criptografia: guarde em lugar seguro.']
+        ['Backup com senha.', 'O arquivo de backup sai cifrado com uma senha que você escolhe. Sem ela, ninguém abre — nem o Finanz.']
       ] },
       { alerta: true, icone: '⚠️', titulo: 'Sem dados, o app não consegue te ajudar', texto:
         'As estimativas de gastos e receitas, a análise do mês, a saúde financeira e os avisos saem dos seus lançamentos. ' +
@@ -10218,13 +10227,13 @@
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
         'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
-        'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup em JSON a qualquer momento. Atenção: o arquivo de backup sai sem criptografia, então guarde em lugar seguro.'
+        'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup a qualquer momento. O arquivo de backup sai cifrado (AES-GCM de 256 bits) com uma senha que você escolhe na hora: sem ela, ninguém abre, nem o Finanz.'
       ] : [
         'Hoje o Finanz funciona inteiramente dentro do seu aparelho. Não existe servidor, não há cadastro em nenhum lugar e nada do que você digita sai do navegador.',
         'Seus dados são gravados no armazenamento local do navegador, cifrados com AES-GCM de 256 bits. A chave é derivada da sua senha com PBKDF2 e nunca é guardada em texto puro.',
         'Se você marcar "Lembrar de mim", a chave fica guardada no aparelho para abrir o app direto. Sem marcar, ela vale só enquanto a aba estiver aberta.',
         'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
-        'Apagar os dados do navegador apaga também suas informações. Use o backup em JSON no menu Mais para ter uma cópia — atenção: esse arquivo sai sem criptografia, então guarde em lugar seguro.',
+        'Apagar os dados do navegador apaga também suas informações. Use o backup no menu Mais para ter uma cópia: ele sai cifrado com uma senha que você escolhe.',
         'Quando o servidor entrar no ar, esta política será atualizada antes de qualquer dado sair do aparelho.'
       ]
     }
@@ -27390,9 +27399,9 @@
 
     // Dados
     var cDados = cartao('liso');
-    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', itens: [
+    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 2, itens: [
         'Seus dados ficam na sua conta, na nuvem. O backup é uma cópia em arquivo, para guardar fora dela.',
-        'O arquivo de backup não tem senha: guarde num lugar seguro.',
+        'O backup sai cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre o arquivo, nem o Finanz: anote a senha num lugar seguro.',
         'Restaurar um backup troca tudo o que está no app pelo que está no arquivo.',
         '"Voltar a uma data" usa as cópias automáticas dos últimos 14 dias.'] });
     topoDados.style.padding = '16px 16px 0';
@@ -27400,7 +27409,7 @@
     cDados.appendChild(topoDados);
 
     [
-      ['💾', 'Fazer backup (JSON)', 'Salva tudo em um arquivo', fazerBackup],
+      ['💾', 'Fazer backup (com senha)', 'Um arquivo .finanz cifrado com a sua senha', fazerBackup],
       ['📊', 'Exportar CSV', 'Lançamentos para planilha', exportarCsv],
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
@@ -34203,10 +34212,127 @@
     });
   }
 
+  // ---------- Backup com senha ----------
+  //
+  // Pedido do Vitor em 25/11/2026: o backup saía em JSON aberto. Agora ele
+  // sai cifrado com uma senha que a pessoa escolhe na hora (AES-GCM de 256
+  // bits, chave tirada da senha com PBKDF2, 210 mil voltas) e comprimido
+  // antes de cifrar, num arquivo .finanz. Sem a senha ninguém abre — nem o
+  // app. Os backups antigos, em JSON, continuam abrindo como antes.
+
+  var VOLTAS_DO_BACKUP = 210000;
+
+  function chaveDoBackup(senha, sal, voltas) {
+    var c = window.crypto && window.crypto.subtle;
+    return c.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']).then(function (base) {
+      return c.deriveKey({ name: 'PBKDF2', salt: sal, iterations: voltas, hash: 'SHA-256' },
+        base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+
+  function passarPor(bytes, Fluxo, modo) {
+    if (!window[Fluxo]) return Promise.resolve(null);
+    var fluxo = new Blob([bytes]).stream().pipeThrough(new window[Fluxo](modo));
+    return new Response(fluxo).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+
+  function cifrarBackup(texto, senha) {
+    var cru = new TextEncoder().encode(texto);
+    var sal = window.crypto.getRandomValues(new Uint8Array(16));
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return passarPor(cru, 'CompressionStream', 'gzip').then(function (comprimido) {
+      var corpo = comprimido || cru;
+      return chaveDoBackup(senha, sal, VOLTAS_DO_BACKUP).then(function (chave) {
+        return window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, chave, corpo);
+      }).then(function (cifrado) {
+        return JSON.stringify({
+          app: 'finanz', formato: 'backup-cifrado', versao: 1, criadoEm: new Date().toISOString(),
+          comprimido: comprimido ? 'gzip' : '',
+          kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: VOLTAS_DO_BACKUP, sal: paraBase64(sal) },
+          cifra: { nome: 'AES-GCM', iv: paraBase64(iv) },
+          dados: paraBase64(new Uint8Array(cifrado))
+        });
+      });
+    });
+  }
+
+  function decifrarBackup(pacote, senha) {
+    var sal = deBase64(pacote.kdf.sal), iv = deBase64(pacote.cifra.iv);
+    return chaveDoBackup(senha, sal, Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP).then(function (chave) {
+      return window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, chave, deBase64(pacote.dados));
+    }).then(function (claro) {
+      var bytes = new Uint8Array(claro);
+      if (pacote.comprimido !== 'gzip') return bytes;
+      return passarPor(bytes, 'DecompressionStream', 'gzip').then(function (d) {
+        if (!d) throw new Error('Este aparelho não consegue descomprimir o backup.');
+        return d;
+      });
+    }).then(function (bytes) { return JSON.parse(new TextDecoder('utf-8').decode(bytes)); });
+  }
+
   function fazerBackup() {
-    var pacote = { app: 'finanz', versao: VERSAO, exportadoEm: new Date().toISOString(), dados: estado };
-    baixarArquivo('finanz-backup-' + carimbo() + '.json', JSON.stringify(pacote, null, 2), 'application/json');
-    avisar('Backup gerado.');
+    if (!(window.crypto && window.crypto.subtle)) {
+      avisarCaixa('Este navegador não cifra', 'Para gerar o backup com senha, abra o app num navegador atualizado (Chrome, Safari ou Firefox).');
+      return;
+    }
+    abrirFolha('Backup com senha', function (folha) {
+      var forma = no('div', 'forma');
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Escolha uma senha para o arquivo'), botaoDeInfo('mais.backup', 'Backup com senha', [
+        'O backup é uma cópia de tudo o que está no app, num arquivo .finanz para você guardar onde quiser (Drive, e-mail, computador).',
+        'Ele sai cifrado com a senha que você escolher agora. Sem ela, ninguém abre o arquivo — nem o Finanz. Anote a senha num lugar seguro.',
+        'Para usar o backup, vá em "Restaurar backup", escolha o arquivo e digite a senha. Restaurar troca tudo o que está no app pelo que está no arquivo.',
+        'O arquivo vai comprimido: costuma ficar bem menor que os dados abertos.']));
+      forma.appendChild(topo);
+      var s1 = no('input', 'entrada campo-senha-backup'); s1.type = 'password'; s1.autocomplete = 'new-password'; s1.placeholder = 'Pelo menos 6 caracteres';
+      var s2 = no('input', 'entrada campo-senha-backup2'); s2.type = 'password'; s2.autocomplete = 'new-password'; s2.placeholder = 'Repita a senha';
+      forma.appendChild(campo('Senha do backup', s1));
+      forma.appendChild(campo('Repita a senha', s2));
+      var acoes = no('div', 'acoes');
+      var gerar = botao('btn btn-ouro', 'Gerar backup', function () {
+        if (s1.value.length < 6) { mostrarErro(forma, 'A senha precisa de pelo menos 6 caracteres.'); return; }
+        if (s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas não são iguais.'); return; }
+        gerar.disabled = true; gerar.textContent = 'Cifrando…';
+        var pacote = { app: 'finanz', versao: VERSAO, exportadoEm: new Date().toISOString(), dados: estado };
+        cifrarBackup(JSON.stringify(pacote), s1.value).then(function (arquivo) {
+          baixarArquivo('finanz-backup-' + carimbo() + '.finanz', arquivo, 'application/octet-stream');
+          fecharFolha();
+          avisar('Backup gerado, cifrado com a sua senha.');
+        }).catch(function () {
+          gerar.disabled = false; gerar.textContent = 'Gerar backup';
+          mostrarErro(forma, 'Não consegui gerar o backup neste aparelho.');
+        });
+      });
+      acoes.appendChild(gerar);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+    });
+  }
+
+  // Pede a senha de um backup cifrado e devolve o conteúdo aberto.
+  function pedirSenhaDoBackup(pacote, aoAbrir) {
+    abrirFolha('Backup com senha', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', 'Este backup foi cifrado com uma senha. Digite a senha que você escolheu ao gerar o arquivo.'));
+      var s1 = no('input', 'entrada campo-senha-restaurar'); s1.type = 'password'; s1.autocomplete = 'current-password';
+      forma.appendChild(campo('Senha do backup', s1));
+      var acoes = no('div', 'acoes');
+      var abrir = botao('btn btn-ouro', 'Abrir backup', function () {
+        abrir.disabled = true; abrir.textContent = 'Abrindo…';
+        decifrarBackup(pacote, s1.value).then(function (bruto) {
+          fecharFolha();
+          setTimeout(function () { aoAbrir(bruto); }, 260);
+        }).catch(function (e) {
+          abrir.disabled = false; abrir.textContent = 'Abrir backup';
+          mostrarErro(forma, /descomprimir/.test(String(e && e.message)) ? e.message : 'Senha errada, ou o arquivo está estragado.');
+        });
+      });
+      acoes.appendChild(abrir);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+    });
   }
 
   function campoCsv(valor) {
@@ -35084,6 +35210,25 @@
         return;
       }
 
+      // Backup cifrado (.finanz): pede a senha e segue com o que estava dentro.
+      if (bruto && bruto.formato === 'backup-cifrado') {
+        pedirSenhaDoBackup(bruto, continuarRestauracao);
+        return;
+      }
+      continuarRestauracao(bruto);
+    }, function (e) {
+      if (soltar) soltar();
+      perguntar({
+        titulo: 'Não deu para abrir',
+        texto: recadoDeLeitura(e, arquivo),
+        ok: 'Escolher de novo', cancelar: 'Fechar'
+      }, function () {
+        setTimeout(function () { $('arquivoRestaurar').click(); }, 200);
+      });
+    });
+  }
+
+  function continuarRestauracao(bruto) {
       var dados = null;
       if (bruto && bruto.dados) dados = bruto.dados;
       else if (bruto && Array.isArray(bruto.lancamentos)) dados = bruto;
@@ -35136,16 +35281,6 @@
           avisar('Não deu para restaurar: ' + (e && e.message ? e.message : 'erro ao salvar'));
         });
       });
-    }, function (e) {
-      if (soltar) soltar();
-      perguntar({
-        titulo: 'Não deu para abrir',
-        texto: recadoDeLeitura(e, arquivo),
-        ok: 'Escolher de novo', cancelar: 'Fechar'
-      }, function () {
-        setTimeout(function () { $('arquivoRestaurar').click(); }, 200);
-      });
-    });
   }
 
   // Apagar tudo apagava nada.

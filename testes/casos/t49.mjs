@@ -1,4 +1,4 @@
-import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { chromium, dir, amostras, ENDERECO, gerarBackup, senhaDoBackup } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, acceptDownloads:true });
@@ -30,8 +30,8 @@ await lanc('Antigo A', '10000');
 // backup neste ponto
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(700);
 const dl = page.waitForEvent('download');
-await page.click('#telaMais .linha:has-text("Fazer backup")'); await page.waitForTimeout(1000);
-const caminho = dir+'/bkp2.json'; await (await dl).saveAs(caminho);
+await gerarBackup(page); await page.waitForTimeout(1000);
+const caminho = dir+'/bkp2.finanz'; await (await dl).saveAs(caminho);
 console.log('1. backup feito com: Antigo A');
 
 // agora adiciona algo novo e sincroniza para o servidor
@@ -44,6 +44,7 @@ console.log('2. servidor agora tem A e B');
 // restaura o backup antigo (só tem A)
 page.on('filechooser', async fc => { await fc.setFiles(caminho); });
 await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(1500);
+await senhaDoBackup(page);
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(2000);
 await page.click('#navegacao button:has-text("Transações")'); await page.waitForTimeout(900);
 console.log('3. logo após restaurar:', (await page.textContent('#telaTransacoes')).replace(/\s+/g,' ').match(/Antigo A|Depois B/g));

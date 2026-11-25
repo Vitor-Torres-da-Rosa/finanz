@@ -13,7 +13,7 @@
 //
 // Aqui: backup com 1 lançamento, servidor com 1101, restaura, sincroniza.
 // Tem que sobrar 1 no servidor. Antes sobravam 101.
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, gerarBackup, senhaDoBackup } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 
 const SEMEADOS = 1100;
@@ -112,8 +112,8 @@ await sincronizar(6000);
 // ---- o backup deste momento: um lançamento só ----
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(900);
 const baixando = page.waitForEvent('download');
-await page.click('#telaMais .linha:has-text("Fazer backup")'); await page.waitForTimeout(1500);
-const arquivo = dir + '/t130-backup-' + process.pid + '.json';
+await gerarBackup(page); await page.waitForTimeout(1500);
+const arquivo = dir + '/t130-backup-' + process.pid + '.finanz';
 await (await baixando).saveAs(arquivo);
 await semDialogo();
 console.log('backup guardado com 1 lançamento');
@@ -152,6 +152,7 @@ conferir('1. com os ' + (SEMEADOS + 1) + ' no aparelho, o total é −R$ 331,00'
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(900);
 page.on('filechooser', async (fc) => { await fc.setFiles(arquivo); });
 await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(2500);
+await senhaDoBackup(page);
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(4000);
 await semDialogo();
 const logoApos = await totalEmContas();

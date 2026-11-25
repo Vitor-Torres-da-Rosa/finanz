@@ -1,4 +1,4 @@
-import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
+import { chromium, dir, amostras, ENDERECO, gerarBackup, senhaDoBackup, decifrarBackup } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, acceptDownloads:true });
@@ -31,17 +31,18 @@ await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeo
 // backup
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(700);
 const dl = page.waitForEvent('download');
-await page.click('#telaMais .linha:has-text("Fazer backup")'); await page.waitForTimeout(1200);
-const d = await dl; const caminho = dir + '/bkp.json'; await d.saveAs(caminho);
+await gerarBackup(page); await page.waitForTimeout(1200);
+const d = await dl; const caminho = dir + '/bkp.finanz'; await d.saveAs(caminho);
 console.log('1. baixou:', d.suggestedFilename());
 const fs = await import('fs');
 const txt = fs.readFileSync(caminho, 'utf8');
-console.log('   tamanho:', txt.length, '| chaves:', Object.keys(JSON.parse(txt)));
-console.log('   dados:', Object.keys(JSON.parse(txt).dados));
+console.log('   tamanho:', txt.length, '| formato:', JSON.parse(txt).formato);
+console.log('   dados:', Object.keys((await decifrarBackup(page, txt)).dados));
 
 // restaurar
 page.on('filechooser', async fc => { await fc.setFiles(caminho); });
 await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.waitForTimeout(1500);
+await senhaDoBackup(page);
 console.log('2. aviso na tela:', await page.locator('#toque').textContent().catch(()=>'-'));
 console.log('   diálogo:', await page.locator('#dialogoTitulo').textContent().catch(()=>'-'), '|', await page.locator('#dialogoTexto').textContent().catch(()=>'-'));
 await page.screenshot({ path: dir + '/b01-restaurar.png' });
