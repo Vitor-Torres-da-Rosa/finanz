@@ -652,6 +652,12 @@
   .bv-pontos span.ativo { width: 22px; border-radius: 4px; background: var(--ouro); }
   .bv-acoes { display: grid; gap: 10px; max-width: 460px; margin: 0 auto; width: 100%; }
   /* O cartão de Início enquanto faltam dados. */
+  .cartao-novidades { border: 1px solid rgba(233,180,76,.55) !important; background: linear-gradient(160deg, rgba(233,180,76,.12), rgba(10,10,11,.92)) !important; }
+  .novidades-titulo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; }
+  .novidades-brilho { font-size: 18px; }
+  .novidades-fechar { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--borda); background: none; color: var(--fraco); font: inherit; cursor: pointer; }
+  .novidades-lista { margin: 10px 0 0; padding-left: 18px; }
+  .novidades-lista li { font-size: 13px; line-height: 1.55; color: var(--suave); margin-bottom: 8px; }
   .cartao-faltam-dados { border: 2px solid var(--ouro) !important; background: linear-gradient(160deg, rgba(233,180,76,.16), rgba(233,180,76,.03)) !important; }
   .cartao-faltam-dados .fd-titulo { display: flex; gap: 10px; align-items: center; font-size: 17px; font-weight: 700; color: var(--ouro); }
   .cartao-faltam-dados p { margin: 8px 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--texto); }
@@ -2739,7 +2745,48 @@
   /* Empreendedor: os módulos em quadros, dois a dois. */
   .modulos-lista { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   /* Três quadros: Serviços e Vendas na linha inteira, os outros dois lado a lado. */
-  .modulos-lista .modulo-cartao[data-modulo="servicos"] { grid-column: 1 / -1; }
+  .modulos-lista .modulo-cartao[data-modulo="servicos"],
+  .modulos-lista .modulo-cartao[data-modulo="estoque"] { grid-column: 1 / -1; }
+  /* O olho dos campos de senha */
+  .senha-com-olho { position: relative; }
+  .senha-com-olho > input { width: 100%; padding-right: 52px; }
+  .olho-senha { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px;
+    display: grid; place-items: center; border: 0; background: none; color: var(--fraco); cursor: pointer; border-radius: 10px; }
+  .olho-senha[aria-pressed="true"] { color: var(--ouro); }
+  .olho-senha svg { width: 20px; height: 20px; }
+  /* Backups num lugar só */
+  .backup-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
+  .backup-botao { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 16px;
+    border: 1px solid rgba(233,180,76,.3); background: linear-gradient(160deg, rgba(36,29,17,.85), rgba(10,10,11,.9));
+    color: var(--texto); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+  .backup-botao b { font-size: 15px; }
+  .backup-icone { font-size: 22px; line-height: 1; }
+  .backup-sub { font-size: 12px; color: var(--fraco); line-height: 1.4; }
+  .backup-nota { padding: 10px 16px 16px; }
+  .cartao-proteja .linha-titulo { font-size: 16px; }
+  .dica-par .dica-pergunta { display: block; margin-bottom: 3px; color: var(--texto); }
+  /* Estoque e Ferramentas */
+  .est-item { border-bottom: 1px solid var(--borda); }
+  .est-item:last-child { border-bottom: 0; }
+  .est-item > .linha { border-bottom: 0; }
+  .est-acoes { display: flex; gap: 8px; padding: 0 16px 14px 64px; flex-wrap: wrap; }
+  .est-acoes .btn-mini { flex: 0 0 auto; }
+  .est-situacao { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px;
+    background: rgba(233,180,76,.14); color: var(--ouro); vertical-align: middle; }
+  .est-situacao.manutencao { background: rgba(255,107,107,.14); color: var(--vermelho); }
+  .est-situacao.baixa { background: rgba(140,140,140,.18); color: var(--fraco); }
+  .est-obra-hoje { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .est-obra-hoje .rotulo { margin: 0; }
+  .est-passo { display: flex; align-items: center; gap: 6px; }
+  .est-passo button { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--borda); background: rgba(255,255,255,.03);
+    color: var(--texto); font: inherit; font-size: 18px; cursor: pointer; }
+  .est-passo .num { min-width: 42px; text-align: center; font-weight: 700; }
+  .est-linha-passo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+  .est-linha-passo:last-child { border-bottom: 0; }
+  .est-linha-passo .t { min-width: 0; }
+  .est-linha-passo .t b { display: block; font-size: 14px; }
+  .est-linha-passo .t span { display: block; font-size: 12px; color: var(--fraco); }
+  .est-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 0; font-weight: 700; }
   /* Chips de filtro soltos no módulo (Registros, Gastos): respiro antes do cartão. */
   .modulo-corpo > .chips { margin-bottom: 16px; }
   /* Redesenho da mesma tela (sincronizou, salvou, o relógio andou): nada de
@@ -2833,7 +2880,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.102.0';
+  var VERSAO = '5.107.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2842,6 +2889,55 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.107.0',
+      data: '2026-11-25',
+      itens: [
+        'Compartilhado cifrado de ponta a ponta: com a senha dos dados dos dois lados, a área do Empreendedor que você compartilha (Doces, Uber, Casa) vai cifrada com uma chave só de vocês dois. O servidor não lê.',
+        'Cada pessoa ganha um par de chaves (a privada fica trancada com a senha dela). A chave da área vai no convite, embrulhada para quem foi convidado: só essa pessoa desembrulha.',
+        'Se quem foi convidado ainda não criou a senha dos dados, o app avisa: até criar, a área não abre, e nada dela sobe aberto. Depois de criar, quem compartilhou precisa abrir o app uma vez para liberar a chave.'
+      ]
+    },
+    {
+      versao: '5.106.0',
+      data: '2026-11-25',
+      itens: [
+        'Quando o app atualiza, as novidades aparecem aqui no Início, no topo. "Entendi" fecha; "Ver tudo" mostra cada versão. Pulou várias versões? Aparece o que mudou em todas desde a última vez.'
+      ]
+    },
+    {
+      versao: '5.105.0',
+      data: '2026-11-25',
+      itens: [
+        'Backup na nuvem agora é escolha sua: sem a senha dos dados, nenhuma cópia vai para a nuvem (nem das versões antigas do app: o servidor recusa cópia que não chegue cifrada). Para ligar, vá em Mais → Proteja seus dados → Backup na nuvem e crie a senha.',
+        'O app não pede mais sozinho para criar a senha dos dados.',
+        'O backup no celular (o arquivo .finanz, com senha própria) continua funcionando com ou sem a senha dos dados.',
+        'Num aparelho novo, depois de digitar a senha dos dados, o app volta a oferecer a cópia da nuvem quando a conta está vazia.'
+      ]
+    },
+    {
+      versao: '5.104.0',
+      data: '2026-11-25',
+      itens: [
+        'Mais → "Proteja seus dados": uma linha com tudo dentro: Senha dos dados, Backup na nuvem (as cópias automáticas, para voltar a uma data) e Backup no celular (o arquivo .finanz: gerar, restaurar e a lista dos que você gerou neste aparelho). Os itens soltos de antes foram para dentro dela.',
+        'As dúvidas ficam no "i" de "Senha e backups", em pergunta e resposta: o que é a senha dos dados, a diferença entre os backups, por que as senhas são diferentes, o que fazer se esquecer a senha ou perder o celular, e quem consegue ver os seus dados.',
+        'Todo campo de senha ganhou o olho: toque para ver o que digitou e toque de novo para esconder.'
+      ]
+    },
+    {
+      versao: '5.103.0',
+      data: '2026-11-25',
+      itens: [
+        'Criptografia de ponta a ponta: em Mais → "Senha dos dados", você cria uma senha e tudo o que vai para a nuvem passa a sair do celular já cifrado — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato (até o nome deles). Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+        'O que já estava na nuvem é convertido sozinho: sobe cifrado, o app confere que abre e só então apaga a versão aberta.',
+        'Em outro aparelho, o app pede a senha dos dados uma vez. Não existe recuperação: esquecendo, "Esqueci a senha" deixa você apagar a nuvem e recomeçar (ou restaurar um backup .finanz).',
+        'Com a senha dos dados, o "Conferido ✓" usa a mesma senha: uma senha só para tudo.',
+        'As áreas do Empreendedor compartilhadas com outra pessoa ainda ficam abertas para ela; a versão cifrada do compartilhado vem a seguir.',
+        'Novo no Empreendedor: Estoque e Ferramentas. Cada ferramenta com data e valor da compra, vida útil, situação, cada uso e cada manutenção; cada consumível (disco de corte, broca…) com quantidade, mínimo e custo. "Usei hoje" e "−1 usei" anotam com um toque na "obra de hoje".',
+        'Estoque: "Registrar uso" anota várias coisas de uma vez numa obra; "Obras" mostra o custo de material de cada obra (consumíveis + desgaste das ferramentas); "Estimar uma obra" soma o material de uma obra nova, podendo partir de uma que você já fez.',
+        'Abertura: tocar num item abre só aquele assunto; o botão "Como funciona, termos e privacidade" saiu.'
+      ]
+    },
     {
       versao: '5.102.0',
       data: '2026-11-25',
@@ -5006,6 +5102,9 @@
       doceCompras: [],
       doceAjustes: [],
       doceCustos: [],
+      // Estoque e Ferramentas (pedido de 25/11/2026).
+      estoqueItens: [],
+      estoqueMovs: [],
       doceMembros: [],
       // Contas de casa (pedido de 09/11/2026): só a base para dividir as
       // contas com quem mora junto. Não entra nas despesas.
@@ -5847,6 +5946,30 @@
 
     // Resumo dos Doces: os custos operacionais e os membros da empresa,
     // cada um com a parte dele no lucro.
+    // Estoque e Ferramentas: o item (ferramenta ou consumível) e cada
+    // movimento dele (entrada, saída, uso, manutenção, ajuste).
+    limpo.estoqueItens = lista('estoqueItens').map(function (x) {
+      var vida = Math.round(Number(x.vidaUtil) || 0);
+      var min = Number(x.minimo);
+      return { id: x.id, tipo: x.tipo === 'consumivel' ? 'consumivel' : 'ferramenta',
+               nome: texto(x.nome).slice(0, 80) || 'Item', categoria: texto(x.categoria).slice(0, 40),
+               marca: texto(x.marca).slice(0, 80), unidade: texto(x.unidade).slice(0, 12) || 'un',
+               minimo: isFinite(min) && min > 0 ? Math.round(min * 1000) / 1000 : 0,
+               custo: positivo(x.custo), dataCompra: soData(x.dataCompra) || '',
+               vidaUtil: Math.max(0, Math.min(1000000, vida)),
+               situacao: ['ok', 'manutencao', 'emprestada', 'baixa'].indexOf(x.situacao) >= 0 ? x.situacao : 'ok',
+               obs: texto(x.obs).slice(0, 300), criadoEm: marca(x.criadoEm) || Date.now() };
+    });
+    limpo.estoqueMovs = lista('estoqueMovs').map(function (x) {
+      var q = Number(x.quantidade);
+      return { id: x.id, itemId: texto(x.itemId),
+               tipo: ['entrada', 'saida', 'uso', 'manutencao', 'ajuste'].indexOf(x.tipo) >= 0 ? x.tipo : 'saida',
+               data: soData(x.data) || hojeTexto(),
+               quantidade: isFinite(q) ? Math.max(-1000000, Math.min(1000000, Math.round(q * 1000) / 1000)) : 0,
+               valor: positivo(x.valor), obra: texto(x.obra).slice(0, 80), clienteId: texto(x.clienteId),
+               obs: texto(x.obs).slice(0, 200), criadoEm: marca(x.criadoEm) || Date.now() };
+    }).filter(function (x) { return x.itemId; });
+
     limpo.doceCustos = lista('doceCustos').map(function (x) {
       return { id: x.id, descricao: texto(x.descricao).slice(0, 80) || 'Custo', valor: positivo(x.valor),
                data: soData(x.data) || hojeTexto(), compraId: texto(x.compraId).slice(0, 80),
@@ -6302,6 +6425,7 @@
   }
 
   function gravarSessaoNuvem(dados) {
+    if (!dados && sessaoNuvem && sessaoNuvem.usuario) esquecerChaveDoCofre(sessaoNuvem.usuario.id);
     sessaoNuvem = dados;
     try {
       if (dados) localStorage.setItem(CHAVE_NUVEM, JSON.stringify(dados));
@@ -6608,6 +6732,950 @@
     });
   }
 
+  // ---------- Cofre: criptografia de ponta a ponta (pedido de 25/11/2026) ----------
+  //
+  // O Vitor pediu que ninguém além da própria pessoa leia os dados dela —
+  // nem quem administra o servidor, nem ele pelo painel do Supabase. Com o
+  // cofre ligado, cada registro sai do celular já cifrado com a chave
+  // mestra da pessoa (AES-GCM de 256 bits, com o id do registro como dado
+  // associado, para uma linha não poder ser trocada por outra) e mora na
+  // tabela `cofre`. O servidor vê só de quem é, de que tipo, quando mudou e
+  // o tamanho.
+  //
+  // A chave mestra nasce no celular e sobe só embrulhada pela "senha dos
+  // dados" (PBKDF2, 210 mil voltas). Neste aparelho ela fica guardada
+  // embrulhada pela chave do aparelho, para não pedir a senha a cada vez.
+  // Sem código de recuperação, por escolha do Vitor: perdeu a senha, a
+  // nuvem não abre mais, e a pessoa escolhe se apaga para recomeçar.
+  //
+  // O transporte é o único que muda: as linhas são as mesmas de sempre
+  // (linhasDoEstado e montarEstadoDeLinhas não sabem que o cofre existe).
+  //
+  // As áreas do Empreendedor que estão compartilhadas continuam abertas na
+  // tabela antiga até a etapa do par de chaves: a outra pessoa precisa ler.
+  var cofre = { info: null, chave: null, sal: '', ativo: false, lido: false };
+  var convertendoCofre = false;
+  var pedindoSenhaDoCofre = false;
+
+  function cofreLigado() { return !!(cofre.ativo && cofre.chave); }
+  function cofreTrancado() { return !!(cofre.ativo && !cofre.chave); }
+
+  function chaveDoCofreNoAparelho(uid) {
+    return 'finanz.cofre.v1:' + (uid || (sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || '');
+  }
+
+  function guardarChaveDoCofre(cm, sal) {
+    var onde = chaveDoCofreNoAparelho();
+    return Promise.all([chaveDoAparelho(), exportarChave(cm)]).then(function (r) {
+      return cifrarBytes(r[0], deBase64(r[1]));
+    }).then(function (env) {
+      try { localStorage.setItem(onde, JSON.stringify({ sal: sal, chave: env })); } catch (e) { /* fica só nesta aba */ }
+    }).catch(function () { /* fica só nesta aba */ });
+  }
+
+  function lerChaveDoCofre(sal) {
+    var g = null;
+    try { g = JSON.parse(localStorage.getItem(chaveDoCofreNoAparelho()) || 'null'); } catch (e) { g = null; }
+    if (!g || g.sal !== sal || !g.chave) return Promise.resolve(null);
+    return chaveDoAparelho().then(function (ka) { return decifrarBytes(ka, g.chave); })
+      .then(function (bruto) { return importarChave(paraBase64(bruto)); })
+      .catch(function () { return null; });
+  }
+
+  function esquecerChaveDoCofre(uid) {
+    try { localStorage.removeItem(chaveDoCofreNoAparelho(uid)); } catch (e) { /* nada */ }
+    cofre = { info: null, chave: null, sal: '', ativo: false, lido: false };
+    parDeChaves = null;
+    chavesDeArea = {};
+  }
+
+  function cifrarLinhaDoCofre(id, linha) {
+    var iv = bytesAleatorios(12);
+    return cripto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(id) },
+      cofre.chave, new TextEncoder().encode(JSON.stringify(linha))).then(function (c) {
+      var saida = new Uint8Array(12 + c.byteLength);
+      saida.set(iv, 0);
+      saida.set(new Uint8Array(c), 12);
+      return paraBase64(saida);
+    });
+  }
+
+  function decifrarLinhaDoCofre(id, b64) {
+    var b = deBase64(b64);
+    return cripto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12), additionalData: new TextEncoder().encode(id) },
+      cofre.chave, b.slice(12)).then(function (c) { return JSON.parse(new TextDecoder().decode(c)); });
+  }
+
+  // "<tabela>|<chave>": o mesmo registro cai sempre na mesma linha do cofre.
+  function idDoCofre(tabela, linha, conflito) {
+    var cs = String(conflito || 'id').split(',').filter(function (c) { return c && c !== 'user_id'; });
+    return tabela + '|' + cs.map(function (c) { return String(linha[c] == null ? '' : linha[c]); }).join('|');
+  }
+
+  function euCompartilhoArea(area) {
+    return (meusConvites || []).some(function (l) {
+      return l.situacao !== 'recusado' && (l.areas || []).indexOf(area) >= 0;
+    });
+  }
+
+  // Registro de área compartilhada (minha, ou de quem compartilhou comigo):
+  // fica aberto até a etapa do par de chaves.
+  function linhaFicaAberta(tabela, l) {
+    if (tabela !== 'empreendedor_registros') return false;
+    var a = areaDoTipo(l && l.tipo);
+    return !!a && (!!donoDaArea(a) || euCompartilhoArea(a));
+  }
+
+  function enviarAoCofre(tabela, linhas, conflito) {
+    if (!linhas.length) return Promise.resolve();
+    var uid = sessaoNuvem.usuario.id;
+    var lotes = [];
+    for (var i = 0; i < linhas.length; i += LOTE_DE_ENVIO) lotes.push(linhas.slice(i, i + LOTE_DE_ENVIO));
+    return lotes.reduce(function (antes, lote) {
+      return antes.then(function () {
+        return Promise.all(lote.map(function (l) {
+          var id = idDoCofre(tabela, l, conflito);
+          return cifrarLinhaDoCofre(id, l).then(function (d) {
+            return { user_id: uid, id: id, tabela: tabela, dados: d, excluido_em: null };
+          });
+        })).then(function (corpo) {
+          return comTentativas(function () {
+            return pedirNuvem('/rest/v1/cofre?on_conflict=user_id,id', {
+              metodo: 'POST', corpo: corpo,
+              cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+            });
+          });
+        });
+      });
+    }, Promise.resolve());
+  }
+
+  // As linhas vivas de uma tabela, já abertas; ou, com `apagados`, só os
+  // ids das que foram apagadas.
+  function baixarDoCofre(tabela, apagados) {
+    var consulta = 'select=id' + (apagados ? '' : ',dados') + '&tabela=eq.' + encodeURIComponent(tabela) +
+      '&excluido_em=' + (apagados ? 'not.is.null' : 'is.null');
+    return baixarTudo('cofre', consulta).then(function (r) {
+      var corte = tabela.length + 1;
+      if (apagados) return (r || []).map(function (x) { return { id: String(x.id).slice(corte) }; });
+      return Promise.all((r || []).map(function (x) { return decifrarLinhaDoCofre(String(x.id), x.dados); }));
+    });
+  }
+
+  // Leitura de uma tabela da sincronia, pelo cofre quando ele está ligado.
+  function baixarTabela(t, consulta) {
+    if (!cofreLigado()) return baixarTudo(t, consulta);
+    var apagados = /excluido_em=not\.is\.null/.test(consulta);
+    return baixarDoCofre(t, apagados).then(function (doCofre) {
+      if (t !== 'empreendedor_registros') return doCofre;
+      return baixarTudo(t, consulta).catch(function (e) {
+        if (ehTabelaQueFalta(e)) return [];
+        throw e;
+      }).then(function (abertas) {
+        var vistos = {};
+        var saida = [];
+        (abertas || []).forEach(function (l) {
+          if (apagados || linhaFicaAberta(t, l)) { vistos[String(l.id)] = true; saida.push(l); }
+        });
+        doCofre.forEach(function (l) { if (!vistos[String(l.id)]) saida.push(l); });
+        return saida;
+      });
+    });
+  }
+
+  function baixarTabelaPorPulo(t, consulta, ordem) {
+    if (!cofreLigado()) return baixarTudoPorPulo(t, consulta, ordem);
+    return baixarDoCofre(t, false);
+  }
+
+  // Marca como apagadas (lote de ids de uma tabela).
+  function marcarApagadosNaNuvem(t, ids, agora) {
+    var aberto = function () {
+      var lista = ids.map(function (id) { return '"' + String(id).replace(/"/g, '') + '"'; }).join(',');
+      return pedirNuvem('/rest/v1/' + t + '?id=in.(' + encodeURIComponent(lista) + ')', {
+        metodo: 'PATCH', corpo: { excluido_em: agora }, cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    };
+    if (!cofreLigado()) return aberto();
+    var listaC = ids.map(function (id) { return '"' + (t + '|' + String(id)).replace(/"/g, '') + '"'; }).join(',');
+    var feito = pedirNuvem('/rest/v1/cofre?id=in.(' + encodeURIComponent(listaC) + ')', {
+      metodo: 'PATCH', corpo: { excluido_em: agora, dados: '' }, cabecalhos: { 'Prefer': 'return=minimal' }
+    });
+    return t === 'empreendedor_registros' ? feito.then(aberto) : feito;
+  }
+
+  // Orçamentos e categorias trocam inteiros a cada envio.
+  function limparTabelaNaNuvem(t, uid) {
+    if (cofreLigado()) {
+      return pedirNuvem('/rest/v1/cofre?tabela=eq.' + encodeURIComponent(t), { metodo: 'DELETE' });
+    }
+    return pedirNuvem('/rest/v1/' + t + '?user_id=eq.' + uid, { metodo: 'DELETE' });
+  }
+
+  function ehColunaQueFalta(e) {
+    var codigo = String((e && e.codigo) || '');
+    var msg = String((e && e.message) || '');
+    return codigo === '42703' || codigo === 'PGRST204' || /column .* does not exist|could not find the .* column/i.test(msg);
+  }
+
+  // O que o servidor disse do cofre fica guardado aqui: reabrir o app sem
+  // nada ter mudado não pode custar um pedido a mais (o carimbo muda quando
+  // o cofre muda, porque ele mora no perfil).
+  function chaveDaInfoDoCofre() { return 'finanz.cofreinfo.v1:' + ((sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || ''); }
+  function guardarInfoDoCofre(info) {
+    try { localStorage.setItem(chaveDaInfoDoCofre(), JSON.stringify({ info: info || null })); } catch (e) { /* sem espaço */ }
+  }
+  function infoDoCofreGuardada() {
+    try { var g = JSON.parse(localStorage.getItem(chaveDaInfoDoCofre()) || 'null'); return g && 'info' in g ? g : null; }
+    catch (e) { return null; }
+  }
+
+  // Antes de cada sincronia: o cofre desta conta existe? A chave está aqui?
+  function prepararCofre(talvezMudou) {
+    if (faltaNoBanco['cofre']) return Promise.resolve();
+    var uid = sessaoNuvem.usuario.id;
+    var guardada = talvezMudou === false ? infoDoCofreGuardada() : null;
+    var pedido = guardada ? Promise.resolve([{ cofre: guardada.info }])
+      : pedirNuvem('/rest/v1/perfis?select=cofre&id=eq.' + encodeURIComponent(uid), {});
+    return pedido.then(function (r) {
+      var info = r && r[0] ? r[0].cofre : null;
+      if (!guardada) guardarInfoDoCofre(info);
+      cofre.lido = true;
+      if (!info || !info.kdf || !info.chave) {
+        cofre.info = null; cofre.ativo = false; cofre.chave = null;
+        talvezPedirCriarCofre();
+        return;
+      }
+      cofre.info = info;
+      cofre.ativo = true;
+      if (cofre.chave && cofre.sal === info.kdf.sal) return;
+      return lerChaveDoCofre(info.kdf.sal).then(function (k) {
+        if (k) { cofre.chave = k; cofre.sal = info.kdf.sal; return; }
+        cofre.chave = null;
+        abrirSenhaDoCofre();
+        var e = new Error('Digite a senha dos dados para sincronizar.');
+        e.trancado = true;
+        throw e;
+      });
+    }).catch(function (e) {
+      if (e && e.trancado) throw e;
+      if (ehColunaQueFalta(e) || ehTabelaQueFalta(e)) { faltaNoBanco['cofre'] = true; return; }
+      throw e;
+    });
+  }
+
+  // Texto e bytes avulsos (cópias e arquivos): "cofre1:" + base64 de
+  // iv + cifrado. O prefixo separa o cifrado do antigo, que segue abrindo.
+  var PREFIXO_COFRE = 'cofre1:';
+  function ehDoCofre(t) { return typeof t === 'string' && t.indexOf(PREFIXO_COFRE) === 0; }
+  function cifrarParaOCofre(bytes) {
+    return cifrarBytes(cofre.chave, bytes).then(function (b) { return PREFIXO_COFRE + b; });
+  }
+  function abrirDoCofre(texto) {
+    if (!cofre.chave) return Promise.reject(new Error('Digite a senha dos dados para abrir.'));
+    return decifrarBytes(cofre.chave, texto.slice(PREFIXO_COFRE.length));
+  }
+  function textoParaOCofre(t) { return cifrarParaOCofre(new TextEncoder().encode(String(t))); }
+  function textoDoCofre(t) {
+    if (!ehDoCofre(t)) return Promise.resolve(t);
+    return abrirDoCofre(t).then(function (b) { return new TextDecoder().decode(b); });
+  }
+  // Antes de subir algo avulso: o cofre desta conta já foi lido? Se está
+  // trancado, nada sobe aberto.
+  function cofrePronto() {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve();
+    if (cofre.lido || faltaNoBanco['cofre']) return Promise.resolve();
+    return comTokenValido().then(function () { return prepararCofre(); }).catch(function () { return null; });
+  }
+  function podeSubirAvulso() { return !(cofre.ativo && !cofre.chave); }
+
+  // ---------- Compartilhado cifrado (pedido de 25/11/2026) ----------
+  //
+  // Cada pessoa com o cofre tem um par de chaves ECDH P-256: a pública vai
+  // no convite; a privada mora no perfis.cofre, cifrada com a chave mestra.
+  // Cada área compartilhada (Doces, Uber, Casa) tem a sua chave, guardada
+  // no cofre do dono e embrulhada no convite para a pessoa convidada (com
+  // a chave tirada do ECDH entre a privada de um e a pública do outro). Os
+  // registros da área continuam em empreendedor_registros, onde o RLS do
+  // compartilhamento vale, mas o `dados` vai cifrado com a chave da área.
+  //
+  // Sem a chave de uma área cifrada, nada daquela área sobe aberto: a
+  // linha simplesmente não sobe.
+  var parDeChaves = null;
+  var chavesDeArea = {};
+  var CHAVE_AREAS_TRANCADAS = 'finanz.areasTrancadas.v1';
+
+  function eu() { return (sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || ''; }
+
+  function areasTrancadas() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_AREAS_TRANCADAS + ':' + eu()) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function marcarAreaTrancada(k, sim) {
+    var t = areasTrancadas();
+    if (sim) t[k] = true; else delete t[k];
+    try { localStorage.setItem(CHAVE_AREAS_TRANCADAS + ':' + eu(), JSON.stringify(t)); } catch (e) { /* sem espaço */ }
+  }
+
+  function garantirParDeChaves() {
+    if (parDeChaves) return Promise.resolve(parDeChaves);
+    if (!cofreLigado()) return Promise.reject(new Error('sem cofre'));
+    var info = cofre.info;
+    if (info.par && info.par.publica && info.par.privada) {
+      return decifrarBytes(cofre.chave, info.par.privada).then(function (pk) {
+        return cripto.subtle.importKey('pkcs8', pk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']);
+      }).then(function (priv) {
+        parDeChaves = { publica: info.par.publica, privada: priv };
+        return parDeChaves;
+      });
+    }
+    var kp = null, pub = '';
+    return cripto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']).then(function (k) {
+      kp = k;
+      return Promise.all([cripto.subtle.exportKey('raw', kp.publicKey), cripto.subtle.exportKey('pkcs8', kp.privateKey)]);
+    }).then(function (r) {
+      pub = paraBase64(new Uint8Array(r[0]));
+      return cifrarBytes(cofre.chave, new Uint8Array(r[1]));
+    }).then(function (privCif) {
+      var novo = JSON.parse(JSON.stringify(info));
+      novo.par = { publica: pub, privada: privCif, criadoEm: new Date().toISOString() };
+      return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(eu()), {
+        metodo: 'PATCH', corpo: { cofre: novo }, cabecalhos: { 'Prefer': 'return=minimal' }
+      }).then(function () {
+        cofre.info = novo;
+        guardarInfoDoCofre(novo);
+        parDeChaves = { publica: pub, privada: kp.privateKey };
+        return parDeChaves;
+      });
+    });
+  }
+
+  function chaveEntre(minhaPrivada, publicaDoOutro) {
+    return cripto.subtle.importKey('raw', deBase64(publicaDoOutro), { name: 'ECDH', namedCurve: 'P-256' }, false, []).then(function (pub) {
+      return cripto.subtle.deriveKey({ name: 'ECDH', public: pub }, minhaPrivada, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+
+  function cifrarComAD(chave, ad, bytes) {
+    var iv = bytesAleatorios(12);
+    return cripto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(ad) }, chave, bytes).then(function (c) {
+      var saida = new Uint8Array(12 + c.byteLength);
+      saida.set(iv, 0); saida.set(new Uint8Array(c), 12);
+      return paraBase64(saida);
+    });
+  }
+  function abrirComAD(chave, ad, b64) {
+    var b = deBase64(b64);
+    return cripto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12), additionalData: new TextEncoder().encode(ad) }, chave, b.slice(12))
+      .then(function (c) { return new Uint8Array(c); });
+  }
+
+  // A chave de uma área minha: no meu cofre. `criar` faz uma nova se não houver.
+  function minhaChaveDaArea(area, criar) {
+    var k = eu() + '|' + area;
+    if (chavesDeArea[k]) return Promise.resolve(chavesDeArea[k]);
+    if (!cofreLigado()) return Promise.resolve(null);
+    var id = 'chave_area|' + area;
+    var ler = function () {
+      return pedirNuvem('/rest/v1/cofre?select=id,dados&id=eq.' + encodeURIComponent(id) + '&excluido_em=is.null', {}).then(function (r) {
+        if (!r || !r[0]) return null;
+        return decifrarLinhaDoCofre(id, r[0].dados).then(function (o) { return importarChave(o.chave); });
+      });
+    };
+    return ler().then(function (ak) {
+      if (ak || !criar) return ak;
+      return novaChaveMestra().then(function (nova) {
+        return exportarChave(nova).then(function (b64) { return cifrarLinhaDoCofre(id, { area: area, chave: b64 }); })
+          .then(function (d) {
+            return pedirNuvem('/rest/v1/cofre?on_conflict=user_id,id', {
+              metodo: 'POST', corpo: [{ user_id: eu(), id: id, tabela: 'chave_area', dados: d, excluido_em: null }],
+              cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+            });
+          }).then(function () { chaveNovaDeArea = true; return ler(); });
+      });
+    }).then(function (ak) { if (ak) chavesDeArea[k] = ak; return ak; });
+  }
+  var chaveNovaDeArea = false;
+
+  // A chave de uma área que alguém compartilhou comigo: desembrulhada do convite.
+  function chaveDaAreaDeOutro(donoId, area) {
+    var k = donoId + '|' + area;
+    if (chavesDeArea[k]) return Promise.resolve(chavesDeArea[k]);
+    var conv = convitesComigo.filter(function (l) { return l.dono_id === donoId; })[0];
+    if (!conv || !conv.chaves || !conv.chaves[area] || !conv.dono_chave_publica || !cofreLigado()) return Promise.resolve(null);
+    return garantirParDeChaves().then(function (par) {
+      return chaveEntre(par.privada, conv.dono_chave_publica);
+    }).then(function (kw) {
+      return abrirComAD(kw, conv.id + '|' + area, conv.chaves[area]);
+    }).then(function (raw) {
+      return importarChave(paraBase64(raw));
+    }).then(function (ak) { chavesDeArea[k] = ak; return ak; }).catch(function () { return null; });
+  }
+
+  // A área está cifrada? (então, sem chave, nada sobe aberto)
+  function areaCifrada(dono, area) {
+    if (dono === eu()) return cofreLigado();
+    var conv = convitesComigo.filter(function (l) { return l.dono_id === dono; })[0];
+    return !!(conv && (conv.dono_chave_publica || (conv.chaves && conv.chaves[area]))) || !!areasTrancadas()[dono + '|' + area];
+  }
+
+  function chaveParaLinha(l) {
+    var area = areaDoTipo(l.tipo), dono = l.user_id || eu();
+    return dono === eu() ? minhaChaveDaArea(area, true).catch(function () { return null; }) : chaveDaAreaDeOutro(dono, area);
+  }
+
+  function cifrarLinhasCompartilhadas(linhas) {
+    return Promise.all(linhas.map(function (l) {
+      if (!linhaFicaAberta('empreendedor_registros', l)) return l;
+      if (l.dados && l.dados.c) return l;
+      var area = areaDoTipo(l.tipo), dono = l.user_id || eu();
+      return chaveParaLinha(l).then(function (ak) {
+        if (!ak) return areaCifrada(dono, area) ? null : l;
+        return cifrarComAD(ak, String(l.id), new TextEncoder().encode(JSON.stringify(l.dados || {}))).then(function (c) {
+          var n = {};
+          Object.keys(l).forEach(function (x) { n[x] = l[x]; });
+          n.dados = { c: c };
+          return n;
+        });
+      });
+    })).then(function (ls) { return ls.filter(Boolean); });
+  }
+
+  var avisouTrancada = {};
+  function abrirLinhasCompartilhadas(linhas) {
+    return Promise.all((linhas || []).map(function (l) {
+      if (!l || !l.dados || !l.dados.c) return l;
+      var area = areaDoTipo(l.tipo), dono = l.user_id || eu();
+      return (dono === eu() ? minhaChaveDaArea(area, false) : chaveDaAreaDeOutro(dono, area)).then(function (ak) {
+        if (!ak) throw new Error('sem chave');
+        return abrirComAD(ak, String(l.id), l.dados.c).then(function (b) {
+          var n = {};
+          Object.keys(l).forEach(function (x) { n[x] = l[x]; });
+          n.dados = JSON.parse(new TextDecoder().decode(b));
+          marcarAreaTrancada(dono + '|' + area, false);
+          return n;
+        });
+      }).catch(function () {
+        marcarAreaTrancada(dono + '|' + area, true);
+        avisarAreaTrancada(dono, area);
+        return null;
+      });
+    })).then(function (ls) { return ls.filter(Boolean); });
+  }
+
+  function avisarAreaTrancada(dono, area) {
+    var k = dono + '|' + area;
+    if (avisouTrancada[k] || dono === eu()) return;
+    avisouTrancada[k] = true;
+    var conv = convitesComigo.filter(function (l) { return l.dono_id === dono; })[0];
+    var quem = (conv && conv.dono_nome) || 'quem compartilhou';
+    setTimeout(function () {
+      if (!cofreLigado()) {
+        avisarCaixa(nomeDaArea(area) + ' está cifrada', quem + ' compartilhou ' + nomeDaArea(area) + ' com você cifrado de ponta a ponta. ' +
+          'Para abrir, crie a sua senha dos dados em Mais → Proteja seus dados. Depois, ' + quem + ' precisa abrir o app uma vez para liberar a chave.');
+      } else {
+        avisarCaixa('Esperando a chave', 'Para abrir ' + nomeDaArea(area) + ', ' + quem + ' precisa abrir o app uma vez: é aí que a chave da área é liberada para você.');
+      }
+    }, 900);
+  }
+
+  // A cada sincronia: publica a minha chave pública nos convites, embrulha
+  // a chave das minhas áreas para quem aceitou, e cria a chave das áreas
+  // que compartilho (subindo tudo de novo, cifrado, na primeira vez).
+  function prepararCompartilhadoCifrado() {
+    if (!cofreLigado() || faltaNoBanco['tabela:compartilhamentos'] || faltaNoBanco['comp:chaves']) return Promise.resolve();
+    var meus = (meusConvites || []).filter(function (l) { return l.situacao !== 'recusado'; });
+    if (!meus.length && !convitesComigo.length) return Promise.resolve();
+    chaveNovaDeArea = false;
+    return garantirParDeChaves().then(function (par) {
+      var t = Promise.resolve();
+      meus.forEach(function (l) {
+        t = t.then(function () {
+          var mudar = {};
+          if (l.dono_chave_publica !== par.publica) mudar.dono_chave_publica = par.publica;
+          var chaves = JSON.parse(JSON.stringify(l.chaves || {}));
+          if (chaves._para && chaves._para !== l.convidado_chave_publica) chaves = {};
+          var mudouChaves = false;
+          return (l.areas || []).reduce(function (p, area) {
+            return p.then(function () {
+              return minhaChaveDaArea(area, true).then(function (ak) {
+                if (!ak || chaves[area] || l.situacao !== 'aceito' || !l.convidado_chave_publica) return;
+                return chaveEntre(par.privada, l.convidado_chave_publica).then(function (kw) {
+                  return exportarChave(ak).then(function (b64) { return cifrarComAD(kw, l.id + '|' + area, deBase64(b64)); });
+                }).then(function (env) { chaves[area] = env; mudouChaves = true; });
+              });
+            });
+          }, Promise.resolve()).then(function () {
+            if (mudouChaves) { chaves._para = l.convidado_chave_publica; mudar.chaves = chaves; }
+            if (!Object.keys(mudar).length) return;
+            return pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), {
+              metodo: 'PATCH', corpo: mudar, cabecalhos: { 'Prefer': 'return=minimal' }
+            }).then(function () { Object.keys(mudar).forEach(function (x) { l[x] = mudar[x]; }); });
+          });
+        });
+      });
+      convitesComigo.forEach(function (l) {
+        t = t.then(function () {
+          if (l.convidado_chave_publica === par.publica) return;
+          return pedirNuvem('/rest/v1/rpc/publicar_minha_chave', { metodo: 'POST', corpo: { p_id: l.id, p_chave: par.publica } })
+            .then(function () { l.convidado_chave_publica = par.publica; });
+        }).then(function () {
+          // A chave chegou para uma área que estava trancada: baixa tudo de novo.
+          var tr = areasTrancadas();
+          (l.areas || []).forEach(function (area) {
+            if (tr[l.dono_id + '|' + area] && l.chaves && l.chaves[area]) estado.carimbo = '';
+          });
+        });
+      });
+      return t;
+    }).then(function () {
+      // Chave de área nova: o que estava aberto naquela área sobe de novo, cifrado.
+      if (chaveNovaDeArea) { estado.pendente = true; chaveNovaDeArea = false; }
+    }).catch(function (e) {
+      if (ehColunaQueFalta(e)) faltaNoBanco['comp:chaves'] = true;
+    });
+  }
+
+  // Cria o cofre: só depois de uma sincronia boa (o estado daqui é o da
+  // nuvem), e só se outro aparelho não criou antes.
+  function criarCofre(senha) {
+    var uid = sessaoNuvem.usuario.id;
+    var sal = paraBase64(bytesAleatorios(16));
+    var cm = null, info = null;
+    return sincronizar(true).then(function () {
+      if (falhaDaSincronia) throw new Error('Sincronize antes de criar a senha: ' + (falhaDaSincronia.mensagem || 'a nuvem não respondeu.'));
+      return novaChaveMestra();
+    }).then(function (k) {
+      cm = k;
+      return embrulhar(cm, senha, sal);
+    }).then(function (env) {
+      info = { versao: 1, kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: 210000, sal: sal },
+               cifra: 'AES-GCM', chave: env, criadoEm: new Date().toISOString() };
+      return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid) + '&cofre=is.null', {
+        metodo: 'PATCH', corpo: { cofre: info }, cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/perfis?select=cofre&id=eq.' + encodeURIComponent(uid), {});
+    }).then(function (r) {
+      var la = r && r[0] ? r[0].cofre : null;
+      if (!la || !la.kdf || la.kdf.sal !== sal) {
+        var e = new Error('Outro aparelho já criou a senha dos dados. Use a senha que você criou lá.');
+        e.jaExiste = true;
+        throw e;
+      }
+      cofre.info = info; cofre.ativo = true; cofre.chave = cm; cofre.sal = sal;
+      guardarInfoDoCofre(info);
+      return guardarChaveDoCofre(cm, sal);
+    }).then(function () {
+      // Tudo sobe de novo, agora cifrado.
+      estado.pendente = true;
+      comMotivo('você criou a senha dos dados: tudo passa a subir cifrado');
+      return salvar(true);
+    }).then(function () { return sincronizar(true); });
+  }
+
+  function destrancarCofre(senha) {
+    var info = cofre.info;
+    if (!info) return Promise.reject(new Error('sem cofre'));
+    return desembrulhar(info.chave, senha, info.kdf.sal).then(function (cm) {
+      cofre.chave = cm; cofre.sal = info.kdf.sal;
+      return guardarChaveDoCofre(cm, info.kdf.sal);
+    });
+  }
+
+  // Perdeu a senha: apaga o que está cifrado na nuvem, para recomeçar.
+  function apagarCofreDaNuvem() {
+    var uid = sessaoNuvem.usuario.id;
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/cofre?user_id=eq.' + encodeURIComponent(uid), { metodo: 'DELETE' });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?user_id=eq.' + encodeURIComponent(uid), { metodo: 'DELETE' }).catch(function () { return null; });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?user_id=eq.' + encodeURIComponent(uid), { metodo: 'DELETE' }).catch(function () { return null; });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+        metodo: 'PATCH', corpo: { cofre: null }, cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () {
+      esquecerChaveDoCofre();
+      guardarInfoDoCofre(null);
+      estado.carimbo = '';
+    });
+  }
+
+  // O perfil aberto, com tudo no padrão: é o que fica na tabela antiga
+  // depois da conversão.
+  function perfilNeutro(uid) {
+    var guardado = estado;
+    var p;
+    try { estado = estadoPadrao(); p = perfilParaLinha(uid); }
+    finally { estado = guardado; }
+    delete p.id;
+    return semColunas([p], faltaNoBanco['colunas:perfis'] || [])[0];
+  }
+
+  // As cópias automáticas e os arquivos de extrato que subiram abertos
+  // antes do cofre: um por um, baixa, cifra e grava por cima.
+  function cifrarCopiasEArquivosAntigos() {
+    var t = pedirNuvem('/rest/v1/instantaneos?select=id,motivo,resumo', {}).then(function (r) {
+      return (r || []).filter(function (x) { return !ehDoCofre(x.resumo); }).reduce(function (antes, x) {
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/instantaneos?select=dados&id=eq.' + encodeURIComponent(x.id), {});
+        }).then(function (d) {
+          var dados = d && d[0] && d[0].dados;
+          if (!dados || ehDoCofre(dados)) return null;
+          return Promise.all([
+            cifrarParaOCofre(deBase64(dados)),
+            textoParaOCofre(JSON.stringify({ motivo: x.motivo, resumo: x.resumo }))
+          ]).then(function (c) {
+            return pedirNuvem('/rest/v1/instantaneos?id=eq.' + encodeURIComponent(x.id), {
+              metodo: 'PATCH', cabecalhos: { 'Prefer': 'return=minimal' },
+              corpo: { dados: c[0], resumo: c[1], motivo: (x.motivo === 'dia' || x.motivo === 'alteração') ? x.motivo : 'cifrado' }
+            });
+          });
+        });
+      }, Promise.resolve());
+    });
+    return t.then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=id,nome,tipo', {});
+    }).then(function (r) {
+      return (r || []).filter(function (a) { return !ehDoCofre(a.nome); }).reduce(function (antes, a) {
+        return antes.then(function () {
+          // O conferido já é cifrado: só o nome dele passa a ser.
+          if (a.tipo === TIPO_CONFERIDO) {
+            return textoParaOCofre(a.nome).then(function (n) {
+              return pedirNuvem('/rest/v1/arquivos_extrato?id=eq.' + encodeURIComponent(a.id), {
+                metodo: 'PATCH', corpo: { nome: n }, cabecalhos: { 'Prefer': 'return=minimal' }
+              });
+            });
+          }
+          return pedirNuvem('/rest/v1/arquivos_extrato?select=conteudo&id=eq.' + encodeURIComponent(a.id), {}).then(function (d) {
+            var c = d && d[0] && d[0].conteudo;
+            if (!c || ehDoCofre(c)) return null;
+            return Promise.all([cifrarParaOCofre(deBase64(c)), textoParaOCofre(a.nome)]).then(function (x) {
+              return pedirNuvem('/rest/v1/arquivos_extrato?id=eq.' + encodeURIComponent(a.id), {
+                metodo: 'PATCH', corpo: { conteudo: x[0], nome: x[1] }, cabecalhos: { 'Prefer': 'return=minimal' }
+              });
+            });
+          });
+        });
+      }, Promise.resolve());
+    });
+  }
+
+  // Depois que tudo subiu cifrado: confere que o cofre abre e tem tudo, e
+  // só então apaga as linhas abertas das tabelas antigas.
+  function converterParaOCofre() {
+    if (!cofreLigado() || !cofre.info || cofre.info.convertido || convertendoCofre) return Promise.resolve(false);
+    if (!sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    convertendoCofre = true;
+    var uid = sessaoNuvem.usuario.id;
+    var linhas = linhasDoEstado(uid);
+    var faltou = 0;
+    var tarefa = comTokenValido();
+    TABELAS_SINCRONIA.forEach(function (t) {
+      tarefa = tarefa.then(function () { return baixarDoCofre(t, false); }).then(function (r) {
+        var tem = {};
+        (r || []).forEach(function (l) { tem[String(l.id)] = true; });
+        (linhas[t] || []).forEach(function (l) { if (!linhaFicaAberta(t, l) && !tem[String(l.id)]) faltou++; });
+      });
+    });
+    tarefa = tarefa.then(function () { return baixarDoCofre('perfis', false); })
+      .then(function (r) { if (!r || !r.length) faltou++; });
+    return tarefa.then(function () {
+      if (faltou) throw new Error('o cofre ainda não tem ' + faltou + ' registro(s)');
+      var t2 = Promise.resolve();
+      var apagar = function (t, filtro) {
+        t2 = t2.then(function () {
+          return pedirNuvem('/rest/v1/' + t + '?' + filtro, { metodo: 'DELETE' });
+        }).catch(function (e) { if (ehTabelaQueFalta(e)) return null; throw e; });
+      };
+      TABELAS_SINCRONIA.slice().reverse().forEach(function (t) {
+        if (t !== 'empreendedor_registros') { apagar(t, 'user_id=eq.' + uid); return; }
+        // Do Empreendedor, só o que não está compartilhado.
+        t2 = t2.then(function () {
+          return baixarTudo(t, 'select=id,tipo&user_id=eq.' + uid).catch(function (e) {
+            if (ehTabelaQueFalta(e)) return [];
+            throw e;
+          });
+        }).then(function (r) {
+          var ids = (r || []).filter(function (l) { return !linhaFicaAberta(t, l); }).map(function (l) { return String(l.id); });
+          var g = Promise.resolve();
+          for (var i = 0; i < ids.length; i += 80) {
+            (function (parte) {
+              g = g.then(function () {
+                var lista = parte.map(function (x) { return '"' + x.replace(/"/g, '') + '"'; }).join(',');
+                return pedirNuvem('/rest/v1/' + t + '?id=in.(' + encodeURIComponent(lista) + ')', { metodo: 'DELETE' });
+              });
+            })(ids.slice(i, i + 80));
+          }
+          return g;
+        });
+      });
+      ['orcamentos', 'categorias_extras', 'subcategorias_extras'].forEach(function (t) { apagar(t, 'user_id=eq.' + uid); });
+      t2 = t2.then(function () {
+        return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+          metodo: 'PATCH', corpo: perfilNeutro(uid), cabecalhos: { 'Prefer': 'return=minimal' }
+        });
+      }).then(function () {
+        return cifrarCopiasEArquivosAntigos();
+      }).then(function () {
+        var info = JSON.parse(JSON.stringify(cofre.info));
+        info.convertido = new Date().toISOString();
+        return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+          metodo: 'PATCH', corpo: { cofre: info }, cabecalhos: { 'Prefer': 'return=minimal' }
+        }).then(function () { cofre.info = info; guardarInfoDoCofre(info); });
+      });
+      return t2;
+    }).then(function () {
+      convertendoCofre = false;
+      anotarNoHistorico('seus dados na nuvem passaram a ficar só cifrados', false);
+      return true;
+    }).catch(function () {
+      // Tenta de novo na próxima sincronia. Nada aberto foi apagado antes
+      // de o cofre provar que tem tudo.
+      convertendoCofre = false;
+      return false;
+    });
+  }
+
+  // Só nos testes automáticos (navigator.webdriver): ler e gravar a nuvem
+  // como o app lê e grava, já cifrado ou decifrado. Com o cofre, ler as
+  // tabelas direto devolve só texto embaralhado.
+  if (navigator.webdriver) {
+    window.__finanzTeste = {
+      cofreLigado: function () { return cofreLigado(); },
+      copias: function () { return listarInstantaneos(); },
+      tabela: function (t, apagados) {
+        return comTokenValido().then(function () {
+          return baixarTabela(t, apagados ? 'select=id&excluido_em=not.is.null' : 'select=*&excluido_em=is.null');
+        });
+      },
+      dadosDaCopia: function (id) {
+        return pedirNuvem('/rest/v1/instantaneos?select=dados&id=eq.' + encodeURIComponent(id), {})
+          .then(function (r) { return textoDaCopia(r[0].dados); }).then(function (t) { return JSON.parse(t); });
+      },
+      // Cópias montadas pelo teste: o `dados` vai cifrado (base64 vira os
+      // bytes de verdade; texto solto vira os bytes do texto).
+      inserirCopias: function (linhas) {
+        return Promise.all(linhas.map(function (l) {
+          var bytes;
+          try { bytes = deBase64(l.dados); } catch (e) { bytes = new TextEncoder().encode(String(l.dados)); }
+          return cifrarParaOCofre(bytes).then(function (d) { var n = Object.assign({}, l); n.dados = d; return n; });
+        })).then(function (corpo) {
+          return pedirNuvem('/rest/v1/instantaneos', { metodo: 'POST', corpo: corpo, cabecalhos: { 'Prefer': 'return=minimal' } });
+        }).then(function () { return 201; }, function (e) { return 'erro: ' + (e && e.message); });
+      }
+    };
+  }
+
+  // ---------- Cofre: as telas ----------
+
+  var INFO_COFRE = [
+    'Com a senha dos dados, tudo o que vai para a nuvem sai do seu celular já cifrado. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+    'A senha nunca sai do celular. Em cada aparelho novo, o app pede a senha uma vez.',
+    'Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais. Aí você pode apagar a nuvem e recomeçar, ou restaurar um backup .finanz.',
+    'O servidor continua vendo só o mínimo: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.'
+  ];
+
+  var pediuCriarCofre = false;
+  // A senha dos dados é escolha da pessoa (pedido de 25/11/2026): o app
+  // não pede sozinho. Quem quer o backup na nuvem vai em Proteja seus
+  // dados e liga. Nos testes automáticos, 'finanz.cofre.auto' cria a senha
+  // sem tela, para a suíte poder usar a nuvem cifrada.
+  function talvezPedirCriarCofre() {
+    if (pediuCriarCofre || cofre.ativo || !navigator.webdriver) return;
+    var auto = '';
+    try { auto = localStorage.getItem('finanz.cofre.auto') || ''; } catch (e) { auto = ''; }
+    if (!auto) return;
+    pediuCriarCofre = true;
+    setTimeout(function () { criarCofre(auto).catch(function () { pediuCriarCofre = false; }); }, 300);
+  }
+
+  function campoDeSenha(classe, dica, nova) {
+    var i = no('input', 'entrada ' + classe);
+    i.type = 'password';
+    i.autocomplete = nova ? 'new-password' : 'current-password';
+    if (dica) i.placeholder = dica;
+    return i;
+  }
+
+  function abrirCriarCofre() {
+    abrirFolha('Proteja seus dados', function (folha) {
+      var forma = no('div', 'forma');
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Crie a senha dos dados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      forma.appendChild(topo);
+      forma.appendChild(no('p', 'linha-sub', 'Com ela, seus dados vão para a nuvem embaralhados, e só você consegue abrir. Guarde bem: esquecendo, não tem como recuperar.'));
+      var s1 = campoDeSenha('campo-senha-dados', 'Pelo menos 8 caracteres', true);
+      var s2 = campoDeSenha('campo-senha-dados2', 'Repita a senha', true);
+      forma.appendChild(campo('Senha dos dados', s1));
+      forma.appendChild(campo('Repita a senha', s2));
+      var acoes = no('div', 'acoes');
+      var criar = botao('btn btn-ouro botao-criar-cofre', 'Criar a senha e cifrar tudo', function () {
+        if (s1.value.length < 8) { mostrarErro(forma, 'A senha precisa de pelo menos 8 caracteres.'); return; }
+        if (s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas não são iguais.'); return; }
+        criar.disabled = true; criar.textContent = 'Cifrando seus dados…';
+        criarCofre(s1.value).then(function () {
+          fecharFolha();
+          setTimeout(function () {
+            avisarCaixa('Seus dados estão cifrados', 'Pronto. Daqui para a frente, tudo vai para a nuvem embaralhado com a sua senha, e o que estava lá aberto foi convertido. Em outro aparelho, o app vai pedir a senha uma vez.');
+            desenhar();
+          }, 260);
+        }).catch(function (e) {
+          criar.disabled = false; criar.textContent = 'Criar a senha e cifrar tudo';
+          if (e && e.jaExiste) {
+            fecharFolha();
+            setTimeout(function () { prepararCofre().catch(function () { /* abre a senha */ }); }, 260);
+            return;
+          }
+          mostrarErro(forma, (e && e.message) || 'Não consegui criar a senha agora.');
+        });
+      });
+      var depois = botao('btn btn-fantasma', 'Agora não', function () { fecharFolha(); });
+      juntar(acoes, depois, criar);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  var pediuSenhaDoCofre = false;
+  function abrirSenhaDoCofre(deNovo) {
+    if (pediuSenhaDoCofre && !deNovo) return;
+    pediuSenhaDoCofre = true;
+    var abrir = function () {
+      if (document.querySelector('.boas-vindas')) { setTimeout(abrir, 1500); return; }
+      abrirFolha('Senha dos dados', function (folha) {
+        var forma = no('div', 'forma');
+        var topo = no('div', 'cartao-topo');
+        juntar(topo, no('div', 'rotulo', 'Seus dados estão cifrados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+        forma.appendChild(topo);
+        forma.appendChild(no('p', 'linha-sub', 'Digite a senha dos dados para abrir o que está na nuvem neste aparelho. Ela é pedida uma vez só.'));
+        var s1 = campoDeSenha('campo-senha-dados', '', false);
+        forma.appendChild(campo('Senha dos dados', s1));
+        var acoes = no('div', 'acoes');
+        var abrirB = botao('btn btn-ouro botao-abrir-cofre', 'Abrir meus dados', function () {
+          if (!s1.value) { mostrarErro(forma, 'Digite a senha.'); return; }
+          abrirB.disabled = true; abrirB.textContent = 'Abrindo…';
+          destrancarCofre(s1.value).then(function () {
+            fecharFolha();
+            avisar('Dados abertos neste aparelho.');
+            // Aberto o cofre, vale o que valeria logo depois de entrar: se a
+            // conta estiver vazia, oferecer a cópia da nuvem.
+            setTimeout(function () { sincronizar(false).then(function () { return convidarATrazer(); }); }, 260);
+          }).catch(function () {
+            abrirB.disabled = false; abrirB.textContent = 'Abrir meus dados';
+            mostrarErro(forma, 'Senha errada.');
+          });
+        });
+        acoes.appendChild(abrirB);
+        forma.appendChild(acoes);
+        var esqueci = botao('link-ouro botao-esqueci-cofre', 'Esqueci a senha', function () { esqueciSenhaDoCofre(); });
+        esqueci.style.marginTop = '14px';
+        forma.appendChild(esqueci);
+        folha.appendChild(forma);
+        setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+      });
+    };
+    abrir();
+  }
+
+  function esqueciSenhaDoCofre() {
+    perguntar({
+      titulo: 'Esqueceu a senha dos dados?',
+      texto: 'Sem a senha, os dados cifrados na nuvem não abrem mais. Ninguém consegue abrir: nem você, nem quem administra o servidor.\n\n' +
+             'Você pode apagar o que está na nuvem e recomeçar com uma senha nova (o que está neste aparelho continua aqui, e um backup .finanz pode ser restaurado depois). ' +
+             'Ou deixar como está, para tentar de novo se lembrar.',
+      ok: 'Apagar a nuvem', cancelar: 'Deixar como está', tom: 'perigo'
+    }, function () {
+      setTimeout(function () {
+        perguntar({
+          titulo: 'Apagar de vez?',
+          texto: 'Os dados cifrados, as cópias automáticas e os arquivos de extrato da sua conta saem da nuvem. Isso não tem volta.',
+          ok: 'Apagar de vez', tom: 'perigo'
+        }, function () {
+          apagarCofreDaNuvem().then(function () {
+            fecharFolha();
+            pediuCriarCofre = false;
+            pediuSenhaDoCofre = false;
+            avisar('A nuvem foi apagada. Crie uma senha nova.');
+            setTimeout(abrirCriarCofre, 400);
+          }).catch(function () {
+            avisarCaixa('Não consegui apagar agora', 'Confira a internet e tente de novo.');
+          });
+        });
+      }, 260);
+    });
+  }
+
+  function trocarSenhaDoCofre() {
+    abrirFolha('Trocar a senha dos dados', function (folha) {
+      var forma = no('div', 'forma');
+      var atual = campoDeSenha('campo-senha-atual', '', false);
+      var s1 = campoDeSenha('campo-senha-dados', 'Pelo menos 8 caracteres', true);
+      var s2 = campoDeSenha('campo-senha-dados2', 'Repita a senha nova', true);
+      forma.appendChild(campo('Senha atual', atual));
+      forma.appendChild(campo('Senha nova', s1));
+      forma.appendChild(campo('Repita a senha nova', s2));
+      var acoes = no('div', 'acoes');
+      var ok = botao('btn btn-ouro', 'Trocar a senha', function () {
+        if (s1.value.length < 8) { mostrarErro(forma, 'A senha nova precisa de pelo menos 8 caracteres.'); return; }
+        if (s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas novas não são iguais.'); return; }
+        ok.disabled = true; ok.textContent = 'Trocando…';
+        var info = cofre.info, sal = paraBase64(bytesAleatorios(16)), uid = sessaoNuvem.usuario.id;
+        desembrulhar(info.chave, atual.value, info.kdf.sal).then(function (cm) {
+          return embrulhar(cm, s1.value, sal).then(function (env) {
+            var novo = JSON.parse(JSON.stringify(info));
+            novo.kdf.sal = sal; novo.chave = env; novo.trocadaEm = new Date().toISOString();
+            return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+              metodo: 'PATCH', corpo: { cofre: novo }, cabecalhos: { 'Prefer': 'return=minimal' }
+            }).then(function () {
+              cofre.info = novo; cofre.chave = cm; cofre.sal = sal;
+              guardarInfoDoCofre(novo);
+              return guardarChaveDoCofre(cm, sal);
+            });
+          });
+        }, function () { throw new Error('A senha atual está errada.'); }).then(function () {
+          fecharFolha();
+          avisar('Senha dos dados trocada.');
+        }).catch(function (e) {
+          ok.disabled = false; ok.textContent = 'Trocar a senha';
+          mostrarErro(forma, (e && e.message) || 'Não consegui trocar agora.');
+        });
+      });
+      acoes.appendChild(ok);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function rotuloDoCofreEmMais() {
+    if (!NUVEM.ligada || !sessaoNuvem) return 'Só com a conta na nuvem';
+    if (faltaNoBanco['cofre']) return 'O servidor ainda não tem o cofre';
+    if (cofreLigado()) return 'Ligada: seus dados sobem cifrados';
+    if (cofreTrancado()) return 'Trancado neste aparelho: toque para digitar';
+    return 'Proteja seus dados com uma senha';
+  }
+
+  function abrirFolhaCofre() {
+    if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Senha dos dados', 'A senha dos dados protege o que vai para a nuvem. Entre na sua conta para usar.'); return; }
+    if (faltaNoBanco['cofre']) { avisarCaixa('Ainda não dá', 'O servidor ainda não recebeu a atualização do cofre. Tente de novo mais tarde.'); return; }
+    if (cofreTrancado()) { abrirSenhaDoCofre(true); return; }
+    if (!cofre.ativo) { abrirCriarCofre(); return; }
+    abrirFolha('Senha dos dados', function (folha) {
+      var c = cartao();
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Criptografia de ponta a ponta'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      c.appendChild(topo);
+      c.appendChild(no('div', 'linha-nota verde estado-cofre', cofre.info && cofre.info.convertido
+        ? 'Ligada ✓ Tudo o que está na nuvem está cifrado com a sua senha.'
+        : 'Ligada ✓ Seus dados estão sendo convertidos; termina na próxima sincronização.'));
+      folha.appendChild(c);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma botao-trocar-senha', 'Trocar a senha', function () { trocarSenhaDoCofre(); }));
+      folha.appendChild(acoes);
+    });
+  }
+
   // ---------- Nuvem: sincronização dos dados ----------
 
   function ouNulo(v) { return v ? v : null; }
@@ -6626,6 +7694,7 @@
     doce_vendedor: 'doceVendedores', doce_produto: 'doceProdutos', doce_entrega: 'doceEntregas',
     doce_acerto: 'doceAcertos', doce_pagamento: 'docePagamentos', doce_compra: 'doceCompras', doce_ajuste: 'doceAjustes',
     doce_custo: 'doceCustos', doce_membro: 'doceMembros',
+    estoque_item: 'estoqueItens', estoque_mov: 'estoqueMovs',
     casa_membro: 'casaMembros', casa_conta: 'casaContas', casa_compra: 'casaCompras'
   };
 
@@ -6702,6 +7771,7 @@
   }
 
   var meusConvites = [];
+  var convitesComigo = [];
   var convitesParaMim = [];
   var convitesJaPerguntados = {};
 
@@ -6716,6 +7786,7 @@
     return pedirNuvem('/rest/v1/compartilhamentos?select=*', {}).then(function (linhas) {
       linhas = linhas || [];
       meusConvites = linhas.filter(function (l) { return l.dono_id === uid; });
+      convitesComigo = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'aceito' && l.convidado_id === uid; });
       var aceitos = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'aceito' && l.convidado_id === uid; })
         .map(function (l) { return { id: l.id, donoId: l.dono_id, donoNome: l.dono_nome || '', areas: Array.isArray(l.areas) ? l.areas : [] }; });
       var antes = compartilhadosComigo();
@@ -7107,8 +8178,23 @@
 
   var LOTE_DE_ENVIO = 400;
 
-  function enviarLinhas(tabela, linhas, aoConflito) {
+  function enviarLinhas(tabela, linhas, aoConflito, direto) {
     if (!linhas.length) return Promise.resolve();
+    if (!direto && tabela === 'empreendedor_registros' && !linhas.compartilhadoPronto) {
+      return cifrarLinhasCompartilhadas(linhas).then(function (ls) {
+        ls.compartilhadoPronto = true;
+        return enviarLinhas(tabela, ls, aoConflito);
+      });
+    }
+    if (!direto && cofreLigado()) {
+      // Com o cofre, tudo sobe cifrado; só o Empreendedor compartilhado
+      // segue aberto, na tabela de sempre.
+      var abertas = linhas.filter(function (l) { return linhaFicaAberta(tabela, l); });
+      var fechadas = abertas.length ? linhas.filter(function (l) { return !linhaFicaAberta(tabela, l); }) : linhas;
+      return enviarAoCofre(tabela, fechadas, aoConflito).then(function () {
+        return abertas.length ? enviarLinhas(tabela, abertas, aoConflito, true) : null;
+      });
+    }
     if (faltaNoBanco['tabela:' + tabela]) return Promise.resolve();
     // Milhares de linhas num pedido só pesam no celular e, se a rede cair
     // no meio, perdem tudo. Em lotes, cada um sobe por conta própria.
@@ -7116,7 +8202,7 @@
       var lotes = [];
       for (var i = 0; i < linhas.length; i += LOTE_DE_ENVIO) lotes.push(linhas.slice(i, i + LOTE_DE_ENVIO));
       return lotes.reduce(function (antes, lote) {
-        return antes.then(function () { return enviarLinhas(tabela, lote, aoConflito); });
+        return antes.then(function () { return enviarLinhas(tabela, lote, aoConflito, direto); });
       }, Promise.resolve());
     }
     var tirar = faltaNoBanco['colunas:' + tabela] || [];
@@ -7132,7 +8218,7 @@
       var faltando = oQueFaltou(e, tabela);
       if (faltando) {
         faltaNoBanco['colunas:' + tabela] = tirar.concat(faltando);
-        return enviarLinhas(tabela, linhas, aoConflito);
+        return enviarLinhas(tabela, linhas, aoConflito, direto);
       }
       // Tabela que ainda não existe: some desta sincronia, volta na próxima
       // sessão, depois de a migração rodar.
@@ -7199,13 +8285,8 @@
       return lotes.reduce(function (antes, lote) {
         return antes.then(function () {
           if (faltaNoBanco['tabela:' + lote.t]) return null;
-          var lista = lote.ids.map(function (id) { return '"' + String(id).replace(/"/g, '') + '"'; }).join(',');
           return comTentativas(function () {
-            return pedirNuvem('/rest/v1/' + lote.t + '?id=in.(' + encodeURIComponent(lista) + ')', {
-              metodo: 'PATCH',
-              corpo: { excluido_em: agora },
-              cabecalhos: { 'Prefer': 'return=minimal' }
-            });
+            return marcarApagadosNaNuvem(lote.t, lote.ids, agora);
           }).then(function () {
             var feitos = {};
             lote.ids.forEach(function (id) { feitos[lote.t + '|' + id] = true; });
@@ -7240,14 +8321,14 @@
     // Orçamento por categoria e categorias criadas na mão: troca tudo,
     // porque a chave é composta e some quando a pessoa desmarca.
     tarefa = tarefa.then(function () {
-      return pedirNuvem('/rest/v1/orcamentos?user_id=eq.' + uid, { metodo: 'DELETE' });
+      return limparTabelaNaNuvem('orcamentos', uid);
     }).then(function () {
       var linhasOrc = Object.keys(estado.orcamentos.categorias).map(function (c) {
         return { user_id: uid, categoria: c, valor: estado.orcamentos.categorias[c] };
       });
       return enviarLinhas('orcamentos', linhasOrc, 'user_id,categoria');
     }).then(function () {
-      return pedirNuvem('/rest/v1/categorias_extras?user_id=eq.' + uid, { metodo: 'DELETE' });
+      return limparTabelaNaNuvem('categorias_extras', uid);
     }).then(function () {
       var extras = [];
       ['saida', 'entrada'].forEach(function (tipo) {
@@ -7258,7 +8339,7 @@
       return enviarLinhas('categorias_extras', extras, 'user_id,tipo,nome');
     }).then(function () {
       if (faltaNoBanco['tabela:subcategorias_extras']) return null;
-      return pedirNuvem('/rest/v1/subcategorias_extras?user_id=eq.' + uid, { metodo: 'DELETE' })
+      return limparTabelaNaNuvem('subcategorias_extras', uid)
         .catch(function () { return null; });
     }).then(function () {
       var subs = [];
@@ -7365,12 +8446,13 @@
     var recolhido = {};
 
     var tarefa = comTokenValido().then(function () {
+      if (cofreLigado()) return baixarDoCofre('perfis', false);
       return pedirNuvem('/rest/v1/perfis?select=*', {});
     }).then(function (r) { recolhido.perfis = r || []; });
 
     TABELAS_SINCRONIA.forEach(function (t) {
       tarefa = tarefa.then(function () {
-        return baixarTudo(t, 'select=*&excluido_em=is.null').catch(function (e) {
+        return baixarTabela(t, 'select=*&excluido_em=is.null').catch(function (e) {
           // Tabela que ainda não existe lá: null quer dizer "não sei", e o
           // que está no aparelho fica como está.
           if (TABELAS_OPCIONAIS.indexOf(t) >= 0 && ehTabelaQueFalta(e)) {
@@ -7382,25 +8464,31 @@
       }).then(function (r) { recolhido[t] = r === null ? null : (r || []); });
     });
 
+    // Áreas compartilhadas cifradas: abre com a chave da área.
+    tarefa = tarefa.then(function () {
+      if (!recolhido.empreendedor_registros) return;
+      return abrirLinhasCompartilhadas(recolhido.empreendedor_registros).then(function (r) { recolhido.empreendedor_registros = r; });
+    });
+
     // Uber e Doces: além das linhas vivas, os ids das que foram apagadas.
     // É o que separa "apagado em outro aparelho" de "ainda não subiu".
     tarefa = tarefa.then(function () {
       if (recolhido.empreendedor_registros == null) return;
-      return baixarTudo('empreendedor_registros', 'select=id&excluido_em=not.is.null')
+      return baixarTabela('empreendedor_registros', 'select=id&excluido_em=not.is.null')
         .then(function (r) { recolhido.empreendedorApagados = r || []; })
         .catch(function () { recolhido.empreendedorApagados = null; });
     });
 
     tarefa = tarefa.then(function () {
-      return baixarTudoPorPulo('orcamentos', 'select=*', 'categoria.asc');
+      return baixarTabelaPorPulo('orcamentos', 'select=*', 'categoria.asc');
     }).then(function (r) { recolhido.orcamentos = r || []; })
       .then(function () {
-        return baixarTudoPorPulo('categorias_extras', 'select=*', 'tipo.asc,nome.asc');
+        return baixarTabelaPorPulo('categorias_extras', 'select=*', 'tipo.asc,nome.asc');
       })
       .then(function (r) { recolhido.categorias_extras = r || []; })
       // Banco sem a migração nova: volta vazio em vez de derrubar a leitura.
       .then(function () {
-        return baixarTudoPorPulo('subcategorias_extras', 'select=*',
+        return baixarTabelaPorPulo('subcategorias_extras', 'select=*',
           'tipo.asc,categoria.asc,nome.asc').catch(function () { return []; });
       })
       .then(function (r) { recolhido.subcategorias_extras = r || []; });
@@ -7779,6 +8867,7 @@
   }
 
   function copiaDoDiaUmaVez() {
+    converterParaOCofre();
     if (instantaneoTentado) return;
     instantaneoTentado = true;
     guardarInstantaneoDoDia().then(function () { recuperarModulosDasCopias(); });
@@ -7809,7 +8898,7 @@
         }).then(function (r) {
           var b64 = r && r[0] && r[0].dados;
           if (!b64) return;
-          return descomprimirTexto(b64, pareceZip(b64)).then(function (texto) {
+          return textoDaCopia(b64).then(function (texto) {
             var e = JSON.parse(texto);
             var total = chaves.reduce(function (t, k) { return t + (Array.isArray(e[k]) ? e[k].length : 0); }, 0);
             if (total > melhorTotal) { melhor = e; melhorTotal = total; }
@@ -7854,6 +8943,10 @@
       return carregarCompartilhamentos();
     }).then(function () {
       return carimboDaConta();
+    }).then(function (carimbo) {
+      return prepararCofre(!carimbo || carimbo !== estado.carimbo).then(function () {
+        return prepararCompartilhadoCifrado();
+      }).then(function () { return estado.carimbo === '' ? null : carimbo; });
     }).then(function (carimbo) {
       // Sem carimbo (banco antigo) o app não sabe, então assume que mudou
       // e faz como sempre fez.
@@ -7955,6 +9048,8 @@
       });
     }).catch(function (e) {
       sincronizando = false;
+      // Cofre trancado não é falha: espera a senha.
+      if (e && e.trancado) { if (!silenciosa) avisar(e.message); return false; }
       var f = marcarFalhaDeSincronia(e);
       agendarNovaTentativa(f.seguidas);
       if (!silenciosa) { avisar('Não sincronizou: ' + f.mensagem); return false; }
@@ -8116,6 +9211,7 @@
     var orc = e.orcamentos || {};
     return (quantas(e.servicos) + quantas(e.pagamentos) + quantas(e.parcelas)
       + quantas(e.propostas) + quantas(e.importacoes) + quantas(e.tiposRegistro)
+      + quantas(e.estoqueItens)
       + quantas((e.categoriasExtras || {}).saida)
       + quantas((e.categoriasExtras || {}).entrada)
       + chavesDe(e.regrasCategoria) + chavesDe(orc.categorias)
@@ -8356,6 +9452,8 @@
     // tem. Oferecer o cofre de outra conta agora é propor uma união em
     // cima de dados que existem, só não chegaram.
     if (falhaDaSincronia) return Promise.resolve();
+    // Cofre trancado: a conta não está vazia, só ainda não abriu.
+    if (cofre.ativo && !cofre.chave) return Promise.resolve();
     var marca = 'caixa.convitetrazer.' + sessao.contaId;
     try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
     if (!estaVazio(estado)) return Promise.resolve();
@@ -9485,7 +10583,7 @@
       texto: 'Gerencie, invista e multiplique seu patrimônio com inteligência.',
       vantagens: [
         ['grafico', 'Visão completa', 'Contas, cartões e investimentos num só lugar', 'visao'],
-        ['escudo', 'Dados protegidos', 'Cifrados no celular, no caminho e no servidor', 'dados'],
+        ['escudo', 'Dados protegidos', 'Criptografia de ponta a ponta: só você lê', 'dados'],
         ['ideia', 'Análises úteis', 'Para onde foi o dinheiro, mês a mês', 'analises']
       ]
     },
@@ -9681,11 +10779,6 @@
       });
     });
 
-    var guiaLink = botao('ent-guia-link', null, function () { abrirGuia(''); });
-    guiaLink.appendChild(icone('info'));
-    guiaLink.appendChild(no('span', null, 'Como funciona, termos e privacidade'));
-    guiaLink.appendChild(no('span', 'ent-guia-seta', '›'));
-    folha.appendChild(guiaLink);
 
     var fundo = no('div', 'ent-fundo');
 
@@ -10260,10 +11353,11 @@
     var naNuvem = NUVEM.ligada;
     return [
       { icone: '🔒', titulo: 'Seus dados são seus', itens: naNuvem ? [
-        ['Guardados na sua conta.', 'Ficam no servidor do Finanz (Supabase, em São Paulo) e numa cópia no seu celular.'],
-        ['Só você vê os seus.', 'O próprio banco de dados só devolve as linhas de quem está logado, mesmo que alguém tente pedir outra coisa.'],
-        ['Cifrados no aparelho.', 'A cópia do celular é guardada com criptografia AES de 256 bits.'],
-        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
+        ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo sai do seu celular já embaralhado com uma chave que só a sua senha abre.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede uma vez. Não tem recuperação: esquecendo, a nuvem não abre mais.'],
+        ['Guardados na sua conta.', 'No servidor do Finanz (Supabase, em São Paulo) e numa cópia cifrada no seu celular.'],
+        ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
         ['Cifrados.', 'Guardados com criptografia AES de 256 bits, com a chave tirada da sua senha.']
@@ -10397,15 +11491,18 @@
         'O Finanz é um app de controle financeiro pessoal. Ele ajuda você a registrar e enxergar o seu dinheiro, mas não movimenta valores, não faz pagamentos e não dá recomendação de investimento.',
         'Os números que aparecem aqui vêm do que você mesmo cadastra. Projeções, como a de aposentadoria, são estimativas matemáticas e não promessa de rendimento.',
         'O app é fornecido como está, sem garantia. Confira sempre os valores oficiais no seu banco ou corretora antes de tomar decisões.',
-        'Você é responsável por guardar sua senha e o código de recuperação. Sem eles não há como abrir seus dados.'
+        'Você é responsável por guardar a sua senha de login e a senha dos dados. A senha dos dados não tem recuperação: sem ela, ninguém consegue abrir os dados cifrados na nuvem, nem o Finanz.'
       ]
     },
     privacidade: {
       titulo: 'Política de Privacidade',
       partes: NUVEM.ligada ? [
         'Com a conta ligada, seus dados ficam em duas casas: neste aparelho e no servidor do Finanz, hospedado no Supabase, na região de São Paulo.',
+        'Criptografia de ponta a ponta: com a senha dos dados criada (Mais → Senha dos dados), tudo o que vai para o servidor — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato — sai do seu celular já cifrado (AES-GCM de 256 bits) com uma chave que só a sua senha abre. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+        'A senha dos dados nunca sai do celular. O servidor guarda só a chave embrulhada por ela (PBKDF2 com 210 mil voltas). Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais, e você pode apagá-los para recomeçar.',
+        'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram e o tamanho deles.',
+        'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, quando as duas têm a senha dos dados.',
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
-        'Quem administra o servidor consegue ler os dados, como em qualquer aplicativo de finanças. Se você prefere que ninguém além de você leia, não use a conta na nuvem: sem servidor configurado o app guarda tudo cifrado só no aparelho.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
         'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
@@ -10437,13 +11534,15 @@
         ['O extrato do banco é a verdade.', 'Os números saem do que você importa e lança. O app nunca inventa dado: o que falta aparece como faltando.']
       ] },
       { id: 'dados', icone: 'escudo', titulo: 'Dados protegidos', resumo: 'Onde ficam, quem vê e como são cifrados', itens: naNuvem ? [
-        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia no seu celular.'],
-        ['Só você vê os seus.', 'Cada linha do banco de dados tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security). A checagem é feita pelo banco, não pelo app.'],
+        ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo o que vai para a nuvem sai do seu celular já cifrado: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede a senha uma vez. Não existe recuperação: esquecendo, a nuvem não abre mais, e você escolhe se apaga para recomeçar.'],
+        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia cifrada no seu celular.'],
+        ['Só você vê os seus.', 'Além da cifra, cada linha tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security).'],
         ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
-        ['Cifrados no servidor.', 'Os discos do servidor são cifrados pelo Supabase.'],
-        ['Cifrados no celular.', 'A cópia do aparelho é guardada com AES-GCM de 256 bits.'],
-        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
-        ['Quem administra o servidor.', 'Consegue ler os lançamentos, como em qualquer app de finanças. Os extratos conferidos e o backup, não: eles são cifrados com senhas que só você sabe.'],
+        ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
+        ['Compartilhado também.', 'A área do Empreendedor que você compartilha vai cifrada com uma chave só de vocês dois (cada um com o seu par de chaves).'],
+        ['Ainda abertos.', 'Sem a senha dos dados criada, a sincronia continua do jeito antigo: protegida pelo login, mas legível para quem administra o servidor.'],
         ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
@@ -10455,7 +11554,8 @@
         ['O app não entra no seu banco.', 'Ele nunca pede a senha do banco e não movimenta dinheiro: só lê o arquivo que você escolhe.'],
         ['Você confere antes de entrar.', 'Tudo aparece numa lista para marcar, desmarcar e trocar a categoria. Lançamento que já existe vem desmarcado, e o extrato com saldo por linha é conferido linha a linha.'],
         ['O arquivo original fica guardado.', 'Na sua conta, para baixar de novo, reler ou relançar. Ele sai sozinho depois de 6 meses.'],
-        ['Conferido ✓.', 'Com a conta batendo com o banco, você confirma, e os PDFs da conta viram uma versão compacta, cifrada com a senha dos extratos. Essa fica guardada sem prazo.'],
+        ['Conferido ✓.', 'Com a conta batendo com o banco, você confirma, e os PDFs da conta viram uma versão compacta e cifrada (com a senha dos dados; sem ela, com a senha dos extratos). Essa fica guardada sem prazo.'],
+        ['Cifrados com a senha dos dados.', 'Com a senha dos dados ligada, todo arquivo de extrato, e até o nome dele, sobe cifrado.'],
         ['Limpeza automática.', 'O arquivo de uma importação que você tirou é apagado sozinho depois de um dia.']
       ] },
       { id: 'analises', icone: 'ideia', titulo: 'Análises úteis', resumo: 'Para onde foi o dinheiro e o que mudou', itens: [
@@ -10491,7 +11591,7 @@
       ] },
       { id: 'backup', icone: 'cadeado', titulo: 'Backup e cópias', resumo: 'Para nunca perder nada', itens: [
         ['Backup com senha.', 'Um arquivo .finanz com tudo, cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre, nem o Finanz.'],
-        ['Cópias automáticas.', 'O app guarda sozinho uma cópia por dia dos últimos 14 dias, para voltar a uma data.'],
+        ['Backup na nuvem.', 'Com a senha dos dados criada, o app guarda sozinho uma cópia cifrada a cada mudança, por 14 dias, para voltar a uma data. Sem a senha, ele fica desligado.'],
         ['Histórico do saldo.', 'Cada mudança nos seus números fica anotada, com o motivo.']
       ] },
       { id: 'termos', icone: 'info', titulo: TEXTOS.termos.titulo, resumo: 'As regras de uso do app', itens:
@@ -10501,11 +11601,15 @@
     ];
   }
 
+  // Vindo de um item da abertura, mostra só aquele assunto, aberto (pedido
+  // de 25/11/2026); "Ver todos os assuntos" abre o guia inteiro, fechado.
   function abrirGuia(assunto) {
-    abrirFolha('Como o Finanz funciona', function (folha) {
-      folha.appendChild(no('p', 'guia-intro', 'Tudo o que o app faz, onde os seus dados ficam e as regras de uso. Toque num assunto para abrir.'));
+    var todos = guiaDoFinanz();
+    var so = assunto ? todos.filter(function (x) { return x.id === assunto; }) : [];
+    abrirFolha(so.length ? so[0].titulo : 'Como o Finanz funciona', function (folha) {
+      if (!so.length) folha.appendChild(no('p', 'guia-intro', 'Tudo o que o app faz, onde os seus dados ficam e as regras de uso. Toque num assunto para abrir.'));
       var alvo = null;
-      guiaDoFinanz().forEach(function (sec) {
+      (so.length ? so : todos).forEach(function (sec) {
         var bloco = no('div', 'guia-secao' + (sec.id === assunto ? ' aberta' : ''));
         bloco.setAttribute('data-assunto', sec.id);
         var cab = botao('guia-cab', null, function () {
@@ -10531,9 +11635,14 @@
         if (sec.id === assunto) alvo = bloco;
       });
       var acoes = no('div', 'acoes');
+      if (so.length) {
+        acoes.appendChild(botao('btn btn-fantasma botao-guia-todos', 'Ver todos os assuntos', function () {
+          voltarNavegacao();
+          setTimeout(function () { abrirGuia(''); }, 280);
+        }));
+      }
       acoes.appendChild(botao('btn btn-fantasma', 'Fechar', function () { voltarNavegacao(); }));
       folha.appendChild(acoes);
-      if (alvo) setTimeout(function () { try { alvo.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* velho */ } }, 420);
     });
   }
 
@@ -11568,6 +12677,9 @@
     }));
 
     ajustarFab();
+    // Atualizou? As novidades aparecem no topo, até a pessoa dar "Entendi".
+    var nov = cartaoNovidades();
+    if (nov) tela.appendChild(nov);
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
     var faltam = cartaoFaltamDados();
@@ -12085,7 +13197,16 @@
     pop.setAttribute('role', 'dialog');
     pop.appendChild(no('strong', null, titulo));
     var ul = no('ul');
-    itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
+    // Item em par [pergunta, resposta]: a pergunta em negrito, a resposta embaixo.
+    itens.forEach(function (t) {
+      if (Array.isArray(t)) {
+        var li = no('li', 'dica-par');
+        juntar(li, no('b', 'dica-pergunta', t[0]), no('span', null, t[1]));
+        ul.appendChild(li);
+        return;
+      }
+      ul.appendChild(no('li', null, t));
+    });
     pop.appendChild(ul);
     pop.appendChild(no('div', 'dica-pop-rodape', 'Toque fora para fechar. O "i" mostra de novo.'));
     pop.style.width = largura + 'px';
@@ -13086,6 +14207,7 @@
     servicos: { titulo: 'Serviços e Vendas', icone: 'ferramenta' },
     uber: { titulo: 'Uber e Corridas', icone: 'carro' },
     doces: { titulo: 'Venda de Doces', icone: 'doce' },
+    estoque: { titulo: 'Estoque e Ferramentas', icone: 'pacote' },
     painel: { titulo: 'Resumo do Empreendedor', icone: 'painel' }
   };
 
@@ -13521,6 +14643,12 @@
       { rotulo: 'Meu lucro ' + noPeriodoCurto(), valor: emReais(meuDoces), cor: meuDoces < 0 ? 'vermelho' : 'verde' }));
     // O quarto quadro (Painel geral) saiu: ele repetia o resumo, que agora
     // é a primeira coisa da tela e continua abrindo o painel.
+    // Estoque e Ferramentas (pedido de 25/11/2026), na linha inteira.
+    var est = numerosDoEstoque();
+    lista.appendChild(cartaoDeModulo('estoque', 'Ferramentas, consumíveis, usos, manutenção e custo das obras',
+      est.acabando
+        ? { rotulo: est.acabando + ' acabando', valor: emReais(est.valor), cor: 'vermelho' }
+        : { rotulo: 'Valor em estoque', valor: emReais(est.valor), cor: 'ouro' }));
 
     var ant = mesAnteriorAo(mesAtivo.ano, mesAtivo.mes);
     var fAnt = faixaDoMes(ant.ano, ant.mes);
@@ -13576,8 +14704,710 @@
     if (moduloEmp === 'servicos') desenharServicos(corpo);
     else if (moduloEmp === 'uber') desenharUber(corpo);
     else if (moduloEmp === 'doces') desenharDoces(corpo);
+    else if (moduloEmp === 'estoque') desenharEstoque(corpo);
     else desenharPainel(corpo);
     return true;
+  }
+
+  // =========================================================================
+  // Estoque e Ferramentas (pedido do Vitor em 25/11/2026)
+  //
+  // Ferramentas: compra, valor, vida útil, situação, cada uso e cada
+  // manutenção. Consumíveis (disco de corte, broca…): quantidade, mínimo,
+  // custo, entradas e saídas. Cada uso e saída pode levar a obra (o cliente
+  // ou um nome livre), e daí sai o custo de material de cada obra e a
+  // estimativa de uma obra nova. Registrar tem de ser rápido: "Usei hoje"
+  // é um toque, com a "obra de hoje" já escolhida.
+  // =========================================================================
+
+  var abaEstoque = 'resumo';
+  var obraDeHoje = '';      // nome da obra do dia (sessão)
+  var obraDeHojeCliente = '';
+
+  var CATEGORIAS_FERRAMENTA = ['Elétrica', 'Manual', 'Corte', 'Furação', 'Medição', 'Outra'];
+  var CATEGORIAS_CONSUMIVEL = ['Corte', 'Furação', 'Fixação', 'Abrasivos', 'Elétrica', 'Outra'];
+  var UNIDADES_ESTOQUE = ['un', 'caixa', 'pacote', 'm', 'kg', 'L'];
+  var SITUACOES_FERRAMENTA = [
+    { valor: 'ok', rotulo: 'Em uso' }, { valor: 'manutencao', rotulo: 'Em manutenção' },
+    { valor: 'emprestada', rotulo: 'Emprestada' }, { valor: 'baixa', rotulo: 'Fora de uso' }
+  ];
+
+  function qtdBr(q) {
+    var n = Math.round((Number(q) || 0) * 1000) / 1000;
+    return String(n).replace('.', ',');
+  }
+  function lerQtd(t) {
+    var n = parseFloat(String(t || '').replace(/\./g, '').replace(',', '.'));
+    return isFinite(n) ? Math.round(n * 1000) / 1000 : 0;
+  }
+
+  function movsDoItem(id) {
+    return estado.estoqueMovs.filter(function (m) { return m.itemId === id; })
+      .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : b.criadoEm - a.criadoEm; });
+  }
+
+  function qtdEmEstoque(item) {
+    return Math.round(estado.estoqueMovs.reduce(function (t, m) {
+      if (m.itemId !== item.id) return t;
+      if (m.tipo === 'entrada' || m.tipo === 'ajuste') return t + m.quantidade;
+      if (m.tipo === 'saida') return t - m.quantidade;
+      return t;
+    }, 0) * 1000) / 1000;
+  }
+
+  // Custo de uma unidade: o da última compra com valor; sem compra, o
+  // custo que a pessoa pôs no item.
+  function custoUnitario(item) {
+    var ult = null;
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.itemId === item.id && m.tipo === 'entrada' && m.valor > 0 && m.quantidade > 0 &&
+          (!ult || m.data > ult.data || (m.data === ult.data && m.criadoEm > ult.criadoEm))) ult = m;
+    });
+    return ult ? Math.round(ult.valor / ult.quantidade) : item.custo;
+  }
+
+  function usosDaFerramenta(item) {
+    var usos = 0, ultimo = '', manut = 0, nManut = 0;
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.itemId !== item.id) return;
+      if (m.tipo === 'uso') { usos += Math.max(1, m.quantidade || 1); if (m.data > ultimo) ultimo = m.data; }
+      if (m.tipo === 'manutencao') { manut += m.valor; nManut++; }
+    });
+    return { usos: usos, ultimo: ultimo, manutencao: manut, nManut: nManut };
+  }
+
+  // Quanto cada uso da ferramenta custa: o desgaste (preço ÷ vida útil em
+  // usos) mais a manutenção dividida pelos usos que já houve.
+  function custoPorUso(item) {
+    var u = usosDaFerramenta(item);
+    var desgaste = item.vidaUtil > 0 ? Math.round(item.custo / item.vidaUtil) : 0;
+    var manut = u.usos > 0 ? Math.round(u.manutencao / u.usos) : 0;
+    return desgaste + manut;
+  }
+
+  function numerosDoEstoque() {
+    var valor = 0, acabando = 0, ferr = 0, emManut = 0, cons = 0;
+    (estado.estoqueItens || []).forEach(function (it) {
+      if (it.tipo === 'ferramenta') {
+        if (it.situacao !== 'baixa') { valor += it.custo; ferr++; }
+        if (it.situacao === 'manutencao') emManut++;
+        return;
+      }
+      cons++;
+      var q = qtdEmEstoque(it);
+      valor += Math.round(Math.max(q, 0) * custoUnitario(it));
+      if (it.minimo > 0 && q <= it.minimo) acabando++;
+    });
+    return { valor: valor, acabando: acabando, ferramentas: ferr, emManutencao: emManut, consumiveis: cons };
+  }
+
+  function nomeDaObra(m) {
+    if (m.clienteId) {
+      var c = achar(estado.clientes || [], m.clienteId);
+      if (c) return c.nome;
+    }
+    return m.obra || 'Sem obra';
+  }
+
+  // O custo de material de cada obra no período.
+  function obrasDoPeriodo(de, ate) {
+    var porObra = {};
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.data < de || m.data > ate) return;
+      if (m.tipo !== 'saida' && m.tipo !== 'uso') return;
+      var it = achar(estado.estoqueItens, m.itemId);
+      if (!it) return;
+      var chave = m.clienteId ? 'c:' + m.clienteId : 'o:' + (m.obra || '');
+      var o = porObra[chave] || (porObra[chave] = { chave: chave, nome: nomeDaObra(m), clienteId: m.clienteId, obra: m.obra,
+        consumiveis: 0, ferramentas: 0, movs: [], ultima: '' });
+      var v = m.tipo === 'saida' ? Math.round(m.quantidade * custoUnitario(it)) : Math.max(1, m.quantidade || 1) * custoPorUso(it);
+      if (m.tipo === 'saida') o.consumiveis += v; else o.ferramentas += v;
+      o.movs.push({ m: m, it: it, valor: v });
+      if (m.data > o.ultima) o.ultima = m.data;
+    });
+    return Object.keys(porObra).map(function (k) { return porObra[k]; })
+      .sort(function (a, b) { return (b.consumiveis + b.ferramentas) - (a.consumiveis + a.ferramentas); });
+  }
+
+  // As obras para escolher: clientes recentes e nomes já usados.
+  function opcoesDeObra() {
+    var vistos = {}, ops = [];
+    estado.estoqueMovs.slice().sort(function (a, b) { return b.criadoEm - a.criadoEm; }).forEach(function (m) {
+      var chave = m.clienteId ? 'c:' + m.clienteId : m.obra ? 'o:' + m.obra : '';
+      if (!chave || vistos[chave] || ops.length >= 8) return;
+      vistos[chave] = true;
+      ops.push({ nome: nomeDaObra(m), clienteId: m.clienteId, obra: m.clienteId ? '' : m.obra });
+    });
+    (estado.clientes || []).slice(-12).reverse().forEach(function (c) {
+      if (vistos['c:' + c.id] || ops.length >= 14) return;
+      vistos['c:' + c.id] = true;
+      ops.push({ nome: c.nome, clienteId: c.id, obra: '' });
+    });
+    return ops;
+  }
+
+  // Escolher a obra: chips das recentes e um campo para uma nova.
+  function escolhaDeObra(inicial, aoMudar) {
+    var caixa = no('div', 'est-escolha-obra');
+    var atual = { nome: inicial.nome || '', clienteId: inicial.clienteId || '', obra: inicial.obra || '' };
+    var ops = opcoesDeObra();
+    var chips = grupoChips([{ rotulo: 'Sem obra', valor: '' }].concat(ops.map(function (o, i) { return { rotulo: o.nome, valor: String(i + 1) }; })),
+      atual.nome ? String(ops.map(function (o) { return o.nome; }).indexOf(atual.nome) + 1) : '', function (v) {
+        if (!v) { atual = { nome: '', clienteId: '', obra: '' }; campoNova.value = ''; }
+        else { var o = ops[+v - 1]; atual = { nome: o.nome, clienteId: o.clienteId || '', obra: o.obra || '' }; campoNova.value = ''; }
+        aoMudar(atual);
+      });
+    var campoNova = no('input', 'entrada campo-obra-nova');
+    campoNova.type = 'text';
+    campoNova.placeholder = 'Ou escreva uma obra nova';
+    campoNova.addEventListener('input', function () {
+      var t = campoNova.value.trim().slice(0, 80);
+      atual = { nome: t, clienteId: '', obra: t };
+      Array.prototype.forEach.call(chips.querySelectorAll('.chip'), function (c) { c.setAttribute('aria-pressed', 'false'); });
+      aoMudar(atual);
+    });
+    juntar(caixa, chips, campoNova);
+    return caixa;
+  }
+
+  function anotarMov(mov) {
+    mov.id = novoId();
+    mov.criadoEm = Date.now();
+    estado.estoqueMovs.push(mov);
+  }
+
+  // Um toque: a ferramenta foi usada hoje, na obra de hoje.
+  function useiHoje(item) {
+    anotarMov({ itemId: item.id, tipo: 'uso', data: hojeTexto(), quantidade: 1, valor: 0,
+                obra: obraDeHojeCliente ? '' : obraDeHoje, clienteId: obraDeHojeCliente, obs: '' });
+    salvar(); desenhar();
+    avisar('Uso anotado' + (obraDeHoje ? ' em ' + obraDeHoje : '') + '.');
+  }
+
+  // Um toque: saiu uma unidade do consumível.
+  function saiuUm(item) {
+    anotarMov({ itemId: item.id, tipo: 'saida', data: hojeTexto(), quantidade: 1, valor: 0,
+                obra: obraDeHojeCliente ? '' : obraDeHoje, clienteId: obraDeHojeCliente, obs: '' });
+    salvar(); desenhar();
+    var q = qtdEmEstoque(item);
+    avisar('Saiu 1 ' + item.unidade + ' de ' + item.nome + '. Ficam ' + qtdBr(q) + '.');
+  }
+
+  function desenharEstoque(corpo) {
+    corpo.appendChild(abasDeModulo([
+      { valor: 'resumo', rotulo: 'Resumo' }, { valor: 'ferramentas', rotulo: 'Ferramentas' },
+      { valor: 'consumiveis', rotulo: 'Consumíveis' }, { valor: 'obras', rotulo: 'Obras' }
+    ], abaEstoque, function (v) { abaEstoque = v; }));
+
+    // A obra de hoje: o que "Usei hoje" e "−1" usam sem perguntar.
+    var oh = cartao('liso');
+    oh.style.padding = '12px 16px';
+    var topoOh = no('div', 'cartao-topo');
+    juntar(topoOh, no('div', 'rotulo', 'Obra de hoje: ' + (obraDeHoje || 'nenhuma')),
+      botao('btn-mini botao-obra-hoje', obraDeHoje ? 'Trocar' : 'Escolher', function () { abrirObraDeHoje(); }));
+    topoOh.style.marginBottom = '0';
+    oh.appendChild(topoOh);
+    corpo.appendChild(oh);
+
+    if (abaEstoque === 'ferramentas') return desenharEstoqueLista(corpo, 'ferramenta');
+    if (abaEstoque === 'consumiveis') return desenharEstoqueLista(corpo, 'consumivel');
+    if (abaEstoque === 'obras') return desenharEstoqueObras(corpo);
+    desenharEstoqueResumo(corpo);
+  }
+
+  function abrirObraDeHoje() {
+    abrirFolha('Obra de hoje', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', '"Usei hoje" e "−1" anotam nesta obra, sem perguntar. Vale enquanto o app estiver aberto.'));
+      var esc = { nome: obraDeHoje, clienteId: obraDeHojeCliente, obra: obraDeHojeCliente ? '' : obraDeHoje };
+      forma.appendChild(escolhaDeObra(esc, function (o) { esc = o; }));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Usar esta obra', function () {
+        obraDeHoje = esc.nome; obraDeHojeCliente = esc.clienteId || '';
+        fecharFolha(); desenhar();
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function desenharEstoqueResumo(corpo) {
+    var n = numerosDoEstoque();
+    var faixa = faixaDoMesAtivo();
+    var gasto = 0, manut = 0;
+    estado.estoqueMovs.forEach(function (m) {
+      if (m.data < faixa.de || m.data > faixa.ate) return;
+      var it = achar(estado.estoqueItens, m.itemId);
+      if (!it) return;
+      if (m.tipo === 'saida') gasto += Math.round(m.quantidade * custoUnitario(it));
+      if (m.tipo === 'manutencao') manut += m.valor;
+    });
+    var c = cartao();
+    c.appendChild(topoDeCartao('Seu estoque', null, null, null, { chave: 'estoque.resumo', itens: [
+      'Valor em estoque: o que você pagou nas ferramentas em uso mais os consumíveis que ainda tem, pelo custo da última compra.',
+      'Usado ' + noPeriodoCurto() + ': os consumíveis que saíram no período, pelo custo de cada um. Manutenção: o que você gastou consertando ferramentas.',
+      '"Obra de hoje", lá em cima, é a obra que "Usei hoje" e "−1" anotam sem perguntar.',
+      '"Registrar uso" anota de uma vez várias ferramentas e consumíveis numa obra. "Estimar uma obra" soma o material de uma obra nova.'] }));
+    c.appendChild(gradeDeTiles([
+      tile('Valor em estoque', emReais(n.valor), 'ouro'),
+      tile('Ferramentas', n.ferramentas + (n.emManutencao ? ' · ' + n.emManutencao + ' em manut.' : ''), ''),
+      tile('Consumíveis', n.consumiveis + (n.acabando ? ' · ' + n.acabando + ' acabando' : ''), n.acabando ? 'vermelho' : ''),
+      tile('Usado ' + noPeriodoCurto(), emReais(gasto), ''),
+      tile('Manutenção', emReais(manut), manut ? 'vermelho' : ''),
+      tile('Obras ' + noPeriodoCurto(), String(obrasDoPeriodo(faixa.de, faixa.ate).filter(function (o) { return o.chave !== 'o:'; }).length), '')
+    ], 2));
+    var duas = no('div', 'duas');
+    duas.style.marginTop = '14px';
+    juntar(duas,
+      botao('btn btn-ouro botao-registrar-uso', 'Registrar uso', function () { abrirRegistrarUso(); }),
+      botao('btn btn-fantasma botao-estimar-obra', 'Estimar uma obra', function () { abrirEstimarObra(); }));
+    c.appendChild(duas);
+    corpo.appendChild(c);
+
+    var acabando = estado.estoqueItens.filter(function (it) {
+      return it.tipo === 'consumivel' && it.minimo > 0 && qtdEmEstoque(it) <= it.minimo;
+    });
+    if (acabando.length) {
+      var ca = cartao('liso cartao-acabando');
+      var t = no('div', 'cartao-topo'); t.style.padding = '16px 16px 4px';
+      juntar(t, no('div', 'cartao-titulo', 'Acabando'), no('span', 'linha-nota vermelho', acabando.length + ' item(ns) no mínimo ou abaixo'));
+      ca.appendChild(t);
+      acabando.forEach(function (it) {
+        ca.appendChild(linhaSimples({ titulo: it.nome, sub: 'Mínimo ' + qtdBr(it.minimo) + ' ' + it.unidade,
+          valor: qtdBr(qtdEmEstoque(it)) + ' ' + it.unidade, cor: 'vermelho', selo: seloIcone('pacote', '#FF6B6B'),
+          aoTocar: function () { abrirMovEstoque(it.id, 'entrada'); } }));
+      });
+      corpo.appendChild(ca);
+    }
+    if (!estado.estoqueItens.length) {
+      var vz = cartao('liso');
+      vz.appendChild(estadoVazio('Nada no estoque ainda', 'Cadastre suas ferramentas em "Ferramentas" e os consumíveis (disco de corte, broca…) em "Consumíveis".'));
+      corpo.appendChild(vz);
+    }
+  }
+
+  function desenharEstoqueLista(corpo, tipo) {
+    var ehF = tipo === 'ferramenta';
+    var c = cartao('liso');
+    var topo = topoDeCartao(ehF ? 'Ferramentas' : 'Consumíveis', '+ Novo', function () { abrirFolhaItemEstoque(null, tipo); }, ehF ? 'ferramenta' : 'pacote',
+      ehF ? { chave: 'estoque.ferramentas', itens: [
+        'Cada ferramenta com o valor pago, a data da compra, quantas vezes foi usada e quando foi a última.',
+        '"Usei hoje" anota um uso na obra de hoje, com um toque. "Manutenção" anota o conserto, com o custo.',
+        'Pondo a vida útil (quantos usos ela aguenta), o app calcula quanto cada uso custa e põe isso no custo da obra.',
+        'Toque na ferramenta para ver o histórico inteiro, editar ou apagar um uso.'] }
+      : { chave: 'estoque.consumiveis', itens: [
+        'Disco de corte, broca, parafuso, fita: cada um com a quantidade que você tem, o mínimo e o custo da unidade.',
+        '"−1" tira uma unidade na obra de hoje, com um toque. "+ Entrada" anota uma compra, com o valor pago.',
+        'Chegou no mínimo, o item fica vermelho e aparece em "Acabando", no Resumo.',
+        'Toque no consumível para tirar outra quantidade, ajustar o estoque ou ver o histórico.'] });
+    topo.style.padding = '16px 16px 0'; topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    var itens = estado.estoqueItens.filter(function (it) { return it.tipo === tipo; })
+      .sort(function (a, b) { return (a.situacao === 'baixa') - (b.situacao === 'baixa') || a.nome.localeCompare(b.nome); });
+    if (!itens.length) {
+      c.appendChild(estadoVazio(ehF ? 'Nenhuma ferramenta' : 'Nenhum consumível',
+        ehF ? 'Toque em "+ Novo" para cadastrar furadeira, esmerilhadeira, serra…' : 'Toque em "+ Novo" para cadastrar disco de corte, broca, parafuso…'));
+    }
+    itens.forEach(function (it) {
+      var bloco = no('div', 'est-item');
+      bloco.setAttribute('data-item', it.id);
+      if (ehF) {
+        var u = usosDaFerramenta(it);
+        var partes = [];
+        if (it.marca) partes.push(it.marca);
+        if (it.dataCompra) partes.push('comprada em ' + dataBr(it.dataCompra));
+        partes.push(u.usos + (u.usos === 1 ? ' uso' : ' usos'));
+        if (u.ultimo) { var d = diasEntre(u.ultimo, hojeTexto()); partes.push('último ' + (d <= 0 ? 'hoje' : d === 1 ? 'ontem' : 'há ' + d + ' dias')); }
+        var lin = linhaSimples({ titulo: it.nome, sub: partes.join(' · '), valor: emReais(it.custo),
+          nota: custoPorUso(it) ? emReais(custoPorUso(it)) + '/uso' : '', selo: seloIcone('ferramenta', it.situacao === 'manutencao' ? '#FF6B6B' : '#E9B44C'),
+          aoTocar: function () { abrirFichaEstoque(it.id); } });
+        if (it.situacao !== 'ok') {
+          var sit = SITUACOES_FERRAMENTA.filter(function (x) { return x.valor === it.situacao; })[0];
+          var tt = lin.querySelector('.linha-titulo');
+          if (tt && sit) tt.appendChild(no('span', 'est-situacao ' + it.situacao, sit.rotulo));
+        }
+        bloco.appendChild(lin);
+        if (it.situacao !== 'baixa') {
+          var ac = no('div', 'est-acoes');
+          juntar(ac,
+            botao('btn-mini botao-usei-hoje', 'Usei hoje', function () { useiHoje(it); }),
+            botao('btn-mini', 'Manutenção', function () { abrirMovEstoque(it.id, 'manutencao'); }));
+          bloco.appendChild(ac);
+        }
+      } else {
+        var q = qtdEmEstoque(it);
+        var baixo = it.minimo > 0 && q <= it.minimo;
+        var lc = linhaSimples({ titulo: it.nome, sub: [it.categoria, emReais(custoUnitario(it)) + '/' + it.unidade,
+            it.minimo ? 'mínimo ' + qtdBr(it.minimo) : ''].filter(Boolean).join(' · '),
+          valor: qtdBr(q) + ' ' + it.unidade, cor: baixo ? 'vermelho' : '', nota: baixo ? 'acabando' : '', corNota: 'vermelho',
+          selo: seloIcone('pacote', baixo ? '#FF6B6B' : '#E9B44C'), aoTocar: function () { abrirFichaEstoque(it.id); } });
+        bloco.appendChild(lc);
+        var ac2 = no('div', 'est-acoes');
+        var menos = botao('btn-mini botao-menos-um', '−1 usei', function () { saiuUm(it); });
+        if (q <= 0) menos.disabled = true;
+        juntar(ac2, menos, botao('btn-mini botao-entrada', '+ Entrada', function () { abrirMovEstoque(it.id, 'entrada'); }));
+        bloco.appendChild(ac2);
+      }
+      c.appendChild(bloco);
+    });
+    corpo.appendChild(c);
+  }
+
+  function desenharEstoqueObras(corpo) {
+    var faixa = faixaDoMesAtivo();
+    var obras = obrasDoPeriodo(faixa.de, faixa.ate);
+    var c = cartao('liso');
+    var topo = topoDeCartao('Obras ' + dePeriodoEmp(), null, null, 'maleta', { chave: 'estoque.obras', itens: [
+      'O custo de material de cada obra no período: os consumíveis que saíram nela e os usos de ferramenta.',
+      'Consumível conta pelo custo da última compra; ferramenta, pelo custo por uso (preço ÷ vida útil, mais a manutenção dividida pelos usos).',
+      'A obra é o cliente (de Serviços e Vendas) ou um nome que você escreveu. Toque numa obra para ver item por item.'] });
+    topo.style.padding = '16px 16px 0'; topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    if (!obras.length) c.appendChild(estadoVazio('Nenhuma obra no período', 'Quando você anotar um uso ou uma saída numa obra, ela aparece aqui com o custo.'));
+    obras.forEach(function (o) {
+      var total = o.consumiveis + o.ferramentas;
+      c.appendChild(linhaSimples({ titulo: o.nome, sub: o.movs.length + ' registro(s) · consumíveis ' + emReais(o.consumiveis) + ' · ferramentas ' + emReais(o.ferramentas),
+        valor: emReais(total), nota: o.ultima ? 'último ' + dataCurta(o.ultima) : '', selo: seloIcone('maleta', '#E9B44C'),
+        aoTocar: function () { abrirObraEstoque(o); } }));
+    });
+    corpo.appendChild(c);
+  }
+
+  function abrirObraEstoque(o) {
+    abrirFolha(o.nome, function (folha) {
+      var c = cartao();
+      c.appendChild(gradeDeTiles([
+        tile('Consumíveis', emReais(o.consumiveis), ''), tile('Ferramentas', emReais(o.ferramentas), ''),
+        tile('Material', emReais(o.consumiveis + o.ferramentas), 'ouro')], 3));
+      folha.appendChild(c);
+      var l = cartao('liso');
+      o.movs.sort(function (a, b) { return a.m.data < b.m.data ? 1 : -1; }).forEach(function (x) {
+        l.appendChild(linhaSimples({ titulo: x.it.nome, sub: dataBr(x.m.data) + ' · ' + (x.m.tipo === 'uso' ? 'uso' : qtdBr(x.m.quantidade) + ' ' + x.it.unidade),
+          valor: emReais(x.valor), selo: seloIcone(x.it.tipo === 'ferramenta' ? 'ferramenta' : 'pacote', '#E9B44C') }));
+      });
+      folha.appendChild(l);
+    });
+  }
+
+  function abrirFolhaItemEstoque(id, tipo) {
+    var it = id ? achar(estado.estoqueItens, id) : null;
+    tipo = it ? it.tipo : tipo;
+    var ehF = tipo === 'ferramenta';
+    abrirFolha(it ? 'Editar ' + it.nome : ehF ? 'Nova ferramenta' : 'Novo consumível', function (folha) {
+      var forma = no('div', 'forma');
+      var nome = no('input', 'entrada campo-nome-item'); nome.type = 'text'; nome.value = it ? it.nome : '';
+      nome.placeholder = ehF ? 'Ex.: Esmerilhadeira 4½"' : 'Ex.: Disco de corte 4½"';
+      forma.appendChild(campo('Nome', nome));
+      var cat = it ? it.categoria : '';
+      forma.appendChild(campo('Categoria', grupoChips(ehF ? CATEGORIAS_FERRAMENTA : CATEGORIAS_CONSUMIVEL, cat, function (v) { cat = v; })));
+      var marcaC = no('input', 'entrada'); marcaC.type = 'text'; marcaC.value = it ? it.marca : ''; marcaC.placeholder = 'Marca e modelo (opcional)';
+      forma.appendChild(campo('Marca e modelo', marcaC));
+      var valor, dataC, vida, unidade = it ? it.unidade : 'un', qtdIni, minimo, situacao = it ? it.situacao : 'ok';
+      if (ehF) {
+        dataC = entradaData(it && it.dataCompra ? it.dataCompra : hojeTexto());
+        forma.appendChild(campo('Data da compra', dataC));
+        valor = entradaValor(it ? it.custo : 0);
+        valor.classList.add('campo-valor-item');
+        forma.appendChild(campo('Valor pago', valor));
+        vida = entradaTextoNumero(it && it.vidaUtil ? it.vidaUtil : '', 'Ex.: 300 (opcional)');
+        vida.classList.add('campo-vida-util');
+        forma.appendChild(campo('Vida útil (quantos usos aguenta)', vida));
+        forma.appendChild(campo('Situação', grupoChips(SITUACOES_FERRAMENTA, situacao, function (v) { situacao = v; })));
+      } else {
+        forma.appendChild(campo('Unidade', grupoChips(UNIDADES_ESTOQUE, unidade, function (v) { unidade = v; })));
+        if (!it) {
+          qtdIni = entradaTextoNumero('', 'Ex.: 10');
+          qtdIni.classList.add('campo-qtd-inicial');
+          forma.appendChild(campo('Quantidade que você tem agora', qtdIni));
+        }
+        valor = entradaValor(it ? it.custo : 0);
+        valor.classList.add('campo-valor-item');
+        forma.appendChild(campo('Custo de cada unidade', valor));
+        minimo = entradaTextoNumero(it && it.minimo ? it.minimo : '', 'Ex.: 3 (opcional)');
+        minimo.classList.add('campo-minimo');
+        forma.appendChild(campo('Avisar quando chegar em', minimo));
+      }
+      var obs = no('input', 'entrada'); obs.type = 'text'; obs.value = it ? it.obs : ''; obs.placeholder = 'Opcional';
+      forma.appendChild(campo('Observação', obs));
+      var acoes = no('div', 'acoes');
+      if (it) acoes.appendChild(botao('btn btn-fantasma', 'Apagar', function () {
+        perguntar({ titulo: 'Apagar ' + it.nome + '?', texto: 'O item e o histórico dele saem do estoque.', ok: 'Apagar', tom: 'perigo' }, function () {
+          estado.estoqueMovs = estado.estoqueMovs.filter(function (m) {
+            if (m.itemId !== it.id) return true;
+            marcarExcluido('empreendedor_registros', m.id);
+            return false;
+          });
+          estado.estoqueItens = estado.estoqueItens.filter(function (x) { return x.id !== it.id; });
+          marcarExcluido('empreendedor_registros', it.id);
+          salvar(); fecharFolha(); desenhar();
+        });
+      }));
+      acoes.appendChild(botao('btn btn-ouro botao-salvar-item', 'Salvar', function () {
+        if (!nome.value.trim()) { mostrarErro(forma, 'Dê um nome ao item.'); return; }
+        var reg = it || { id: novoId(), tipo: tipo, criadoEm: Date.now() };
+        reg.nome = nome.value.trim().slice(0, 80);
+        reg.categoria = cat || '';
+        reg.marca = marcaC.value.trim().slice(0, 80);
+        reg.custo = digitosParaCentavos(valor.value);
+        reg.obs = obs.value.trim().slice(0, 300);
+        if (ehF) {
+          reg.dataCompra = dataC.value || '';
+          reg.vidaUtil = Math.max(0, Math.round(lerQtd(vida.value)));
+          reg.situacao = situacao;
+          reg.unidade = 'un'; reg.minimo = 0;
+        } else {
+          reg.unidade = unidade || 'un';
+          reg.minimo = Math.max(0, lerQtd(minimo.value));
+          reg.situacao = 'ok'; reg.vidaUtil = 0; reg.dataCompra = reg.dataCompra || '';
+        }
+        if (!it) {
+          estado.estoqueItens.push(reg);
+          var q0 = qtdIni ? lerQtd(qtdIni.value) : 0;
+          if (q0 > 0) anotarMov({ itemId: reg.id, tipo: 'entrada', data: hojeTexto(), quantidade: q0,
+            valor: Math.round(q0 * reg.custo), obra: '', clienteId: '', obs: 'estoque inicial' });
+        }
+        salvar(); fecharFolha(); desenhar();
+        avisar(it ? 'Item atualizado.' : 'Item cadastrado.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // Entrada, saída, uso, manutenção ou ajuste de um item.
+  function abrirMovEstoque(itemId, tipo) {
+    var it = achar(estado.estoqueItens, itemId);
+    if (!it) return;
+    var titulos = { entrada: 'Entrada de ' + it.nome, saida: 'Saída de ' + it.nome, uso: 'Uso de ' + it.nome,
+                    manutencao: 'Manutenção de ' + it.nome, ajuste: 'Ajustar o estoque de ' + it.nome };
+    abrirFolha(titulos[tipo], function (folha) {
+      var forma = no('div', 'forma');
+      var data = entradaData(hojeTexto());
+      var qtd = null, valor = null, desc = null, obra = { nome: obraDeHoje, clienteId: obraDeHojeCliente, obra: obraDeHojeCliente ? '' : obraDeHoje };
+      var depois = it.situacao === 'manutencao' ? 'ok' : it.situacao;
+      if (tipo === 'entrada' || tipo === 'saida' || tipo === 'ajuste') {
+        qtd = entradaTextoNumero(tipo === 'ajuste' ? qtdBr(qtdEmEstoque(it)) : '1', '');
+        qtd.classList.add('campo-qtd-mov');
+        forma.appendChild(campo(tipo === 'ajuste' ? 'Quanto tem de verdade (' + it.unidade + ')' : 'Quantidade (' + it.unidade + ')', qtd));
+      }
+      if (tipo === 'entrada' || tipo === 'manutencao') {
+        valor = entradaValor(0);
+        valor.classList.add('campo-valor-mov');
+        forma.appendChild(campo(tipo === 'entrada' ? 'Quanto pagou no total' : 'Quanto custou', valor));
+      }
+      if (tipo === 'manutencao') {
+        desc = no('input', 'entrada campo-desc-mov'); desc.type = 'text'; desc.placeholder = 'Ex.: troca das escovas';
+        forma.appendChild(campo('O que foi feito', desc));
+        forma.appendChild(campo('Depois disso, a ferramenta está', grupoChips(SITUACOES_FERRAMENTA, depois, function (v) { depois = v; })));
+      }
+      if (tipo === 'saida' || tipo === 'uso') forma.appendChild(campo('Obra', escolhaDeObra(obra, function (o) { obra = o; })));
+      forma.appendChild(campo('Data', data));
+      var obs = null;
+      if (tipo !== 'manutencao') { obs = no('input', 'entrada'); obs.type = 'text'; obs.placeholder = 'Opcional'; forma.appendChild(campo('Observação', obs)); }
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro botao-salvar-mov', 'Salvar', function () {
+        var q = qtd ? lerQtd(qtd.value) : 1;
+        if (tipo === 'ajuste') {
+          var dif = Math.round((q - qtdEmEstoque(it)) * 1000) / 1000;
+          if (!dif) { fecharFolha(); return; }
+          anotarMov({ itemId: it.id, tipo: 'ajuste', data: data.value || hojeTexto(), quantidade: dif, valor: 0, obra: '', clienteId: '', obs: (obs && obs.value.trim()) || 'ajuste' });
+        } else {
+          if ((tipo === 'entrada' || tipo === 'saida') && !(q > 0)) { mostrarErro(forma, 'Diga a quantidade.'); return; }
+          if (tipo === 'saida' && q > qtdEmEstoque(it)) { mostrarErro(forma, 'Só tem ' + qtdBr(qtdEmEstoque(it)) + ' ' + it.unidade + ' no estoque.'); return; }
+          anotarMov({ itemId: it.id, tipo: tipo, data: data.value || hojeTexto(), quantidade: q,
+            valor: valor ? digitosParaCentavos(valor.value) : 0,
+            obra: (tipo === 'saida' || tipo === 'uso') && !obra.clienteId ? (obra.obra || obra.nome || '') : '',
+            clienteId: (tipo === 'saida' || tipo === 'uso') ? (obra.clienteId || '') : '',
+            obs: desc ? desc.value.trim().slice(0, 200) : (obs ? obs.value.trim().slice(0, 200) : '') });
+          if (tipo === 'manutencao') it.situacao = depois;
+        }
+        salvar(); fecharFolha(); desenhar();
+        avisar('Anotado.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function abrirFichaEstoque(id) {
+    var it = achar(estado.estoqueItens, id);
+    if (!it) return;
+    var ehF = it.tipo === 'ferramenta';
+    abrirFolha(it.nome, function (folha) {
+      var c = cartao();
+      if (ehF) {
+        var u = usosDaFerramenta(it);
+        c.appendChild(gradeDeTiles([
+          tile('Valor pago', emReais(it.custo), 'ouro'),
+          tile('Usos', String(u.usos), ''),
+          tile('Custo por uso', custoPorUso(it) ? emReais(custoPorUso(it)) : '—', ''),
+          tile('Manutenção', emReais(u.manutencao) + (u.nManut ? ' · ' + u.nManut + 'x' : ''), u.manutencao ? 'vermelho' : ''),
+          tile('Comprada em', it.dataCompra ? dataBr(it.dataCompra) : '—', ''),
+          tile('Vida útil', it.vidaUtil ? it.vidaUtil + ' usos' + (u.usos ? ' · ' + Math.round(u.usos / it.vidaUtil * 100) + '% usada' : '') : '—', '')
+        ], 2));
+      } else {
+        var q = qtdEmEstoque(it);
+        c.appendChild(gradeDeTiles([
+          tile('Em estoque', qtdBr(q) + ' ' + it.unidade, it.minimo && q <= it.minimo ? 'vermelho' : 'ouro'),
+          tile('Custo da unidade', emReais(custoUnitario(it)), ''),
+          tile('Valor parado', emReais(Math.round(Math.max(q, 0) * custoUnitario(it))), ''),
+          tile('Mínimo', it.minimo ? qtdBr(it.minimo) + ' ' + it.unidade : '—', '')
+        ], 2));
+      }
+      var bts = no('div', 'duas');
+      bts.style.marginTop = '14px';
+      if (ehF) juntar(bts, botao('btn btn-ouro', 'Registrar uso', function () { abrirMovEstoque(it.id, 'uso'); }),
+                     botao('btn btn-fantasma', 'Manutenção', function () { abrirMovEstoque(it.id, 'manutencao'); }));
+      else juntar(bts, botao('btn btn-ouro botao-saida', 'Tirar do estoque', function () { abrirMovEstoque(it.id, 'saida'); }),
+                  botao('btn btn-fantasma', '+ Entrada', function () { abrirMovEstoque(it.id, 'entrada'); }));
+      c.appendChild(bts);
+      var bts2 = no('div', 'duas');
+      bts2.style.marginTop = '8px';
+      juntar(bts2, botao('btn btn-fantasma', 'Editar', function () { abrirFolhaItemEstoque(it.id); }),
+        ehF ? no('span') : botao('btn btn-fantasma', 'Ajustar estoque', function () { abrirMovEstoque(it.id, 'ajuste'); }));
+      c.appendChild(bts2);
+      folha.appendChild(c);
+
+      var h = cartao('liso cartao-historico-item');
+      var th = no('div', 'cartao-topo'); th.style.padding = '16px 16px 4px';
+      th.appendChild(no('div', 'cartao-titulo', 'Histórico'));
+      h.appendChild(th);
+      var movs = movsDoItem(it.id);
+      if (!movs.length) h.appendChild(estadoVazio('Nada anotado ainda', ehF ? 'Os usos e as manutenções aparecem aqui.' : 'As entradas e saídas aparecem aqui.'));
+      var NOMES = { entrada: 'Entrada', saida: 'Saída', uso: 'Uso', manutencao: 'Manutenção', ajuste: 'Ajuste' };
+      movs.slice(0, 200).forEach(function (m) {
+        var sub = dataBr(m.data) + (m.tipo === 'saida' || m.tipo === 'uso' ? ' · ' + nomeDaObra(m) : '') + (m.obs ? ' · ' + m.obs : '');
+        var val = m.tipo === 'entrada' ? '+' + qtdBr(m.quantidade) + ' ' + it.unidade
+          : m.tipo === 'saida' ? '−' + qtdBr(m.quantidade) + ' ' + it.unidade
+          : m.tipo === 'ajuste' ? (m.quantidade > 0 ? '+' : '−') + qtdBr(Math.abs(m.quantidade)) + ' ' + it.unidade
+          : m.tipo === 'manutencao' ? emReais(m.valor) : '1 uso';
+        h.appendChild(linhaSimples({ titulo: NOMES[m.tipo], sub: sub, valor: val,
+          nota: m.tipo === 'entrada' && m.valor ? emReais(m.valor) : '',
+          cor: m.tipo === 'entrada' ? 'verde' : m.tipo === 'manutencao' ? 'vermelho' : '',
+          selo: seloIcone(m.tipo === 'manutencao' ? 'ferramenta' : m.tipo === 'uso' ? 'relogio' : 'pacote', '#E9B44C'),
+          aoTocar: function () {
+            perguntar({ titulo: 'Apagar este registro?', texto: NOMES[m.tipo] + ' de ' + dataBr(m.data) + '.', ok: 'Apagar', tom: 'perigo' }, function () {
+              estado.estoqueMovs = estado.estoqueMovs.filter(function (x) { return x.id !== m.id; });
+              marcarExcluido('empreendedor_registros', m.id);
+              salvar(); desenhar();
+              fecharFolha(); setTimeout(function () { abrirFichaEstoque(it.id); }, 260);
+            });
+          } }));
+      });
+      folha.appendChild(h);
+    });
+  }
+
+  // Várias coisas de uma vez, numa obra: marca as ferramentas e põe a
+  // quantidade dos consumíveis.
+  function abrirRegistrarUso() {
+    var ferr = estado.estoqueItens.filter(function (it) { return it.tipo === 'ferramenta' && it.situacao !== 'baixa'; });
+    var cons = estado.estoqueItens.filter(function (it) { return it.tipo === 'consumivel'; });
+    if (!ferr.length && !cons.length) { avisarCaixa('Nada no estoque ainda', 'Cadastre primeiro as ferramentas e os consumíveis.'); return; }
+    abrirFolha('Registrar uso', function (folha) {
+      var forma = no('div', 'forma');
+      var obra = { nome: obraDeHoje, clienteId: obraDeHojeCliente, obra: obraDeHojeCliente ? '' : obraDeHoje };
+      forma.appendChild(campo('Obra', escolhaDeObra(obra, function (o) { obra = o; })));
+      var data = entradaData(hojeTexto());
+      forma.appendChild(campo('Data', data));
+      var quant = {};
+      var lista = cartao('liso');
+      lista.style.padding = '4px 16px';
+      ferr.concat(cons).forEach(function (it) {
+        quant[it.id] = 0;
+        var l = no('div', 'est-linha-passo');
+        l.setAttribute('data-item', it.id);
+        var t = no('div', 't');
+        juntar(t, no('b', null, it.nome), no('span', null, it.tipo === 'ferramenta' ? 'ferramenta · usos' : 'tem ' + qtdBr(qtdEmEstoque(it)) + ' ' + it.unidade));
+        var passo = no('div', 'est-passo');
+        var n = no('span', 'num', '0');
+        var menos = botao(null, '−', function () { quant[it.id] = Math.max(0, quant[it.id] - 1); n.textContent = qtdBr(quant[it.id]); });
+        var mais = botao('passo-mais', '+', function () { quant[it.id] = quant[it.id] + 1; n.textContent = qtdBr(quant[it.id]); });
+        juntar(passo, menos, n, mais);
+        juntar(l, t, passo);
+        lista.appendChild(l);
+      });
+      forma.appendChild(lista);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro botao-salvar-uso', 'Salvar', function () {
+        var feitos = 0, faltou = [];
+        ferr.concat(cons).forEach(function (it) {
+          var q = quant[it.id];
+          if (!q) return;
+          if (it.tipo === 'consumivel' && q > qtdEmEstoque(it)) { faltou.push(it.nome); return; }
+          anotarMov({ itemId: it.id, tipo: it.tipo === 'ferramenta' ? 'uso' : 'saida', data: data.value || hojeTexto(),
+            quantidade: q, valor: 0, obra: obra.clienteId ? '' : (obra.obra || obra.nome || ''), clienteId: obra.clienteId || '', obs: '' });
+          feitos++;
+        });
+        if (faltou.length) { mostrarErro(forma, 'Não tem tudo isso no estoque: ' + faltou.join(', ') + '.'); return; }
+        if (!feitos) { mostrarErro(forma, 'Marque pelo menos um item.'); return; }
+        salvar(); fecharFolha(); desenhar();
+        avisar(feitos + ' item(ns) anotado(s)' + (obra.nome ? ' em ' + obra.nome : '') + '.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  // Quanto de material uma obra nova vai gastar. Dá para partir de uma
+  // obra que já aconteceu.
+  function abrirEstimarObra() {
+    var itens = estado.estoqueItens.filter(function (it) { return it.situacao !== 'baixa'; });
+    if (!itens.length) { avisarCaixa('Nada no estoque ainda', 'Cadastre primeiro as ferramentas e os consumíveis.'); return; }
+    abrirFolha('Estimar uma obra', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', 'Diga o que a obra vai usar. O app soma pelo custo de cada consumível e pelo custo por uso de cada ferramenta.'));
+      var quant = {}, nums = {};
+      var total = no('div', 'est-total');
+      var mao = entradaValor(0);
+      mao.classList.add('campo-mao-de-obra');
+      function somar() {
+        var mat = 0;
+        itens.forEach(function (it) {
+          var q = quant[it.id] || 0;
+          mat += it.tipo === 'ferramenta' ? q * custoPorUso(it) : Math.round(q * custoUnitario(it));
+        });
+        var m = digitosParaCentavos(mao.value);
+        total.textContent = '';
+        juntar(total, no('span', null, 'Material ' + emReais(mat) + (m ? ' + mão de obra ' + emReais(m) : '')),
+          no('span', 'num ouro estimativa-total', emReais(mat + m)));
+      }
+      mao.addEventListener('input', somar);
+      // Partir de uma obra que já aconteceu.
+      var passadas = obrasDoPeriodo('0000-01-01', '9999-12-31').filter(function (o) { return o.chave !== 'o:'; }).slice(0, 8);
+      if (passadas.length) {
+        forma.appendChild(campo('Partir de uma obra que já fez', grupoChips(passadas.map(function (o, i) { return { rotulo: o.nome, valor: String(i) }; }), '', function (v) {
+          var o = passadas[+v];
+          itens.forEach(function (it) { quant[it.id] = 0; });
+          o.movs.forEach(function (x) { quant[x.it.id] = (quant[x.it.id] || 0) + (x.m.tipo === 'uso' ? Math.max(1, x.m.quantidade || 1) : x.m.quantidade); });
+          itens.forEach(function (it) { if (nums[it.id]) nums[it.id].textContent = qtdBr(quant[it.id] || 0); });
+          somar();
+        })));
+      }
+      var lista = cartao('liso');
+      lista.style.padding = '4px 16px';
+      itens.forEach(function (it) {
+        quant[it.id] = 0;
+        var l = no('div', 'est-linha-passo');
+        l.setAttribute('data-item', it.id);
+        var t = no('div', 't');
+        juntar(t, no('b', null, it.nome), no('span', null, it.tipo === 'ferramenta'
+          ? (custoPorUso(it) ? emReais(custoPorUso(it)) + ' por uso' : 'sem vida útil: não entra no custo')
+          : emReais(custoUnitario(it)) + ' por ' + it.unidade));
+        var passo = no('div', 'est-passo');
+        var n = nums[it.id] = no('span', 'num', '0');
+        var menos = botao(null, '−', function () { quant[it.id] = Math.max(0, (quant[it.id] || 0) - 1); n.textContent = qtdBr(quant[it.id]); somar(); });
+        var mais = botao('passo-mais', '+', function () { quant[it.id] = (quant[it.id] || 0) + 1; n.textContent = qtdBr(quant[it.id]); somar(); });
+        juntar(passo, menos, n, mais);
+        juntar(l, t, passo);
+        lista.appendChild(l);
+      });
+      forma.appendChild(lista);
+      forma.appendChild(campo('Mão de obra (opcional)', mao));
+      forma.appendChild(total);
+      somar();
+      folha.appendChild(forma);
+    });
   }
 
   // ---------- Painel geral ----------
@@ -24732,9 +26562,9 @@
       // os arquivos da conta viram a versão compacta e cifrada.
       var cConf = cartao('cartao-conferido');
       var topoConf = no('div', 'cartao-topo');
-      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido', 'Conferido ✓', [
+      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido.v2', 'Conferido ✓', [
         'Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
-        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado com a senha dos extratos: fica bem menor, e só quem tem a senha lê.',
+        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado: com a senha dos dados, se ela estiver ligada (uma senha só para tudo), ou com a senha dos extratos. Fica bem menor, e só quem tem a senha lê.',
         '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
         'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
         'Extrato importado depois chega como PDF de novo: é só conferir outra vez.']));
@@ -27766,32 +29596,31 @@
 
     // Dados
     var cDados = cartao('liso');
-    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 2, itens: [
-        'Seus dados ficam na sua conta, na nuvem. O backup é uma cópia em arquivo, para guardar fora dela.',
-        'O backup sai cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre o arquivo, nem o Finanz: anote a senha num lugar seguro.',
-        'Restaurar um backup troca tudo o que está no app pelo que está no arquivo.',
-        '"Voltar a uma data" usa as cópias automáticas dos últimos 14 dias.'] });
+
+    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 4, itens: [
+        'Seus dados ficam na sua conta, na nuvem. Com a "Senha dos dados", eles sobem cifrados de ponta a ponta: só você consegue ler.',
+        'A senha dos dados e os backups (na nuvem e no celular) ficam em "Proteja seus dados", logo acima.',
+        'Exportar CSV tira os lançamentos para uma planilha. Importar e colar o extrato trazem os lançamentos do banco.'] });
     topoDados.style.padding = '16px 16px 0';
     topoDados.style.marginBottom = '8px';
     cDados.appendChild(topoDados);
 
     [
-      ['💾', 'Fazer backup (com senha)', 'Um arquivo .finanz cifrado com a sua senha', fazerBackup],
+      // Proteja seus dados (pedido de 25/11/2026): uma linha como as outras,
+      // com a senha dos dados e os backups dentro.
+      ['🛡', 'Proteja seus dados', 'Senha dos dados e backups · ' + resumoDaProtecao(), abrirProtejaSeusDados, 'botao-proteja'],
       ['📊', 'Exportar CSV', 'Lançamentos para planilha', exportarCsv],
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
-      ['↺', 'Restaurar backup', 'Substitui os dados atuais', 'arquivoRestaurar'],
-      ['🕑', 'Voltar a uma data', 'Cópias automáticas dos últimos 14 dias', abrirFolhaInstantaneos],
       ['📜', 'Histórico do saldo', 'De onde veio cada mudança nos seus números',
         abrirFolhaHistorico],
       ['⇄', 'Trazer dados de outra conta', 'De outra conta que já usou este aparelho',
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
-      ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }]
+      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
     ].forEach(function (o) {
-      var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
+      var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha' + (o[4] ? ' ' + o[4] : ''), null, o[3]);
       juntar(linha,
         selo('#60A5FA', o[0]),
         juntar(no('div', 'linha-texto'),
@@ -27799,13 +29628,6 @@
           no('div', 'linha-sub', o[2]))
       );
       cDados.appendChild(linha);
-      if (o[3] === 'arquivoRestaurar') {
-        var dica = no('div', 'linha-nota');
-        dica.style.padding = '2px 16px 12px';
-        dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador ' +
-          'de arquivos, toque em Compartilhar e escolha o Finanz.';
-        cDados.appendChild(dica);
-      }
     });
 
     if (NUVEM.ligada) {
@@ -27907,6 +29729,60 @@
     if (!sessao) return '';
     var conta = achar(lerContas(), sessao.contaId);
     return conta ? conta.email : '';
+  }
+
+  // ---------- Novidades no Início depois de atualizar (pedido de 25/11/2026) ----------
+  var CHAVE_VERSAO_VISTA = 'finanz.versaoVista';
+  function compararVersao(a, b) {
+    var x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+    for (var i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); }
+    return 0;
+  }
+  function marcarVersaoVista() {
+    try { localStorage.setItem(CHAVE_VERSAO_VISTA, VERSAO); } catch (e) { /* sem espaço */ }
+  }
+  function novidadesNaoVistas() {
+    var vista = '';
+    try { vista = localStorage.getItem(CHAVE_VERSAO_VISTA) || ''; } catch (e) { vista = ''; }
+    if (vista === VERSAO) return [];
+    if (!vista) {
+      // Primeira vez neste aparelho: conta nova não precisa do histórico;
+      // quem já usava vê só o desta versão.
+      if (estaVazio(estado)) { marcarVersaoVista(); return []; }
+      return NOVIDADES.filter(function (n) { return n.versao === VERSAO; });
+    }
+    return NOVIDADES.filter(function (n) { return compararVersao(n.versao, vista) > 0 && compararVersao(n.versao, VERSAO) <= 0; });
+  }
+  function cartaoNovidades() {
+    if (navigator.webdriver) {
+      var querTeste = false;
+      try { querTeste = localStorage.getItem('finanz.novidades.teste') === '1'; } catch (e) { querTeste = false; }
+      if (!querTeste) return null;
+    }
+    var lista = novidadesNaoVistas();
+    if (!lista.length) return null;
+    var c = cartao('cartao-novidades');
+    var topo = no('div', 'cartao-topo');
+    var fechar = function () { marcarVersaoVista(); if (c.parentNode) c.parentNode.removeChild(c); };
+    var x = botao('novidades-fechar', '✕', fechar);
+    x.setAttribute('aria-label', 'Fechar as novidades');
+    juntar(topo, juntar(no('div', 'novidades-titulo'), no('span', 'novidades-brilho', '✨'),
+      no('span', null, 'Novidades da versão ' + VERSAO)), x);
+    c.appendChild(topo);
+    if (lista.length > 1) c.appendChild(no('div', 'linha-nota', lista.length + ' versões desde a última vez que você abriu o app.'));
+    var itens = [];
+    lista.forEach(function (n) { n.itens.forEach(function (t) { itens.push(t); }); });
+    var MOSTRAR = 4;
+    var ul = no('ul', 'novidades-lista');
+    itens.slice(0, MOSTRAR).forEach(function (t) { ul.appendChild(no('li', null, t)); });
+    c.appendChild(ul);
+    var acoes = no('div', 'duas');
+    acoes.style.marginTop = '12px';
+    juntar(acoes,
+      botao('btn btn-fantasma', itens.length > MOSTRAR ? 'Ver tudo (' + itens.length + ')' : 'Ver todas as versões', function () { abrirNovidades(); }),
+      botao('btn btn-ouro botao-novidades-ok', 'Entendi', fechar));
+    c.appendChild(acoes);
+    return c;
   }
 
   function abrirNovidades() {
@@ -28115,13 +29991,35 @@
 
   function campo(rotulo, controle) {
     var c = no('div', 'campo');
+    // Campo de senha ganha o olho, para conferir o que digitou (pedido de
+    // 25/11/2026). Vale para toda senha que passa por aqui.
+    var ehSenha = controle && controle.tagName === 'INPUT' && controle.type === 'password';
+    if (ehSenha && !controle.id) controle.id = proximoId();
     if (rotulo) {
       var l = no('label', null, rotulo);
       if (controle.id) l.htmlFor = controle.id;
       c.appendChild(l);
     }
-    c.appendChild(controle);
+    c.appendChild(ehSenha ? senhaComOlho(controle) : controle);
     return c;
+  }
+
+  function senhaComOlho(input) {
+    var caixa = no('div', 'senha-com-olho');
+    var olho = botao('olho-senha', null, function () {
+      var escondida = input.type === 'password';
+      input.type = escondida ? 'text' : 'password';
+      olho.textContent = '';
+      olho.appendChild(icone(escondida ? 'olhoFechado' : 'olho'));
+      olho.setAttribute('aria-label', escondida ? 'Esconder a senha' : 'Mostrar a senha');
+      olho.setAttribute('aria-pressed', escondida ? 'true' : 'false');
+      try { input.focus(); } catch (e) { /* teclado */ }
+    });
+    olho.appendChild(icone('olho'));
+    olho.setAttribute('aria-label', 'Mostrar a senha');
+    olho.setAttribute('aria-pressed', 'false');
+    juntar(caixa, input, olho);
+    return caixa;
   }
 
   var contadorCampo = 0;
@@ -34691,7 +36589,9 @@
         gerar.disabled = true; gerar.textContent = 'Cifrando…';
         var pacote = { app: 'finanz', versao: VERSAO, exportadoEm: new Date().toISOString(), dados: estado };
         cifrarBackup(JSON.stringify(pacote), s1.value).then(function (arquivo) {
-          baixarArquivo('finanz-backup-' + carimbo() + '.finanz', arquivo, 'application/octet-stream');
+          var nomeBk = 'finanz-backup-' + carimbo() + '.finanz';
+          baixarArquivo(nomeBk, arquivo, 'application/octet-stream');
+          anotarBackupDoCelular(nomeBk, arquivo.length);
           fecharFolha();
           avisar('Backup gerado, cifrado com a sua senha.');
         }).catch(function () {
@@ -34703,6 +36603,171 @@
       forma.appendChild(acoes);
       folha.appendChild(forma);
       setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+    });
+  }
+
+  var INFO_BACKUPS = [
+    'Na nuvem: com a senha dos dados criada, o app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias, cifrada com essa senha. Sem a senha dos dados, o backup na nuvem fica desligado.',
+    'No celular: o backup é um arquivo .finanz que você gera quando quiser e guarda onde preferir (no celular, no Drive, no e-mail). Ele tem uma senha própria, escolhida na hora, diferente da senha dos dados. Sem a senha do backup, ele também não abre.',
+    'O app neste celular guarda ainda uma cópia de trabalho, que abre com o seu login. Esquecendo a senha dos dados, este celular continua com tudo: dá para apagar a nuvem, criar uma senha nova e subir de novo.',
+    'Se perder o celular e a senha dos dados, o arquivo .finanz é a rede de segurança: num aparelho novo, restaure o arquivo e crie uma senha dos dados nova. Ele vale até a data em que foi gerado.',
+    'Na prática: anote as duas senhas num lugar seguro e gere um .finanz de vez em quando, guardado fora do celular.'
+  ];
+
+  // Os backups gerados neste aparelho: o app não enxerga os arquivos do
+  // celular, então guarda a lista de quando gerou cada um.
+  function chaveDosBackups() { return 'finanz.backups.v1:' + ((sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || 'local'); }
+  function backupsDoCelular() {
+    try { var l = JSON.parse(localStorage.getItem(chaveDosBackups()) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+  }
+  function anotarBackupDoCelular(nome, tamanho) {
+    var l = backupsDoCelular();
+    l.unshift({ quando: Date.now(), nome: nome, tamanho: tamanho });
+    try { localStorage.setItem(chaveDosBackups(), JSON.stringify(l.slice(0, 30))); } catch (e) { /* sem espaço */ }
+  }
+  function resumoDosBackupsDoCelular() {
+    var l = backupsDoCelular();
+    if (!l.length) return 'Nenhum gerado neste aparelho';
+    var d = new Date(l[0].quando);
+    return l.length + ' gerado(s) · último ' + (deData(d) === hojeTexto() ? 'hoje' : dataBr(deData(d)));
+  }
+
+  var DUVIDAS_DE_PROTECAO = [
+    ['O que é a senha dos dados?', [
+      'É a senha que embaralha (cifra) tudo o que vai para a nuvem: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.',
+      'Ela nunca sai do seu celular. Por isso ninguém além de você consegue ler o que está na nuvem: nem quem administra o servidor, nem o Supabase.',
+      'É diferente da senha de entrar na conta e da senha do backup.']],
+    ['O que é o backup na nuvem?', [
+      'Com a senha dos dados criada, o app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias. Serve para "voltar a uma data".',
+      'As cópias saem cifradas com a senha dos dados. Sem a senha criada, o backup na nuvem fica desligado: nenhuma cópia vai para a nuvem.']],
+    ['O que é o backup no celular?', [
+      'É um arquivo .finanz que você gera quando quiser e guarda onde preferir: no celular, no Drive, no e-mail.',
+      'Ele tem uma senha própria, escolhida na hora de gerar. Sem ela, o arquivo não abre.',
+      'Vale até a data em que foi gerado: o que entrar depois não está nele.']],
+    ['As senhas são diferentes?', [
+      'Sim. A senha dos dados abre a nuvem (os dados e as cópias automáticas). A senha do backup abre só o arquivo .finanz.',
+      'Pode até usar a mesma, mas anote as duas num lugar seguro.']],
+    ['E se eu esquecer a senha dos dados?', [
+      'A nuvem não abre mais, e não existe recuperação: nem você, nem quem desenvolve o app consegue abrir.',
+      'Mas este celular continua com tudo (a cópia de trabalho do app abre com o seu login). Em "Esqueci a senha", você apaga a nuvem, cria uma senha nova e o app sobe tudo de novo.']],
+    ['E se eu perder o celular?', [
+      'Num aparelho novo, entre na conta e digite a senha dos dados: tudo desce da nuvem.',
+      'Se perdeu o celular e esqueceu a senha dos dados, o arquivo .finanz é a rede de segurança: restaure ele e crie uma senha dos dados nova.']],
+    ['Quem consegue ver meus dados?', [
+      'Com a senha dos dados ligada, só você. O servidor guarda tudo embaralhado.',
+      'O servidor ainda vê o mínimo para funcionar: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.',
+      'Sem a senha dos dados criada, os dados ficam protegidos pelo login, mas quem administra o servidor consegue ler.']],
+    ['E o que eu compartilho com outra pessoa?', [
+      'As áreas do Empreendedor que você compartilha (Doces, Uber, Casa) a outra pessoa vê, porque é para isso que serve compartilhar.',
+      'Com a senha dos dados ligada dos dois lados, a área vai cifrada de ponta a ponta: cada um tem um par de chaves, e a chave da área só abre para vocês dois. O servidor não lê.',
+      'Se a outra pessoa ainda não criou a senha dos dados, o app avisa ela: até criar, ela não consegue abrir a área.']]
+  ];
+
+  function ligarBackupNaNuvem() {
+    if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Backup na nuvem', 'Entre na sua conta para usar o backup na nuvem.'); return; }
+    if (faltaNoBanco['cofre']) { avisarCaixa('Ainda não dá', 'O servidor ainda não recebeu a atualização do cofre. Tente de novo mais tarde.'); return; }
+    if (cofreTrancado()) { abrirSenhaDoCofre(true); return; }
+    perguntar({
+      titulo: 'Ligar o backup na nuvem?',
+      texto: 'O backup na nuvem guarda sozinho uma cópia dos seus dados a cada mudança, por 14 dias, para você poder voltar a uma data.\n\n' +
+             'Para ligar, você cria a senha dos dados: as cópias (e tudo o que vai para a nuvem) saem do celular cifradas com ela, e só você abre. ' +
+             'Não tem recuperação: guarde bem a senha.',
+      ok: 'Criar a senha e ligar', cancelar: 'Agora não'
+    }, function () { setTimeout(abrirCriarCofre, 260); });
+  }
+
+  function resumoDaProtecao() {
+    if (!NUVEM.ligada || !sessaoNuvem) return 'só com a conta na nuvem';
+    if (cofreLigado()) return 'criptografia ligada';
+    if (cofreTrancado()) return 'trancado neste aparelho';
+    return 'senha ainda não criada';
+  }
+
+  function abrirProtejaSeusDados() {
+    abrirFolha('Proteja seus dados', function (folha) {
+      folha.appendChild(no('p', 'guia-intro', 'Tudo o que protege os seus dados num lugar só: a senha que cifra a nuvem, os backups e as respostas para as dúvidas mais comuns.'));
+
+      var semNuvem = !NUVEM.ligada || !sessaoNuvem;
+      var cx = cartao('liso cartao-proteja-opcoes');
+      // As dúvidas moram no "i" (pedido de 25/11/2026): pergunta e resposta.
+      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.protecao', titulo: 'Dúvidas sobre senha e backups',
+        itens: DUVIDAS_DE_PROTECAO.map(function (d) { return [d[0], d[1].join(' ')]; }) });
+      topoP.style.padding = '16px 16px 0';
+      topoP.style.marginBottom = '6px';
+      cx.appendChild(topoP);
+      var estadoTxt = semNuvem ? 'Só funciona com a conta na nuvem'
+        : faltaNoBanco['cofre'] ? 'O servidor ainda não recebeu a atualização'
+        : cofreLigado() ? 'Ligada ✓ tudo sobe cifrado com ela'
+        : cofreTrancado() ? 'Trancada neste aparelho: toque para digitar'
+        : 'Ainda não criada: toque para criar';
+      var nuvemLigada = !semNuvem && cofreLigado();
+      var subNuvem = no('div', 'linha-sub', semNuvem ? 'Entre na conta para usar'
+        : !nuvemLigada ? 'Desligado · toque para ligar (pede a senha dos dados)' : 'Procurando as cópias…');
+      [
+        ['🔐', 'Senha dos dados', no('div', 'linha-sub estado-senha-dados', estadoTxt), function () { abrirFolhaCofre(); }, 'botao-senha-dados'],
+        ['☁', 'Backup na nuvem', subNuvem, function () { nuvemLigada ? abrirFolhaInstantaneos() : ligarBackupNaNuvem(); }, 'botao-backup-nuvem'],
+        ['📱', 'Backup no celular', no('div', 'linha-sub', 'Arquivo .finanz · ' + resumoDosBackupsDoCelular().toLowerCase()), function () { abrirBackupNoCelular(); }, 'botao-backup-celular']
+      ].forEach(function (o) {
+        var l = botao('linha ' + o[4], null, o[3]);
+        juntar(l, selo('#60A5FA', o[0]), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', o[1]), o[2]));
+        cx.appendChild(l);
+      });
+      cx.appendChild(no('div', 'linha-nota backup-nota', 'As senhas são diferentes: a nuvem abre com a senha dos dados; o arquivo do celular, com a senha do backup.'));
+      if (nuvemLigada) {
+        listarInstantaneos().then(function (lista) {
+          if (!lista.length) { subNuvem.textContent = 'Ligado · a primeira cópia sai na próxima sincronização'; return; }
+          var u = lista[0];
+          subNuvem.textContent = 'Ligado · ' + lista.length + ' cópia(s) · última ' + (u.dia === hojeTexto() ? 'hoje' : dataBr(u.dia)) + ' às ' + horaDe(u.criado_em);
+        }).catch(function () { subNuvem.textContent = 'Sem conexão agora'; });
+      }
+      folha.appendChild(cx);
+
+      // Para ler mais
+      var cl = cartao('liso');
+      [['Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }],
+       ['Política de Privacidade', 'O texto completo', function () { abrirTexto('privacidade'); }],
+       ['Termos de Uso', 'As regras de uso do app', function () { abrirTexto('termos'); }]].forEach(function (x) {
+        var l = botao('linha', null, x[2]);
+        juntar(l, seloIcone('info', '#60A5FA'), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', x[0]), no('div', 'linha-sub', x[1])));
+        cl.appendChild(l);
+      });
+      folha.appendChild(cl);
+    });
+  }
+
+  function abrirBackupNoCelular() {
+    abrirFolha('Backup no celular', function (folha) {
+      var c = cartao();
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Arquivo .finanz, com senha própria'), botaoDeInfo('mais.backups', 'Backups', INFO_BACKUPS));
+      c.appendChild(topo);
+      c.appendChild(no('p', 'linha-sub', 'Um arquivo com tudo, cifrado com uma senha que você escolhe na hora — diferente da senha dos dados. Guarde fora do celular também (Drive, e-mail): se perder o celular, é com ele que você volta.'));
+      folha.appendChild(c);
+      var acoes = cartao('liso');
+      var gerar = botao('linha', null, function () { fazerBackup(); });
+      juntar(gerar, selo('#34D399', '💾'), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Gerar backup agora'), no('div', 'linha-sub', 'Escolha a senha do backup e salve o arquivo')));
+      acoes.appendChild(gerar);
+      var rest = rotuloDeArquivo('arquivoRestaurar', 'linha');
+      juntar(rest, selo('#60A5FA', '↺'), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Restaurar de um arquivo'), no('div', 'linha-sub', 'Troca tudo o que está no app pelo que está no arquivo')));
+      acoes.appendChild(rest);
+      var dica = no('div', 'linha-nota');
+      dica.style.padding = '2px 16px 12px';
+      dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador de arquivos, toque em Compartilhar e escolha o Finanz.';
+      acoes.appendChild(dica);
+      folha.appendChild(acoes);
+      var hist = cartao('liso cartao-backups-celular');
+      var th = no('div', 'cartao-topo'); th.style.padding = '16px 16px 4px';
+      th.appendChild(no('div', 'cartao-titulo', 'Gerados neste aparelho'));
+      hist.appendChild(th);
+      var l = backupsDoCelular();
+      if (!l.length) hist.appendChild(estadoVazio('Nenhum ainda', 'Os backups que você gerar aqui aparecem nesta lista, com a data. O arquivo fica onde você salvou (normalmente em Downloads).'));
+      l.forEach(function (b) {
+        var d = new Date(b.quando);
+        var dia = deData(d) === hojeTexto() ? 'hoje' : dataBr(deData(d));
+        hist.appendChild(linhaSimples({ titulo: dia + ' às ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'),
+          sub: b.nome || 'finanz-backup.finanz', valor: b.tamanho ? tamanhoDeArquivo(b.tamanho) : '', selo: selo('#34D399', '💾') }));
+      });
+      folha.appendChild(hist);
     });
   }
 
@@ -34787,7 +36852,7 @@
         var filtro = t === 'empreendedor_registros'
           ? 'select=id,tipo&excluido_em=is.null&user_id=eq.' + uidAqui
           : 'select=id&excluido_em=is.null';
-        return baixarTudo(t, filtro).catch(function (e) {
+        return baixarTabela(t, filtro).catch(function (e) {
           if (TABELAS_OPCIONAIS.indexOf(t) >= 0 && ehTabelaQueFalta(e)) return [];
           throw e;
         });
@@ -34842,6 +36907,15 @@
     });
   }
 
+  // Os dados de uma cópia, abertos: cifrada (cofre) ou não.
+  function textoDaCopia(dados) {
+    if (!ehDoCofre(dados)) return descomprimirTexto(dados, pareceZip(dados));
+    return abrirDoCofre(dados).then(function (bytes) {
+      var b64 = paraBase64(bytes);
+      return descomprimirTexto(b64, pareceZip(b64));
+    });
+  }
+
   function descomprimirTexto(b64, zip) {
     var bytes = deBase64(b64);
     if (!zip) return Promise.resolve(new TextDecoder().decode(bytes));
@@ -34892,18 +36966,38 @@
     // histórico apagaria justamente o registro da restauração.
     delete copia.historico;
     var texto = JSON.stringify(copia);
+    var motivoTexto = String(motivo || 'dia').slice(0, 200);
+    var resumo = resumoDoInstantaneo(copia);
 
     return comTokenValido().then(function () {
+      return cofrePronto();
+    }).then(function () {
+      // Backup na nuvem só com a senha dos dados (pedido de 25/11/2026):
+      // sem ela, nada sobe. O servidor também recusa cópia aberta.
+      if (!cofreLigado()) throw new Error('sem a senha dos dados, o backup na nuvem fica desligado');
       return comprimirTexto(texto);
     }).then(function (c) {
+      var linha = {
+        id: novoId(), user_id: sessaoNuvem.usuario.id, dia: hojeTexto(),
+        motivo: motivoTexto, resumo: resumo, dados: c.dados, tamanho: texto.length
+      };
+      if (!cofreLigado()) return linha;
+      // Com o cofre, a cópia sobe cifrada, e o motivo e o resumo também
+      // (o motivo pode ter o nome de um arquivo). 'dia' e 'alteração'
+      // ficam à vista: são só o tipo da cópia.
+      return Promise.all([
+        cifrarParaOCofre(deBase64(c.dados)),
+        textoParaOCofre(JSON.stringify({ motivo: motivoTexto, resumo: resumo }))
+      ]).then(function (r) {
+        linha.dados = r[0];
+        linha.resumo = r[1];
+        if (motivoTexto !== 'dia' && motivoTexto !== 'alteração') linha.motivo = 'cifrado';
+        return linha;
+      });
+    }).then(function (linha) {
       return pedirNuvem('/rest/v1/instantaneos', {
         metodo: 'POST',
-        corpo: [{
-          id: novoId(), user_id: sessaoNuvem.usuario.id, dia: hojeTexto(),
-          motivo: String(motivo || 'dia').slice(0, 200),
-          resumo: resumoDoInstantaneo(copia),
-          dados: c.dados, tamanho: texto.length
-        }],
+        corpo: [linha],
         cabecalhos: { 'Prefer': 'return=minimal' }
       });
     }).then(function () { return limparOVelhoNaNuvem(); })
@@ -34952,6 +37046,9 @@
     // existe nada que a cópia fosse salvar.
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(true);
     if (estaVazio(estado)) return Promise.resolve(true);
+    // Backup na nuvem desligado (sem a senha dos dados): não há cópia a
+    // fazer, e perguntar "apagar assim mesmo?" seria assustar à toa.
+    if (!cofreLigado()) return Promise.resolve(true);
     var assinatura = assinaturaDoEstado();
     if (assinatura === ultimaCopiaDeExclusao) return Promise.resolve(true);
     return guardarInstantaneo(descricao).then(function (deu) {
@@ -35102,15 +37199,26 @@
   function guardarArquivoDeExtrato(importacaoId, contaId, bytes, nome) {
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (!bytes || !bytes.length || bytes.length > LIMITE_ARQUIVO_EXTRATO) return Promise.resolve(false);
+    var nomeArq = String(nome || 'extrato').slice(0, 120);
     return comTokenValido().then(function () {
+      return cofrePronto();
+    }).then(function () {
+      // Cofre trancado aqui: o arquivo não sobe aberto. Fica sem guardar.
+      if (!podeSubirAvulso()) throw new Error('cofre trancado');
+      if (!cofreLigado()) return { nome: nomeArq, conteudo: paraBase64(bytes) };
+      // Com o cofre, o arquivo e o nome dele sobem cifrados.
+      return Promise.all([cifrarParaOCofre(bytes), textoParaOCofre(nomeArq)]).then(function (r) {
+        return { nome: r[1], conteudo: r[0] };
+      });
+    }).then(function (x) {
       return pedirNuvem('/rest/v1/arquivos_extrato', {
         metodo: 'POST',
         corpo: [{
           id: novoId(), user_id: sessaoNuvem.usuario.id,
           importacao_id: importacaoId, conta_id: contaId || '',
-          nome: String(nome || 'extrato').slice(0, 120),
+          nome: x.nome,
           tipo: tipoDoArquivo(nome), tamanho: bytes.length,
-          conteudo: paraBase64(bytes)
+          conteudo: x.conteudo
         }],
         cabecalhos: { 'Prefer': 'return=minimal' }
       });
@@ -35132,7 +37240,14 @@
     var filtro = contaId ? '&conta_id=eq.' + encodeURIComponent(contaId) : '';
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,nome,tipo,tamanho,criado_em' + filtro, {});
-    }).then(function (r) { return r || []; }).catch(function () { return []; });
+    }).then(function (r) {
+      // Nome cifrado (cofre): abre aqui, para a tela ver o nome de sempre.
+      return Promise.all((r || []).map(function (a) {
+        if (!ehDoCofre(a.nome)) return a;
+        return textoDoCofre(a.nome).then(function (n) { a.nome = n; return a; })
+          .catch(function () { a.nome = 'extrato (cifrado)'; return a; });
+      }));
+    }).catch(function () { return []; });
   }
 
   // Apaga de uma vez os arquivos pelos ids, em grupos de 80.
@@ -35166,7 +37281,12 @@
         var pac = null;
         try { pac = JSON.parse(linha.conteudo); } catch (e) { pac = null; }
         if (!pac || !pac.kdf || !pac.cifra) throw new Error('o extrato conferido está estragado');
-        return { conferido: pac, nome: linha.nome, tipo: linha.tipo };
+        return textoDoCofre(linha.nome).then(function (n) { return { conferido: pac, nome: n, tipo: linha.tipo }; });
+      }
+      if (ehDoCofre(linha.conteudo)) {
+        return Promise.all([abrirDoCofre(linha.conteudo), textoDoCofre(linha.nome)]).then(function (r) {
+          return { bytes: r[0], nome: r[1], tipo: linha.tipo };
+        });
       }
       return { bytes: deBase64(linha.conteudo), nome: linha.nome, tipo: linha.tipo };
     });
@@ -35268,7 +37388,7 @@
     return cifrarComChave(texto, k.chave).then(function (x) {
       return JSON.stringify({
         app: 'finanz', formato: 'extrato-conferido', versao: 1, conferidoEm: new Date().toISOString(),
-        kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: k.voltas, sal: k.sal },
+        kdf: k.cofre ? { nome: 'cofre' } : { nome: 'PBKDF2', hash: 'SHA-256', voltas: k.voltas, sal: k.sal },
         comprimido: x.comprimido, cifra: x.cifra, dados: x.dados
       });
     });
@@ -35282,6 +37402,11 @@
   }
 
   function chaveParaPacote(pacote) {
+    // Conferido no tempo do cofre: abre com a chave mestra, sem outra senha.
+    if (pacote.kdf && pacote.kdf.nome === 'cofre') {
+      if (!cofre.chave) return Promise.reject(new Error('Digite a senha dos dados para abrir.'));
+      return Promise.resolve({ chave: cofre.chave, sal: 'cofre', voltas: 0 });
+    }
     if (chaveDosExtratos && chaveDosExtratos.sal === pacote.kdf.sal) return Promise.resolve(chaveDosExtratos);
     var voltas = Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP;
     return pedirSenhaDosExtratos(false, function (senha) {
@@ -35297,6 +37422,8 @@
   // Para conferir: se já existe algum conferido na conta da pessoa, a senha
   // tem de ser a mesma dele; se é o primeiro, a senha nasce agora.
   function chaveParaConferir() {
+    // Com o cofre, uma senha só: o conferido usa a chave mestra.
+    if (cofreLigado()) return Promise.resolve({ chave: cofre.chave, sal: 'cofre', voltas: 0, cofre: true });
     if (chaveDosExtratos) return Promise.resolve(chaveDosExtratos);
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=id,tamanho&tipo=eq.' +
@@ -35400,7 +37527,7 @@
         limparAviso();
         var partes = [];
         if (feitos) partes.push(feitos + ' extrato(s) conferido(s) ✓. Os arquivos foram de ' + tamanhoDeArquivo(antes) +
-          ' para ' + tamanhoDeArquivo(depois) + ', cifrados com a senha dos extratos.');
+          ' para ' + tamanhoDeArquivo(depois) + ', cifrados com a senha ' + (k.cofre ? 'dos dados.' : 'dos extratos.'));
         if (comSenha) partes.push(comSenha + ' PDF(s) têm senha do banco e ficaram como vieram.');
         if (falhas) partes.push(falhas + ' arquivo(s) não deu para trocar agora e ficaram como vieram. Confira a internet e tente de novo.');
         if (!partes.length) partes.push('Não havia arquivo para conferir.');
@@ -35531,6 +37658,17 @@
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/instantaneos?select=id,dia,motivo,resumo,tamanho,criado_em&order=criado_em.desc', {});
     }).then(function (r) {
+      // Cópia cifrada: o motivo e o resumo de verdade estão dentro.
+      return Promise.all((r || []).map(function (x) {
+        if (!ehDoCofre(x.resumo)) return x;
+        return textoDoCofre(x.resumo).then(function (t) {
+          var d = JSON.parse(t);
+          x.resumo = d.resumo || '';
+          if (x.motivo === 'cifrado') x.motivo = d.motivo || x.motivo;
+          return x;
+        }).catch(function () { x.resumo = 'cifrada'; return x; });
+      }));
+    }).then(function (r) {
       // O servidor já devolve ordenado, mas a tela não depende disso: do
       // mais novo para o mais velho é como a pessoa procura.
       return (r || []).slice().sort(function (a, b) {
@@ -35559,7 +37697,7 @@
       var linha = r && r[0];
       if (!linha) throw new Error('não achei esse dia');
       var esperado = null;
-      return descomprimirTexto(linha.dados, pareceZip(linha.dados)).then(function (texto) {
+      return textoDaCopia(linha.dados).then(function (texto) {
         var limpo = limparEstado(JSON.parse(texto));
         // O que a cópia tinha dentro, para conferir no fim. Restauração
         // que termina com outro número de lançamentos não é restauração:
@@ -35674,12 +37812,18 @@
     // que é o item que fecha a folha e redesenha a tela ao voltar. Um
     // item 'aba' com voltar vazio por cima engolia o voltar — a folha
     // não fechava e a tela ficava mostrando os dados de antes.
-    abrirFolha('Voltar a uma data', function (folha) {
+    abrirFolha('Backup na nuvem', function (folha) {
       var forma = no('div');
+      var topoN = no('div', 'cartao-topo');
+      juntar(topoN, no('div', 'rotulo', 'Voltar a uma data'), botaoDeInfo('mais.backups', 'Backups', INFO_BACKUPS));
+      forma.appendChild(topoN);
       forma.appendChild(no('p', 'linha-sub',
         'O app guarda na nuvem uma cópia inteira dos seus dados sempre que você mexe em ' +
         'alguma coisa, mais uma por dia e uma antes de cada exclusão. Escolha uma cópia ' +
         'para voltar tudo ao que era nela.'));
+      forma.appendChild(no('p', 'linha-nota backup-nota-nuvem', cofreLigado()
+        ? 'Estas cópias estão cifradas com a sua senha dos dados: sem ela, ninguém abre.'
+        : 'Com a senha dos dados ligada (Mais → Senha dos dados), estas cópias passam a ficar cifradas com ela.'));
 
       // Guardar na hora. A automática sai uma vez por dia; quem vai mexer
       // em alguma coisa grande quer poder marcar o ponto antes, sem
