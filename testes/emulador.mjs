@@ -260,7 +260,7 @@ const servidor = http.createServer(async (req, res) => {
             const sql = `insert into public."${tabela}" (${cols}) values (${marc})` +
               (set ? ` on conflict (${alvo}) do update set ${set}` : ` on conflict (${alvo}) do nothing`);
             // Colunas jsonb querem o JSON como texto; text[] vai como array mesmo.
-            const JSONB = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados', 'areas', 'ofertas_rf', 'cofre'];
+            const JSONB = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados', 'areas', 'ofertas_rf', 'cofre', 'chaves'];
             await c.query(sql, colunas.map((k) => {
               const v = reg[k];
               return (JSONB.includes(k) && v && typeof v === 'object') ? JSON.stringify(v) : v;
@@ -278,7 +278,7 @@ const servidor = http.createServer(async (req, res) => {
         const ondeDesl = onde.replace(/\$(\d+)/g, (_, n) => '$' + (Number(n) + desloc));
         // Lista para coluna jsonb vai como JSON, igual ao POST: sem isto o
         // node-postgres a mandava como array do Postgres e o banco recusava.
-        const JSONB_P = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados', 'areas', 'ofertas_rf', 'cofre'];
+        const JSONB_P = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados', 'areas', 'ofertas_rf', 'cofre', 'chaves'];
         await comoUsuario(uid, (c) =>
           c.query(`update public."${tabela}" set ${set} ${ondeDesl}`,
             colunas.map((k) => (JSONB_P.includes(k) && corpo[k] && typeof corpo[k] === 'object') ? JSON.stringify(corpo[k]) : corpo[k]).concat(valores)));

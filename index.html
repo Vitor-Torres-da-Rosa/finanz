@@ -6776,6 +6776,8 @@
   function esquecerChaveDoCofre(uid) {
     try { localStorage.removeItem(chaveDoCofreNoAparelho(uid)); } catch (e) { /* nada */ }
     cofre = { info: null, chave: null, sal: '', ativo: false, lido: false };
+    parDeChaves = null;
+    chavesDeArea = {};
   }
 
   function cifrarLinhaDoCofre(id, linha) {
@@ -6977,6 +6979,252 @@
     return comTokenValido().then(function () { return prepararCofre(); }).catch(function () { return null; });
   }
   function podeSubirAvulso() { return !(cofre.ativo && !cofre.chave); }
+
+  // ---------- Compartilhado cifrado (pedido de 25/11/2026) ----------
+  //
+  // Cada pessoa com o cofre tem um par de chaves ECDH P-256: a pública vai
+  // no convite; a privada mora no perfis.cofre, cifrada com a chave mestra.
+  // Cada área compartilhada (Doces, Uber, Casa) tem a sua chave, guardada
+  // no cofre do dono e embrulhada no convite para a pessoa convidada (com
+  // a chave tirada do ECDH entre a privada de um e a pública do outro). Os
+  // registros da área continuam em empreendedor_registros, onde o RLS do
+  // compartilhamento vale, mas o `dados` vai cifrado com a chave da área.
+  //
+  // Sem a chave de uma área cifrada, nada daquela área sobe aberto: a
+  // linha simplesmente não sobe.
+  var parDeChaves = null;
+  var chavesDeArea = {};
+  var CHAVE_AREAS_TRANCADAS = 'finanz.areasTrancadas.v1';
+
+  function eu() { return (sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || ''; }
+
+  function areasTrancadas() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_AREAS_TRANCADAS + ':' + eu()) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function marcarAreaTrancada(k, sim) {
+    var t = areasTrancadas();
+    if (sim) t[k] = true; else delete t[k];
+    try { localStorage.setItem(CHAVE_AREAS_TRANCADAS + ':' + eu(), JSON.stringify(t)); } catch (e) { /* sem espaço */ }
+  }
+
+  function garantirParDeChaves() {
+    if (parDeChaves) return Promise.resolve(parDeChaves);
+    if (!cofreLigado()) return Promise.reject(new Error('sem cofre'));
+    var info = cofre.info;
+    if (info.par && info.par.publica && info.par.privada) {
+      return decifrarBytes(cofre.chave, info.par.privada).then(function (pk) {
+        return cripto.subtle.importKey('pkcs8', pk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']);
+      }).then(function (priv) {
+        parDeChaves = { publica: info.par.publica, privada: priv };
+        return parDeChaves;
+      });
+    }
+    var kp = null, pub = '';
+    return cripto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']).then(function (k) {
+      kp = k;
+      return Promise.all([cripto.subtle.exportKey('raw', kp.publicKey), cripto.subtle.exportKey('pkcs8', kp.privateKey)]);
+    }).then(function (r) {
+      pub = paraBase64(new Uint8Array(r[0]));
+      return cifrarBytes(cofre.chave, new Uint8Array(r[1]));
+    }).then(function (privCif) {
+      var novo = JSON.parse(JSON.stringify(info));
+      novo.par = { publica: pub, privada: privCif, criadoEm: new Date().toISOString() };
+      return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(eu()), {
+        metodo: 'PATCH', corpo: { cofre: novo }, cabecalhos: { 'Prefer': 'return=minimal' }
+      }).then(function () {
+        cofre.info = novo;
+        guardarInfoDoCofre(novo);
+        parDeChaves = { publica: pub, privada: kp.privateKey };
+        return parDeChaves;
+      });
+    });
+  }
+
+  function chaveEntre(minhaPrivada, publicaDoOutro) {
+    return cripto.subtle.importKey('raw', deBase64(publicaDoOutro), { name: 'ECDH', namedCurve: 'P-256' }, false, []).then(function (pub) {
+      return cripto.subtle.deriveKey({ name: 'ECDH', public: pub }, minhaPrivada, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+
+  function cifrarComAD(chave, ad, bytes) {
+    var iv = bytesAleatorios(12);
+    return cripto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(ad) }, chave, bytes).then(function (c) {
+      var saida = new Uint8Array(12 + c.byteLength);
+      saida.set(iv, 0); saida.set(new Uint8Array(c), 12);
+      return paraBase64(saida);
+    });
+  }
+  function abrirComAD(chave, ad, b64) {
+    var b = deBase64(b64);
+    return cripto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12), additionalData: new TextEncoder().encode(ad) }, chave, b.slice(12))
+      .then(function (c) { return new Uint8Array(c); });
+  }
+
+  // A chave de uma área minha: no meu cofre. `criar` faz uma nova se não houver.
+  function minhaChaveDaArea(area, criar) {
+    var k = eu() + '|' + area;
+    if (chavesDeArea[k]) return Promise.resolve(chavesDeArea[k]);
+    if (!cofreLigado()) return Promise.resolve(null);
+    var id = 'chave_area|' + area;
+    var ler = function () {
+      return pedirNuvem('/rest/v1/cofre?select=id,dados&id=eq.' + encodeURIComponent(id) + '&excluido_em=is.null', {}).then(function (r) {
+        if (!r || !r[0]) return null;
+        return decifrarLinhaDoCofre(id, r[0].dados).then(function (o) { return importarChave(o.chave); });
+      });
+    };
+    return ler().then(function (ak) {
+      if (ak || !criar) return ak;
+      return novaChaveMestra().then(function (nova) {
+        return exportarChave(nova).then(function (b64) { return cifrarLinhaDoCofre(id, { area: area, chave: b64 }); })
+          .then(function (d) {
+            return pedirNuvem('/rest/v1/cofre?on_conflict=user_id,id', {
+              metodo: 'POST', corpo: [{ user_id: eu(), id: id, tabela: 'chave_area', dados: d, excluido_em: null }],
+              cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+            });
+          }).then(function () { chaveNovaDeArea = true; return ler(); });
+      });
+    }).then(function (ak) { if (ak) chavesDeArea[k] = ak; return ak; });
+  }
+  var chaveNovaDeArea = false;
+
+  // A chave de uma área que alguém compartilhou comigo: desembrulhada do convite.
+  function chaveDaAreaDeOutro(donoId, area) {
+    var k = donoId + '|' + area;
+    if (chavesDeArea[k]) return Promise.resolve(chavesDeArea[k]);
+    var conv = convitesComigo.filter(function (l) { return l.dono_id === donoId; })[0];
+    if (!conv || !conv.chaves || !conv.chaves[area] || !conv.dono_chave_publica || !cofreLigado()) return Promise.resolve(null);
+    return garantirParDeChaves().then(function (par) {
+      return chaveEntre(par.privada, conv.dono_chave_publica);
+    }).then(function (kw) {
+      return abrirComAD(kw, conv.id + '|' + area, conv.chaves[area]);
+    }).then(function (raw) {
+      return importarChave(paraBase64(raw));
+    }).then(function (ak) { chavesDeArea[k] = ak; return ak; }).catch(function () { return null; });
+  }
+
+  // A área está cifrada? (então, sem chave, nada sobe aberto)
+  function areaCifrada(dono, area) {
+    if (dono === eu()) return cofreLigado();
+    var conv = convitesComigo.filter(function (l) { return l.dono_id === dono; })[0];
+    return !!(conv && (conv.dono_chave_publica || (conv.chaves && conv.chaves[area]))) || !!areasTrancadas()[dono + '|' + area];
+  }
+
+  function chaveParaLinha(l) {
+    var area = areaDoTipo(l.tipo), dono = l.user_id || eu();
+    return dono === eu() ? minhaChaveDaArea(area, true).catch(function () { return null; }) : chaveDaAreaDeOutro(dono, area);
+  }
+
+  function cifrarLinhasCompartilhadas(linhas) {
+    return Promise.all(linhas.map(function (l) {
+      if (!linhaFicaAberta('empreendedor_registros', l)) return l;
+      if (l.dados && l.dados.c) return l;
+      var area = areaDoTipo(l.tipo), dono = l.user_id || eu();
+      return chaveParaLinha(l).then(function (ak) {
+        if (!ak) return areaCifrada(dono, area) ? null : l;
+        return cifrarComAD(ak, String(l.id), new TextEncoder().encode(JSON.stringify(l.dados || {}))).then(function (c) {
+          var n = {};
+          Object.keys(l).forEach(function (x) { n[x] = l[x]; });
+          n.dados = { c: c };
+          return n;
+        });
+      });
+    })).then(function (ls) { return ls.filter(Boolean); });
+  }
+
+  var avisouTrancada = {};
+  function abrirLinhasCompartilhadas(linhas) {
+    return Promise.all((linhas || []).map(function (l) {
+      if (!l || !l.dados || !l.dados.c) return l;
+      var area = areaDoTipo(l.tipo), dono = l.user_id || eu();
+      return (dono === eu() ? minhaChaveDaArea(area, false) : chaveDaAreaDeOutro(dono, area)).then(function (ak) {
+        if (!ak) throw new Error('sem chave');
+        return abrirComAD(ak, String(l.id), l.dados.c).then(function (b) {
+          var n = {};
+          Object.keys(l).forEach(function (x) { n[x] = l[x]; });
+          n.dados = JSON.parse(new TextDecoder().decode(b));
+          marcarAreaTrancada(dono + '|' + area, false);
+          return n;
+        });
+      }).catch(function () {
+        marcarAreaTrancada(dono + '|' + area, true);
+        avisarAreaTrancada(dono, area);
+        return null;
+      });
+    })).then(function (ls) { return ls.filter(Boolean); });
+  }
+
+  function avisarAreaTrancada(dono, area) {
+    var k = dono + '|' + area;
+    if (avisouTrancada[k] || dono === eu()) return;
+    avisouTrancada[k] = true;
+    var conv = convitesComigo.filter(function (l) { return l.dono_id === dono; })[0];
+    var quem = (conv && conv.dono_nome) || 'quem compartilhou';
+    setTimeout(function () {
+      if (!cofreLigado()) {
+        avisarCaixa(nomeDaArea(area) + ' está cifrada', quem + ' compartilhou ' + nomeDaArea(area) + ' com você cifrado de ponta a ponta. ' +
+          'Para abrir, crie a sua senha dos dados em Mais → Proteja seus dados. Depois, ' + quem + ' precisa abrir o app uma vez para liberar a chave.');
+      } else {
+        avisarCaixa('Esperando a chave', 'Para abrir ' + nomeDaArea(area) + ', ' + quem + ' precisa abrir o app uma vez: é aí que a chave da área é liberada para você.');
+      }
+    }, 900);
+  }
+
+  // A cada sincronia: publica a minha chave pública nos convites, embrulha
+  // a chave das minhas áreas para quem aceitou, e cria a chave das áreas
+  // que compartilho (subindo tudo de novo, cifrado, na primeira vez).
+  function prepararCompartilhadoCifrado() {
+    if (!cofreLigado() || faltaNoBanco['tabela:compartilhamentos'] || faltaNoBanco['comp:chaves']) return Promise.resolve();
+    var meus = (meusConvites || []).filter(function (l) { return l.situacao !== 'recusado'; });
+    if (!meus.length && !convitesComigo.length) return Promise.resolve();
+    chaveNovaDeArea = false;
+    return garantirParDeChaves().then(function (par) {
+      var t = Promise.resolve();
+      meus.forEach(function (l) {
+        t = t.then(function () {
+          var mudar = {};
+          if (l.dono_chave_publica !== par.publica) mudar.dono_chave_publica = par.publica;
+          var chaves = JSON.parse(JSON.stringify(l.chaves || {}));
+          if (chaves._para && chaves._para !== l.convidado_chave_publica) chaves = {};
+          var mudouChaves = false;
+          return (l.areas || []).reduce(function (p, area) {
+            return p.then(function () {
+              return minhaChaveDaArea(area, true).then(function (ak) {
+                if (!ak || chaves[area] || l.situacao !== 'aceito' || !l.convidado_chave_publica) return;
+                return chaveEntre(par.privada, l.convidado_chave_publica).then(function (kw) {
+                  return exportarChave(ak).then(function (b64) { return cifrarComAD(kw, l.id + '|' + area, deBase64(b64)); });
+                }).then(function (env) { chaves[area] = env; mudouChaves = true; });
+              });
+            });
+          }, Promise.resolve()).then(function () {
+            if (mudouChaves) { chaves._para = l.convidado_chave_publica; mudar.chaves = chaves; }
+            if (!Object.keys(mudar).length) return;
+            return pedirNuvem('/rest/v1/compartilhamentos?id=eq.' + encodeURIComponent(l.id), {
+              metodo: 'PATCH', corpo: mudar, cabecalhos: { 'Prefer': 'return=minimal' }
+            }).then(function () { Object.keys(mudar).forEach(function (x) { l[x] = mudar[x]; }); });
+          });
+        });
+      });
+      convitesComigo.forEach(function (l) {
+        t = t.then(function () {
+          if (l.convidado_chave_publica === par.publica) return;
+          return pedirNuvem('/rest/v1/rpc/publicar_minha_chave', { metodo: 'POST', corpo: { p_id: l.id, p_chave: par.publica } })
+            .then(function () { l.convidado_chave_publica = par.publica; });
+        }).then(function () {
+          // A chave chegou para uma área que estava trancada: baixa tudo de novo.
+          var tr = areasTrancadas();
+          (l.areas || []).forEach(function (area) {
+            if (tr[l.dono_id + '|' + area] && l.chaves && l.chaves[area]) estado.carimbo = '';
+          });
+        });
+      });
+      return t;
+    }).then(function () {
+      // Chave de área nova: o que estava aberto naquela área sobe de novo, cifrado.
+      if (chaveNovaDeArea) { estado.pendente = true; chaveNovaDeArea = false; }
+    }).catch(function (e) {
+      if (ehColunaQueFalta(e)) faltaNoBanco['comp:chaves'] = true;
+    });
+  }
 
   // Cria o cofre: só depois de uma sincronia boa (o estado daqui é o da
   // nuvem), e só se outro aparelho não criou antes.
@@ -7514,6 +7762,7 @@
   }
 
   var meusConvites = [];
+  var convitesComigo = [];
   var convitesParaMim = [];
   var convitesJaPerguntados = {};
 
@@ -7528,6 +7777,7 @@
     return pedirNuvem('/rest/v1/compartilhamentos?select=*', {}).then(function (linhas) {
       linhas = linhas || [];
       meusConvites = linhas.filter(function (l) { return l.dono_id === uid; });
+      convitesComigo = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'aceito' && l.convidado_id === uid; });
       var aceitos = linhas.filter(function (l) { return l.dono_id !== uid && l.situacao === 'aceito' && l.convidado_id === uid; })
         .map(function (l) { return { id: l.id, donoId: l.dono_id, donoNome: l.dono_nome || '', areas: Array.isArray(l.areas) ? l.areas : [] }; });
       var antes = compartilhadosComigo();
@@ -7921,6 +8171,12 @@
 
   function enviarLinhas(tabela, linhas, aoConflito, direto) {
     if (!linhas.length) return Promise.resolve();
+    if (!direto && tabela === 'empreendedor_registros' && !linhas.compartilhadoPronto) {
+      return cifrarLinhasCompartilhadas(linhas).then(function (ls) {
+        ls.compartilhadoPronto = true;
+        return enviarLinhas(tabela, ls, aoConflito);
+      });
+    }
     if (!direto && cofreLigado()) {
       // Com o cofre, tudo sobe cifrado; só o Empreendedor compartilhado
       // segue aberto, na tabela de sempre.
@@ -8197,6 +8453,12 @@
           throw e;
         });
       }).then(function (r) { recolhido[t] = r === null ? null : (r || []); });
+    });
+
+    // Áreas compartilhadas cifradas: abre com a chave da área.
+    tarefa = tarefa.then(function () {
+      if (!recolhido.empreendedor_registros) return;
+      return abrirLinhasCompartilhadas(recolhido.empreendedor_registros).then(function (r) { recolhido.empreendedor_registros = r; });
     });
 
     // Uber e Doces: além das linhas vivas, os ids das que foram apagadas.
@@ -8673,7 +8935,9 @@
     }).then(function () {
       return carimboDaConta();
     }).then(function (carimbo) {
-      return prepararCofre(!carimbo || carimbo !== estado.carimbo).then(function () { return carimbo; });
+      return prepararCofre(!carimbo || carimbo !== estado.carimbo).then(function () {
+        return prepararCompartilhadoCifrado();
+      }).then(function () { return estado.carimbo === '' ? null : carimbo; });
     }).then(function (carimbo) {
       // Sem carimbo (banco antigo) o app não sabe, então assume que mudou
       // e faz como sempre fez.
@@ -11228,7 +11492,7 @@
         'Criptografia de ponta a ponta: com a senha dos dados criada (Mais → Senha dos dados), tudo o que vai para o servidor — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato — sai do seu celular já cifrado (AES-GCM de 256 bits) com uma chave que só a sua senha abre. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
         'A senha dos dados nunca sai do celular. O servidor guarda só a chave embrulhada por ela (PBKDF2 com 210 mil voltas). Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais, e você pode apagá-los para recomeçar.',
         'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram e o tamanho deles.',
-        'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha com outra pessoa ainda ficam legíveis para ela e para o servidor.',
+        'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, quando as duas têm a senha dos dados.',
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
@@ -11268,7 +11532,8 @@
         ['Só você vê os seus.', 'Além da cifra, cada linha tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security).'],
         ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
-        ['Ainda abertos.', 'O que está na nuvem antes de você criar a senha dos dados, e as áreas do Empreendedor que você compartilha com outra pessoa: esses o servidor ainda consegue ler.'],
+        ['Compartilhado também.', 'A área do Empreendedor que você compartilha vai cifrada com uma chave só de vocês dois (cada um com o seu par de chaves).'],
+        ['Ainda abertos.', 'Sem a senha dos dados criada, a sincronia continua do jeito antigo: protegida pelo login, mas legível para quem administra o servidor.'],
         ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
@@ -36385,7 +36650,8 @@
       'Sem a senha dos dados criada, os dados ficam protegidos pelo login, mas quem administra o servidor consegue ler.']],
     ['E o que eu compartilho com outra pessoa?', [
       'As áreas do Empreendedor que você compartilha (Doces, Uber, Casa) a outra pessoa vê, porque é para isso que serve compartilhar.',
-      'Por enquanto, essas áreas ficam legíveis também no servidor. A versão cifrada do compartilhado está a caminho.']]
+      'Com a senha dos dados ligada dos dois lados, a área vai cifrada de ponta a ponta: cada um tem um par de chaves, e a chave da área só abre para vocês dois. O servidor não lê.',
+      'Se a outra pessoa ainda não criou a senha dos dados, o app avisa ela: até criar, ela não consegue abrir a área.']]
   ];
 
   function ligarBackupNaNuvem() {
