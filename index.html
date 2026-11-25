@@ -36701,6 +36701,9 @@
     // existe nada que a cópia fosse salvar.
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(true);
     if (estaVazio(estado)) return Promise.resolve(true);
+    // Backup na nuvem desligado (sem a senha dos dados): não há cópia a
+    // fazer, e perguntar "apagar assim mesmo?" seria assustar à toa.
+    if (!cofreLigado()) return Promise.resolve(true);
     var assinatura = assinaturaDoEstado();
     if (assinatura === ultimaCopiaDeExclusao) return Promise.resolve(true);
     return guardarInstantaneo(descricao).then(function (deu) {
