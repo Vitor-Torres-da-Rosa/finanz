@@ -148,16 +148,19 @@ await page.click('#telaInicio .linha-alvo:has-text("C6 cartao")'); await page.wa
 // Desde a 5.92 as faturas ficam mês a mês: abre cada mês e confere.
 const esperadoMeses = [proxima, new Date(proxima.getFullYear(), proxima.getMonth() + 1, 1), ultima];
 const faturas = [];
+let todosOsMeses = '';
 for (const d of esperadoMeses) {
   const tab = page.locator('#folha .mes-fatura[data-chave="' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '"]');
   if (!(await tab.count())) { faturas.push(rotulo(d) + ': sem aba'); continue; }
   await tab.click(); await page.waitForTimeout(500);
   faturas.push(rotulo(d) + ': ' + (limpo(await page.textContent('#folha .painel-fatura')).match(/Compras e débitos\s*R\$ [\d.,]+/) || ['sem compras'])[0]);
+  todosOsMeses += ' ' + limpo(await page.textContent('#folha .cartao-faturas-mes'));
 }
 console.log('faturas:', faturas);
 conferir('10. uma parcela em cada uma das 3 faturas seguidas',
   faturas.every(f => /Compras e débitos\s*R\$ 100,00/.test(f)), faturas.join(' | '));
-const gastos = limpo(await page.textContent('#folha'));
+// Desde a 5.97 as compras de cada mês ficam embaixo dele, nas faturas.
+const gastos = todosOsMeses;
 conferir('11. cada uma com "(1/3)", "(2/3)", "(3/3)"', /Geladeira \(1\/3\)/.test(gastos) && /Geladeira \(3\/3\)/.test(gastos));
 
 // Abrindo uma parcela: dá para apagar as três de uma vez.
