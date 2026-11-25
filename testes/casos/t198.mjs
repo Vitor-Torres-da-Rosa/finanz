@@ -96,6 +96,15 @@ conferir('7. no cofre: tudo, e ilegível (nem descrição, nem nome, nem valor)'
   !/Mercado|Segredo|Padaria|Inter|Viagem|Confidencial|12345|Vitor/.test(tudo), tabelas);
 conferir('8. o perfil aberto ficou no padrão, e a chave só embrulhada', !perfil.nome && perfil.cofre && perfil.cofre.kdf && perfil.cofre.kdf.voltas >= 100000 &&
   perfil.cofre.chave && perfil.cofre.convertido && !/Vitor/.test(JSON.stringify(perfil)), JSON.stringify(perfil.cofre || {}).slice(0, 120));
+// A cópia "de alteração" sai uns 45 s depois da mexida: espera ela.
+let copias = [];
+for (let i = 0; i < 75; i++) {
+  copias = await nuvem(p1, 'GET', '/rest/v1/instantaneos?select=motivo,resumo,dados');
+  if (Array.isArray(copias) && copias.length) break;
+  await p1.waitForTimeout(1000);
+}
+conferir('8b. as cópias automáticas também sobem cifradas (dados e resumo)', copias.length > 0 &&
+  copias.every(x => x.dados.startsWith('cofre1:') && x.resumo.startsWith('cofre1:')), copias.map(x => x.motivo + ':' + x.dados.slice(0, 10)).join(' '));
 await p1.reload({ waitUntil: 'networkidle' }); await p1.waitForTimeout(5000);
 await p1.click('#navegacao button:has-text("Transações")'); await p1.waitForTimeout(1200);
 const tr1 = limpo(await p1.textContent('#telaTransacoes'));

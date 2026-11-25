@@ -2833,7 +2833,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.102.0';
+  var VERSAO = '5.103.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2842,6 +2842,17 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.103.0',
+      data: '2026-11-25',
+      itens: [
+        'Criptografia de ponta a ponta: em Mais → "Senha dos dados", você cria uma senha e tudo o que vai para a nuvem passa a sair do celular já cifrado — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato (até o nome deles). Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+        'O que já estava na nuvem é convertido sozinho: sobe cifrado, o app confere que abre e só então apaga a versão aberta.',
+        'Em outro aparelho, o app pede a senha dos dados uma vez. Não existe recuperação: esquecendo, "Esqueci a senha" deixa você apagar a nuvem e recomeçar (ou restaurar um backup .finanz).',
+        'Com a senha dos dados, o "Conferido ✓" usa a mesma senha: uma senha só para tudo.',
+        'As áreas do Empreendedor compartilhadas com outra pessoa ainda ficam abertas para ela; a versão cifrada do compartilhado vem a seguir.'
+      ]
+    },
     {
       versao: '5.102.0',
       data: '2026-11-25',
@@ -6823,6 +6834,31 @@
     });
   }
 
+  // Texto e bytes avulsos (cópias e arquivos): "cofre1:" + base64 de
+  // iv + cifrado. O prefixo separa o cifrado do antigo, que segue abrindo.
+  var PREFIXO_COFRE = 'cofre1:';
+  function ehDoCofre(t) { return typeof t === 'string' && t.indexOf(PREFIXO_COFRE) === 0; }
+  function cifrarParaOCofre(bytes) {
+    return cifrarBytes(cofre.chave, bytes).then(function (b) { return PREFIXO_COFRE + b; });
+  }
+  function abrirDoCofre(texto) {
+    if (!cofre.chave) return Promise.reject(new Error('Digite a senha dos dados para abrir.'));
+    return decifrarBytes(cofre.chave, texto.slice(PREFIXO_COFRE.length));
+  }
+  function textoParaOCofre(t) { return cifrarParaOCofre(new TextEncoder().encode(String(t))); }
+  function textoDoCofre(t) {
+    if (!ehDoCofre(t)) return Promise.resolve(t);
+    return abrirDoCofre(t).then(function (b) { return new TextDecoder().decode(b); });
+  }
+  // Antes de subir algo avulso: o cofre desta conta já foi lido? Se está
+  // trancado, nada sobe aberto.
+  function cofrePronto() {
+    if (!NUVEM.ligada || !sessaoNuvem) return Promise.resolve();
+    if (cofre.lido || faltaNoBanco['cofre']) return Promise.resolve();
+    return comTokenValido().then(function () { return prepararCofre(); }).catch(function () { return null; });
+  }
+  function podeSubirAvulso() { return !(cofre.ativo && !cofre.chave); }
+
   // Cria o cofre: só depois de uma sincronia boa (o estado daqui é o da
   // nuvem), e só se outro aparelho não criou antes.
   function criarCofre(senha) {
@@ -6899,6 +6935,55 @@
     return semColunas([p], faltaNoBanco['colunas:perfis'] || [])[0];
   }
 
+  // As cópias automáticas e os arquivos de extrato que subiram abertos
+  // antes do cofre: um por um, baixa, cifra e grava por cima.
+  function cifrarCopiasEArquivosAntigos() {
+    var t = pedirNuvem('/rest/v1/instantaneos?select=id,motivo,resumo', {}).then(function (r) {
+      return (r || []).filter(function (x) { return !ehDoCofre(x.resumo); }).reduce(function (antes, x) {
+        return antes.then(function () {
+          return pedirNuvem('/rest/v1/instantaneos?select=dados&id=eq.' + encodeURIComponent(x.id), {});
+        }).then(function (d) {
+          var dados = d && d[0] && d[0].dados;
+          if (!dados || ehDoCofre(dados)) return null;
+          return Promise.all([
+            cifrarParaOCofre(deBase64(dados)),
+            textoParaOCofre(JSON.stringify({ motivo: x.motivo, resumo: x.resumo }))
+          ]).then(function (c) {
+            return pedirNuvem('/rest/v1/instantaneos?id=eq.' + encodeURIComponent(x.id), {
+              metodo: 'PATCH', cabecalhos: { 'Prefer': 'return=minimal' },
+              corpo: { dados: c[0], resumo: c[1], motivo: (x.motivo === 'dia' || x.motivo === 'alteração') ? x.motivo : 'cifrado' }
+            });
+          });
+        });
+      }, Promise.resolve());
+    });
+    return t.then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=id,nome,tipo', {});
+    }).then(function (r) {
+      return (r || []).filter(function (a) { return !ehDoCofre(a.nome); }).reduce(function (antes, a) {
+        return antes.then(function () {
+          // O conferido já é cifrado: só o nome dele passa a ser.
+          if (a.tipo === TIPO_CONFERIDO) {
+            return textoParaOCofre(a.nome).then(function (n) {
+              return pedirNuvem('/rest/v1/arquivos_extrato?id=eq.' + encodeURIComponent(a.id), {
+                metodo: 'PATCH', corpo: { nome: n }, cabecalhos: { 'Prefer': 'return=minimal' }
+              });
+            });
+          }
+          return pedirNuvem('/rest/v1/arquivos_extrato?select=conteudo&id=eq.' + encodeURIComponent(a.id), {}).then(function (d) {
+            var c = d && d[0] && d[0].conteudo;
+            if (!c || ehDoCofre(c)) return null;
+            return Promise.all([cifrarParaOCofre(deBase64(c)), textoParaOCofre(a.nome)]).then(function (x) {
+              return pedirNuvem('/rest/v1/arquivos_extrato?id=eq.' + encodeURIComponent(a.id), {
+                metodo: 'PATCH', corpo: { conteudo: x[0], nome: x[1] }, cabecalhos: { 'Prefer': 'return=minimal' }
+              });
+            });
+          });
+        });
+      }, Promise.resolve());
+    });
+  }
+
   // Depois que tudo subiu cifrado: confere que o cofre abre e tem tudo, e
   // só então apaga as linhas abertas das tabelas antigas.
   function converterParaOCofre() {
@@ -6953,6 +7038,8 @@
         return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
           metodo: 'PATCH', corpo: perfilNeutro(uid), cabecalhos: { 'Prefer': 'return=minimal' }
         });
+      }).then(function () {
+        return cifrarCopiasEArquivosAntigos();
       }).then(function () {
         var info = JSON.parse(JSON.stringify(cofre.info));
         info.convertido = new Date().toISOString();
@@ -8389,7 +8476,7 @@
         }).then(function (r) {
           var b64 = r && r[0] && r[0].dados;
           if (!b64) return;
-          return descomprimirTexto(b64, pareceZip(b64)).then(function (texto) {
+          return textoDaCopia(b64).then(function (texto) {
             var e = JSON.parse(texto);
             var total = chaves.reduce(function (t, k) { return t + (Array.isArray(e[k]) ? e[k].length : 0); }, 0);
             if (total > melhorTotal) { melhor = e; melhorTotal = total; }
@@ -8940,6 +9027,8 @@
     // tem. Oferecer o cofre de outra conta agora é propor uma união em
     // cima de dados que existem, só não chegaram.
     if (falhaDaSincronia) return Promise.resolve();
+    // Cofre trancado: a conta não está vazia, só ainda não abriu.
+    if (cofre.ativo && !cofre.chave) return Promise.resolve();
     var marca = 'caixa.convitetrazer.' + sessao.contaId;
     try { if (localStorage.getItem(marca)) return Promise.resolve(); } catch (e) { return Promise.resolve(); }
     if (!estaVazio(estado)) return Promise.resolve();
@@ -10069,7 +10158,7 @@
       texto: 'Gerencie, invista e multiplique seu patrimônio com inteligência.',
       vantagens: [
         ['grafico', 'Visão completa', 'Contas, cartões e investimentos num só lugar', 'visao'],
-        ['escudo', 'Dados protegidos', 'Cifrados no celular, no caminho e no servidor', 'dados'],
+        ['escudo', 'Dados protegidos', 'Criptografia de ponta a ponta: só você lê', 'dados'],
         ['ideia', 'Análises úteis', 'Para onde foi o dinheiro, mês a mês', 'analises']
       ]
     },
@@ -10844,10 +10933,11 @@
     var naNuvem = NUVEM.ligada;
     return [
       { icone: '🔒', titulo: 'Seus dados são seus', itens: naNuvem ? [
-        ['Guardados na sua conta.', 'Ficam no servidor do Finanz (Supabase, em São Paulo) e numa cópia no seu celular.'],
-        ['Só você vê os seus.', 'O próprio banco de dados só devolve as linhas de quem está logado, mesmo que alguém tente pedir outra coisa.'],
-        ['Cifrados no aparelho.', 'A cópia do celular é guardada com criptografia AES de 256 bits.'],
-        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
+        ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo sai do seu celular já embaralhado com uma chave que só a sua senha abre.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede uma vez. Não tem recuperação: esquecendo, a nuvem não abre mais.'],
+        ['Guardados na sua conta.', 'No servidor do Finanz (Supabase, em São Paulo) e numa cópia cifrada no seu celular.'],
+        ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
         ['Cifrados.', 'Guardados com criptografia AES de 256 bits, com a chave tirada da sua senha.']
@@ -10988,8 +11078,11 @@
       titulo: 'Política de Privacidade',
       partes: NUVEM.ligada ? [
         'Com a conta ligada, seus dados ficam em duas casas: neste aparelho e no servidor do Finanz, hospedado no Supabase, na região de São Paulo.',
+        'Criptografia de ponta a ponta: com a senha dos dados criada (Mais → Senha dos dados), tudo o que vai para o servidor — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato — sai do seu celular já cifrado (AES-GCM de 256 bits) com uma chave que só a sua senha abre. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+        'A senha dos dados nunca sai do celular. O servidor guarda só a chave embrulhada por ela (PBKDF2 com 210 mil voltas). Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais, e você pode apagá-los para recomeçar.',
+        'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram e o tamanho deles.',
+        'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha com outra pessoa ainda ficam legíveis para ela e para o servidor.',
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
-        'Quem administra o servidor consegue ler os dados, como em qualquer aplicativo de finanças. Se você prefere que ninguém além de você leia, não use a conta na nuvem: sem servidor configurado o app guarda tudo cifrado só no aparelho.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
         'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
@@ -11021,13 +11114,14 @@
         ['O extrato do banco é a verdade.', 'Os números saem do que você importa e lança. O app nunca inventa dado: o que falta aparece como faltando.']
       ] },
       { id: 'dados', icone: 'escudo', titulo: 'Dados protegidos', resumo: 'Onde ficam, quem vê e como são cifrados', itens: naNuvem ? [
-        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia no seu celular.'],
-        ['Só você vê os seus.', 'Cada linha do banco de dados tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security). A checagem é feita pelo banco, não pelo app.'],
+        ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo o que vai para a nuvem sai do seu celular já cifrado: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede a senha uma vez. Não existe recuperação: esquecendo, a nuvem não abre mais, e você escolhe se apaga para recomeçar.'],
+        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia cifrada no seu celular.'],
+        ['Só você vê os seus.', 'Além da cifra, cada linha tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security).'],
         ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
-        ['Cifrados no servidor.', 'Os discos do servidor são cifrados pelo Supabase.'],
-        ['Cifrados no celular.', 'A cópia do aparelho é guardada com AES-GCM de 256 bits.'],
-        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
-        ['Quem administra o servidor.', 'Consegue ler os lançamentos, como em qualquer app de finanças. Os extratos conferidos e o backup, não: eles são cifrados com senhas que só você sabe.'],
+        ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
+        ['Ainda abertos.', 'O que está na nuvem antes de você criar a senha dos dados, e as áreas do Empreendedor que você compartilha com outra pessoa: esses o servidor ainda consegue ler.'],
         ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
@@ -11039,7 +11133,8 @@
         ['O app não entra no seu banco.', 'Ele nunca pede a senha do banco e não movimenta dinheiro: só lê o arquivo que você escolhe.'],
         ['Você confere antes de entrar.', 'Tudo aparece numa lista para marcar, desmarcar e trocar a categoria. Lançamento que já existe vem desmarcado, e o extrato com saldo por linha é conferido linha a linha.'],
         ['O arquivo original fica guardado.', 'Na sua conta, para baixar de novo, reler ou relançar. Ele sai sozinho depois de 6 meses.'],
-        ['Conferido ✓.', 'Com a conta batendo com o banco, você confirma, e os PDFs da conta viram uma versão compacta, cifrada com a senha dos extratos. Essa fica guardada sem prazo.'],
+        ['Conferido ✓.', 'Com a conta batendo com o banco, você confirma, e os PDFs da conta viram uma versão compacta e cifrada (com a senha dos dados; sem ela, com a senha dos extratos). Essa fica guardada sem prazo.'],
+        ['Cifrados com a senha dos dados.', 'Com a senha dos dados ligada, todo arquivo de extrato, e até o nome dele, sobe cifrado.'],
         ['Limpeza automática.', 'O arquivo de uma importação que você tirou é apagado sozinho depois de um dia.']
       ] },
       { id: 'analises', icone: 'ideia', titulo: 'Análises úteis', resumo: 'Para onde foi o dinheiro e o que mudou', itens: [
@@ -25316,9 +25411,9 @@
       // os arquivos da conta viram a versão compacta e cifrada.
       var cConf = cartao('cartao-conferido');
       var topoConf = no('div', 'cartao-topo');
-      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido', 'Conferido ✓', [
+      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido.v2', 'Conferido ✓', [
         'Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
-        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado com a senha dos extratos: fica bem menor, e só quem tem a senha lê.',
+        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado: com a senha dos dados, se ela estiver ligada (uma senha só para tudo), ou com a senha dos extratos. Fica bem menor, e só quem tem a senha lê.',
         '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
         'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
         'Extrato importado depois chega como PDF de novo: é só conferir outra vez.']));
@@ -28350,8 +28445,9 @@
 
     // Dados
     var cDados = cartao('liso');
-    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 2, itens: [
-        'Seus dados ficam na sua conta, na nuvem. O backup é uma cópia em arquivo, para guardar fora dela.',
+    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 3, itens: [
+        'Seus dados ficam na sua conta, na nuvem. Com a "Senha dos dados", eles sobem cifrados de ponta a ponta: só você consegue ler.',
+        'O backup é uma cópia em arquivo, para guardar fora da nuvem.',
         'O backup sai cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre o arquivo, nem o Finanz: anote a senha num lugar seguro.',
         'Restaurar um backup troca tudo o que está no app pelo que está no arquivo.',
         '"Voltar a uma data" usa as cópias automáticas dos últimos 14 dias.'] });
@@ -35427,6 +35523,15 @@
     });
   }
 
+  // Os dados de uma cópia, abertos: cifrada (cofre) ou não.
+  function textoDaCopia(dados) {
+    if (!ehDoCofre(dados)) return descomprimirTexto(dados, pareceZip(dados));
+    return abrirDoCofre(dados).then(function (bytes) {
+      var b64 = paraBase64(bytes);
+      return descomprimirTexto(b64, pareceZip(b64));
+    });
+  }
+
   function descomprimirTexto(b64, zip) {
     var bytes = deBase64(b64);
     if (!zip) return Promise.resolve(new TextDecoder().decode(bytes));
@@ -35477,18 +35582,36 @@
     // histórico apagaria justamente o registro da restauração.
     delete copia.historico;
     var texto = JSON.stringify(copia);
+    var motivoTexto = String(motivo || 'dia').slice(0, 200);
+    var resumo = resumoDoInstantaneo(copia);
 
     return comTokenValido().then(function () {
+      return cofrePronto();
+    }).then(function () {
+      if (!podeSubirAvulso()) throw new Error('cofre trancado');
       return comprimirTexto(texto);
     }).then(function (c) {
+      var linha = {
+        id: novoId(), user_id: sessaoNuvem.usuario.id, dia: hojeTexto(),
+        motivo: motivoTexto, resumo: resumo, dados: c.dados, tamanho: texto.length
+      };
+      if (!cofreLigado()) return linha;
+      // Com o cofre, a cópia sobe cifrada, e o motivo e o resumo também
+      // (o motivo pode ter o nome de um arquivo). 'dia' e 'alteração'
+      // ficam à vista: são só o tipo da cópia.
+      return Promise.all([
+        cifrarParaOCofre(deBase64(c.dados)),
+        textoParaOCofre(JSON.stringify({ motivo: motivoTexto, resumo: resumo }))
+      ]).then(function (r) {
+        linha.dados = r[0];
+        linha.resumo = r[1];
+        if (motivoTexto !== 'dia' && motivoTexto !== 'alteração') linha.motivo = 'cifrado';
+        return linha;
+      });
+    }).then(function (linha) {
       return pedirNuvem('/rest/v1/instantaneos', {
         metodo: 'POST',
-        corpo: [{
-          id: novoId(), user_id: sessaoNuvem.usuario.id, dia: hojeTexto(),
-          motivo: String(motivo || 'dia').slice(0, 200),
-          resumo: resumoDoInstantaneo(copia),
-          dados: c.dados, tamanho: texto.length
-        }],
+        corpo: [linha],
         cabecalhos: { 'Prefer': 'return=minimal' }
       });
     }).then(function () { return limparOVelhoNaNuvem(); })
@@ -35687,15 +35810,26 @@
   function guardarArquivoDeExtrato(importacaoId, contaId, bytes, nome) {
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (!bytes || !bytes.length || bytes.length > LIMITE_ARQUIVO_EXTRATO) return Promise.resolve(false);
+    var nomeArq = String(nome || 'extrato').slice(0, 120);
     return comTokenValido().then(function () {
+      return cofrePronto();
+    }).then(function () {
+      // Cofre trancado aqui: o arquivo não sobe aberto. Fica sem guardar.
+      if (!podeSubirAvulso()) throw new Error('cofre trancado');
+      if (!cofreLigado()) return { nome: nomeArq, conteudo: paraBase64(bytes) };
+      // Com o cofre, o arquivo e o nome dele sobem cifrados.
+      return Promise.all([cifrarParaOCofre(bytes), textoParaOCofre(nomeArq)]).then(function (r) {
+        return { nome: r[1], conteudo: r[0] };
+      });
+    }).then(function (x) {
       return pedirNuvem('/rest/v1/arquivos_extrato', {
         metodo: 'POST',
         corpo: [{
           id: novoId(), user_id: sessaoNuvem.usuario.id,
           importacao_id: importacaoId, conta_id: contaId || '',
-          nome: String(nome || 'extrato').slice(0, 120),
+          nome: x.nome,
           tipo: tipoDoArquivo(nome), tamanho: bytes.length,
-          conteudo: paraBase64(bytes)
+          conteudo: x.conteudo
         }],
         cabecalhos: { 'Prefer': 'return=minimal' }
       });
@@ -35717,7 +35851,14 @@
     var filtro = contaId ? '&conta_id=eq.' + encodeURIComponent(contaId) : '';
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,nome,tipo,tamanho,criado_em' + filtro, {});
-    }).then(function (r) { return r || []; }).catch(function () { return []; });
+    }).then(function (r) {
+      // Nome cifrado (cofre): abre aqui, para a tela ver o nome de sempre.
+      return Promise.all((r || []).map(function (a) {
+        if (!ehDoCofre(a.nome)) return a;
+        return textoDoCofre(a.nome).then(function (n) { a.nome = n; return a; })
+          .catch(function () { a.nome = 'extrato (cifrado)'; return a; });
+      }));
+    }).catch(function () { return []; });
   }
 
   // Apaga de uma vez os arquivos pelos ids, em grupos de 80.
@@ -35751,7 +35892,12 @@
         var pac = null;
         try { pac = JSON.parse(linha.conteudo); } catch (e) { pac = null; }
         if (!pac || !pac.kdf || !pac.cifra) throw new Error('o extrato conferido está estragado');
-        return { conferido: pac, nome: linha.nome, tipo: linha.tipo };
+        return textoDoCofre(linha.nome).then(function (n) { return { conferido: pac, nome: n, tipo: linha.tipo }; });
+      }
+      if (ehDoCofre(linha.conteudo)) {
+        return Promise.all([abrirDoCofre(linha.conteudo), textoDoCofre(linha.nome)]).then(function (r) {
+          return { bytes: r[0], nome: r[1], tipo: linha.tipo };
+        });
       }
       return { bytes: deBase64(linha.conteudo), nome: linha.nome, tipo: linha.tipo };
     });
@@ -35853,7 +35999,7 @@
     return cifrarComChave(texto, k.chave).then(function (x) {
       return JSON.stringify({
         app: 'finanz', formato: 'extrato-conferido', versao: 1, conferidoEm: new Date().toISOString(),
-        kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: k.voltas, sal: k.sal },
+        kdf: k.cofre ? { nome: 'cofre' } : { nome: 'PBKDF2', hash: 'SHA-256', voltas: k.voltas, sal: k.sal },
         comprimido: x.comprimido, cifra: x.cifra, dados: x.dados
       });
     });
@@ -35867,6 +36013,11 @@
   }
 
   function chaveParaPacote(pacote) {
+    // Conferido no tempo do cofre: abre com a chave mestra, sem outra senha.
+    if (pacote.kdf && pacote.kdf.nome === 'cofre') {
+      if (!cofre.chave) return Promise.reject(new Error('Digite a senha dos dados para abrir.'));
+      return Promise.resolve({ chave: cofre.chave, sal: 'cofre', voltas: 0 });
+    }
     if (chaveDosExtratos && chaveDosExtratos.sal === pacote.kdf.sal) return Promise.resolve(chaveDosExtratos);
     var voltas = Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP;
     return pedirSenhaDosExtratos(false, function (senha) {
@@ -35882,6 +36033,8 @@
   // Para conferir: se já existe algum conferido na conta da pessoa, a senha
   // tem de ser a mesma dele; se é o primeiro, a senha nasce agora.
   function chaveParaConferir() {
+    // Com o cofre, uma senha só: o conferido usa a chave mestra.
+    if (cofreLigado()) return Promise.resolve({ chave: cofre.chave, sal: 'cofre', voltas: 0, cofre: true });
     if (chaveDosExtratos) return Promise.resolve(chaveDosExtratos);
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/arquivos_extrato?select=id,tamanho&tipo=eq.' +
@@ -35985,7 +36138,7 @@
         limparAviso();
         var partes = [];
         if (feitos) partes.push(feitos + ' extrato(s) conferido(s) ✓. Os arquivos foram de ' + tamanhoDeArquivo(antes) +
-          ' para ' + tamanhoDeArquivo(depois) + ', cifrados com a senha dos extratos.');
+          ' para ' + tamanhoDeArquivo(depois) + ', cifrados com a senha ' + (k.cofre ? 'dos dados.' : 'dos extratos.'));
         if (comSenha) partes.push(comSenha + ' PDF(s) têm senha do banco e ficaram como vieram.');
         if (falhas) partes.push(falhas + ' arquivo(s) não deu para trocar agora e ficaram como vieram. Confira a internet e tente de novo.');
         if (!partes.length) partes.push('Não havia arquivo para conferir.');
@@ -36116,6 +36269,17 @@
     return comTokenValido().then(function () {
       return pedirNuvem('/rest/v1/instantaneos?select=id,dia,motivo,resumo,tamanho,criado_em&order=criado_em.desc', {});
     }).then(function (r) {
+      // Cópia cifrada: o motivo e o resumo de verdade estão dentro.
+      return Promise.all((r || []).map(function (x) {
+        if (!ehDoCofre(x.resumo)) return x;
+        return textoDoCofre(x.resumo).then(function (t) {
+          var d = JSON.parse(t);
+          x.resumo = d.resumo || '';
+          if (x.motivo === 'cifrado') x.motivo = d.motivo || x.motivo;
+          return x;
+        }).catch(function () { x.resumo = 'cifrada'; return x; });
+      }));
+    }).then(function (r) {
       // O servidor já devolve ordenado, mas a tela não depende disso: do
       // mais novo para o mais velho é como a pessoa procura.
       return (r || []).slice().sort(function (a, b) {
@@ -36144,7 +36308,7 @@
       var linha = r && r[0];
       if (!linha) throw new Error('não achei esse dia');
       var esperado = null;
-      return descomprimirTexto(linha.dados, pareceZip(linha.dados)).then(function (texto) {
+      return textoDaCopia(linha.dados).then(function (texto) {
         var limpo = limparEstado(JSON.parse(texto));
         // O que a cópia tinha dentro, para conferir no fim. Restauração
         // que termina com outro número de lançamentos não é restauração:

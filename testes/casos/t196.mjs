@@ -70,7 +70,7 @@ await abrirConferencia();
 const card = limpo(await folha().locator('.cartao-conferido').textContent());
 conferir('1. a conferência mostra "Está tudo certo?" com o arquivo ainda como veio e o botão ligado',
   /Está tudo certo\?/.test(card) && /1 arquivo\(s\) ainda como vieram do banco/.test(card) &&
-  await folha().locator('.botao-conferido:not([disabled])').count() === 1 && await folha().locator('.cartao-conferido [data-dica="conta.conferido"]').count() === 1, card);
+  await folha().locator('.botao-conferido:not([disabled])').count() === 1 && await folha().locator('.cartao-conferido [data-dica="conta.conferido.v2"]').count() === 1, card);
 await folha().locator('.cartao-conferido').screenshot({ path: dir + '/z196-conferido-antes.png' }).catch(() => {});
 
 // saldo que não bate desliga o botão

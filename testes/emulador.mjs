@@ -276,9 +276,12 @@ const servidor = http.createServer(async (req, res) => {
         const set = colunas.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
         const desloc = colunas.length;
         const ondeDesl = onde.replace(/\$(\d+)/g, (_, n) => '$' + (Number(n) + desloc));
+        // Lista para coluna jsonb vai como JSON, igual ao POST: sem isto o
+        // node-postgres a mandava como array do Postgres e o banco recusava.
+        const JSONB_P = ['telefones', 'regras_categoria', 'pares_ignorados', 'importacoes', 'propostas', 'taxas', 'revisados', 'despesas', 'dados', 'areas', 'ofertas_rf', 'cofre'];
         await comoUsuario(uid, (c) =>
           c.query(`update public."${tabela}" set ${set} ${ondeDesl}`,
-            colunas.map((k) => corpo[k]).concat(valores)));
+            colunas.map((k) => (JSONB_P.includes(k) && corpo[k] && typeof corpo[k] === 'object') ? JSON.stringify(corpo[k]) : corpo[k]).concat(valores)));
         cors(res); res.writeHead(204); res.end(); return;
       }
 

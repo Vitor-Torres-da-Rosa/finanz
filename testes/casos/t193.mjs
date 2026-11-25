@@ -65,7 +65,7 @@ conferir('9. com extrato e 3 meses de lançamentos, o cartão some', (await page
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1000);
 await page.click('#telaMais .linha:has-text("Como seus dados são protegidos")'); await page.waitForTimeout(600);
 const m1 = await passo();
-conferir('10. em Mais, "Como seus dados são protegidos" mostra onde os dados ficam e quem vê', /Seus dados são seus/.test(m1) && /Só você vê os seus/.test(m1) && /AES de 256 bits/.test(m1), m1.slice(0, 120));
+conferir('10. em Mais, "Como seus dados são protegidos" mostra onde os dados ficam e quem vê', /Seus dados são seus/.test(m1) && /ponta a ponta/.test(m1) && /Ninguém mais lê/.test(m1), m1.slice(0, 120));
 await bv.locator('button:has-text("Próximo")').click(); await page.waitForTimeout(300);
 const m2 = await passo();
 conferir('11. depois, como o app lê os extratos', /Como o app lê seus extratos/.test(m2) && /nunca pede a senha do banco/.test(m2), m2.slice(0, 120));

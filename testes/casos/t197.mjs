@@ -32,7 +32,7 @@ const titulo = (await page.textContent('#folha')).replace(/\s+/g, ' ');
 const abertas = await page.$$eval('#folha .guia-secao.aberta', ns => ns.map(n => n.getAttribute('data-assunto')));
 const dados = (await page.locator('#folha .guia-secao[data-assunto="dados"]').textContent()).replace(/\s+/g, ' ');
 conferir('6. "Dados protegidos" abre o guia já no assunto, com o detalhe honesto', /Como o Finanz funciona/.test(titulo) && abertas.join() === 'dados' &&
-  /Row Level Security/.test(dados) && /Quem administra o servidor/.test(dados) && /HTTPS/.test(dados), abertas.join() + ' | ' + dados.slice(0, 120));
+  /ponta a ponta/.test(dados) && /Ninguém mais lê/.test(dados) && /Ainda abertos/.test(dados) && /HTTPS/.test(dados), abertas.join() + ' | ' + dados.slice(0, 120));
 await page.screenshot({ path: dir + '/z197-guia-dados.png' });
 const nAssuntos = await page.locator('#folha .guia-secao').count();
 await page.click('#folha .guia-secao[data-assunto="termos"] .guia-cab'); await page.waitForTimeout(300);
