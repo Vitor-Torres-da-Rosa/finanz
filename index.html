@@ -2578,7 +2578,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.94.0';
+  var VERSAO = '5.95.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2587,6 +2587,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.95.0',
+      data: '2026-11-25',
+      itens: [
+        'Sino de avisos: os bancos com extrato parado viram um aviso só, com uma linha para cada banco (o nome, a data do último lançamento do extrato e os dias), do mais atrasado para o menos. Com um banco só, o aviso fica como antes.'
+      ]
+    },
     {
       versao: '5.94.0',
       data: '2026-11-25',
@@ -25701,19 +25708,29 @@
     //    o mais atrasado primeiro. Desde 17/11/2026 ele é aviso do sino e
     //    não entra na análise do mês: banco parado não é assunto de
     //    finanças do mês, é lembrete.
+    // Desde 25/11/2026 é um aviso só, com uma linha por banco (nome, dias
+    // e a data do último lançamento): quatro cartões iguais, um embaixo do
+    // outro, era repetição.
     var avisos = [];
-    diasSemExtratoPorConta().filter(function (x) { return x.dias >= 5; })
-      .sort(function (a, b) { return b.dias - a.dias; })
-      .forEach(function (x) {
-        avisos.push({
-          id: 'extrato-' + x.conta.id, prioridade: 0, icone: '⏱', tom: 'ruim',
-          titulo: x.conta.nome + ': ' + x.dias + ' dias sem extrato',
-          valor: x.dias + ' dias', valorCor: 'var(--vermelho)',
-          explicacao: 'O último lançamento do extrato do ' + x.conta.nome + ' é de ' + dataBr(x.ultimo) +
-            '. Importe o extrato desse banco para o app continuar mostrando o que entrou e saiu.',
-          acao: { rotulo: 'Importar extrato', abrir: function () { abrirImportarExtrato(); } }
-        });
+    var parados = diasSemExtratoPorConta().filter(function (x) { return x.dias >= 5; })
+      .sort(function (a, b) { return b.dias - a.dias || String(a.conta.nome).localeCompare(String(b.conta.nome), 'pt-BR'); });
+    if (parados.length) {
+      var um = parados.length === 1 ? parados[0] : null;
+      avisos.push({
+        id: 'extrato-parado', prioridade: 0, icone: '⏱', tom: 'ruim',
+        titulo: um ? um.conta.nome + ': ' + um.dias + ' dias sem extrato' : parados.length + ' bancos sem extrato atualizado',
+        valor: um ? um.dias + ' dias' : 'até ' + parados[0].dias + ' dias', valorCor: 'var(--vermelho)',
+        explicacao: um
+          ? 'O último lançamento do extrato do ' + um.conta.nome + ' é de ' + dataBr(um.ultimo) +
+            '. Importe o extrato desse banco para o app continuar mostrando o que entrou e saiu.'
+          : 'Importe o extrato de cada um para o app continuar mostrando o que entrou e saiu.',
+        rotuloDetalhes: um ? '' : 'Último lançamento do extrato',
+        detalhes: um ? [] : parados.map(function (x) {
+          return { rotulo: x.conta.nome + ' · ' + dataBr(x.ultimo), valor: x.dias + ' dias' };
+        }),
+        acao: { rotulo: 'Importar extrato', abrir: function () { abrirImportarExtrato(); } }
       });
+    }
 
     // 1) Saldo negativo — nada é mais urgente que sair mais do que entrou.
     if (t.entradas > 0 && t.entradas - base.total < 0) {
