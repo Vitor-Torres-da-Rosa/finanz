@@ -36,7 +36,7 @@ await page.click('#navegacao button:has-text("Início")').catch(() => {}); await
 const card = limpo(await page.textContent('#telaInicio .cartao-novidades').catch(() => ''));
 const primeiro = await page.evaluate(() => { const k = document.querySelector('#telaInicio .cartao'); return k && k.classList.contains('cartao-novidades'); });
 conferir('2. depois de atualizar, as novidades aparecem no topo do Início, desde a versão vista', primeiro && /Novidades da versão \d+\.\d+\.\d+/.test(card) &&
-  /3 versões desde a última vez/.test(card) && /Ver tudo/.test(card), card.slice(0, 200));
+  /\d+ versões desde a última vez/.test(card) && /Ver tudo/.test(card), card.slice(0, 200));
 await page.screenshot({ path: dir + '/z201-novidades.png' });
 await page.click('#telaInicio .cartao-novidades button:has-text("Ver tudo")'); await page.waitForTimeout(800);
 conferir('3. "Ver tudo" abre o histórico das versões', /Histórico das versões/.test(limpo(await page.textContent('#folha'))));

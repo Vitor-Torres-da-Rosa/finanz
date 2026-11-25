@@ -82,6 +82,8 @@ conferir('2. com o saldo do banco diferente, o botão desliga e diz por quê',
 await campoBanco.fill(valorBanco); await campoBanco.dispatchEvent('input'); await page.waitForTimeout(300);
 
 // ---- conferindo: a senha nasce aqui ----
+// Sob carga a lista de arquivos demora: espera o botão ligar antes de tocar.
+await page.waitForSelector('#folha .botao-conferido:not([disabled])', { timeout: 60000 });
 await folha().locator('.botao-conferido').click();
 await page.waitForSelector('#dialogoFundo.aberta'); await page.waitForTimeout(400);
 const perg = limpo(await page.textContent('#dialogoFundo'));
