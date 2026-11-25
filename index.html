@@ -1486,20 +1486,119 @@
   }
 
   .vantagens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 26px; }
-  .vantagem { text-align: center; }
+  .vantagem {
+    text-align: center;
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
   .vantagem .quadro {
-    width: 54px;
-    height: 54px;
+    position: relative;
+    width: 56px;
+    height: 56px;
     margin: 0 auto 10px;
-    border-radius: 15px;
-    background: linear-gradient(160deg, rgba(30,25,16,.85), rgba(10,10,11,.9));
-    border: 1px solid var(--borda);
-    box-shadow: inset 0 1px 0 rgba(246,221,160,.08);
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 90% at 30% 0%, rgba(246,221,160,.16), transparent 60%),
+      linear-gradient(160deg, rgba(36,29,17,.92), rgba(10,10,11,.92));
+    border: 1px solid rgba(233,180,76,.32);
+    box-shadow: inset 0 1px 0 rgba(246,221,160,.12), 0 8px 20px rgba(0,0,0,.38), 0 0 18px rgba(233,180,76,.08);
     display: grid;
     place-items: center;
     color: var(--ouro);
+    transition: transform .15s ease, box-shadow .2s ease;
   }
-  .vantagem .quadro svg { width: 24px; height: 24px; }
+  .vantagem .quadro svg { width: 25px; height: 25px; filter: drop-shadow(0 0 6px rgba(233,180,76,.35)); }
+  /* O "+" no canto: diz que o item abre. */
+  .vantagem .quadro::after {
+    content: '+';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: var(--dourado);
+    color: #1A1205;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 19px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  .vantagem:active .quadro { transform: scale(.94); box-shadow: 0 0 0 3px rgba(233,180,76,.2); }
+  .vantagem .saiba { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--ouro); }
+  .ent-guia-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 48px);
+    margin: 14px auto 0;
+    padding: 11px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(233,180,76,.32);
+    background: rgba(10,8,6,.5);
+    color: var(--ouro-claro);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ent-guia-link svg { flex: 0 0 auto; width: 17px; height: 17px; color: var(--ouro); }
+  .ent-guia-seta { color: var(--ouro); font-size: 17px; line-height: 1; }
+
+  /* O guia "Como o Finanz funciona". */
+  .guia-intro { font-size: 13.5px; color: var(--suave); line-height: 1.6; margin: 0 0 14px; }
+  .guia-secao {
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    margin-bottom: 10px;
+    background: linear-gradient(160deg, rgba(30,25,16,.55), rgba(10,10,11,.6));
+    overflow: hidden;
+    scroll-margin-top: 12px;
+  }
+  .guia-secao.aberta { border-color: rgba(233,180,76,.35); }
+  .guia-cab {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px;
+    background: none;
+    border: 0;
+    color: var(--texto);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+  .guia-icone {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: var(--ouro);
+    background: rgba(233,180,76,.08);
+    border: 1px solid rgba(233,180,76,.25);
+  }
+  .guia-icone svg { width: 20px; height: 20px; }
+  .guia-textos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .guia-textos b { font-size: 15px; }
+  .guia-resumo { font-size: 12px; color: var(--fraco); }
+  .guia-seta { color: var(--ouro); font-size: 22px; line-height: 1; transition: transform .2s ease; }
+  .guia-secao.aberta .guia-seta { transform: rotate(90deg); }
+  .guia-corpo { display: none; padding: 0 16px 16px; }
+  .guia-secao.aberta .guia-corpo { display: block; }
+  .guia-item { display: flex; gap: 10px; margin-top: 10px; }
+  .guia-item p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--suave); }
+  .guia-item b { color: var(--texto); }
+  .guia-marca { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--ouro); margin-top: 8px; }
   .vantagem .nome { font-size: 12.5px; font-weight: 700; }
   .vantagem .detalhe { font-size: 11px; color: var(--fraco); line-height: 1.45; margin-top: 4px; }
 
@@ -2748,7 +2847,8 @@
         'O extrato conferido fica guardado sem prazo. O que não foi conferido continua saindo sozinho depois de 6 meses.',
         'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.',
         'Na abertura do app, uma seta dourada e discreta, que sobe e desce, mostra que tem mais embaixo. Tocar nela desce a tela; descendo, ela some.',
-        'Conta nova: abre direto o aviso de preencher os dados. As páginas sobre a proteção dos dados ficam só em Mais, em "Como seus dados são protegidos".'
+        'Conta nova: abre direto o aviso de preencher os dados. As páginas sobre a proteção dos dados ficam só em Mais, em "Como seus dados são protegidos".',
+        'Abertura: cada item (Dados protegidos, Metas, Cobranças…) virou um botão, com o "+" dourado no canto e "Saiba mais". Tocando, abre o guia "Como o Finanz funciona", já no assunto, com tudo explicado em detalhe, os termos de uso e a política de privacidade. Os desenhos ganharam brilho e cada item tem o seu.'
       ]
     },
     {
@@ -9380,27 +9480,27 @@
       titulo: ['O controle', 'transforma.'],
       texto: 'Gerencie, invista e multiplique seu patrimônio com inteligência.',
       vantagens: [
-        ['barras', 'Visão completa', 'Todas as suas finanças em um só lugar'],
-        ['escudo', 'Dados protegidos', 'Criptografia no aparelho e no servidor'],
-        ['ideia', 'Análises úteis', 'Padrões dos seus gastos, mês a mês']
+        ['grafico', 'Visão completa', 'Contas, cartões e investimentos num só lugar', 'visao'],
+        ['escudo', 'Dados protegidos', 'Cifrados no celular, no caminho e no servidor', 'dados'],
+        ['ideia', 'Análises úteis', 'Para onde foi o dinheiro, mês a mês', 'analises']
       ]
     },
     {
       titulo: ['Cada real', 'no lugar.'],
       texto: 'Contas, cartões, metas e investimentos acompanhados de perto.',
       vantagens: [
-        ['alvo', 'Metas', 'Saiba quanto falta para cada objetivo'],
-        ['barras', 'Orçamento', 'Um teto por categoria, sem susto'],
-        ['escudoOk', 'Reserva', 'Calculada pelas suas despesas reais']
+        ['alvo', 'Metas', 'Quanto falta para cada objetivo', 'metas'],
+        ['fatias', 'Orçamento', 'Um teto no mês e por categoria', 'orcamento'],
+        ['escudoOk', 'Reserva', 'Calculada pelas suas despesas reais', 'reserva']
       ]
     },
     {
       titulo: ['Seu negócio', 'na palma da mão.'],
       texto: 'Serviços, clientes e cobranças com o controle de quem já recebeu.',
       vantagens: [
-        ['maleta', 'Clientes', 'Serviços prestados e valores combinados'],
-        ['alvo', 'Cobranças', 'Quanto pagaram e quanto ainda falta'],
-        ['barras', 'Relatórios', 'Resumos prontos para salvar em PDF']
+        ['maleta', 'Clientes', 'Serviços prestados e valores combinados', 'clientes'],
+        ['receber', 'Cobranças', 'Quem pagou, quem falta e os juros', 'cobrancas'],
+        ['extrato', 'Relatórios', 'Resumos prontos para salvar em PDF', 'relatorios']
       ]
     }
   ];
@@ -9544,12 +9644,17 @@
 
       var grade = no('div', 'vantagens');
       lamina.vantagens.forEach(function (v) {
-        var item = no('div', 'vantagem');
+        // Botão (pedido de 25/11/2026): o "+" no canto e o "Saiba mais"
+        // dizem que abre; abre o guia já no assunto.
+        var item = botao('vantagem', null, function () { abrirGuia(v[3]); });
+        item.setAttribute('aria-label', v[1] + ': saiba mais');
+        item.setAttribute('data-guia', v[3]);
         var quadro = no('div', 'quadro');
         quadro.appendChild(icone(v[0]));
         item.appendChild(quadro);
         item.appendChild(no('div', 'nome', v[1]));
         item.appendChild(no('div', 'detalhe', v[2]));
+        item.appendChild(no('span', 'saiba', 'Saiba mais ›'));
         grade.appendChild(item);
       });
       slide.appendChild(grade);
@@ -9571,6 +9676,12 @@
         p.className = i === indice ? 'ativo' : '';
       });
     });
+
+    var guiaLink = botao('ent-guia-link', null, function () { abrirGuia(''); });
+    guiaLink.appendChild(icone('info'));
+    guiaLink.appendChild(no('span', null, 'Como o Finanz funciona, termos e privacidade'));
+    guiaLink.appendChild(no('span', 'ent-guia-seta', '›'));
+    folha.appendChild(guiaLink);
 
     var fundo = no('div', 'ent-fundo');
 
@@ -10305,6 +10416,122 @@
       ]
     }
   };
+
+  // ---------- Como o Finanz funciona (pedido de 25/11/2026) ----------
+  //
+  // Um guia só, aberto pelos itens da abertura: o que cada parte faz, onde
+  // os dados ficam e quem vê, e as regras de uso. Cada assunto abre e fecha;
+  // vindo de um item, o guia já abre naquele assunto.
+  function guiaDoFinanz() {
+    var naNuvem = NUVEM.ligada;
+    return [
+      { id: 'visao', icone: 'grafico', titulo: 'Visão completa', resumo: 'Contas, cartões, investimentos e o negócio num lugar só', itens: [
+        ['Contas e carteira.', 'Cada conta mostra o saldo de hoje: o saldo inicial mais tudo o que entrou e saiu. Do lado, há quantos dias foi o último extrato, para você saber quando atualizar.'],
+        ['Cartões e faturas.', 'Cada fatura, mês a mês, paga ou não, com as parcelas que ainda faltam. A compra no cartão só conta como gasto quando a fatura é paga pela conta do banco.'],
+        ['Transações.', 'Toda entrada e saída, com busca, filtros, categoria e subcategoria.'],
+        ['Investimentos.', 'Onde o seu dinheiro está aplicado e as taxas do dia (Selic, CDI e IPCA), buscadas no Banco Central.'],
+        ['O extrato do banco é a verdade.', 'Os números saem do que você importa e lança. O app nunca inventa dado: o que falta aparece como faltando.']
+      ] },
+      { id: 'dados', icone: 'escudo', titulo: 'Dados protegidos', resumo: 'Onde ficam, quem vê e como são cifrados', itens: naNuvem ? [
+        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia no seu celular.'],
+        ['Só você vê os seus.', 'Cada linha do banco de dados tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security). A checagem é feita pelo banco, não pelo app.'],
+        ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
+        ['Cifrados no servidor.', 'Os discos do servidor são cifrados pelo Supabase.'],
+        ['Cifrados no celular.', 'A cópia do aparelho é guardada com AES-GCM de 256 bits.'],
+        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
+        ['Quem administra o servidor.', 'Consegue ler os lançamentos, como em qualquer app de finanças. Os extratos conferidos e o backup, não: eles são cifrados com senhas que só você sabe.'],
+        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
+      ] : [
+        ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
+        ['Cifrados.', 'Guardados com AES-GCM de 256 bits, com a chave tirada da sua senha (PBKDF2).'],
+        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
+      ] },
+      { id: 'extratos', icone: 'extrato', titulo: 'Extratos e arquivos', resumo: 'Como o app lê e guarda os seus extratos', itens: [
+        ['A leitura é feita no seu celular.', 'O app abre o PDF, a planilha, o OFX ou o CSV e tira só data, descrição e valor de cada linha.'],
+        ['O app não entra no seu banco.', 'Ele nunca pede a senha do banco e não movimenta dinheiro: só lê o arquivo que você escolhe.'],
+        ['Você confere antes de entrar.', 'Tudo aparece numa lista para marcar, desmarcar e trocar a categoria. Lançamento que já existe vem desmarcado, e o extrato com saldo por linha é conferido linha a linha.'],
+        ['O arquivo original fica guardado.', 'Na sua conta, para baixar de novo, reler ou relançar. Ele sai sozinho depois de 6 meses.'],
+        ['Conferido ✓.', 'Com a conta batendo com o banco, você confirma, e os PDFs da conta viram uma versão compacta, cifrada com a senha dos extratos. Essa fica guardada sem prazo.'],
+        ['Limpeza automática.', 'O arquivo de uma importação que você tirou é apagado sozinho depois de um dia.']
+      ] },
+      { id: 'analises', icone: 'ideia', titulo: 'Análises úteis', resumo: 'Para onde foi o dinheiro e o que mudou', itens: [
+        ['Análise do mês.', 'Quanto saiu, a diferença para o mês passado e o orçamento, com a rosca das categorias. Toque numa categoria para ver as subcategorias, os gastos e de onde veio cada um.'],
+        ['Avisos.', 'O sino reúne o que merece atenção, com o caminho para resolver.'],
+        ['Saúde financeira.', 'Uma nota de 0 a 100 somada em partes. "Como calculamos" mostra quanto vale cada parte.'],
+        ['Sem dados, sem análise.', 'Tudo sai dos seus lançamentos. Importe pelo menos 3 meses de extrato de cada conta para os números ficarem certos.']
+      ] },
+      { id: 'metas', icone: 'alvo', titulo: 'Metas', resumo: 'Objetivos com valor e prazo', itens: [
+        ['Para que serve.', 'Uma viagem, um carro, uma entrada: cada meta tem valor e prazo.'],
+        ['Acompanhe.', 'Toque na meta para dizer quanto já guardou; a barra mostra quanto falta.']
+      ] },
+      { id: 'orcamento', icone: 'fatias', titulo: 'Orçamento', resumo: 'Um teto para o mês e por categoria', itens: [
+        ['Teto do mês.', 'Um valor máximo de gastos. A barra mostra quanto dele já foi usado.'],
+        ['Teto por categoria.', 'Opcional, só nas categorias que você quer vigiar. Tocar no valor gasto abre as subcategorias e os gastos.'],
+        ['Estourou?', 'A análise do mês mostra onde passou e leva direto para rever o planejamento.']
+      ] },
+      { id: 'reserva', icone: 'escudoOk', titulo: 'Reserva', resumo: 'Quanto guardar para imprevistos', itens: [
+        ['Para que serve.', 'Dinheiro guardado para perder a renda, um conserto, uma emergência.'],
+        ['Como é calculada.', 'A média das suas despesas dos últimos 3 meses vezes os meses de reserva que você escolher.']
+      ] },
+      { id: 'clientes', icone: 'maleta', titulo: 'Clientes', resumo: 'Serviços prestados e valores combinados', itens: [
+        ['Cada cliente com os seus serviços.', 'O que foi feito, o valor combinado, as parcelas e as datas.'],
+        ['Busca e filtros.', 'Com 4 clientes ou mais, aparecem a busca pelo nome e os filtros por valor e data.']
+      ] },
+      { id: 'cobrancas', icone: 'receber', titulo: 'Cobranças', resumo: 'Quem pagou, quem falta e os juros', itens: [
+        ['Quem pagou e quem falta.', 'Cada parcela recebida entra como receita; a que falta fica à vista.'],
+        ['Cliente não pagou.', 'Marque a parcela e, se quiser, cobre juros em porcentagem ou valor fixo, agora ou na próxima parcela.'],
+        ['Mensagem pronta.', 'Cobrando agora, o app oferece mandar a mensagem para o cliente.']
+      ] },
+      { id: 'relatorios', icone: 'extrato', titulo: 'Relatórios', resumo: 'Resumos prontos em PDF', itens: [
+        ['Prontos para mandar.', 'Resumo executivo, fluxo de caixa e outros. Cada relatório vira um PDF para guardar, imprimir ou mandar para o contador.']
+      ] },
+      { id: 'backup', icone: 'cadeado', titulo: 'Backup e cópias', resumo: 'Para nunca perder nada', itens: [
+        ['Backup com senha.', 'Um arquivo .finanz com tudo, cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre, nem o Finanz.'],
+        ['Cópias automáticas.', 'O app guarda sozinho uma cópia por dia dos últimos 14 dias, para voltar a uma data.'],
+        ['Histórico do saldo.', 'Cada mudança nos seus números fica anotada, com o motivo.']
+      ] },
+      { id: 'termos', icone: 'info', titulo: TEXTOS.termos.titulo, resumo: 'As regras de uso do app', itens:
+        TEXTOS.termos.partes.map(function (t) { return [null, t]; }) },
+      { id: 'privacidade', icone: 'cadeado', titulo: TEXTOS.privacidade.titulo, resumo: 'O que acontece com os seus dados', itens:
+        TEXTOS.privacidade.partes.map(function (t) { return [null, t]; }) }
+    ];
+  }
+
+  function abrirGuia(assunto) {
+    abrirFolha('Como o Finanz funciona', function (folha) {
+      folha.appendChild(no('p', 'guia-intro', 'Tudo o que o app faz, onde os seus dados ficam e as regras de uso. Toque num assunto para abrir.'));
+      var alvo = null;
+      guiaDoFinanz().forEach(function (sec) {
+        var bloco = no('div', 'guia-secao' + (sec.id === assunto ? ' aberta' : ''));
+        bloco.setAttribute('data-assunto', sec.id);
+        var cab = botao('guia-cab', null, function () {
+          var aberta = bloco.classList.toggle('aberta');
+          cab.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+        });
+        cab.setAttribute('aria-expanded', sec.id === assunto ? 'true' : 'false');
+        var ic = no('span', 'guia-icone');
+        ic.appendChild(icone(sec.icone));
+        juntar(cab, ic, juntar(no('span', 'guia-textos'), no('b', null, sec.titulo), no('span', 'guia-resumo', sec.resumo)),
+          no('span', 'guia-seta', '›'));
+        var corpo = no('div', 'guia-corpo');
+        sec.itens.forEach(function (it) {
+          var l = no('div', 'guia-item');
+          var t = no('p');
+          if (it[0]) t.appendChild(no('b', null, it[0] + ' '));
+          t.appendChild(document.createTextNode(it[1]));
+          juntar(l, no('span', 'guia-marca'), t);
+          corpo.appendChild(l);
+        });
+        juntar(bloco, cab, corpo);
+        folha.appendChild(bloco);
+        if (sec.id === assunto) alvo = bloco;
+      });
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Fechar', function () { voltarNavegacao(); }));
+      folha.appendChild(acoes);
+      if (alvo) setTimeout(function () { try { alvo.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* velho */ } }, 420);
+    });
+  }
 
   function abrirTexto(qual) {
     var conteudo = TEXTOS[qual];
