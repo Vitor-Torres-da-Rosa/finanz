@@ -631,6 +631,21 @@
   .meta-legenda { display: flex; justify-content: space-between; font-size: 11.5px;
                   color: var(--fraco); margin-top: 6px; }
 
+  /* Orçamento estourado (pedido de 25/11/2026): a barra do planejado com o
+     que passou em vermelho, onde mais saiu e dois caminhos lado a lado. */
+  .achado-sub { font-size: 12.5px; color: var(--suave); margin: -2px 0 0; }
+  .barra-orcamento { position: relative; height: 10px; border-radius: 6px; background: rgba(255,255,255,.07);
+    overflow: hidden; margin-top: 14px; display: flex; }
+  .barra-orcamento .dentro { background: var(--ouro); height: 100%; }
+  .barra-orcamento .passou { background: var(--vermelho); height: 100%; }
+  .barra-orcamento .marco { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--texto); opacity: .75; }
+  .legenda-orcamento { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--suave); margin-top: 8px; }
+  .legenda-orcamento b { color: var(--texto); font-weight: 600; }
+  .legenda-orcamento .vermelho b { color: var(--vermelho); }
+  .acoes-achado { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .acoes-achado button { min-height: 44px; border-radius: 12px; font-size: 13px; font-weight: 600; padding: 8px 10px;
+    border: 1px solid rgba(233,180,76,.45); background: rgba(233,180,76,.06); color: var(--ouro); }
+  .acoes-achado button.principal { background: linear-gradient(135deg, #F3D58C, #E9B44C 55%, #C9953A); color: #1A1306; border-color: transparent; }
   .btn-acao { margin-top: 14px; color: var(--ouro); font-size: 13.5px; font-weight: 600;
               padding: 10px 0; text-align: left; width: 100%; min-height: 44px; }
   .btn-acao:active { opacity: .6; }
@@ -25985,13 +26000,26 @@
 
     // 5) Orçamento estourado.
     if (estado.orcamentos.geral > 0 && base.total > estado.orcamentos.geral) {
+      var tetos = estado.orcamentos.categorias || {};
       juntarAchado({
         id: 'orcamento', prioridade: 1, icone: '📊', tom: 'ruim',
         titulo: 'Orçamento do mês estourado',
         valor: '+' + emReais(base.total - estado.orcamentos.geral), valorCor: 'var(--vermelho)',
-        explicacao: 'Você planejou ' + emReais(estado.orcamentos.geral) + ' e gastou ' +
-          emReais(base.total) + '.',
-        acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
+        subValor: 'acima do planejado',
+        explicacao: '',
+        orcamento: { gasto: base.total, planejado: estado.orcamentos.geral },
+        rotuloDetalhes: 'Onde mais saiu',
+        detalhes: base.lista.slice(0, 3).map(function (c) {
+          var teto = tetos[c.nome];
+          return { rotulo: c.nome + (teto ? ' · teto ' + emReais(teto) : ''), valor: emReais(c.valor) };
+        }),
+        acoes: [
+          { rotulo: 'Ver as saídas', principal: true, abrir: function () { irParaTransacoes('saida', ''); } },
+          { rotulo: 'Rever o planejamento', abrir: function () {
+            if ($('folha').classList.contains('aberta')) { fecharFolha(); setTimeout(function () { abrirFolhaOrcamento(); }, 260); }
+            else abrirFolhaOrcamento();
+          } }
+        ]
       });
     }
 
@@ -26241,7 +26269,32 @@
       if (a.valorCor) v.style.color = a.valorCor;
       c.appendChild(v);
     }
-    c.appendChild(no('p', 'achado-texto', a.explicacao));
+    if (a.subValor) c.appendChild(no('div', 'achado-sub', a.subValor));
+    if (a.explicacao) c.appendChild(no('p', 'achado-texto', a.explicacao));
+
+    if (a.orcamento) {
+      // O planejado é o marco; o que passou dele fica em vermelho.
+      var total = Math.max(a.orcamento.gasto, a.orcamento.planejado, 1);
+      var bo = no('div', 'barra-orcamento');
+      var dentroO = no('div', 'dentro');
+      dentroO.style.width = (Math.min(a.orcamento.gasto, a.orcamento.planejado) / total * 100) + '%';
+      bo.appendChild(dentroO);
+      if (a.orcamento.gasto > a.orcamento.planejado) {
+        var passou = no('div', 'passou');
+        passou.style.width = ((a.orcamento.gasto - a.orcamento.planejado) / total * 100) + '%';
+        bo.appendChild(passou);
+        var marco = no('div', 'marco');
+        marco.style.left = (a.orcamento.planejado / total * 100) + '%';
+        bo.appendChild(marco);
+      }
+      c.appendChild(bo);
+      var legO = no('div', 'legenda-orcamento');
+      juntar(legO,
+        juntar(no('span'), document.createTextNode('Planejado '), no('b', null, emReais(a.orcamento.planejado))),
+        juntar(no('span', a.orcamento.gasto > a.orcamento.planejado ? 'vermelho' : ''), document.createTextNode('Gasto '),
+          no('b', null, emReais(a.orcamento.gasto) + ' · ' + Math.round(a.orcamento.gasto / a.orcamento.planejado * 100) + '%')));
+      c.appendChild(legO);
+    }
 
     if (a.progresso) {
       var barra = no('div', 'meta-barra');
@@ -26279,7 +26332,11 @@
       c.appendChild(d);
     }
 
-    if (a.acao) {
+    if (a.acoes && a.acoes.length) {
+      var ac = no('div', 'acoes-achado');
+      a.acoes.forEach(function (x) { ac.appendChild(botao(x.principal ? 'principal' : '', x.rotulo, x.abrir)); });
+      c.appendChild(ac);
+    } else if (a.acao) {
       var b = botao('btn-acao', a.acao.rotulo + ' ›', a.acao.abrir);
       c.appendChild(b);
     }
