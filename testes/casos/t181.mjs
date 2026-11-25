@@ -50,7 +50,7 @@ console.log(JSON.stringify({ inter, c6, itau, cart, nu }));
 conferir('1. Inter: extrato até 17/11, há 2 dias, em dia (verde)', inter && inter.t === '2 dias' && /em-dia/.test(inter.cls), inter && inter.t);
 conferir('2. C6: até 05/11, 14 dias, hora de atualizar (dourado)', c6 && c6.t === '14 dias' && /atencao/.test(c6.cls), c6 && c6.t);
 conferir('3. Itaú: até 15/10, 35 dias, bem velho (vermelho)', itau && itau.t === '35 dias' && /velho/.test(itau.cls), itau && itau.t);
-conferir('4. a carteira não tem extrato e não mostra nada', cart === null);
+conferir('4. a carteira sem lançamento diz "sem lançamento"', cart && cart.t === 'sem lançamento', cart && cart.t);
 conferir('5. conta sem extrato importado diz "sem extrato"', nu && nu.t === 'sem extrato', nu && nu.t);
 const tipo = limpo(await contas.locator('.linha', { hasText: 'Banco Inter' }).first().locator('.linha-sub').textContent());
 const nomeT = limpo(await contas.locator('.linha', { hasText: 'Banco Inter' }).first().locator('.linha-titulo').textContent());

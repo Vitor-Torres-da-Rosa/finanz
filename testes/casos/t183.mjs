@@ -48,7 +48,7 @@ const painel = async () => limpo(await page.textContent('#folha .painel-fatura')
 const meses = limpo(await page.textContent('#folha .meses-fatura').catch(() => ''));
 conferir('1. os meses de fatura ficam numa faixa no topo', /outubro.*novembro.*dezembro/.test(meses), meses);
 const vincDez = limpo(await page.textContent('#folha .vinculo-fatura').catch(() => ''));
-conferir('2b. dezembro é só a fatura, sem pagamento ligado', /Só a fatura\s*Nenhum pagamento no extrato/.test(vincDez), vincDez);
+conferir('2b. dezembro é só a fatura, numa etiqueta do lado da situação', vincDez === 'Só a fatura' && (await page.locator('#folha .situacao-grande .vinculo-fatura').count()) === 1, vincDez);
 conferir('2. abre na fatura aberta (dezembro)', (await ativa()) === 'dezembro' && /Fatura aberta/.test(await painel()), (await ativa()) + ' · ' + (await painel()).slice(0, 80));
 await page.locator('#folha .cartao-faturas-mes').scrollIntoViewIfNeeded();
 await page.locator('#folha .cartao-faturas-mes').screenshot({ path: dir + '/z113-fatura-dezembro.png' });
@@ -73,7 +73,7 @@ const eloNov = await page.locator('#folha .mes-fatura[data-chave="2026-11"] .elo
 const eloDez = await page.locator('#folha .mes-fatura[data-chave="2026-12"] .elo-fatura').count();
 const vincNov = limpo(await page.textContent('#folha .vinculo-fatura').catch(() => ''));
 conferir('4b. novembro tem o elo e diz que está vinculada ao extrato; dezembro não tem', eloNov === 1 && eloDez === 0 &&
-  /Vinculada ao extrato\s*O pagamento de 10\/11\/2026 no Banco Inter liga com ela/.test(vincNov), vincNov);
+  vincNov === 'Vinculada ao extrato', vincNov);
 const lanc = limpo(await page.textContent('#folha .cartao-faturas-mes').catch(() => ''));
 conferir('5. os lançamentos da fatura aparecem, com a parcela do lado', /JIM\.COM\* VITOR TORRES - Parcela 5\/10/.test(lanc) && /Parcela 5 de 10/.test(lanc));
 const falt = limpo(await page.textContent('#folha .parcelas-faltando').catch(() => ''));

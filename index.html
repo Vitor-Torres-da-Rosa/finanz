@@ -2412,15 +2412,11 @@
   /* O elo no mês: a fatura está vinculada ao extrato (pedido de 25/11/2026). */
   .mes-fatura .elo-fatura { display: inline-grid; vertical-align: middle; margin-left: 5px; color: var(--ouro); }
   .mes-fatura .elo-fatura svg { width: 14px; height: 14px; }
-  .vinculo-fatura { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
-    font-size: 13px; line-height: 1.4; border: 1px solid var(--borda); color: var(--suave); }
-  .vinculo-fatura .elo-icone { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
-    border: 1px solid currentColor; }
-  .vinculo-fatura .elo-icone svg { width: 16px; height: 16px; }
-  .vinculo-fatura strong { display: block; color: var(--texto); font-size: 13.5px; }
-  .vinculo-fatura.ligada { border-color: rgba(233,180,76,.5); background: rgba(233,180,76,.07); }
-  .vinculo-fatura.ligada .elo-icone { color: var(--ouro); }
-  .vinculo-fatura.outro-mes .elo-icone, .vinculo-fatura.so-fatura .elo-icone { color: var(--fraco); }
+  .situacao-grande { flex-wrap: wrap; }
+  .vinculo-fatura { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600; border: 1px solid var(--borda); color: var(--fraco); white-space: nowrap; }
+  .vinculo-fatura svg { width: 13px; height: 13px; }
+  .situacao-grande .vinculo-fatura.ligada { color: var(--ouro); border-color: rgba(233,180,76,.5); background: rgba(233,180,76,.08); }
   .painel-fatura { padding: 14px 16px 6px; touch-action: pan-y; }
   .painel-fatura.entra-dir { animation: fatura-dir .28s ease; }
   .painel-fatura.entra-esq { animation: fatura-esq .28s ease; }
@@ -2590,7 +2586,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.96.0';
+  var VERSAO = '5.97.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2599,6 +2595,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.97.0',
+      data: '2026-11-25',
+      itens: [
+        'A carteira (dinheiro físico) também mostra os dias, contados desde o último lançamento dela. Lançamento agendado para depois de hoje não conta.',
+        'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia", em todas as contas e no sino.',
+        'Faturas: "Vinculada ao extrato", "Paga fora do mês" ou "Só a fatura" agora é uma etiqueta pequena do lado da situação, sem o texto embaixo. A explicação ficou no "i" das Faturas, que abre mais uma vez para mostrar.'
+      ]
+    },
     {
       versao: '5.96.0',
       data: '2026-11-25',
@@ -11104,9 +11109,11 @@
 
     // Contas
     var cContas = cartao('liso');
-    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira', { chave: 'inicio.contas', itens: [
+    var topoContas = topoDeCartao('Contas', '+ Nova', function () { abrirFolhaConta(null); }, 'carteira', { chave: 'inicio.contas', versao: 2, itens: [
         'Cada conta mostra o saldo de hoje: o saldo inicial dela mais tudo o que entrou e saiu.',
         'A etiqueta embaixo do saldo diz há quantos dias vai o último extrato importado: verde até 7 dias, dourado até 20 e vermelho depois. Dourado ou vermelho, vale importar um novo.',
+        'Na carteira (dinheiro físico), que não tem extrato, a etiqueta conta desde o último lançamento dela.',
+        'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia".',
         'Toque na conta para ver os lançamentos dela, importar o extrato do banco ou ajustar o saldo. O lápis troca nome, tipo e saldo inicial.',
         '"Total em contas" soma só as contas. O que você deve no cartão aparece no cartão de Cartões.',
         '"+ Nova" cadastra outra conta, poupança, corretora ou a carteira de dinheiro.'] });
@@ -11126,8 +11133,35 @@
       if (!l.importacaoId || !l.contaId || !l.data) return;
       if (!extratoAte[l.contaId] || l.data > extratoAte[l.contaId]) extratoAte[l.contaId] = l.data;
     });
+    // Dinheiro físico não tem extrato: conta desde o último lançamento dele
+    // (pedido de 25/11/2026), pela data do lançamento. A hora em que foi
+    // criado não serve: o servidor carimba a hora da sincronização, e
+    // restaurar um backup faria tudo parecer de hoje. Lançamento com data
+    // à frente ainda não aconteceu e fica de fora.
+    var hojeTxt = hojeTexto();
+    var carteiraEm = {};
+    estado.lancamentos.forEach(function (l) {
+      var d = l.data;
+      if (!d || d > hojeTxt) return;
+      [l.contaId, l.contaDestinoId].forEach(function (id) {
+        if (id && (!carteiraEm[id] || d > carteiraEm[id])) carteiraEm[id] = d;
+      });
+    });
+    // Os dias contam pela data do calendário, não por 24 horas: atualizado
+    // dia 25 às 11h, dia 26 já é "1 dia" (pedido de 25/11/2026).
+    var etiquetaDeDias = function (desde, texto) {
+      var dias = Math.max(0, diasEntre(desde, hojeTxt));
+      var el = no('span', 'idade-extrato ' + (dias <= 7 ? 'em-dia' : dias <= 20 ? 'atencao' : 'velho'),
+        dias === 0 ? 'hoje' : dias === 1 ? '1 dia' : dias + ' dias');
+      el.title = texto + ' ' + dataCurta(desde);
+      el.setAttribute('aria-label', texto + ' ' + dataCurta(desde) + ', há ' + dias + ' dia(s)');
+      return el;
+    };
     var idadeDoExtrato = function (c) {
-      if (c.tipo === 'Dinheiro físico') return null;
+      if (c.tipo === 'Dinheiro físico') {
+        return carteiraEm[c.id] ? etiquetaDeDias(carteiraEm[c.id], 'Último lançamento em')
+          : no('span', 'idade-extrato', 'sem lançamento');
+      }
       var ate = extratoAte[c.id];
       if (!ate) return no('span', 'idade-extrato', 'sem extrato');
       var dias = Math.max(0, diasEntre(ate, hojeTexto()));
@@ -12171,10 +12205,11 @@
     if (chaves.indexOf(escolhida) < 0) escolhida = aberta && chaves.indexOf(aberta.chave) >= 0 ? aberta.chave : chaves[chaves.length - 1];
 
     var c = cartao('liso cartao-faturas-mes');
-    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', versao: 2, itens: [
+    var topo = topoDeCartao('Faturas', null, null, null, { chave: 'cartao.faturas', versao: 3, itens: [
       'Cada mês de fatura numa aba. Arraste para o lado, ou toque no mês lá em cima, para ver outra.',
       'O pontinho do mês diz a situação: verde é paga, dourado é aberta ou futura, vermelho é vencida sem pagamento.',
-      'O elo (🔗) do lado do mês quer dizer que a fatura está vinculada ao extrato: o pagamento dela apareceu numa conta sua, no mesmo valor e no mesmo mês. Aí as compras contam nos gastos, no lugar do pagamento. Sem o elo, é só a fatura: conta o pagamento, se houver.',
+      'O elo (🔗) do lado do mês, e a etiqueta "Vinculada ao extrato" do lado da situação, querem dizer que o pagamento da fatura apareceu numa conta sua, no mesmo valor e no mesmo mês. Aí as compras contam nos gastos, no lugar do pagamento.',
+      '"Paga fora do mês": o pagamento existe, mas é de outro mês, então não vincula; nos gastos entra o pagamento, não as compras. "Só a fatura": nenhum pagamento no extrato liga com ela ainda, e as compras não contam nos gastos.',
       'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
       'Compra parcelada com parcelas que ainda não estão nas próximas faturas aparece embaixo, com o botão para lançar. O app pergunta antes, uma por uma.'] });
     topo.style.padding = '16px 16px 0';
@@ -12254,25 +12289,15 @@
     var nomes = { paga: ['✓', 'Fatura paga'], aberta: ['◷', 'Fatura aberta'], fechada: ['▣', 'Fatura fechada'],
       vencida: ['!', 'Fatura vencida, sem pagamento'], futura: ['›', 'Fatura futura'] };
     var n = nomes[f.situacao] || nomes.fechada;
-    p.appendChild(juntar(no('div', 'situacao-grande ' + (f.situacao || 'fechada')), no('span', 'marca', n[0]), no('span', null, n[1])));
+    // Vinculada ao extrato ou só a fatura: uma etiqueta pequena do lado da
+    // situação (pedido de 25/11/2026). A explicação mora no "i" das Faturas.
+    var vinc = f.ligada && f.pagamento ? ['ligada', 'Vinculada ao extrato']
+      : f.pagamento ? ['outro-mes', 'Paga fora do mês'] : ['so-fatura', 'Só a fatura'];
+    var chipVinc = no('span', 'vinculo-fatura ' + vinc[0]);
+    chipVinc.appendChild(icone(vinc[0] === 'ligada' ? 'elo' : 'extrato'));
+    chipVinc.appendChild(document.createTextNode(vinc[1]));
+    p.appendChild(juntar(no('div', 'situacao-grande ' + (f.situacao || 'fechada')), no('span', 'marca', n[0]), no('span', null, n[1]), chipVinc));
 
-    // Vinculada ao extrato ou só a fatura (pedido de 25/11/2026).
-    var contaDoPg = f.pagamento ? achar(estado.contas, f.pagamento.contaId) : null;
-    var mesDaFatura = MESES[+f.chave.slice(5, 7) - 1];
-    var vinc = f.ligada && f.pagamento ? ['ligada', 'Vinculada ao extrato',
-        'O pagamento de ' + dataBr(f.pagamento.data) + (contaDoPg ? ' no ' + contaDoPg.nome : '') +
-        ' liga com ela. As compras desta fatura contam nos gastos de ' + mesDaFatura + ', no lugar do pagamento.']
-      : f.pagamento ? ['outro-mes', 'Paga, mas fora do mês',
-        'O pagamento de ' + dataBr(f.pagamento.data) + (contaDoPg ? ' no ' + contaDoPg.nome : '') +
-        ' é de outro mês, então não vincula. Nos gastos entra o pagamento, não as compras.']
-      : ['so-fatura', 'Só a fatura',
-        f.situacao === 'paga' ? 'Quitada por crédito dentro do próprio cartão, sem pagamento no extrato de uma conta.'
-          : 'Nenhum pagamento no extrato das suas contas liga com ela (mesmo valor, mesmo mês). Por enquanto as compras não contam nos gastos.'];
-    var cxVinc = no('div', 'vinculo-fatura ' + vinc[0]);
-    var ic = no('span', 'elo-icone');
-    ic.appendChild(icone(vinc[0] === 'ligada' ? 'elo' : 'extrato'));
-    juntar(cxVinc, ic, juntar(no('div'), no('strong', null, vinc[1]), document.createTextNode(vinc[2])));
-    p.appendChild(cxVinc);
 
     var linhas = [];
     var compras = f.total;
