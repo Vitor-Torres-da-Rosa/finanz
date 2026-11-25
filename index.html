@@ -2655,7 +2655,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.98.0';
+  var VERSAO = '5.99.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2664,6 +2664,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.99.0',
+      data: '2026-11-25',
+      itens: [
+        'Investimentos: no topo, "Renda fixa hoje", com quadrados que deslizam para o lado e andam sozinhos. Selic, CDI e IPCA vêm do Banco Central, com a linha do último ano e quanto mudaram em 12 meses. Dois quadrados fazem a conta de um CDB a 110% do CDI e de uma LCI/LCA a 95%, com o líquido depois do imposto.',
+        'Você anota as ofertas que vê no banco ou na corretora (banco, tipo, taxa e vencimento) e elas viram quadrados também, da que mais rende líquido para a que menos. Ficam guardadas na sua conta. Sem um nome de banco anotado por você, o app não mostra oferta nenhuma: não existe fonte pública com as taxas de cada banco, e o app não inventa número.',
+        'Os tipos de investimento já estão para escolher (renda fixa, renda variável, fundos imobiliários, cripto, fundos, Tesouro, previdência e exterior). Por enquanto, só a renda fixa mostra conteúdo.',
+        'Mais: ficou só a saúde financeira. A análise do mês mora no sino.'
+      ]
+    },
     {
       versao: '5.98.0',
       data: '2026-11-25',
@@ -24975,7 +24985,10 @@
       try { taxasBC = JSON.parse(localStorage.getItem('finanz.taxasBC') || 'null'); } catch (e) { taxasBC = null; }
     }
     var velho = !taxasBC || !taxasBC.quando || Date.now() - taxasBC.quando > 6 * 3600 * 1000;
-    if (!velho || buscandoTaxasBC || !window.fetch) return;
+    // Falhou há pouco: espera um minuto antes de tentar de novo. Sem isso,
+    // cada falha redesenhava a tela, que tentava de novo, sem parar.
+    var esperando = taxasBC && taxasBC.falhou && Date.now() - taxasBC.falhou < 60000;
+    if (!velho || esperando || buscandoTaxasBC || !window.fetch) return;
     buscandoTaxasBC = true;
     var ate = new Date(), de = new Date(ate.getFullYear() - 1, ate.getMonth(), ate.getDate());
     Promise.all(SERIES_BC.map(function (x) {
@@ -25221,7 +25234,8 @@
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         r.banco = campoBanco.value.trim();
         r.taxa = comoNumero(campoTaxa.value, 0);
-        r.vencimento = ehData(campoVence.value) ? campoVence.value : '';
+        // O campo de data nasce com hoje: vencimento de hoje ou antes é "sem vencimento".
+        r.vencimento = ehData(campoVence.value) && campoVence.value > hojeTexto() ? campoVence.value : '';
         if (!r.taxa || r.taxa <= 0) { mostrarErro(forma, 'Diga a taxa da oferta.'); return; }
         if (!estado.ofertasRf) estado.ofertasRf = [];
         var limpa = limparOfertasRf([Object.assign({}, r, { criadoEm: r.criadoEm || Date.now() })])[0];

@@ -13,7 +13,7 @@
 //     confirmou entrava no total comprometido como se fosse conta a pagar.
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, abrirAnalise } from '../comum.mjs';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 });
 const page = await ctx.newPage();
@@ -84,8 +84,8 @@ await page.click('#telaMais .linha:has-text("Restaurar backup")'); await page.wa
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3500);
 
 // --- C: a transferência não pode estar entre as despesas que se repetem ---
-await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1500);
-const telaMais = limpo(await page.textContent('#telaMais'));
+await abrirAnalise(page);
+const telaMais = limpo(await page.textContent('#folha'));
 const pos = telaMais.indexOf('se repetem');
 const cardRepetem = pos >= 0 ? telaMais.slice(Math.max(0, pos - 40), pos + 160) : '';
 conferir('1. o comprometido conta 1 despesa, não 2: a transferência ficou de fora',
@@ -94,7 +94,7 @@ conferir('1. o comprometido conta 1 despesa, não 2: a transferência ficou de f
   cardRepetem.slice(0, 90));
 
 // O botão fica dentro do cartão de achado, não numa .linha.
-await page.click('#telaMais button:has-text("Revisar despesas"), #telaMais .linha-verTudo:has-text("Ver análise completa")');
+await page.click('#folha button:has-text("Revisar despesas")');
 await page.waitForTimeout(1800);
 if (!/se repetem/i.test(limpo(await page.textContent('#folha').catch(() => '')))) {
   await page.click('#folha button:has-text("Revisar despesas")').catch(() => {});

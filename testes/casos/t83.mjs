@@ -1,6 +1,6 @@
 // A tela de análise: nota de saúde, achados por prioridade, próxima ação,
 // e — o principal — nada afirmado sem dado que sustente.
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, abrirAnalise } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
 page.on('pageerror', e => console.log('PAGEERROR:', e.message));
@@ -52,14 +52,18 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1500);
 
 console.log('2. saúde:', (await page.textContent('#telaMais .cartao.saude')).replace(/\s+/g,' ').slice(0,100));
-const achados = await page.$$eval('#telaMais .cartao.achado', ns => ns.map(n => ({
+await abrirAnalise(page);
+const achados = await page.$$eval('#folha .cartao.achado', ns => ns.map(n => ({
   titulo: n.querySelector('.achado-titulo').textContent,
   valor: (n.querySelector('.achado-valor')||{}).textContent || '',
   acao: (n.querySelector('.btn-acao')||{}).textContent || ''
 })));
-console.log('3. achados na tela principal:', achados.length, '| no máximo 3?', achados.length <= 3 ? 'sim' : 'NÃO');
+console.log('3. achados na análise completa:', achados.length);
 achados.forEach(a => console.log('   •', a.titulo, '|', a.valor, '|', a.acao));
-console.log('4. próxima ação:', (await page.textContent('#telaMais .cartao.proxima')).replace(/\s+/g,' ').slice(0,150));
+// A "próxima ação" saiu junto com os avisos de Mais (25/11/2026).
+await page.goBack(); await page.waitForTimeout(800);
+for (let i = 0; i < 3 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(500); }
+await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
 await page.screenshot({ path: dir+'/r02-analise.png', fullPage: true });
 
 // --- 3) a fatura contada uma vez só ---
@@ -77,7 +81,7 @@ await page.screenshot({ path: dir+'/r03-como.png', fullPage: true });
 await page.goBack(); await page.waitForTimeout(1200);
 
 // --- 5) análise completa ---
-await page.click('#telaMais .linha-verTudo'); await page.waitForTimeout(1200);
+await abrirAnalise(page);
 console.log('7. análise completa, por prioridade:', await page.$$eval('#folha > div > .rotulo', ns=>ns.map(n=>n.textContent)));
 console.log('   quantos achados:', await page.locator('#folha .cartao.achado').count());
 await page.screenshot({ path: dir+'/r04-completa.png', fullPage: true });

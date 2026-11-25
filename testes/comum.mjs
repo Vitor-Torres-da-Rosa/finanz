@@ -87,3 +87,13 @@ export async function fecharDica(page) {
     await page.waitForTimeout(800);
   }
 }
+
+// A análise do mês saiu de Mais em 25/11/2026: mora no sino. Abre a análise
+// completa (pelo sino, e pelo "Ver a análise" quando há avisos antes).
+export async function abrirAnalise(page) {
+  for (let i = 0; i < 4 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(500); }
+  await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(800);
+  await page.click('#telaInicio .marca-sino'); await page.waitForTimeout(1200);
+  const ver = page.locator('#folha button:has-text("Ver a análise de")');
+  if (await ver.count()) { await ver.click(); await page.waitForTimeout(1200); }
+}

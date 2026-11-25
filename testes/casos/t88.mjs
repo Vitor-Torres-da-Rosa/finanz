@@ -5,7 +5,7 @@
 //  · o extrato de uma conta cheia abre na hora
 //  · recado no dia do vencimento e quando o cliente está acabando de pagar
 //  · meta não fala em percentual negativo e mostra os últimos meses
-import { chromium, dir, ENDERECO } from '../comum.mjs';
+import { chromium, dir, ENDERECO, abrirAnalise } from '../comum.mjs';
 import { irParaClientes, irParaVisaoGeral } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -211,13 +211,13 @@ await page.evaluate(() => new Promise(res => {
   setTimeout(() => res(true), 900);
 }));
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
-await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1800);
-const mais = limpo(await page.textContent('#telaMais'));
+await abrirAnalise(page);
+const mais = limpo(await page.textContent('#folha'));
 conferir('16. não aparece percentual negativo em lugar nenhum', !/-\d+%/.test(mais));
 conferir('17. diz que não sobrou (saiu mais do que entrou)', /Saiu R\$ [\d.,]+ a mais do que entrou|Não sobrou nada/.test(mais));
 conferir('18. mostra os meses anteriores embaixo', /Nos meses anteriores: [a-zç]+ sobrou R\$ [\d.,]+/.test(mais),
   (mais.match(/Nos meses anteriores:.{0,70}/) || ['(sem histórico)'])[0]);
-const cores = await page.$$eval('#telaMais .achado-nota span', ns => ns
+const cores = await page.$$eval('#folha .achado-nota span', ns => ns
   .map(n => n.style.color).filter(Boolean));
 conferir('19. cada mês do histórico vem colorido pelo sinal',
   cores.length >= 3 && cores.some(c => /verde/.test(c)) && cores.some(c => /vermelho/.test(c)),
