@@ -29,7 +29,18 @@ const TODOS = fs.readdirSync(casos).filter((f) => /^t\d+b?\.mjs$/.test(f))
     const na = +a.match(/^t(\d+)/)[1], nb = +b.match(/^t(\d+)/)[1];
     return na - nb || a.localeCompare(b);
   });
-const lista = args.length ? args.map((a) => (a.endsWith('.mjs') ? a : a + '.mjs')) : TODOS;
+const escolhidos = args.length ? args.map((a) => (a.endsWith('.mjs') ? a : a + '.mjs')) : TODOS;
+
+// Os mais demorados primeiro (pedido de 25/11/2026). Na ordem dos números,
+// um teste de 4 minutos que começava no fim deixava a suíte inteira
+// esperando só por ele, com 7 vagas paradas. Começando pelos longos, os
+// curtos preenchem as vagas no fim. O tempo de cada um fica anotado em
+// tempos.json a cada rodada; teste novo, sem tempo, entra entre os primeiros.
+const ARQUIVO_TEMPOS = path.join(raiz, 'tempos.json');
+let tempos = {};
+try { tempos = JSON.parse(fs.readFileSync(ARQUIVO_TEMPOS, 'utf8')) || {}; } catch (e) { tempos = {}; }
+const tempoDe = (f) => (f in tempos ? tempos[f] : 999);
+const lista = escolhidos.slice().sort((a, b) => tempoDe(b) - tempoDe(a));
 
 const faltando = lista.filter((f) => !fs.existsSync(path.join(casos, f)));
 if (faltando.length) { console.error('não achei:', faltando.join(' ')); process.exit(2); }
@@ -69,6 +80,9 @@ function tocar() {
 
 function fim() {
   const total = ((Date.now() - inicio) / 1000).toFixed(0);
+  // Anota o tempo de cada um para a próxima rodada começar pelos longos.
+  resultados.forEach((r) => { tempos[r.nome] = +r.seg; });
+  try { fs.writeFileSync(ARQUIVO_TEMPOS, JSON.stringify(tempos, null, 1) + '\n'); } catch (e) { /* segue */ }
   const ruins = resultados.filter((r) => !r.ok);
   console.log('\n');
   ruins.forEach((r) => {
