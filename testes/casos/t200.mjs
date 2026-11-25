@@ -34,13 +34,13 @@ await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeou
 const mais = limpo(await page.textContent('#telaMais'));
 conferir('1. em Mais, uma entrada só: "Proteja seus dados", e os itens soltos saíram', await page.locator('#telaMais .botao-proteja').count() === 1 &&
   !/Fazer backup \(com senha\)/.test(mais) && !/Voltar a uma data/.test(mais) && !/Restaurar backup/.test(mais) &&
-  !/Como seus dados são protegidos/.test(mais) && await page.locator('#telaMais .linha:has-text("Senha dos dados")').count() === 0, (mais.match(/Proteja.{0,80}/) || [''])[0]);
-await page.locator('#telaMais .cartao-proteja').screenshot({ path: dir + '/z200-entrada.png' }).catch(() => {});
+  !/Como seus dados são protegidos/.test(mais) && await page.locator('#telaMais .linha:has-text("Senha dos dados")').count() === 1, (mais.match(/Proteja.{0,80}/) || [''])[0]);
+await page.locator('#telaMais .botao-proteja').screenshot({ path: dir + '/z200-entrada.png' }).catch(() => {});
 await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(900);
 await page.waitForFunction(() => !/Procurando/.test((document.querySelector('#folha .botao-backup-nuvem') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
 const hub = limpo(await page.textContent('#folha'));
 conferir('2. dentro: senha dos dados, backups com as senhas diferentes, dúvidas e os textos completos',
-  /Senha dos dados/.test(hub) && /Na nuvem/.test(hub) && /No celular/.test(hub) && /senhas são diferentes/.test(hub) &&
+  /Senha dos dados/.test(hub) && /Backup na nuvem/.test(hub) && /Backup no celular/.test(hub) && /senhas são diferentes/.test(hub) &&
   await page.locator('#folha .duvida').count() >= 7 && /Política de Privacidade/.test(hub) && /Como seus dados são protegidos/.test(hub), hub.slice(0, 200));
 await page.screenshot({ path: dir + '/z200-proteja.png', fullPage: true });
 await page.click('#folha .duvida:has-text("As senhas são diferentes?") .guia-cab'); await page.waitForTimeout(300);
@@ -68,7 +68,7 @@ await page.click('#navegacao button:has-text("Mais")').catch(() => {}); await pa
 const entrada = limpo(await page.textContent('#telaMais .botao-proteja'));
 await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800);
 const sub = limpo(await page.textContent('#folha .botao-backup-celular'));
-conferir('6. o botão (e a entrada em Mais) dizem quando foi o último', /1 gerado\(s\) · último hoje/.test(sub) && /1 gerado\(s\) · último hoje/.test(entrada), sub + ' | ' + entrada);
+conferir('6. a linha "Backup no celular" diz quando foi o último', /1 gerado\(s\) · último hoje/.test(sub), sub);
 await page.click('#folha .botao-backup-celular'); await page.waitForTimeout(800);
 cel = limpo(await page.textContent('#folha'));
 conferir('7. e a lista mostra o backup gerado, com o nome do arquivo', /hoje às \d\d:\d\d/.test(cel) && /finanz-backup-\d+\.finanz/.test(cel), cel.slice(-160));

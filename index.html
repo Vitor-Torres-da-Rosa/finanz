@@ -7364,7 +7364,7 @@
         : 'Ligada ✓ Seus dados estão sendo convertidos; termina na próxima sincronização.'));
       folha.appendChild(c);
       var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-fantasma', 'Trocar a senha', function () { trocarSenhaDoCofre(); }));
+      acoes.appendChild(botao('btn btn-fantasma botao-trocar-senha', 'Trocar a senha', function () { trocarSenhaDoCofre(); }));
       folha.appendChild(acoes);
     });
   }
@@ -29260,16 +29260,6 @@
 
     // Dados
     var cDados = cartao('liso');
-    // Proteja seus dados (pedido de 25/11/2026): uma entrada só para a
-    // senha dos dados, os backups e as dúvidas sobre os dois.
-    var cProteja = cartao('liso cartao-proteja');
-    var bProteja = botao('linha botao-proteja', null, function () { abrirProtejaSeusDados(); });
-    juntar(bProteja, seloIcone('escudo', cofreLigado() ? '#34D399' : '#E9B44C'),
-      juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Proteja seus dados'),
-        no('div', 'linha-sub', rotuloDoCofreEmMais() + ' · ' + resumoDosBackupsDoCelular().toLowerCase())),
-      no('span', 'modulo-seta', '›'));
-    cProteja.appendChild(bProteja);
-    tela.appendChild(cProteja);
 
     var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 4, itens: [
         'Seus dados ficam na sua conta, na nuvem. Com a "Senha dos dados", eles sobem cifrados de ponta a ponta: só você consegue ler.',
@@ -29280,6 +29270,9 @@
     cDados.appendChild(topoDados);
 
     [
+      // Proteja seus dados (pedido de 25/11/2026): uma linha como as outras,
+      // com a senha dos dados e os backups dentro.
+      ['🛡', 'Proteja seus dados', 'Senha dos dados e backups · ' + resumoDaProtecao(), abrirProtejaSeusDados, 'botao-proteja'],
       ['📊', 'Exportar CSV', 'Lançamentos para planilha', exportarCsv],
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
@@ -29291,7 +29284,7 @@
         function () { abrirFolhaTaxas(); }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
     ].forEach(function (o) {
-      var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
+      var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha' + (o[4] ? ' ' + o[4] : ''), null, o[3]);
       juntar(linha,
         selo('#60A5FA', o[0]),
         juntar(no('div', 'linha-texto'),
@@ -36279,57 +36272,47 @@
       'Por enquanto, essas áreas ficam legíveis também no servidor. A versão cifrada do compartilhado está a caminho.']]
   ];
 
+  function resumoDaProtecao() {
+    if (!NUVEM.ligada || !sessaoNuvem) return 'só com a conta na nuvem';
+    if (cofreLigado()) return 'criptografia ligada';
+    if (cofreTrancado()) return 'trancado neste aparelho';
+    return 'senha ainda não criada';
+  }
+
   function abrirProtejaSeusDados() {
     abrirFolha('Proteja seus dados', function (folha) {
       folha.appendChild(no('p', 'guia-intro', 'Tudo o que protege os seus dados num lugar só: a senha que cifra a nuvem, os backups e as respostas para as dúvidas mais comuns.'));
 
-      // Senha dos dados
-      var cs = cartao('cartao-senha-dados');
-      var ts = no('div', 'cartao-topo');
-      juntar(ts, no('div', 'cartao-titulo', 'Senha dos dados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
-      cs.appendChild(ts);
       var semNuvem = !NUVEM.ligada || !sessaoNuvem;
-      var estadoTxt = semNuvem ? 'Só funciona com a conta na nuvem.'
-        : faltaNoBanco['cofre'] ? 'O servidor ainda não recebeu a atualização do cofre.'
-        : cofreLigado() ? 'Ligada ✓ Tudo o que vai para a nuvem sai cifrado com ela.'
-        : cofreTrancado() ? 'Trancada neste aparelho: digite a senha para abrir os dados da nuvem.'
-        : 'Ainda não criada: hoje quem administra o servidor consegue ler os seus dados.';
-      cs.appendChild(no('div', 'linha-nota estado-senha-dados ' + (cofreLigado() ? 'verde' : cofreTrancado() ? 'vermelho' : 'ouro'), estadoTxt));
-      var bs = no('div', 'duas');
-      bs.style.marginTop = '12px';
-      if (!semNuvem && !faltaNoBanco['cofre']) {
-        if (cofreLigado()) juntar(bs, botao('btn btn-fantasma botao-trocar-senha', 'Trocar a senha', function () { trocarSenhaDoCofre(); }));
-        else if (cofreTrancado()) juntar(bs, botao('btn btn-ouro', 'Digitar a senha', function () { abrirSenhaDoCofre(true); }),
-          botao('btn btn-fantasma', 'Esqueci a senha', function () { esqueciSenhaDoCofre(); }));
-        else juntar(bs, botao('btn btn-ouro botao-criar-senha-dados', 'Criar a senha dos dados', function () { abrirCriarCofre(); }));
-        cs.appendChild(bs);
-      }
-      folha.appendChild(cs);
-
-      // Backups
-      var cb = cartao('cartao-backups');
-      var tb = no('div', 'cartao-topo');
-      juntar(tb, no('div', 'cartao-titulo', 'Backups'), botaoDeInfo('mais.backups', 'Backups', INFO_BACKUPS));
-      cb.appendChild(tb);
-      var grade = no('div', 'backup-botoes');
-      grade.style.padding = '0';
-      grade.style.marginTop = '10px';
-      var subNuvem = no('span', 'backup-sub', semNuvem ? 'Entre na conta para usar' : 'Procurando as cópias…');
-      var bN = botao('backup-botao botao-backup-nuvem', null, function () { abrirFolhaInstantaneos(); });
-      juntar(bN, no('span', 'backup-icone', '☁'), no('b', null, 'Na nuvem'), subNuvem);
-      var bC = botao('backup-botao botao-backup-celular', null, function () { abrirBackupNoCelular(); });
-      juntar(bC, no('span', 'backup-icone', '📱'), no('b', null, 'No celular'), no('span', 'backup-sub', resumoDosBackupsDoCelular()));
-      juntar(grade, bN, bC);
-      cb.appendChild(grade);
-      cb.appendChild(no('div', 'linha-nota', 'As senhas são diferentes: a nuvem abre com a senha dos dados; o arquivo do celular, com a senha do backup.'));
+      var cx = cartao('liso cartao-proteja-opcoes');
+      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.backups', itens: INFO_BACKUPS });
+      topoP.style.padding = '16px 16px 0';
+      topoP.style.marginBottom = '6px';
+      cx.appendChild(topoP);
+      var estadoTxt = semNuvem ? 'Só funciona com a conta na nuvem'
+        : faltaNoBanco['cofre'] ? 'O servidor ainda não recebeu a atualização'
+        : cofreLigado() ? 'Ligada ✓ tudo sobe cifrado com ela'
+        : cofreTrancado() ? 'Trancada neste aparelho: toque para digitar'
+        : 'Ainda não criada: toque para criar';
+      var subNuvem = no('div', 'linha-sub', semNuvem ? 'Entre na conta para usar' : 'Procurando as cópias…');
+      [
+        ['🔐', 'Senha dos dados', no('div', 'linha-sub estado-senha-dados', estadoTxt), function () { abrirFolhaCofre(); }, 'botao-senha-dados'],
+        ['☁', 'Backup na nuvem', subNuvem, function () { abrirFolhaInstantaneos(); }, 'botao-backup-nuvem'],
+        ['📱', 'Backup no celular', no('div', 'linha-sub', 'Arquivo .finanz · ' + resumoDosBackupsDoCelular().toLowerCase()), function () { abrirBackupNoCelular(); }, 'botao-backup-celular']
+      ].forEach(function (o) {
+        var l = botao('linha ' + o[4], null, o[3]);
+        juntar(l, selo('#60A5FA', o[0]), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', o[1]), o[2]));
+        cx.appendChild(l);
+      });
+      cx.appendChild(no('div', 'linha-nota backup-nota', 'As senhas são diferentes: a nuvem abre com a senha dos dados; o arquivo do celular, com a senha do backup.'));
       if (!semNuvem) {
         listarInstantaneos().then(function (lista) {
           if (!lista.length) { subNuvem.textContent = 'Nenhuma cópia ainda'; return; }
           var u = lista[0];
-          subNuvem.textContent = lista.length + ' cópia(s) · última ' + (u.dia === hojeTexto() ? 'hoje' : dataBr(u.dia)) + ' às ' + horaDe(u.criado_em);
+          subNuvem.textContent = 'Automático · ' + lista.length + ' cópia(s) · última ' + (u.dia === hojeTexto() ? 'hoje' : dataBr(u.dia)) + ' às ' + horaDe(u.criado_em);
         }).catch(function () { subNuvem.textContent = 'Sem conexão agora'; });
       }
-      folha.appendChild(cb);
+      folha.appendChild(cx);
 
       // Dúvidas
       folha.appendChild(no('div', 'rotulo rotulo-duvidas', 'Dúvidas'));

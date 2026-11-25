@@ -62,12 +62,12 @@ conferir('2. antes do cofre, os lançamentos estão abertos no servidor (o jeito
 // ---- cria a senha dos dados em Mais ----
 await p1.click('#navegacao button:has-text("Mais")'); await p1.waitForTimeout(900);
 const linhaMais = limpo(await p1.textContent('#telaMais .botao-proteja'));
-conferir('3. em Mais, "Proteja seus dados" convida a criar a senha', /Proteja seus dados/.test(linhaMais) && /Proteja seus dados com uma senha/.test(linhaMais), linhaMais);
+conferir('3. em Mais, a linha "Proteja seus dados" diz que a senha ainda não foi criada', /Proteja seus dados/.test(linhaMais) && /senha ainda não criada/.test(linhaMais), linhaMais);
 await p1.click('#telaMais .botao-proteja'); await p1.waitForTimeout(800);
-const hub = limpo(await p1.textContent('#folha .cartao-senha-dados'));
+const hub = limpo(await p1.textContent('#folha .botao-senha-dados'));
 conferir('3b. dentro, a senha dos dados diz que ainda não foi criada', /Ainda não criada/.test(hub), hub);
 await p1.screenshot({ path: dir + '/z198-proteja.png' });
-await p1.click('#folha .botao-criar-senha-dados'); await p1.waitForTimeout(700);
+await p1.click('#folha .botao-senha-dados'); await p1.waitForTimeout(700);
 await p1.fill('#folha .campo-senha-dados', SENHA_DADOS);
 await p1.fill('#folha .campo-senha-dados2', 'outra-coisa-99');
 // O olho mostra o que foi digitado (pedido de 25/11/2026).
@@ -144,11 +144,12 @@ conferir('12. com a senha certa, os dados descem e abrem', /Mercado Segredo/.tes
 await p2.click('#navegacao button:has-text("Planejar")'); await p2.waitForTimeout(1200);
 conferir('13. metas e orçamento também', /Viagem Confidencial/.test(limpo(await p2.textContent('#telaPlanejamento'))));
 await p2.click('#navegacao button:has-text("Mais")'); await p2.waitForTimeout(900);
-conferir('14. em Mais, a senha aparece ligada', /Ligada: seus dados sobem cifrados/.test(limpo(await p2.textContent('#telaMais .botao-proteja'))));
+conferir('14. em Mais, a linha diz que a criptografia está ligada', /criptografia ligada/.test(limpo(await p2.textContent('#telaMais .botao-proteja'))));
 await p2.click('#telaMais .botao-proteja'); await p2.waitForTimeout(800);
-conferir('14b. e dentro, "Ligada ✓" com "Trocar a senha"', /Ligada ✓/.test(limpo(await p2.textContent('#folha .cartao-senha-dados'))) &&
-  await p2.locator('#folha .botao-trocar-senha').count() === 1);
-await p2.goBack(); await p2.waitForTimeout(600);
+const ligada = limpo(await p2.textContent('#folha .botao-senha-dados'));
+await p2.click('#folha .botao-senha-dados'); await p2.waitForTimeout(800);
+conferir('14b. e dentro, "Ligada ✓", com "Trocar a senha"', /Ligada ✓/.test(ligada) && await p2.locator('#folha .botao-trocar-senha').count() === 1, ligada);
+for (let i = 0; i < 3 && await p2.locator('#folha.aberta').count(); i++) { await p2.goBack(); await p2.waitForTimeout(600); }
 // recarregando, não pede de novo
 await p2.reload({ waitUntil: 'networkidle' }); await p2.waitForTimeout(6000);
 conferir('15. recarregando, não pede de novo', !(await p2.locator('#folha .botao-abrir-cofre').count()));
