@@ -2602,7 +2602,8 @@
         'A carteira (dinheiro físico) também mostra os dias, contados desde o último lançamento dela. Lançamento agendado para depois de hoje não conta.',
         'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia", em todas as contas e no sino.',
         'Faturas: "Vinculada ao extrato", "Paga fora do mês" ou "Só a fatura" agora é uma etiqueta pequena do lado da situação, sem o texto embaixo. A explicação ficou no "i" das Faturas, que abre mais uma vez para mostrar.',
-        'Na tela do cartão saiu o "Últimos gastos": as compras de cada mês já aparecem em "Lançamentos desta fatura".'
+        'Na tela do cartão saiu o "Últimos gastos": as compras de cada mês já aparecem em "Lançamentos desta fatura".',
+        'Parcelas: a sugestão de lançar aparece na fatura onde a parcela deve cair e ainda não está (a aberta ou uma futura), não mais na fatura que já veio cheia do banco. Em cada compra você escolhe lançar só a parcela daquele mês ou ela e as próximas.'
       ]
     },
     {
@@ -12199,7 +12200,7 @@
       'O elo (🔗) do lado do mês, e a etiqueta "Vinculada ao extrato" do lado da situação, querem dizer que o pagamento da fatura apareceu numa conta sua, no mesmo valor e no mesmo mês. Aí as compras contam nos gastos, no lugar do pagamento.',
       '"Paga fora do mês": o pagamento existe, mas é de outro mês, então não vincula; nos gastos entra o pagamento, não as compras. "Só a fatura": nenhum pagamento no extrato liga com ela ainda, e as compras não contam nos gastos.',
       'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
-      'Compra parcelada com parcelas que ainda não estão nas próximas faturas aparece embaixo, com o botão para lançar. O app pergunta antes, uma por uma.',
+      'Na fatura aberta ou futura aparecem as parcelas que deviam cair nela e ainda não estão lançadas (a 8/9 de uma compra que estava na 7/9 no mês anterior). Toque em "Lançar" e escolha: só a desta fatura, ou esta e as próximas.',
       'Em "Lançamentos desta fatura", toque numa compra para trocar a categoria, o valor ou a data.'] });
     topo.style.padding = '16px 16px 0';
     c.appendChild(topo);
@@ -12320,29 +12321,48 @@
     return semAcentoSimples(String(descricao || '').replace(REGEX_PARCELA, '')).replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
-  // As parcelas que faltam lançar das compras desta fatura: "Parcela 5 de
-  // 10" quer a 6/10 até a 10/10, cada uma numa fatura seguinte.
+  // As parcelas que deviam cair nesta fatura e não estão nela (pedido de
+  // 25/11/2026). Olha as compras parceladas das faturas de antes: a "Parcela
+  // 7/9" de novembro quer a 8/9 em dezembro. Só na fatura aberta ou futura;
+  // fatura fechada já veio inteira do banco e não precisa de sugestão.
+  function mesesEntreChaves(a, b) {
+    return (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+  }
   function parcelasQueFaltam(id, cart, f) {
+    if (f.situacao !== 'aberta' && f.situacao !== 'futura') return [];
     var meus = estado.lancamentos.filter(function (o) { return o.contaId === id && o.tipo === 'saida'; });
-    var lista = [];
-    f.itens.forEach(function (l) {
-      if (l.tipo !== 'saida') return;
-      var pc = parcelaDoTexto(l.descricao);
-      if (!pc) return;
-      var base = nomeSemParcela(l.descricao);
-      var faltam = [];
-      for (var k = 1; k <= pc.total - pc.atual; k++) {
-        var numero = pc.atual + k;
-        var tem = meus.some(function (o) {
-          if (o.id === l.id || Math.abs(o.valor - l.valor) > 100) return false;
-          var m = REGEX_PARCELA.exec(o.descricao || '');
-          return !!m && +m[1] === numero && +m[2] === pc.total && nomeSemParcela(o.descricao) === base;
-        });
-        if (!tem) faltam.push(k);
-      }
-      if (faltam.length) lista.push({ l: l, pc: pc, faltam: faltam, chave: f.chave });
+    var existe = function (base, total, numero, valor) {
+      return meus.some(function (o) {
+        if (Math.abs(o.valor - valor) > 100) return false;
+        var m = REGEX_PARCELA.exec(o.descricao || '');
+        return !!m && +m[1] === numero && +m[2] === total && nomeSemParcela(o.descricao) === base;
+      });
+    };
+    var porCompra = {};
+    faturasDoCartao(id).forEach(function (fa) {
+      if (fa.chave >= f.chave) return;
+      fa.itens.forEach(function (l) {
+        if (l.tipo !== 'saida') return;
+        var pc = parcelaDoTexto(l.descricao);
+        if (!pc) return;
+        var numero = pc.atual + mesesEntreChaves(fa.chave, f.chave);
+        if (numero > pc.total) return;
+        var base = nomeSemParcela(l.descricao);
+        var chaveCompra = base + '|' + pc.total + '|' + Math.round(l.valor / 100);
+        // A mesma compra aparece em várias faturas (6/9, 7/9…): vale a mais nova.
+        if (porCompra[chaveCompra] && porCompra[chaveCompra].origem >= fa.chave) return;
+        porCompra[chaveCompra] = { l: l, pc: pc, base: base, numero: numero, origem: fa.chave };
+      });
     });
-    return lista;
+    var lista = [];
+    Object.keys(porCompra).forEach(function (k) {
+      var x = porCompra[k];
+      if (existe(x.base, x.pc.total, x.numero, x.l.valor)) return;
+      var faltam = [];
+      for (var n = x.numero; n <= x.pc.total; n++) if (!existe(x.base, x.pc.total, n, x.l.valor)) faltam.push(n);
+      lista.push({ l: x.l, pc: x.pc, numero: x.numero, faltam: faltam, chave: f.chave });
+    });
+    return lista.sort(function (a, b) { return b.l.valor - a.l.valor; });
   }
 
   function dataDaFaturaSeguinte(cart, chave, k) {
@@ -12351,55 +12371,57 @@
     return faturaDoCartao(cart, d.getFullYear(), d.getMonth()).ate;
   }
 
+  function nomeDaCompra(l) {
+    return String(l.descricao || '').replace(REGEX_PARCELA, '').replace(/[\s\-–·]+$/, '').trim() || l.descricao;
+  }
+
   function caixaDeParcelasFaltando(id, cart, faltando) {
     var cx = no('div', 'parcelas-faltando');
-    cx.appendChild(no('strong', null, faltando.length === 1 ? 'Compra parcelada' : faltando.length + ' compras parceladas'));
-    cx.appendChild(no('p', null, 'As próximas parcelas ainda não estão nas faturas seguintes. Quer lançar? O limite do cartão já conta com elas.'));
+    cx.appendChild(no('strong', null, faltando.length === 1 ? '1 parcela para esta fatura' : faltando.length + ' parcelas para esta fatura'));
+    cx.appendChild(no('p', null, 'Compras parceladas das faturas anteriores que deviam cair aqui e ainda não estão lançadas. O limite do cartão já conta com elas.'));
     faltando.forEach(function (x) {
-      var nums = x.faltam.map(function (k) { return x.pc.atual + k; });
-      var faixaTxt = nums.length === 1 ? nums[0] + '/' + x.pc.total : nums[0] + '/' + x.pc.total + ' a ' + nums[nums.length - 1] + '/' + x.pc.total;
       var linha = no('div', 'parcela-faltando');
       juntar(linha,
-        juntar(no('div', 'q'), document.createTextNode(String(x.l.descricao || '').replace(REGEX_PARCELA, '').replace(/[\s\-–·]+$/, '').trim() || x.l.descricao),
-          no('span', null, 'Parcela ' + x.pc.atual + ' de ' + x.pc.total + ' · falta' + (nums.length > 1 ? 'm ' : ' ') + nums.length + ' de ' + emReais(x.l.valor))),
-        botao('btn-mini', 'Lançar ' + faixaTxt, function () { lancarParcelasQueFaltam(id, cart, x, faixaTxt); }));
+        juntar(no('div', 'q'), document.createTextNode(nomeDaCompra(x.l)),
+          no('span', null, 'Parcela ' + x.numero + ' de ' + x.pc.total + ' · ' + emReais(x.l.valor))),
+        botao('btn-mini', 'Lançar ' + x.numero + '/' + x.pc.total, function () { lancarParcelasQueFaltam(id, cart, x); }));
       cx.appendChild(linha);
     });
     return cx;
   }
 
-  function lancarParcelasQueFaltam(id, cart, x, faixaTxt) {
-    var primeiro = dataDaFaturaSeguinte(cart, x.chave, x.faltam[0]);
-    var ultimo = dataDaFaturaSeguinte(cart, x.chave, x.faltam[x.faltam.length - 1]);
-    var mesesTxt = primeiro.slice(0, 7) === ultimo.slice(0, 7) ? 'na fatura de ' + MESES[+primeiro.slice(5, 7) - 1]
-      : 'uma em cada fatura, de ' + MESES[+primeiro.slice(5, 7) - 1] + ' a ' + MESES[+ultimo.slice(5, 7) - 1] +
-        (ultimo.slice(0, 4) !== primeiro.slice(0, 4) ? ' de ' + ultimo.slice(0, 4) : '');
-    perguntar({
-      titulo: 'Lançar as parcelas ' + faixaTxt + '?',
-      texto: '"' + (x.l.descricao || '') + '" está na parcela ' + x.pc.atual + ' de ' + x.pc.total + '. Vou lançar ' +
-        x.faltam.length + ' parcela(s) de ' + emReais(x.l.valor) + ', ' + mesesTxt + ', na categoria ' + x.l.categoria + '.' +
-        ' Quando essas faturas forem importadas, as parcelas aparecem como "já existe" e não duplicam.',
-      ok: 'Lançar'
-    }, function () {
+  // Pergunta antes, compra por compra: só a desta fatura, ou esta e as
+  // próximas (uma em cada fatura seguinte).
+  function lancarParcelasQueFaltam(id, cart, x) {
+    var mesTxt = function (k) { var d = dataDaFaturaSeguinte(cart, x.chave, k); return MESES[+d.slice(5, 7) - 1] + (d.slice(0, 4) !== x.chave.slice(0, 4) ? ' de ' + d.slice(0, 4) : ''); };
+    var opcoes = [{ valor: 'so', rotulo: 'Só a ' + x.numero + '/' + x.pc.total + ', nesta fatura',
+      detalhe: emReais(x.l.valor) + ' na fatura de ' + mesTxt(0) + '.' }];
+    if (x.faltam.length > 1) {
+      var ult = x.faltam[x.faltam.length - 1];
+      opcoes.push({ valor: 'todas', rotulo: 'Esta e as próximas: ' + x.numero + '/' + x.pc.total + ' a ' + ult + '/' + x.pc.total,
+        detalhe: x.faltam.length + ' parcelas de ' + emReais(x.l.valor) + ', uma em cada fatura, de ' + mesTxt(0) + ' a ' + mesTxt(ult - x.numero) + '.' });
+    }
+    abrirEscolha({ titulo: nomeDaCompra(x.l), semMarca: true, opcoes: opcoes }, function (v) {
+      if (!v) return;
       var l = achar(estado.lancamentos, x.l.id);
       if (!l) return;
       if (!l.grupo) l.grupo = novoId();
+      var numeros = v === 'todas' ? x.faltam : [x.numero];
       var agora = Date.now();
-      x.faltam.forEach(function (k, i) {
-        var numero = x.pc.atual + k;
+      numeros.forEach(function (n, i) {
         estado.lancamentos.push({
           id: novoId(), tipo: 'saida', valor: l.valor,
-          descricao: String(l.descricao).replace(x.pc.trecho, 'Parcela ' + numero + '/' + x.pc.total).slice(0, 80),
+          descricao: String(l.descricao).replace(x.pc.trecho, 'Parcela ' + n + '/' + x.pc.total).slice(0, 80),
           categoria: l.categoria, subcategoria: l.subcategoria || '',
-          data: dataDaFaturaSeguinte(cart, x.chave, k) || somaMeses(l.data, k),
+          data: dataDaFaturaSeguinte(cart, x.chave, n - x.numero) || somaMeses(l.data, n - x.pc.atual),
           contaId: id, contaDestinoId: '', importacaoId: l.importacaoId || undefined, grupo: l.grupo,
           criadoEm: agora + i
         });
       });
-      comMotivo('você lançou ' + x.faltam.length + ' parcela(s) futuras de ' + (l.descricao || 'uma compra'));
+      comMotivo('você lançou ' + numeros.length + ' parcela(s) de ' + nomeDaCompra(l));
       salvar();
       abrirTelaCartao(id);
-      avisar(x.faltam.length + ' parcela(s) lançada(s) nas próximas faturas.');
+      avisar(numeros.length === 1 ? 'Parcela ' + x.numero + '/' + x.pc.total + ' lançada.' : numeros.length + ' parcelas lançadas, uma em cada fatura.');
     });
   }
 
