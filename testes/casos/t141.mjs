@@ -173,7 +173,9 @@ conferir('19. salvando, volta para a ficha já em dia', /A te repassar\s*R\$ 0,0
 await page.goBack(); await page.waitForTimeout(800);
 
 // ---- tudo subiu para o servidor ----
-const linhas = await doServidor(ls => ls.length >= 5);
+// Espera os dois pagamentos (o parcial e o do resto): esperando só cinco
+// linhas, o teste às vezes conferia antes de o segundo pagamento subir.
+const linhas = await doServidor(ls => ls.filter(l => l.tipo === 'doce_pagamento').length >= 2 && ls.length >= 6);
 const tipos = linhas.map(l => l.tipo).sort().join(',');
 conferir('20. vendedor, produto, entrega, prestação e pagamentos sobem',
   tipos === 'doce_acerto,doce_entrega,doce_pagamento,doce_pagamento,doce_produto,doce_vendedor', tipos);
