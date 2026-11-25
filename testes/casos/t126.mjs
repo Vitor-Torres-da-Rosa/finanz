@@ -52,7 +52,9 @@ const fecharTudo = async () => {
       await page.waitForTimeout(800); continue;
     }
     if (await page.locator('#folha.aberta').count()) {
-      await page.click('#cortina', { force: true }).catch(() => {});
+      // Folha aberta de dentro de outra (Proteja seus dados → Backup na
+      // nuvem): o voltar fecha uma de cada vez.
+      await page.goBack();
       await page.waitForTimeout(800); continue;
     }
     break;

@@ -103,7 +103,7 @@ await page.waitForTimeout(4000);
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1200);
 await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
 await page.click('#folha button:has-text("Guardar uma cópia agora")'); await page.waitForTimeout(7000);
-await page.click('#cortina', { force: true }).catch(() => {}); await page.waitForTimeout(900);
+for (let i = 0; i < 4 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(800); }
 
 // Depois da cópia vem mais coisa, que a volta tem de desfazer.
 await novaConta('C6 Bank');
