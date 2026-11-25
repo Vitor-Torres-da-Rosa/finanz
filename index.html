@@ -2629,7 +2629,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.97.0';
+  var VERSAO = '5.98.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2638,6 +2638,15 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.98.0',
+      data: '2026-11-25',
+      itens: [
+        'Análise do mês: um relatório só, "Seus gastos de novembro". Em cima, quanto saiu, a diferença para o mês passado e o orçamento (com a barra do planejado e do que passou). No meio, a rosca. Embaixo, todas as categorias, com o valor do mês e o do mês anterior, da que mais subiu para a que mais caiu.',
+        'Tocando numa categoria abrem as subcategorias; numa subcategoria, cada gasto; e no gasto, de onde ele veio: o extrato importado, a fatura do cartão naquele mês ou o próprio lançamento. Ele junta os antigos "acima do padrão" e "orçamento estourado". Tem "Ver as saídas" e "Rever o planejamento".',
+        'Os outros cartões da análise falam mais claro: "Você guardou mais que a meta", "Você gastou menos com…", os meses pelo nome, e "sobrou" ou "faltou" no lugar de sinal de menos.'
+      ]
+    },
     {
       versao: '5.97.0',
       data: '2026-11-25',
@@ -25908,9 +25917,12 @@
     var voltar = function () { abrirAnaliseCompleta(comp.ano, comp.numMes); };
     var lista = no('div', 'comparativo');
     var difTxt = function (d) { return d > 0 ? '+' + emReais(d) : d < 0 ? '−' + emReais(-d) : 'igual'; };
+    // Sem o mês anterior não há o que comparar: em vez de repetir o valor,
+    // diz quanto a categoria pesa no mês.
     var detalheDe = function (x, teto) {
-      return comp.mes + ' ' + emReais(x.atual) + (comp.mesAnt ? ' · ' + comp.mesAnt + ' ' + emReais(x.antes) : '') +
-        (teto ? ' · teto ' + emReais(teto) : '');
+      var base = comp.mesAnt ? comp.mes + ' ' + emReais(x.atual) + ' · ' + comp.mesAnt + ' ' + emReais(x.antes)
+        : Math.round(pct(x.atual, comp.total)) + '% dos gastos';
+      return base + (teto ? ' · teto ' + emReais(teto) + (x.atual > teto ? ' (passou ' + emReais(x.atual - teto) + ')' : '') : '');
     };
     comp.categorias.forEach(function (c) {
       var linhaCat = linhaQueAbre(c.nome, detalheDe(c, comp.tetos && comp.tetos[c.nome]),
@@ -26065,7 +26077,6 @@
           : difTotal < 0 ? emReais(-difTotal) + ' a menos que em ' + MESES[ant.mes] : 'o mesmo que em ' + MESES[ant.mes]) : '',
         explicacao: '',
         resumos: [
-          { rotulo: 'Saiu', valor: emReais(base.total) },
           baseAnt ? { rotulo: 'vs. ' + MESES[ant.mes], valor: (difTotal > 0 ? '+' : difTotal < 0 ? '−' : '') + emReais(Math.abs(difTotal)),
             cor: difTotal > 0 ? 'var(--vermelho)' : difTotal < 0 ? 'var(--verde)' : '' } : null,
           planejado ? { rotulo: estourou ? 'Acima do orçamento' : 'Do orçamento', valor: estourou ? '+' + emReais(base.total - planejado)
@@ -26073,8 +26084,13 @@
         ].filter(Boolean),
         orcamento: planejado ? { gasto: base.total, planejado: planejado } : null,
         rosca: { lista: base.lista, total: base.total },
-        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: baseAnt ? MESES[ant.mes] : '', ano: ano, numMes: mes, tetos: tetosCat },
-        acoes: acoesRel
+        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: baseAnt ? MESES[ant.mes] : '', ano: ano, numMes: mes, tetos: tetosCat, total: base.total },
+        acoes: acoesRel,
+        info: { chave: 'analise.gastos', itens: [
+          'Em cima: quanto saiu no mês, a diferença para o mês passado (vermelho subiu, verde caiu) e, se você planejou, quanto do orçamento foi usado.',
+          'No meio, a rosca mostra para onde foi o dinheiro, com as mesmas cores das categorias.',
+          'Embaixo, cada categoria com o valor do mês e o do mês passado, da que mais subiu para a que mais caiu. Toque nela para abrir as subcategorias; na subcategoria, para ver cada gasto.',
+          'Tocando num gasto, o app abre de onde ele veio: o extrato importado, a fatura do cartão naquele mês, ou o próprio lançamento. O voltar do celular traz de volta para a análise.'] }
       });
     }
 
@@ -26435,6 +26451,11 @@
     var topo = no('div', 'achado-topo');
     topo.appendChild(no('span', 'achado-icone', a.icone));
     topo.appendChild(no('span', 'achado-titulo', a.titulo));
+    if (a.info) {
+      var bi = botaoDeInfo(a.info.chave, a.titulo, a.info.itens);
+      bi.style.marginLeft = 'auto';
+      topo.appendChild(bi);
+    }
     c.appendChild(topo);
 
     if (a.valor) {

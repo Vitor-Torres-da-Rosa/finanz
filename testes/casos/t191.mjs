@@ -47,7 +47,7 @@ if (await page.locator('#folha button:has-text("Ver a análise de novembro")').c
 const card = page.locator('#folha .achado', { hasText: 'Seus gastos de novembro' }).first();
 const txt = limpo(await card.textContent().catch(() => ''));
 console.log('cartão:', txt.slice(0, 300));
-conferir('1. em cima, o que saiu e a diferença para outubro', /Saiu\s*R\$ 2\.188,49/.test(txt) && /vs\. outubro\s*−R\$ 211,51/.test(txt), txt.slice(0, 160));
+conferir('1. em cima, o que saiu e a diferença para outubro', /Seus gastos de novembro\s*R\$ 2\.188,49\s*R\$ 211,51 a menos que em outubro/.test(txt) && /vs\. outubro\s*−R\$ 211,51/.test(txt), txt.slice(0, 160));
 conferir('1b. a rosca no meio', (await card.locator('.rosca-achado svg').count()) === 1);
 const cats = await card.locator('.comparativo > .comp-linha').allTextContents();
 conferir('2. embaixo, todas as categorias, da que mais subiu para a que mais caiu',
