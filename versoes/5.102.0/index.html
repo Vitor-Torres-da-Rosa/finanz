@@ -631,6 +631,104 @@
   .meta-legenda { display: flex; justify-content: space-between; font-size: 11.5px;
                   color: var(--fraco); margin-top: 6px; }
 
+  /* Boas-vindas de conta nova (pedido de 25/11/2026): como os dados ficam
+     guardados e protegidos, como o app lê os extratos, e o aviso grande de
+     que sem dados o app não consegue estimar nada. */
+  .boas-vindas { position: fixed; inset: 0; z-index: 400; background: #0A0806; display: flex; flex-direction: column;
+    padding: calc(22px + env(safe-area-inset-top)) 22px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; }
+  .bv-pular { align-self: flex-end; background: none; border: 0; color: var(--suave); font-size: 14px; padding: 6px 2px; }
+  .bv-passo { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 14px; max-width: 460px; margin: 0 auto; width: 100%; }
+  .bv-icone { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 28px;
+    background: rgba(233,180,76,.12); border: 1px solid rgba(233,180,76,.35); }
+  .bv-titulo { font-size: 24px; font-weight: 700; line-height: 1.2; margin: 0; }
+  .bv-item { display: flex; gap: 12px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; color: var(--suave); }
+  .bv-item b { color: var(--texto); font-weight: 600; }
+  .bv-item .bv-marca { flex: 0 0 auto; color: var(--ouro); font-weight: 700; margin-top: 1px; }
+  .bv-alerta { border: 2px solid var(--ouro); border-radius: 20px; padding: 18px; background: rgba(233,180,76,.10);
+    box-shadow: 0 0 0 6px rgba(233,180,76,.07); }
+  .bv-alerta .bv-titulo { color: var(--ouro); }
+  .bv-pontos { display: flex; justify-content: center; gap: 7px; margin: 16px 0 12px; }
+  .bv-pontos span { width: 7px; height: 7px; border-radius: 50%; background: var(--borda); transition: all .25s ease; }
+  .bv-pontos span.ativo { width: 22px; border-radius: 4px; background: var(--ouro); }
+  .bv-acoes { display: grid; gap: 10px; max-width: 460px; margin: 0 auto; width: 100%; }
+  /* O cartão de Início enquanto faltam dados. */
+  .cartao-faltam-dados { border: 2px solid var(--ouro) !important; background: linear-gradient(160deg, rgba(233,180,76,.16), rgba(233,180,76,.03)) !important; }
+  .cartao-faltam-dados .fd-titulo { display: flex; gap: 10px; align-items: center; font-size: 17px; font-weight: 700; color: var(--ouro); }
+  .cartao-faltam-dados p { margin: 8px 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--texto); }
+  .fd-linha { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(233,180,76,.2); font-size: 14px; }
+  .fd-linha .fd-check { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px;
+    border: 1.5px solid var(--fraco); color: transparent; }
+  .fd-linha.feito .fd-check { border-color: var(--verde); background: var(--verde); color: #0b0b0b; }
+  .fd-linha.feito .fd-nome { color: var(--suave); text-decoration: line-through; }
+  .fd-linha .fd-nome { flex: 1 1 auto; }
+  .fd-linha .btn-mini { flex: 0 0 auto; }
+  /* Renda fixa no topo de Investimentos (pedido de 25/11/2026): quadrados
+     que deslizam para o lado e andam sozinhos. */
+  .vitrine-rf { margin: 0 -16px 6px; }
+  .vitrine-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 16px 10px; }
+  .vitrine-titulo strong { font-size: 15px; }
+  .vitrine-trilho { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .vitrine-trilho::-webkit-scrollbar { display: none; }
+  .quadro-rf { flex: 0 0 158px; height: 168px; scroll-snap-align: start; border-radius: 18px; padding: 12px 13px;
+    background: linear-gradient(160deg, rgba(233,180,76,.10), rgba(255,255,255,.02)); border: 1px solid var(--borda);
+    display: flex; flex-direction: column; gap: 3px; position: relative; overflow: hidden; text-align: left; color: inherit; font: inherit; }
+  .quadro-rf .q-tipo { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ouro); }
+  .quadro-rf .q-nome { font-size: 12.5px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .quadro-rf .q-valor { font-size: 21px; font-weight: 700; color: var(--texto); letter-spacing: -.01em; }
+  .quadro-rf .q-sub { font-size: 11.5px; color: var(--suave); line-height: 1.35; }
+  .quadro-rf .q-var { font-size: 11.5px; font-weight: 600; }
+  .quadro-rf .q-var.sobe { color: var(--verde); } .quadro-rf .q-var.desce { color: var(--vermelho); }
+  .quadro-rf svg.q-linha { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 46px; opacity: .9; }
+  .quadro-rf .q-selo { position: absolute; top: 10px; right: 10px; font-size: 10px; color: var(--fraco); border: 1px solid var(--borda);
+    border-radius: 999px; padding: 0 6px; }
+  .quadro-rf.anotar { align-items: center; justify-content: center; text-align: center; border-style: dashed; color: var(--ouro); font-weight: 600; }
+  .quadro-rf.aviso { flex-basis: 260px; }
+  .vitrine-fonte { margin: 4px 16px 0; font-size: 11px; color: var(--fraco); line-height: 1.4; }
+  .tipos-invest { margin: 10px 0 12px; }
+  .tipos-invest .chip { white-space: nowrap; }
+  .oferta-linha .linha-sub b { color: var(--texto); font-weight: 600; }
+  /* Orçamento estourado (pedido de 25/11/2026): a barra do planejado com o
+     que passou em vermelho, onde mais saiu e dois caminhos lado a lado. */
+  .achado-sub { font-size: 12.5px; color: var(--suave); margin: -2px 0 0; }
+  .barra-orcamento { position: relative; height: 10px; border-radius: 6px; background: rgba(255,255,255,.07);
+    overflow: hidden; margin-top: 14px; display: flex; }
+  .barra-orcamento .dentro { background: var(--ouro); height: 100%; }
+  .barra-orcamento .passou { background: var(--vermelho); height: 100%; }
+  .barra-orcamento .marco { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--texto); opacity: .75; }
+  .legenda-orcamento { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--suave); margin-top: 8px; }
+  .legenda-orcamento b { color: var(--texto); font-weight: 600; }
+  .legenda-orcamento .vermelho b { color: var(--vermelho); }
+  /* O que subiu em relação ao mês passado (pedido de 25/11/2026): categoria
+     abre as subcategorias, subcategoria abre os gastos, gasto abre a fonte. */
+  .comparativo { margin-top: 12px; border-top: 1px solid var(--borda); }
+  .comp-linha { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: inherit;
+    text-align: left; padding: 10px 0; border-bottom: 1px solid rgba(198,158,78,.12); font: inherit; }
+  .comp-linha .comp-nome { flex: 1 1 auto; min-width: 0; }
+  .comp-linha .comp-nome b { display: block; font-size: 14px; font-weight: 600; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .comp-linha .comp-nome span { display: block; font-size: 12px; color: var(--suave); margin-top: 2px; }
+  .comp-linha .comp-dif { flex: 0 0 auto; font-weight: 700; font-size: 14px; color: var(--vermelho); }
+  .comp-linha .comp-seta { flex: 0 0 auto; color: var(--fraco); transition: transform .2s ease; font-size: 15px; }
+  .comp-linha.aberta .comp-seta { transform: rotate(90deg); color: var(--ouro); }
+  .comp-dentro { padding-left: 12px; border-left: 2px solid var(--borda); margin: 0 0 4px 4px; }
+  .comp-dentro[hidden] { display: none; }
+  .comp-dentro .comp-linha b { font-size: 13.5px; }
+  .comp-gasto .comp-dif { color: var(--texto); font-weight: 600; font-size: 13px; }
+  .comp-linha .comp-dif.caiu { color: var(--verde); }
+  .comp-linha .comp-dif.neutro { color: var(--texto); }
+  .comp-bola { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; }
+  .resumos-achado { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 12px; }
+  .resumo-achado { border: 1px solid var(--borda); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+  .resumo-achado span { display: block; font-size: 11px; color: var(--suave); }
+  .resumo-achado b { display: block; font-size: 14px; margin-top: 2px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rosca-achado { margin: 14px auto 4px; }
+  .rotulo-comparativo { margin-top: 14px; }
+  .comp-gasto .comp-fonte { flex: 0 0 auto; font-size: 11px; color: var(--ouro); border: 1px solid rgba(233,180,76,.4);
+    border-radius: 999px; padding: 1px 7px; }
+  .acoes-achado { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .acoes-achado button { min-height: 44px; border-radius: 12px; font-size: 13px; font-weight: 600; padding: 8px 10px;
+    border: 1px solid rgba(233,180,76,.45); background: rgba(233,180,76,.06); color: var(--ouro); }
+  .acoes-achado button.principal { background: linear-gradient(135deg, #F3D58C, #E9B44C 55%, #C9953A); color: #1A1306; border-color: transparent; }
   .btn-acao { margin-top: 14px; color: var(--ouro); font-size: 13.5px; font-weight: 600;
               padding: 10px 0; text-align: left; width: 100%; min-height: 44px; }
   .btn-acao:active { opacity: .6; }
@@ -1218,6 +1316,39 @@
   }
   #entrada .ent-folha { position: relative; z-index: 1; }
 
+  /* A seta da abertura (pedido de 25/11/2026): diz, sem palavra, que tem
+     mais embaixo. Some quando a pessoa desce. */
+  .ent-seta {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + var(--baixo));
+    z-index: 3;
+    width: 40px;
+    height: 40px;
+    margin-left: -20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(233, 180, 76, .35);
+    background: rgba(10, 8, 6, .55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    color: var(--ouro);
+    cursor: pointer;
+    opacity: .9;
+    transition: opacity .35s ease;
+    animation: ent-seta-anda 1.8s ease-in-out infinite;
+  }
+  .ent-seta svg { width: 20px; height: 20px; filter: drop-shadow(0 0 5px rgba(233, 180, 76, .5)); }
+  .ent-seta.sumiu { opacity: 0; pointer-events: none; }
+  @keyframes ent-seta-anda {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .ent-seta { animation: none; } }
+
   .ent-folha {
     min-height: 100%;
     max-width: 460px;
@@ -1355,20 +1486,123 @@
   }
 
   .vantagens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 26px; }
-  .vantagem { text-align: center; }
+  .vantagem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
   .vantagem .quadro {
-    width: 54px;
-    height: 54px;
+    position: relative;
+    width: 56px;
+    height: 56px;
     margin: 0 auto 10px;
-    border-radius: 15px;
-    background: linear-gradient(160deg, rgba(30,25,16,.85), rgba(10,10,11,.9));
-    border: 1px solid var(--borda);
-    box-shadow: inset 0 1px 0 rgba(246,221,160,.08);
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 90% at 30% 0%, rgba(246,221,160,.16), transparent 60%),
+      linear-gradient(160deg, rgba(36,29,17,.92), rgba(10,10,11,.92));
+    border: 1px solid rgba(233,180,76,.32);
+    box-shadow: inset 0 1px 0 rgba(246,221,160,.12), 0 8px 20px rgba(0,0,0,.38), 0 0 18px rgba(233,180,76,.08);
     display: grid;
     place-items: center;
     color: var(--ouro);
+    transition: transform .15s ease, box-shadow .2s ease;
   }
-  .vantagem .quadro svg { width: 24px; height: 24px; }
+  .vantagem .quadro svg { width: 25px; height: 25px; filter: drop-shadow(0 0 6px rgba(233,180,76,.35)); }
+  /* O "+" no canto: diz que o item abre. */
+  .vantagem .quadro::after {
+    content: '+';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: var(--dourado);
+    color: #1A1205;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 19px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  .vantagem:active .quadro { transform: scale(.94); box-shadow: 0 0 0 3px rgba(233,180,76,.2); }
+  .vantagem .saiba { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--ouro); }
+  .ent-guia-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 48px);
+    margin: 14px auto 0;
+    padding: 11px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(233,180,76,.32);
+    background: rgba(10,8,6,.5);
+    color: var(--ouro-claro);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ent-guia-link svg { flex: 0 0 auto; width: 17px; height: 17px; color: var(--ouro); }
+  .ent-guia-seta { color: var(--ouro); font-size: 17px; line-height: 1; }
+
+  /* O guia "Como o Finanz funciona". */
+  .guia-intro { font-size: 13.5px; color: var(--suave); line-height: 1.6; margin: 0 0 14px; }
+  .guia-secao {
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    margin-bottom: 10px;
+    background: linear-gradient(160deg, rgba(30,25,16,.55), rgba(10,10,11,.6));
+    overflow: hidden;
+    scroll-margin-top: 12px;
+  }
+  .guia-secao.aberta { border-color: rgba(233,180,76,.35); }
+  .guia-cab {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px;
+    background: none;
+    border: 0;
+    color: var(--texto);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+  .guia-icone {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: var(--ouro);
+    background: rgba(233,180,76,.08);
+    border: 1px solid rgba(233,180,76,.25);
+  }
+  .guia-icone svg { width: 20px; height: 20px; }
+  .guia-textos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .guia-textos b { font-size: 15px; }
+  .guia-resumo { font-size: 12px; color: var(--fraco); }
+  .guia-seta { color: var(--ouro); font-size: 22px; line-height: 1; transition: transform .2s ease; }
+  .guia-secao.aberta .guia-seta { transform: rotate(90deg); }
+  .guia-corpo { display: none; padding: 0 16px 16px; }
+  .guia-secao.aberta .guia-corpo { display: block; }
+  .guia-item { display: flex; gap: 10px; margin-top: 10px; }
+  .guia-item p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--suave); }
+  .guia-item b { color: var(--texto); }
+  .guia-marca { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--ouro); margin-top: 8px; }
   .vantagem .nome { font-size: 12.5px; font-weight: 700; }
   .vantagem .detalhe { font-size: 11px; color: var(--fraco); line-height: 1.45; margin-top: 4px; }
 
@@ -1633,7 +1867,18 @@
     font-weight: 700;
     flex: 0 0 auto;
   }
-  .cat-linha[aria-pressed="true"] .marca { background: var(--ouro); border-color: var(--ouro); }
+  .cat-linha[aria-pressed="true"] .marca, .cat-toggle[aria-pressed="true"] .marca { background: var(--ouro); border-color: var(--ouro); }
+  /* O valor gasto abre o detalhamento embaixo (pedido de 25/11/2026). */
+  .cat-bloco { padding: 0; gap: 0; }
+  .cat-bloco .cat-toggle { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 13px 0 13px 14px;
+    background: none; border: 0; color: inherit; text-align: left; font: inherit; }
+  .cat-bloco .cat-gasto { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 13px 14px 13px 10px; background: none; border: 0;
+    color: var(--suave); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .cat-bloco .cat-gasto .seta { color: var(--fraco); transition: transform .2s ease; font-size: 15px; }
+  .cat-bloco .cat-gasto.aberta .seta { transform: rotate(90deg); color: var(--ouro); }
+  .cat-bloco .cat-gasto.zero { color: var(--fraco); }
+  .cat-detalhe { padding: 0 14px 8px 40px; }
+  .cat-detalhe[hidden] { display: none; }
   .cat-linha .nome { flex: 1; min-width: 0; font-size: 15px; }
   .cat-linha .gasto { font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
   .cat-linha .gasto.zero { color: var(--fraco); }
@@ -2588,7 +2833,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.97.0';
+  var VERSAO = '5.102.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2597,6 +2842,56 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.102.0',
+      data: '2026-11-25',
+      itens: [
+        'Conferido ✓: em "Conferir esta conta", quando o saldo bate com o banco, você confirma que está tudo certo. Os arquivos dos extratos da conta deixam de ser guardados como vieram do banco: fica só o que o app leu deles, compacto e cifrado com a "senha dos extratos". Reler e Relançar continuam funcionando; baixar o PDF original deixa de dar.',
+        'A senha dos extratos é criada na primeira conferência e pedida uma vez enquanto o app está aberto. Não dá para recuperá-la; esquecendo, os lançamentos continuam todos no app.',
+        'O extrato conferido fica guardado sem prazo. O que não foi conferido continua saindo sozinho depois de 6 meses.',
+        'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.',
+        'Na abertura do app, uma seta dourada e discreta, que sobe e desce, mostra que tem mais embaixo. Tocar nela desce a tela; descendo, ela some.',
+        'Conta nova: abre direto o aviso de preencher os dados. As páginas sobre a proteção dos dados ficam só em Mais, em "Como seus dados são protegidos".',
+        'Abertura: cada item (Dados protegidos, Metas, Cobranças…) virou um botão, com o "+" dourado no canto e "Saiba mais". Tocando, abre o guia "Como o Finanz funciona", já no assunto, com tudo explicado em detalhe, os termos de uso e a política de privacidade. Os desenhos ganharam brilho e cada item tem o seu.'
+      ]
+    },
+    {
+      versao: '5.101.0',
+      data: '2026-11-25',
+      itens: [
+        'Backup com senha: "Fazer backup" pede uma senha (duas vezes) e gera um arquivo .finanz cifrado (AES-GCM de 256 bits) e comprimido. Sem a senha, ninguém abre, nem o Finanz. Para restaurar, escolha o arquivo e digite a senha. Os backups antigos em JSON continuam abrindo.',
+        'Planejamento: na escolha de categorias, tocar no valor gasto abre embaixo as subcategorias, cada uma com quantos gastos tem e o total; na subcategoria, cada gasto; e no gasto, de onde ele veio. Tocar no nome continua marcando a categoria.',
+        'O orçamento do mês e a escolha de categorias ganharam o "i", no lugar das explicações soltas.'
+      ]
+    },
+    {
+      versao: '5.100.0',
+      data: '2026-11-25',
+      itens: [
+        'Conta nova: as boas-vindas explicam onde seus dados ficam e quem vê, como o app lê os extratos (no seu celular, e você confere antes de entrar), o que nunca acontece (nada é vendido, compartilhado ou rastreado) e avisam bem grande que sem dados o app não consegue estimar seus gastos e receitas. Dá para reler em Mais, em "Como seus dados são protegidos".',
+        'No Início, enquanto faltam dados, um cartão grande em primeiro lugar mostra o que preencher: conta de banco, extrato importado, cartão e 3 meses de lançamentos, com o botão de cada um. Ele some quando o app já tem o que precisa.',
+        'Distribuição de gastos: saiu a nota "fatura paga ficou de fora" embaixo da lista. A conta é a mesma.'
+      ]
+    },
+    {
+      versao: '5.99.0',
+      data: '2026-11-25',
+      itens: [
+        'Investimentos: no topo, "Renda fixa hoje", com quadrados que deslizam para o lado e andam sozinhos. Selic, CDI e IPCA vêm do Banco Central, com a linha do último ano e quanto mudaram em 12 meses. Dois quadrados fazem a conta de um CDB a 110% do CDI e de uma LCI/LCA a 95%, com o líquido depois do imposto.',
+        'Você anota as ofertas que vê no banco ou na corretora (banco, tipo, taxa e vencimento) e elas viram quadrados também, da que mais rende líquido para a que menos. Ficam guardadas na sua conta. Sem um nome de banco anotado por você, o app não mostra oferta nenhuma: não existe fonte pública com as taxas de cada banco, e o app não inventa número.',
+        'Os tipos de investimento já estão para escolher (renda fixa, renda variável, fundos imobiliários, cripto, fundos, Tesouro, previdência e exterior). Por enquanto, só a renda fixa mostra conteúdo.',
+        'Mais: ficou só a saúde financeira. A análise do mês mora no sino.'
+      ]
+    },
+    {
+      versao: '5.98.0',
+      data: '2026-11-25',
+      itens: [
+        'Análise do mês: um relatório só, "Seus gastos de novembro". Em cima, quanto saiu, a diferença para o mês passado e o orçamento (com a barra do planejado e do que passou). No meio, a rosca. Embaixo, todas as categorias, com o valor do mês e o do mês anterior, da que mais subiu para a que mais caiu.',
+        'Tocando numa categoria abrem as subcategorias; numa subcategoria, cada gasto; e no gasto, de onde ele veio: o extrato importado, a fatura do cartão naquele mês ou o próprio lançamento. Ele junta os antigos "acima do padrão" e "orçamento estourado". Tem "Ver as saídas" e "Rever o planejamento".',
+        'Os outros cartões da análise falam mais claro: "Você guardou mais que a meta", "Você gastou menos com…", os meses pelo nome, e "sobrou" ou "faltou" no lugar de sinal de menos.'
+      ]
+    },
     {
       versao: '5.97.0',
       data: '2026-11-25',
@@ -4690,6 +4985,8 @@
       propostas: [],
       // O que você já disse sobre cada despesa que se repete.
       revisados: {},
+      // Ofertas de renda fixa que a pessoa anotou (Investimentos).
+      ofertasRf: [],
       clientes: [],
       servicos: [],
       pagamentos: [],
@@ -5047,6 +5344,8 @@
       });
     }
 
+    if (Array.isArray(bruto.ofertasRf)) limpo.ofertasRf = limparOfertasRf(bruto.ofertasRf);
+
     if (Array.isArray(bruto.importacoes)) {
       limpo.importacoes = bruto.importacoes.filter(function (i) {
         return i && typeof i === 'object' && typeof i.id === 'string';
@@ -5061,7 +5360,7 @@
           saldoExtrato: i.saldoExtrato == null ? null : inteiro(i.saldoExtrato),
           de: soData(i.de), ate: soData(i.ate)
         };
-      }).slice(-60);
+      }).slice(-300);
     }
 
     if (bruto.revisados && typeof bruto.revisados === 'object') {
@@ -6730,6 +7029,7 @@
       taxas: p.taxas && p.taxas.bandeiras ? p.taxas : {},
       meta_economia: p.metaEconomia || 20,
       revisados: estado.revisados || {},
+      ofertas_rf: estado.ofertasRf || [],
       orcamento_geral: estado.orcamentos.geral,
       objetivos: p.objetivos || []
     };
@@ -6766,7 +7066,8 @@
     lancamentos: ['subcategoria', 'data_destino', 'par_transferencia', 'grupo'],
     servicos: ['despesas'],
     pagamentos: ['obs'],
-    contas: ['limite']
+    contas: ['limite'],
+    perfis: ['ofertas_rf']
   };
 
   function oQueFaltou(e, tabela) {
@@ -7136,6 +7437,7 @@
         novo.perfil.taxas = perfil.taxas;
       }
       if (perfil.revisados && typeof perfil.revisados === 'object') novo.revisados = perfil.revisados;
+      if (Array.isArray(perfil.ofertas_rf)) novo.ofertasRf = limparOfertasRf(perfil.ofertas_rf);
       novo.perfil.metaEconomia = perfil.meta_economia || 20;
       novo.perfil.negocio = perfil.negocio || '';
       novo.perfil.contato = perfil.contato || '';
@@ -9182,27 +9484,27 @@
       titulo: ['O controle', 'transforma.'],
       texto: 'Gerencie, invista e multiplique seu patrimônio com inteligência.',
       vantagens: [
-        ['barras', 'Visão completa', 'Todas as suas finanças em um só lugar'],
-        ['escudo', 'Dados protegidos', 'Criptografia no aparelho e no servidor'],
-        ['ideia', 'Análises úteis', 'Padrões dos seus gastos, mês a mês']
+        ['grafico', 'Visão completa', 'Contas, cartões e investimentos num só lugar', 'visao'],
+        ['escudo', 'Dados protegidos', 'Cifrados no celular, no caminho e no servidor', 'dados'],
+        ['ideia', 'Análises úteis', 'Para onde foi o dinheiro, mês a mês', 'analises']
       ]
     },
     {
       titulo: ['Cada real', 'no lugar.'],
       texto: 'Contas, cartões, metas e investimentos acompanhados de perto.',
       vantagens: [
-        ['alvo', 'Metas', 'Saiba quanto falta para cada objetivo'],
-        ['barras', 'Orçamento', 'Um teto por categoria, sem susto'],
-        ['escudoOk', 'Reserva', 'Calculada pelas suas despesas reais']
+        ['alvo', 'Metas', 'Quanto falta para cada objetivo', 'metas'],
+        ['fatias', 'Orçamento', 'Um teto no mês e por categoria', 'orcamento'],
+        ['escudoOk', 'Reserva', 'Calculada pelas suas despesas reais', 'reserva']
       ]
     },
     {
       titulo: ['Seu negócio', 'na palma da mão.'],
       texto: 'Serviços, clientes e cobranças com o controle de quem já recebeu.',
       vantagens: [
-        ['maleta', 'Clientes', 'Serviços prestados e valores combinados'],
-        ['alvo', 'Cobranças', 'Quanto pagaram e quanto ainda falta'],
-        ['barras', 'Relatórios', 'Resumos prontos para salvar em PDF']
+        ['maleta', 'Clientes', 'Serviços prestados e valores combinados', 'clientes'],
+        ['receber', 'Cobranças', 'Quem pagou, quem falta e os juros', 'cobrancas'],
+        ['extrato', 'Relatórios', 'Resumos prontos para salvar em PDF', 'relatorios']
       ]
     }
   ];
@@ -9305,6 +9607,24 @@
     raiz.setAttribute('data-tela', telaEntrada);
     var folha = no('div', 'ent-folha');
     raiz.appendChild(folha);
+    raiz.onscroll = null;
+    if (telaEntrada === 'abertura') {
+      // Seta que convida a descer: some quando a pessoa desce ou quando
+      // tudo já cabe na tela.
+      var seta = botao('ent-seta', null, function () {
+        raiz.scrollBy({ top: Math.round(raiz.clientHeight * 0.7), behavior: 'smooth' });
+      });
+      seta.setAttribute('aria-label', 'Descer para ver mais');
+      seta.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+      raiz.appendChild(seta);
+      var verSeta = function () {
+        var falta = raiz.scrollHeight - raiz.clientHeight - raiz.scrollTop;
+        seta.classList.toggle('sumiu', raiz.scrollTop > 24 || falta < 24);
+      };
+      raiz.onscroll = verSeta;
+      setTimeout(verSeta, 60);
+      setTimeout(verSeta, 600);
+    }
     raiz.scrollTop = 0;
 
     if (telaEntrada === 'abertura') montarAbertura(folha);
@@ -9328,12 +9648,17 @@
 
       var grade = no('div', 'vantagens');
       lamina.vantagens.forEach(function (v) {
-        var item = no('div', 'vantagem');
+        // Botão (pedido de 25/11/2026): o "+" no canto e o "Saiba mais"
+        // dizem que abre; abre o guia já no assunto.
+        var item = botao('vantagem', null, function () { abrirGuia(v[3]); });
+        item.setAttribute('aria-label', v[1] + ': saiba mais');
+        item.setAttribute('data-guia', v[3]);
         var quadro = no('div', 'quadro');
         quadro.appendChild(icone(v[0]));
         item.appendChild(quadro);
         item.appendChild(no('div', 'nome', v[1]));
         item.appendChild(no('div', 'detalhe', v[2]));
+        item.appendChild(no('span', 'saiba', 'Saiba mais ›'));
         grade.appendChild(item);
       });
       slide.appendChild(grade);
@@ -9355,6 +9680,12 @@
         p.className = i === indice ? 'ativo' : '';
       });
     });
+
+    var guiaLink = botao('ent-guia-link', null, function () { abrirGuia(''); });
+    guiaLink.appendChild(icone('info'));
+    guiaLink.appendChild(no('span', null, 'Como funciona, termos e privacidade'));
+    guiaLink.appendChild(no('span', 'ent-guia-seta', '›'));
+    folha.appendChild(guiaLink);
 
     var fundo = no('div', 'ent-fundo');
 
@@ -9916,6 +10247,147 @@
     folha.appendChild(rodape);
   }
 
+  // ---------- Boas-vindas: dados, proteção e o aviso de preencher ----------
+  //
+  // Pedido do Vitor em 25/11/2026. Abre sozinha uma vez, na conta nova, e
+  // fica em Mais para reler. Tudo o que está escrito aqui é o que o app faz
+  // de fato (confira a Política de Privacidade, logo abaixo): os dados
+  // ficam guardados na conta, e por isso não dá para dizer que "nada é
+  // coletado" — dá para dizer, e é verdade, que nada é vendido, usado para
+  // propaganda ou rastreado.
+
+  function passosDeBoasVindas() {
+    var naNuvem = NUVEM.ligada;
+    return [
+      { icone: '🔒', titulo: 'Seus dados são seus', itens: naNuvem ? [
+        ['Guardados na sua conta.', 'Ficam no servidor do Finanz (Supabase, em São Paulo) e numa cópia no seu celular.'],
+        ['Só você vê os seus.', 'O próprio banco de dados só devolve as linhas de quem está logado, mesmo que alguém tente pedir outra coisa.'],
+        ['Cifrados no aparelho.', 'A cópia do celular é guardada com criptografia AES de 256 bits.'],
+        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
+      ] : [
+        ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
+        ['Cifrados.', 'Guardados com criptografia AES de 256 bits, com a chave tirada da sua senha.']
+      ] },
+      { icone: '📄', titulo: 'Como o app lê seus extratos', itens: [
+        ['A leitura é feita aqui, no seu celular.', 'O app abre o PDF, a planilha, o OFX ou o CSV e tira só data, descrição e valor de cada linha.'],
+        ['Você confere antes de entrar.', 'Tudo aparece numa lista para você marcar, desmarcar e trocar a categoria. Nada entra sozinho.'],
+        ['O arquivo original fica na sua conta.', 'Serve para baixar de novo ou reler o extrato. Dá para apagar quando quiser.'],
+        ['O app não entra no seu banco.', 'Ele nunca pede a senha do banco e não movimenta dinheiro: só lê o arquivo que você escolhe.']
+      ] },
+      { icone: '🛡️', titulo: 'O que nunca acontece', itens: [
+        ['Nada é vendido nem compartilhado.', 'Seus dados não vão para anunciantes, parceiros ou terceiros.'],
+        ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
+        ['Taxas públicas.', 'Em Investimentos, o app busca Selic, CDI e IPCA no Banco Central. Esse pedido não leva nenhum dado seu.'],
+        ['Backup com senha.', 'O arquivo de backup sai cifrado com uma senha que você escolhe. Sem ela, ninguém abre — nem o Finanz.']
+      ] },
+      { alerta: true, icone: '⚠️', titulo: 'Sem dados, o app não consegue te ajudar', texto:
+        'As estimativas de gastos e receitas, a análise do mês, a saúde financeira e os avisos saem dos seus lançamentos. ' +
+        'Com poucos dados, os números ficam vazios ou errados.', itens: [
+        ['Cadastre suas contas e cartões.', 'Cada banco que você usa, com o saldo de hoje.'],
+        ['Importe os extratos dos últimos 3 meses.', 'De cada conta e a fatura de cada cartão. É o que deixa as estimativas certas.'],
+        ['Mantenha em dia.', 'Do lado de cada conta aparece há quantos dias foi o último extrato. Importe de novo quando ficar dourado ou vermelho.']
+      ] }
+    ];
+  }
+
+  function chaveDeBoasVindas() {
+    var quem = (NUVEM.ligada && sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || 'local';
+    return 'finanz.boasvindas.' + quem;
+  }
+
+  // Conta nova (sem lançamento) que ainda não viu: abre sozinha. Nos testes
+  // automáticos não abre, a não ser que o teste peça.
+  function talvezBoasVindas() {
+    if (estado.lancamentos.length || document.querySelector('.boas-vindas')) return;
+    try {
+      if (localStorage.getItem(chaveDeBoasVindas())) return;
+      if (navigator.webdriver && localStorage.getItem('finanz.boasvindas.teste') !== '1') return;
+    } catch (e) { return; }
+    abrirBoasVindas();
+  }
+
+  // Conta nova: só o aviso de preencher os dados (pedido de 25/11/2026: a
+  // proteção dos dados já aparece na abertura do app). Em Mais, "Como seus
+  // dados são protegidos" mostra as três páginas sobre os dados.
+  function abrirBoasVindas(soDados) {
+    soDados = soDados === true;
+    if (!soDados) { try { localStorage.setItem(chaveDeBoasVindas(), '1'); } catch (e) { /* sem espaço */ } }
+    var passos = passosDeBoasVindas().filter(function (x) { return soDados ? !x.alerta : x.alerta; });
+    var atual = 0;
+    var tela = no('div', 'boas-vindas');
+    tela.setAttribute('role', 'dialog');
+    tela.setAttribute('aria-label', 'Antes de começar');
+    var pular = botao('bv-pular', 'Pular', function () { fechar(); });
+    var corpo = no('div', 'bv-passo');
+    var pontos = no('div', 'bv-pontos');
+    var acoes = no('div', 'bv-acoes');
+    juntar(tela, pular, corpo, pontos, acoes);
+    document.body.appendChild(tela);
+
+    function fechar() { if (tela.parentNode) tela.parentNode.removeChild(tela); desenhar(); }
+    function mostrar() {
+      var ps = passos[atual];
+      corpo.innerHTML = '';
+      var bloco = ps.alerta ? no('div', 'bv-alerta') : corpo;
+      if (ps.alerta) corpo.appendChild(bloco);
+      juntar(bloco, no('div', 'bv-icone', ps.icone), no('h2', 'bv-titulo', ps.titulo));
+      if (ps.texto) bloco.appendChild(no('p', 'bv-item', ps.texto));
+      ps.itens.forEach(function (it) {
+        var l = no('div', 'bv-item');
+        juntar(l, no('span', 'bv-marca', ps.alerta ? '→' : '✓'), juntar(no('span'), no('b', null, it[0] + ' '), document.createTextNode(it[1])));
+        bloco.appendChild(l);
+      });
+      pontos.innerHTML = '';
+      passos.forEach(function (x, i) { pontos.appendChild(no('span', i === atual ? 'ativo' : '')); });
+      acoes.innerHTML = '';
+      var ultimo = atual === passos.length - 1;
+      pular.hidden = ultimo;
+      acoes.appendChild(botao('btn btn-ouro', ultimo ? (soDados ? 'Entendi' : 'Entendi, vamos começar') : 'Próximo', function () {
+        if (ultimo) fechar(); else { atual++; mostrar(); tela.scrollTop = 0; }
+      }));
+      if (ultimo && !soDados) {
+        acoes.appendChild(botao('btn btn-fantasma', 'Cadastrar minha primeira conta', function () {
+          fechar(); setTimeout(function () { abrirFolhaConta(null); }, 120);
+        }));
+      }
+    }
+    mostrar();
+  }
+
+  // O que já tem e o que falta para o app funcionar direito.
+  function faltaDeDados() {
+    var contasBanco = estado.contas.filter(function (c) { return !ehCartao(c) && c.tipo !== 'Dinheiro físico'; });
+    var extrato = (estado.importacoes || []).some(function (i) {
+      var c = achar(estado.contas, i.contaId); return c && !ehCartao(c);
+    });
+    var cartao_ = estado.contas.some(ehCartao);
+    var meses = mesesComLancamento().length;
+    var itens = [
+      { nome: 'Cadastrar uma conta de banco', feito: contasBanco.length > 0, rotulo: 'Cadastrar', abrir: function () { abrirFolhaConta(null); } },
+      { nome: 'Importar o extrato de uma conta', feito: extrato, rotulo: 'Importar', abrir: function () { abrirImportarExtrato(); } },
+      { nome: 'Cadastrar seu cartão (se tiver)', feito: cartao_, rotulo: 'Cadastrar', abrir: function () { abrirFolhaConta(null, true); } },
+      { nome: '3 meses de lançamentos (' + Math.min(meses, 3) + ' de 3)', feito: meses >= 3, rotulo: 'Importar', abrir: function () { abrirImportarExtrato(); } }
+    ];
+    return { itens: itens, pronto: extrato && meses >= 3 };
+  }
+
+  function cartaoFaltamDados() {
+    var f = faltaDeDados();
+    if (f.pronto) return null;
+    var c = cartao('cartao-faltam-dados');
+    var feitos = f.itens.filter(function (x) { return x.feito; }).length;
+    juntar(c, juntar(no('div', 'fd-titulo'), no('span', null, '⚠️'), no('span', null, 'O app precisa dos seus dados')),
+      no('p', null, 'Sem lançamentos, ele não consegue estimar seus gastos e receitas, montar a análise do mês nem calcular a saúde financeira. ' +
+        'Preencha o que falta abaixo (' + feitos + ' de ' + f.itens.length + ' feito' + (feitos === 1 ? '' : 's') + ').'));
+    f.itens.forEach(function (x) {
+      var l = no('div', 'fd-linha' + (x.feito ? ' feito' : ''));
+      juntar(l, no('span', 'fd-check', '✓'), no('span', 'fd-nome', x.nome), x.feito ? null : botao('btn-mini', x.rotulo, x.abrir));
+      c.appendChild(l);
+    });
+    c.appendChild(botao('btn-acao', 'Como seus dados são guardados e protegidos ›', function () { abrirBoasVindas(); }));
+    return c;
+  }
+
   // ---------- Termos e privacidade ----------
 
   var TEXTOS = {
@@ -9937,17 +10409,133 @@
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
         'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
-        'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup em JSON a qualquer momento. Atenção: o arquivo de backup sai sem criptografia, então guarde em lugar seguro.'
+        'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup a qualquer momento. O arquivo de backup sai cifrado (AES-GCM de 256 bits) com uma senha que você escolhe na hora: sem ela, ninguém abre, nem o Finanz.'
       ] : [
         'Hoje o Finanz funciona inteiramente dentro do seu aparelho. Não existe servidor, não há cadastro em nenhum lugar e nada do que você digita sai do navegador.',
         'Seus dados são gravados no armazenamento local do navegador, cifrados com AES-GCM de 256 bits. A chave é derivada da sua senha com PBKDF2 e nunca é guardada em texto puro.',
         'Se você marcar "Lembrar de mim", a chave fica guardada no aparelho para abrir o app direto. Sem marcar, ela vale só enquanto a aba estiver aberta.',
         'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
-        'Apagar os dados do navegador apaga também suas informações. Use o backup em JSON no menu Mais para ter uma cópia — atenção: esse arquivo sai sem criptografia, então guarde em lugar seguro.',
+        'Apagar os dados do navegador apaga também suas informações. Use o backup no menu Mais para ter uma cópia: ele sai cifrado com uma senha que você escolhe.',
         'Quando o servidor entrar no ar, esta política será atualizada antes de qualquer dado sair do aparelho.'
       ]
     }
   };
+
+  // ---------- Como o Finanz funciona (pedido de 25/11/2026) ----------
+  //
+  // Um guia só, aberto pelos itens da abertura: o que cada parte faz, onde
+  // os dados ficam e quem vê, e as regras de uso. Cada assunto abre e fecha;
+  // vindo de um item, o guia já abre naquele assunto.
+  function guiaDoFinanz() {
+    var naNuvem = NUVEM.ligada;
+    return [
+      { id: 'visao', icone: 'grafico', titulo: 'Visão completa', resumo: 'Contas, cartões, investimentos e o negócio num lugar só', itens: [
+        ['Contas e carteira.', 'Cada conta mostra o saldo de hoje: o saldo inicial mais tudo o que entrou e saiu. Do lado, há quantos dias foi o último extrato, para você saber quando atualizar.'],
+        ['Cartões e faturas.', 'Cada fatura, mês a mês, paga ou não, com as parcelas que ainda faltam. A compra no cartão só conta como gasto quando a fatura é paga pela conta do banco.'],
+        ['Transações.', 'Toda entrada e saída, com busca, filtros, categoria e subcategoria.'],
+        ['Investimentos.', 'Onde o seu dinheiro está aplicado e as taxas do dia (Selic, CDI e IPCA), buscadas no Banco Central.'],
+        ['O extrato do banco é a verdade.', 'Os números saem do que você importa e lança. O app nunca inventa dado: o que falta aparece como faltando.']
+      ] },
+      { id: 'dados', icone: 'escudo', titulo: 'Dados protegidos', resumo: 'Onde ficam, quem vê e como são cifrados', itens: naNuvem ? [
+        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia no seu celular.'],
+        ['Só você vê os seus.', 'Cada linha do banco de dados tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security). A checagem é feita pelo banco, não pelo app.'],
+        ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
+        ['Cifrados no servidor.', 'Os discos do servidor são cifrados pelo Supabase.'],
+        ['Cifrados no celular.', 'A cópia do aparelho é guardada com AES-GCM de 256 bits.'],
+        ['Sua senha não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
+        ['Quem administra o servidor.', 'Consegue ler os lançamentos, como em qualquer app de finanças. Os extratos conferidos e o backup, não: eles são cifrados com senhas que só você sabe.'],
+        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
+      ] : [
+        ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
+        ['Cifrados.', 'Guardados com AES-GCM de 256 bits, com a chave tirada da sua senha (PBKDF2).'],
+        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
+      ] },
+      { id: 'extratos', icone: 'extrato', titulo: 'Extratos e arquivos', resumo: 'Como o app lê e guarda os seus extratos', itens: [
+        ['A leitura é feita no seu celular.', 'O app abre o PDF, a planilha, o OFX ou o CSV e tira só data, descrição e valor de cada linha.'],
+        ['O app não entra no seu banco.', 'Ele nunca pede a senha do banco e não movimenta dinheiro: só lê o arquivo que você escolhe.'],
+        ['Você confere antes de entrar.', 'Tudo aparece numa lista para marcar, desmarcar e trocar a categoria. Lançamento que já existe vem desmarcado, e o extrato com saldo por linha é conferido linha a linha.'],
+        ['O arquivo original fica guardado.', 'Na sua conta, para baixar de novo, reler ou relançar. Ele sai sozinho depois de 6 meses.'],
+        ['Conferido ✓.', 'Com a conta batendo com o banco, você confirma, e os PDFs da conta viram uma versão compacta, cifrada com a senha dos extratos. Essa fica guardada sem prazo.'],
+        ['Limpeza automática.', 'O arquivo de uma importação que você tirou é apagado sozinho depois de um dia.']
+      ] },
+      { id: 'analises', icone: 'ideia', titulo: 'Análises úteis', resumo: 'Para onde foi o dinheiro e o que mudou', itens: [
+        ['Análise do mês.', 'Quanto saiu, a diferença para o mês passado e o orçamento, com a rosca das categorias. Toque numa categoria para ver as subcategorias, os gastos e de onde veio cada um.'],
+        ['Avisos.', 'O sino reúne o que merece atenção, com o caminho para resolver.'],
+        ['Saúde financeira.', 'Uma nota de 0 a 100 somada em partes. "Como calculamos" mostra quanto vale cada parte.'],
+        ['Sem dados, sem análise.', 'Tudo sai dos seus lançamentos. Importe pelo menos 3 meses de extrato de cada conta para os números ficarem certos.']
+      ] },
+      { id: 'metas', icone: 'alvo', titulo: 'Metas', resumo: 'Objetivos com valor e prazo', itens: [
+        ['Para que serve.', 'Uma viagem, um carro, uma entrada: cada meta tem valor e prazo.'],
+        ['Acompanhe.', 'Toque na meta para dizer quanto já guardou; a barra mostra quanto falta.']
+      ] },
+      { id: 'orcamento', icone: 'fatias', titulo: 'Orçamento', resumo: 'Um teto para o mês e por categoria', itens: [
+        ['Teto do mês.', 'Um valor máximo de gastos. A barra mostra quanto dele já foi usado.'],
+        ['Teto por categoria.', 'Opcional, só nas categorias que você quer vigiar. Tocar no valor gasto abre as subcategorias e os gastos.'],
+        ['Estourou?', 'A análise do mês mostra onde passou e leva direto para rever o planejamento.']
+      ] },
+      { id: 'reserva', icone: 'escudoOk', titulo: 'Reserva', resumo: 'Quanto guardar para imprevistos', itens: [
+        ['Para que serve.', 'Dinheiro guardado para perder a renda, um conserto, uma emergência.'],
+        ['Como é calculada.', 'A média das suas despesas dos últimos 3 meses vezes os meses de reserva que você escolher.']
+      ] },
+      { id: 'clientes', icone: 'maleta', titulo: 'Clientes', resumo: 'Serviços prestados e valores combinados', itens: [
+        ['Cada cliente com os seus serviços.', 'O que foi feito, o valor combinado, as parcelas e as datas.'],
+        ['Busca e filtros.', 'Com 4 clientes ou mais, aparecem a busca pelo nome e os filtros por valor e data.']
+      ] },
+      { id: 'cobrancas', icone: 'receber', titulo: 'Cobranças', resumo: 'Quem pagou, quem falta e os juros', itens: [
+        ['Quem pagou e quem falta.', 'Cada parcela recebida entra como receita; a que falta fica à vista.'],
+        ['Cliente não pagou.', 'Marque a parcela e, se quiser, cobre juros em porcentagem ou valor fixo, agora ou na próxima parcela.'],
+        ['Mensagem pronta.', 'Cobrando agora, o app oferece mandar a mensagem para o cliente.']
+      ] },
+      { id: 'relatorios', icone: 'extrato', titulo: 'Relatórios', resumo: 'Resumos prontos em PDF', itens: [
+        ['Prontos para mandar.', 'Resumo executivo, fluxo de caixa e outros. Cada relatório vira um PDF para guardar, imprimir ou mandar para o contador.']
+      ] },
+      { id: 'backup', icone: 'cadeado', titulo: 'Backup e cópias', resumo: 'Para nunca perder nada', itens: [
+        ['Backup com senha.', 'Um arquivo .finanz com tudo, cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre, nem o Finanz.'],
+        ['Cópias automáticas.', 'O app guarda sozinho uma cópia por dia dos últimos 14 dias, para voltar a uma data.'],
+        ['Histórico do saldo.', 'Cada mudança nos seus números fica anotada, com o motivo.']
+      ] },
+      { id: 'termos', icone: 'info', titulo: TEXTOS.termos.titulo, resumo: 'As regras de uso do app', itens:
+        TEXTOS.termos.partes.map(function (t) { return [null, t]; }) },
+      { id: 'privacidade', icone: 'cadeado', titulo: TEXTOS.privacidade.titulo, resumo: 'O que acontece com os seus dados', itens:
+        TEXTOS.privacidade.partes.map(function (t) { return [null, t]; }) }
+    ];
+  }
+
+  function abrirGuia(assunto) {
+    abrirFolha('Como o Finanz funciona', function (folha) {
+      folha.appendChild(no('p', 'guia-intro', 'Tudo o que o app faz, onde os seus dados ficam e as regras de uso. Toque num assunto para abrir.'));
+      var alvo = null;
+      guiaDoFinanz().forEach(function (sec) {
+        var bloco = no('div', 'guia-secao' + (sec.id === assunto ? ' aberta' : ''));
+        bloco.setAttribute('data-assunto', sec.id);
+        var cab = botao('guia-cab', null, function () {
+          var aberta = bloco.classList.toggle('aberta');
+          cab.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+        });
+        cab.setAttribute('aria-expanded', sec.id === assunto ? 'true' : 'false');
+        var ic = no('span', 'guia-icone');
+        ic.appendChild(icone(sec.icone));
+        juntar(cab, ic, juntar(no('span', 'guia-textos'), no('b', null, sec.titulo), no('span', 'guia-resumo', sec.resumo)),
+          no('span', 'guia-seta', '›'));
+        var corpo = no('div', 'guia-corpo');
+        sec.itens.forEach(function (it) {
+          var l = no('div', 'guia-item');
+          var t = no('p');
+          if (it[0]) t.appendChild(no('b', null, it[0] + ' '));
+          t.appendChild(document.createTextNode(it[1]));
+          juntar(l, no('span', 'guia-marca'), t);
+          corpo.appendChild(l);
+        });
+        juntar(bloco, cab, corpo);
+        folha.appendChild(bloco);
+        if (sec.id === assunto) alvo = bloco;
+      });
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Fechar', function () { voltarNavegacao(); }));
+      folha.appendChild(acoes);
+      if (alvo) setTimeout(function () { try { alvo.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* velho */ } }, 420);
+    });
+  }
 
   function abrirTexto(qual) {
     var conteudo = TEXTOS[qual];
@@ -10982,6 +11570,10 @@
     ajustarFab();
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
+    var faltam = cartaoFaltamDados();
+    if (faltam) tela.appendChild(faltam);
+    setTimeout(talvezBoasVindas, 300);
+
     // Patrimônio
     var cPat = cartao('cartao-destaque cartao-heroi');
     var topoPat = no('div', 'heroi-topo');
@@ -11105,11 +11697,8 @@
         return caixaSub;
       }));
     }
-    if (gastos.valorDasFaturas > 0) {
-      cGastos.appendChild(no('div', 'linha-nota',
-        emReais(gastos.valorDasFaturas) + ' de fatura paga ficou de fora: as compras do cartão ' +
-        'já estão contadas aqui, uma vez só.'));
-    }
+    // A nota "R$ X de fatura paga ficou de fora" saiu em 25/11/2026, a
+    // pedido: a conta continua a mesma (compra do cartão conta uma vez só).
     tela.appendChild(cGastos);
 
     // Contas
@@ -24138,9 +24727,80 @@
       conf.appendChild(ajustar);
       forma.appendChild(conf);
 
+      // ---- conferido (pedido de 25/11/2026) ----
+      // Se o saldo bate e os lançamentos estão certos, a pessoa confirma, e
+      // os arquivos da conta viram a versão compacta e cifrada.
+      var cConf = cartao('cartao-conferido');
+      var topoConf = no('div', 'cartao-topo');
+      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido', 'Conferido ✓', [
+        'Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
+        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado com a senha dos extratos: fica bem menor, e só quem tem a senha lê.',
+        '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
+        'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
+        'Extrato importado depois chega como PDF de novo: é só conferir outra vez.']));
+      cConf.appendChild(topoConf);
+      var estadoConf = no('div', 'linha-nota estado-conferido', 'Vendo os arquivos guardados...');
+      cConf.appendChild(estadoConf);
+      var notaBate = no('div', 'linha-nota vermelho', 'O saldo do banco ainda não bate com o app. Acerte a diferença antes de conferir.');
+      notaBate.style.display = 'none';
+      cConf.appendChild(notaBate);
+      var paraConferir = [];
+      var bateComBanco = true;
+      var botaoConferido = botao('btn btn-ouro botao-conferido', 'Conferido ✓', function () {
+        if (!paraConferir.length || !bateComBanco) return;
+        perguntar({
+          titulo: 'Marcar como conferido?',
+          texto: 'Você confirma que o saldo e os lançamentos de "' + conta.nome + '" estão certos.\n\n' +
+                 'Os ' + paraConferir.length + ' arquivo(s) desta conta deixam de ser guardados como vieram do banco: ' +
+                 'fica só o que o app leu deles, compacto e cifrado com a senha dos extratos.\n\n' +
+                 '"Reler e corrigir" e "Relançar" continuam funcionando. Baixar o PDF original deixa de dar.',
+          ok: 'Conferido ✓'
+        }, function () {
+          var lista = paraConferir.slice();
+          setTimeout(function () { conferirExtratosDaConta(id, lista); }, 260);
+        });
+      });
+      botaoConferido.style.marginTop = '10px';
+      botaoConferido.disabled = true;
+      cConf.appendChild(botaoConferido);
+      function atualizarConferido() {
+        botaoConferido.disabled = !(paraConferir.length && bateComBanco);
+        notaBate.style.display = paraConferir.length && !bateComBanco ? '' : 'none';
+      }
+      var levasDaConta = {};
+      (estado.importacoes || []).forEach(function (i) { if (i.contaId === id) levasDaConta[i.id] = true; });
+      if (!NUVEM.ligada || !sessaoNuvem) {
+        estadoConf.textContent = 'Os arquivos dos extratos ficam guardados na nuvem. Entre na sua conta para conferir.';
+        botaoConferido.style.display = 'none';
+      } else {
+        listarArquivosDeExtrato(id).then(function (lista) {
+          var daConta = (lista || []).filter(function (a) { return levasDaConta[a.importacao_id]; });
+          var jaFeitos = daConta.filter(ehConferido);
+          paraConferir = daConta.filter(function (a) { return !ehConferido(a); });
+          if (!daConta.length) {
+            estadoConf.textContent = 'Nenhum arquivo de extrato guardado nesta conta.';
+            botaoConferido.style.display = 'none';
+          } else if (!paraConferir.length) {
+            estadoConf.textContent = 'Conferido ✓ ' + (jaFeitos.length === 1 ? 'O extrato desta conta está guardado'
+              : 'Os ' + jaFeitos.length + ' extratos desta conta estão guardados') + ' na versão compacta e cifrada.';
+            estadoConf.className = 'linha-nota verde estado-conferido';
+            botaoConferido.style.display = 'none';
+          } else {
+            var pesa = paraConferir.reduce(function (t, a) { return t + inteiro(a.tamanho); }, 0);
+            estadoConf.textContent = (jaFeitos.length ? jaFeitos.length + ' extrato(s) já conferido(s). ' : '') +
+              paraConferir.length + ' arquivo(s) ainda como vieram do banco (' + tamanhoDeArquivo(pesa) + '). ' +
+              'Se o saldo bate e os lançamentos estão certos, marque como conferido.';
+          }
+          atualizarConferido();
+        });
+      }
+      forma.appendChild(cConf);
+
       function medirDiferenca() {
         var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
+        bateComBanco = !falta;
+        atualizarConferido();
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
           diferenca.className = 'linha-nota verde';
@@ -24377,6 +25037,11 @@
               Array.prototype.forEach.call(caixaB.querySelectorAll('button'), function (b) {
                 b.disabled = false;
               });
+              if (ehConferido(guardados[i.id])) {
+                var bb = caixaB.querySelector('button');
+                bb.textContent = 'Conferido ✓';
+                bb.disabled = true;
+              }
               return;
             }
             // Sem arquivo: em vez de botão morto, o motivo.
@@ -24581,14 +25246,19 @@
       reler.style.marginTop = '8px';
       listarArquivosDeExtrato(contaId).then(function (lista) {
         var a = (lista || []).filter(function (x) { return x.importacao_id === impId; })[0];
-        if (tamanhoEl) tamanhoEl.textContent = a ? tamanhoDeArquivo(a.tamanho) : 'não guardado';
+        if (tamanhoEl) tamanhoEl.textContent = a ? tamanhoDeArquivo(a.tamanho) + (ehConferido(a) ? ' · conferido ✓' : '') : 'não guardado';
         if (!a) { baixar.textContent = 'Arquivo não guardado'; return; }
-        baixar.disabled = false;
-        baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';
-        baixar.onclick = function () {
-          avisar('Baixando...');
-          baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
-        };
+        if (ehConferido(a)) {
+          // O PDF deu lugar à versão compacta: baixar não tem o que baixar.
+          baixar.textContent = 'PDF trocado pela versão compacta';
+        } else {
+          baixar.disabled = false;
+          baixar.textContent = 'Baixar o arquivo (' + tamanhoDeArquivo(a.tamanho) + ')';
+          baixar.onclick = function () {
+            avisar('Baixando...');
+            baixarArquivoDeExtrato(a.id, a.nome, a.tipo).catch(function () { avisar('Não consegui baixar o arquivo.'); });
+          };
+        }
         if (vieram.length) {
           c.appendChild(reler);
           c.appendChild(no('div', 'linha-nota', 'Lê o arquivo de novo e acerta só o que estiver com o sinal trocado (receita lançada como despesa ou o contrário). Valor, data e descrição ficam como estão.'));
@@ -24729,10 +25399,11 @@
         .sort(function (a, b) { return (b.ate || '') < (a.ate || '') ? -1 : (b.ate || '') > (a.ate || '') ? 1 : (b.quando || 0) - (a.quando || 0); });
       var semExtrato = conta.tipo === 'Dinheiro físico' && !levas.length;
       var cExt = cartao('liso cartao-extratos');
-      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', itens: [
+      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', versao: 2, itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
-        'Toque num extrato para ver os detalhes, baixar o arquivo guardado ou tirar tudo o que ele trouxe de uma vez.',
-        'O número de arquivos no topo conta só os dos extratos da lista. Arquivo que sobrou de importação já tirada aparece à parte, com "Apagar".',
+        'Toque num extrato para ver os detalhes, baixar o arquivo guardado, reler ou tirar tudo o que ele trouxe de uma vez.',
+        'O número de arquivos no topo conta só os dos extratos da lista. O arquivo de uma importação que você tirou é apagado sozinho, sem perguntar.',
+        '"conferido ✓" é o extrato que você conferiu em "Conferir esta conta": ele fica guardado numa versão compacta e cifrada com a senha dos extratos.',
         '"+ Importar" lê o extrato do banco em PDF, Excel, OFX ou CSV. Lançamento que já existe na conta vem desmarcado, para não entrar duas vezes.'] });
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
@@ -24760,36 +25431,23 @@
           // Conta só os arquivos dos extratos que estão na lista (pedido de
           // 25/11/2026: "11 arquivos" com 6 extratos não batia). O que sobrou
           // de importação já tirada aparece à parte, com o botão de apagar.
-          var soma = 0, quantos = 0, soltos = [], somaSoltos = 0;
+          // O que sobrou de importação já tirada não conta aqui: sai sozinho
+          // na limpeza do dia (pedido de 25/11/2026), sem perguntar.
+          var soma = 0, quantos = 0, conferidos = 0;
           (lista || []).forEach(function (a) {
             var t = inteiro(a.tamanho);
             var linha = linhasDasLevas[a.importacao_id];
-            if (!linha) { soltos.push(a.id); somaSoltos += t; return; }
+            if (!linha) return;
             soma += t; quantos++;
+            if (ehConferido(a)) conferidos++;
             var sub = linha.querySelector('.linha-sub');
             // Na frente: o fim da linha é cortado quando o nome do arquivo é comprido.
-            if (sub) sub.textContent = tamanhoDeArquivo(t) + ' · ' + sub.textContent;
+            if (sub) sub.textContent = tamanhoDeArquivo(t) + (ehConferido(a) ? ' · conferido ✓' : '') + ' · ' + sub.textContent;
           });
           totalArquivos.textContent = quantos
-            ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total'
+            ? quantos + ' arquivo(s) guardado(s) na sua conta · ' + tamanhoDeArquivo(soma) + ' no total' +
+              (conferidos ? ' · ' + conferidos + ' conferido(s) ✓' : '')
             : 'Nenhum arquivo guardado na nuvem para esta conta.';
-          if (soltos.length) {
-            var sobra = no('div', 'arquivos-soltos');
-            sobra.appendChild(no('span', null, soltos.length + ' arquivo(s) de importações que já foram tiradas ainda ocupam ' + tamanhoDeArquivo(somaSoltos) + '. '));
-            sobra.appendChild(botao('link-ouro', 'Apagar', function () {
-              perguntar({
-                titulo: 'Apagar ' + soltos.length + ' arquivo(s) que sobraram?',
-                texto: 'São originais de extratos que você já tirou do app: os lançamentos deles não existem mais. Os extratos da lista continuam com os arquivos deles.',
-                ok: 'Apagar', tom: 'perigo'
-              }, function () {
-                apagarArquivosDeExtrato(soltos).then(function () {
-                  avisar(soltos.length + ' arquivo(s) apagado(s).');
-                  abrirExtratoConta(id);
-                }).catch(function () { avisarCaixa('Não consegui apagar agora', 'Confira a internet e tente de novo.'); });
-              });
-            }));
-            totalArquivos.parentNode.insertBefore(sobra, totalArquivos.nextSibling);
-          }
         }).catch(function () { totalArquivos.textContent = ''; });
       }
 
@@ -24853,10 +25511,334 @@
 
   // ---------- Tela: Investimentos ----------
 
+  // ---------- Renda fixa: taxas oficiais e ofertas anotadas ----------
+  //
+  // De onde vem cada número (25/11/2026): Selic, CDI e IPCA são do Banco
+  // Central (o SGS, a série pública). As ofertas com nome de banco são as
+  // que a própria pessoa anotou — não existe fonte pública com as ofertas
+  // de cada banco, e o app não inventa taxa. O resto é conta em cima disso.
+
+  var SERIES_BC = [
+    { chave: 'selic', serie: 432, nome: 'Selic', sub: 'meta do Banco Central' },
+    { chave: 'cdi', serie: 4389, nome: 'CDI', sub: 'base dos CDBs, LCIs e LCAs' },
+    { chave: 'ipca', serie: 13522, nome: 'IPCA', sub: 'inflação em 12 meses' }
+  ];
+  var taxasBC = null;
+  var buscandoTaxasBC = false;
+  var tipoInvestimento = 'rf';
+
+  function limparOfertasRf(lista) {
+    var TIPOS = ['CDB', 'LCI', 'LCA', 'LC', 'LIG', 'CRI', 'CRA', 'Debênture', 'Tesouro'];
+    return (lista || []).filter(function (o) { return o && typeof o === 'object' && o.id; }).slice(0, 60).map(function (o) {
+      return {
+        id: String(o.id).slice(0, 40), banco: String(o.banco || '').slice(0, 40),
+        tipo: TIPOS.indexOf(o.tipo) >= 0 ? o.tipo : 'CDB',
+        indexador: ['cdi', 'pre', 'ipca'].indexOf(o.indexador) >= 0 ? o.indexador : 'cdi',
+        taxa: Math.max(0, Math.min(300, Number(o.taxa) || 0)),
+        vencimento: /^\d{4}-\d{2}-\d{2}$/.test(o.vencimento || '') ? o.vencimento : '',
+        criadoEm: Number(o.criadoEm) || 0
+      };
+    });
+  }
+
+  function dataBC(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+
+  // As três séries do último ano. Guardo a última resposta boa: sem
+  // internet, o app mostra a de antes com a data dela, nunca um número feito.
+  function carregarTaxasBC() {
+    if (!taxasBC) {
+      try { taxasBC = JSON.parse(localStorage.getItem('finanz.taxasBC') || 'null'); } catch (e) { taxasBC = null; }
+    }
+    var velho = !taxasBC || !taxasBC.quando || Date.now() - taxasBC.quando > 6 * 3600 * 1000;
+    // Falhou há pouco: espera um minuto antes de tentar de novo. Sem isso,
+    // cada falha redesenhava a tela, que tentava de novo, sem parar.
+    var esperando = taxasBC && taxasBC.falhou && Date.now() - taxasBC.falhou < 60000;
+    if (!velho || esperando || buscandoTaxasBC || !window.fetch) return;
+    buscandoTaxasBC = true;
+    var ate = new Date(), de = new Date(ate.getFullYear() - 1, ate.getMonth(), ate.getDate());
+    Promise.all(SERIES_BC.map(function (x) {
+      var url = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.' + x.serie + '/dados?formato=json&dataInicial=' +
+        encodeURIComponent(dataBC(de)) + '&dataFinal=' + encodeURIComponent(dataBC(ate));
+      return fetch(url).then(function (r) { if (!r.ok) throw new Error('BC ' + r.status); return r.json(); })
+        .then(function (lista) {
+          var pontos = (lista || []).map(function (p) {
+            var d = String(p.data || '').split('/');
+            return { data: d[2] + '-' + d[1] + '-' + d[0], valor: parseFloat(String(p.valor).replace(',', '.')) };
+          }).filter(function (p) { return isFinite(p.valor) && /^\d{4}-\d{2}-\d{2}$/.test(p.data); });
+          if (!pontos.length) throw new Error('série vazia');
+          return pontos;
+        });
+    })).then(function (res) {
+      var novo = { quando: Date.now() };
+      SERIES_BC.forEach(function (x, i) { novo[x.chave] = res[i]; });
+      taxasBC = novo;
+      try { localStorage.setItem('finanz.taxasBC', JSON.stringify(novo)); } catch (e) { /* sem espaço */ }
+    }).catch(function () {
+      if (taxasBC) taxasBC.falhou = Date.now(); else taxasBC = { falhou: Date.now() };
+    }).then(function () {
+      buscandoTaxasBC = false;
+      if (telaAtiva === 'investimentos') desenharInvestimentos();
+    });
+  }
+
+  function ultimaTaxa(chave) {
+    var s = taxasBC && taxasBC[chave];
+    return s && s.length ? s[s.length - 1] : null;
+  }
+
+  // Uma linha fina com a série, no pé do quadrado.
+  function linhaDaSerie(pontos, cor) {
+    var svg = svgNo('svg', { viewBox: '0 0 100 30', preserveAspectRatio: 'none', 'class': 'q-linha' });
+    if (!pontos || pontos.length < 2) return svg;
+    // Um ponto por semana basta para o desenho.
+    var passo = Math.max(1, Math.floor(pontos.length / 52));
+    var amostra = pontos.filter(function (p, i) { return i % passo === 0 || i === pontos.length - 1; });
+    var vs = amostra.map(function (p) { return p.valor; });
+    var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
+    var alto = max - min || 1;
+    var xy = amostra.map(function (p, i) {
+      return (i / (amostra.length - 1) * 100).toFixed(1) + ',' + (26 - (p.valor - min) / alto * 20).toFixed(1);
+    });
+    svg.appendChild(svgNo('polyline', { points: xy.join(' '), fill: 'none', stroke: cor, 'stroke-width': 1.6,
+      'vector-effect': 'non-scaling-stroke', 'stroke-linejoin': 'round' }));
+    return svg;
+  }
+
+  function pctBr(n, casas) { return (Math.round(n * Math.pow(10, casas)) / Math.pow(10, casas)).toFixed(casas).replace('.', ',') + '%'; }
+
+  // IR da renda fixa, pela tabela regressiva. LCI, LCA, LIG, CRI e CRA de
+  // pessoa física são isentos.
+  function aliquotaIR(tipo, dias) {
+    if (['LCI', 'LCA', 'LIG', 'CRI', 'CRA'].indexOf(tipo) >= 0) return 0;
+    if (dias <= 180) return 22.5;
+    if (dias <= 360) return 20;
+    if (dias <= 720) return 17.5;
+    return 15;
+  }
+
+  // Quanto a oferta paga por ano, bruto e líquido, com o CDI e o IPCA de hoje.
+  function rendimentoDaOferta(o) {
+    var cdi = ultimaTaxa('cdi'), ipca = ultimaTaxa('ipca');
+    var bruto = null;
+    if (o.indexador === 'cdi') bruto = cdi ? cdi.valor * o.taxa / 100 : null;
+    else if (o.indexador === 'pre') bruto = o.taxa;
+    else bruto = ipca ? ((1 + ipca.valor / 100) * (1 + o.taxa / 100) - 1) * 100 : null;
+    if (bruto == null) return null;
+    var dias = o.vencimento ? Math.max(1, diasEntre(hojeTexto(), o.vencimento)) : 721;
+    var ir = aliquotaIR(o.tipo, dias);
+    return { bruto: bruto, liquido: bruto * (1 - ir / 100), ir: ir, dias: dias };
+  }
+
+  function textoDaTaxa(o) {
+    if (o.indexador === 'cdi') return pctBr(o.taxa, o.taxa % 1 ? 1 : 0) + ' do CDI';
+    if (o.indexador === 'pre') return pctBr(o.taxa, 2) + ' a.a. prefixado';
+    return 'IPCA + ' + pctBr(o.taxa, 2);
+  }
+
+  function ofertasOrdenadas() {
+    return (estado.ofertasRf || []).map(function (o) { return { o: o, r: rendimentoDaOferta(o) }; })
+      .sort(function (a, b) { return (b.r ? b.r.liquido : -1) - (a.r ? a.r.liquido : -1); });
+  }
+
+  function vitrineRendaFixa() {
+    carregarTaxasBC();
+    var caixa = no('div', 'vitrine-rf');
+    var tit = no('div', 'vitrine-titulo');
+    tit.appendChild(no('strong', null, 'Renda fixa hoje'));
+    tit.appendChild(botaoDeInfo('invest.vitrine', 'Renda fixa hoje', [
+      'Selic, CDI e IPCA vêm do Banco Central, com a linha do último ano e quanto mudaram em 12 meses.',
+      'Os quadrados de CDB e LCI/LCA mostram a conta com o CDI de hoje: quanto rende por ano, e o líquido depois do imposto (LCI e LCA são isentas).',
+      'Os quadrados com nome de banco são as ofertas que você anotou, da que mais rende líquido para a que menos. Toque em "Anotar uma oferta" para pôr a que viu no seu banco ou corretora.',
+      'Os quadrados andam sozinhos; arraste para o lado para ver no seu tempo.']));
+    caixa.appendChild(tit);
+    var trilho = no('div', 'vitrine-trilho');
+    caixa.appendChild(trilho);
+
+    var temTaxas = !!ultimaTaxa('cdi');
+    SERIES_BC.forEach(function (x) {
+      var serie = taxasBC && taxasBC[x.chave];
+      if (!serie || !serie.length) return;
+      var atual = serie[serie.length - 1], primeiro = serie[0];
+      var dif = atual.valor - primeiro.valor;
+      var q = no('div', 'quadro-rf');
+      juntar(q, no('span', 'q-tipo', x.nome), no('span', 'q-nome', x.sub),
+        no('span', 'q-valor num', pctBr(atual.valor, 2)),
+        no('span', 'q-var ' + (dif > 0.004 ? 'sobe' : dif < -0.004 ? 'desce' : ''),
+          (dif > 0.004 ? '↑ ' : dif < -0.004 ? '↓ ' : '') + pctBr(Math.abs(dif), 2).replace('%', ' p.p.') + ' em 12 meses'),
+        no('span', 'q-sub', 'ao ano · ' + dataBr(atual.data)),
+        linhaDaSerie(serie, x.chave === 'ipca' ? '#FB7185' : '#E9B44C'));
+      trilho.appendChild(q);
+    });
+
+    if (temTaxas) {
+      var cdi = ultimaTaxa('cdi').valor;
+      [['CDB', 110, 'cdi'], ['LCI / LCA', 95, 'cdi']].forEach(function (ex) {
+        var r = rendimentoDaOferta({ tipo: ex[0] === 'CDB' ? 'CDB' : 'LCI', indexador: ex[2], taxa: ex[1], vencimento: '' });
+        var q = no('div', 'quadro-rf');
+        juntar(q, no('span', 'q-tipo', ex[0]), no('span', 'q-nome', ex[1] + '% do CDI'),
+          no('span', 'q-valor num', pctBr(r.liquido, 2)),
+          no('span', 'q-sub', r.ir ? 'líquido ao ano (bruto ' + pctBr(r.bruto, 2) + ', IR ' + pctBr(r.ir, 0) + ')'
+            : 'ao ano, sem imposto · igual a um CDB de ' + pctBr(ex[1] / 0.85, 0) + ' do CDI'),
+          no('span', 'q-selo', 'conta'));
+        trilho.appendChild(q);
+      });
+    }
+
+    ofertasOrdenadas().forEach(function (x) {
+      var q = botao('quadro-rf', null, function () { abrirFolhaOfertaRf(x.o.id); });
+      juntar(q, no('span', 'q-tipo', x.o.tipo), no('span', 'q-nome', x.o.banco || 'Sem banco'),
+        no('span', 'q-valor num', x.r ? pctBr(x.r.liquido, 2) : textoDaTaxa(x.o)),
+        no('span', 'q-sub', x.r ? textoDaTaxa(x.o) + ' · líquido ao ano' + (x.o.vencimento ? ' · vence ' + dataBr(x.o.vencimento) : '')
+          : 'sem o CDI de hoje para fazer a conta'),
+        no('span', 'q-selo', 'anotada'));
+      trilho.appendChild(q);
+    });
+
+    if (!temTaxas) {
+      var av = no('div', 'quadro-rf aviso');
+      juntar(av, no('span', 'q-tipo', 'Taxas do Banco Central'),
+        no('span', 'q-sub', buscandoTaxasBC || !(taxasBC && taxasBC.falhou)
+          ? 'Buscando Selic, CDI e IPCA…' : 'Não consegui buscar as taxas agora. Confira a internet; tento de novo quando você voltar aqui.'));
+      trilho.insertBefore(av, trilho.firstChild);
+    }
+    trilho.appendChild(juntar(botao('quadro-rf anotar', null, function () { abrirFolhaOfertaRf(null); }),
+      no('span', null, '+ Anotar uma oferta')));
+
+    var fonte = [];
+    if (temTaxas) fonte.push('Selic, CDI e IPCA: Banco Central, atualizado em ' + dataBr(deData(new Date(taxasBC.quando))) + '.');
+    fonte.push('Com nome de banco, só as ofertas que você anotou. "Conta" é simulação com o CDI de hoje.');
+    caixa.appendChild(no('div', 'vitrine-fonte', fonte.join(' ')));
+
+    andarSozinho(trilho);
+    return caixa;
+  }
+
+  // Os quadrados andam sozinhos, um por vez; quando a pessoa toca, param um
+  // pouco. Quem pediu menos movimento no aparelho não vê nada andando.
+  var relogioVitrine = null;
+  function andarSozinho(trilho) {
+    clearInterval(relogioVitrine);
+    try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) { /* sem matchMedia */ }
+    var paradoAte = 0;
+    var parar = function () { paradoAte = Date.now() + 8000; };
+    trilho.addEventListener('touchstart', parar, { passive: true });
+    trilho.addEventListener('pointerdown', parar);
+    trilho.addEventListener('wheel', parar, { passive: true });
+    relogioVitrine = setInterval(function () {
+      if (!trilho.isConnected) { clearInterval(relogioVitrine); return; }
+      if (Date.now() < paradoAte || document.hidden || telaAtiva !== 'investimentos') return;
+      var q = trilho.querySelector('.quadro-rf');
+      if (!q) return;
+      var passo = q.offsetWidth + 12;
+      var fim = trilho.scrollWidth - trilho.clientWidth;
+      var alvo = trilho.scrollLeft + passo >= fim - 4 ? 0 : trilho.scrollLeft + passo;
+      try { trilho.scrollTo({ left: alvo, behavior: 'smooth' }); } catch (e) { trilho.scrollLeft = alvo; }
+    }, 3500);
+  }
+
+  var TIPOS_INVEST = [
+    { valor: 'rf', rotulo: 'Renda fixa' }, { valor: 'rv', rotulo: 'Renda variável' },
+    { valor: 'fii', rotulo: 'Fundos imobiliários' }, { valor: 'cripto', rotulo: 'Cripto (Bitcoin)' },
+    { valor: 'fundos', rotulo: 'Fundos' }, { valor: 'tesouro', rotulo: 'Tesouro Direto' },
+    { valor: 'prev', rotulo: 'Previdência' }, { valor: 'exterior', rotulo: 'Exterior' }
+  ];
+  function rotuloDoTipo(v) { var t = TIPOS_INVEST.filter(function (x) { return x.valor === v; })[0]; return t ? t.rotulo : ''; }
+
+  function seletorDeTipos() {
+    var chips = grupoChips(TIPOS_INVEST, tipoInvestimento, function (v) { tipoInvestimento = v; desenharInvestimentos(); });
+    chips.classList.add('tipos-invest');
+    return chips;
+  }
+
+  function cartaoOfertasRf() {
+    var c = cartao('liso');
+    var topo = topoDeCartao('Ofertas anotadas', '+ Anotar', function () { abrirFolhaOfertaRf(null); }, null, { chave: 'invest.ofertas', itens: [
+      'As ofertas de renda fixa que você viu no seu banco ou corretora: banco, tipo, taxa e vencimento.',
+      'O app faz a conta com o CDI e o IPCA de hoje e põe a que mais rende líquido (depois do imposto) em primeiro, também nos quadrados lá em cima.',
+      'Toque numa oferta para mudar ou apagar. Elas ficam guardadas na sua conta.'] });
+    topo.style.padding = '16px 16px 0';
+    topo.style.marginBottom = '8px';
+    c.appendChild(topo);
+    var lista = ofertasOrdenadas();
+    if (!lista.length) {
+      c.appendChild(no('div', 'sanfona-vazio', 'Nenhuma oferta anotada ainda. Viu um CDB, LCI ou LCA interessante? Anote aqui para comparar.'));
+      return c;
+    }
+    lista.forEach(function (x) {
+      c.appendChild(linhaSimples({
+        titulo: x.o.tipo + ' · ' + (x.o.banco || 'Sem banco'),
+        sub: textoDaTaxa(x.o) + (x.o.vencimento ? ' · vence ' + dataBr(x.o.vencimento) : ''),
+        valor: x.r ? pctBr(x.r.liquido, 2) + ' líq.' : '',
+        selo: seloIcone('extrato', '#E9B44C'),
+        aoTocar: function () { abrirFolhaOfertaRf(x.o.id); }
+      }));
+    });
+    return c;
+  }
+
+  function abrirFolhaOfertaRf(id) {
+    var existente = id ? achar(estado.ofertasRf || [], id) : null;
+    var r = existente ? JSON.parse(JSON.stringify(existente)) : { id: novoId(), banco: '', tipo: 'CDB', indexador: 'cdi', taxa: 0, vencimento: '' };
+    abrirFolha(existente ? 'Oferta anotada' : 'Anotar uma oferta', function (folha) {
+      var forma = no('div', 'forma');
+      var campoBanco = no('input', 'entrada');
+      campoBanco.type = 'text'; campoBanco.placeholder = 'Ex.: Banco Inter, XP, Nubank'; campoBanco.value = r.banco;
+      campoBanco.classList.add('campo-banco-oferta');
+      forma.appendChild(campo('Banco ou corretora', campoBanco));
+      forma.appendChild(no('div', 'rotulo', 'Tipo'));
+      forma.appendChild(grupoChips(['CDB', 'LCI', 'LCA', 'LC', 'CRI', 'CRA', 'Debênture', 'Tesouro'], r.tipo, function (v) { r.tipo = v; }));
+      forma.appendChild(no('div', 'rotulo', 'Como rende'));
+      forma.appendChild(segmentosLocais([{ valor: 'cdi', rotulo: '% do CDI' }, { valor: 'pre', rotulo: 'Prefixado' }, { valor: 'ipca', rotulo: 'IPCA +' }],
+        r.indexador, function (v) { r.indexador = v; }));
+      var campoTaxa = entradaTextoNumero(r.taxa || '', 'Ex.: 110');
+      campoTaxa.classList.add('campo-taxa-oferta');
+      forma.appendChild(campo('Taxa (%)', campoTaxa));
+      var campoVence = entradaData(r.vencimento || '');
+      forma.appendChild(campo('Vencimento (opcional)', campoVence));
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
+        r.banco = campoBanco.value.trim();
+        r.taxa = comoNumero(campoTaxa.value, 0);
+        // O campo de data nasce com hoje: vencimento de hoje ou antes é "sem vencimento".
+        r.vencimento = ehData(campoVence.value) && campoVence.value > hojeTexto() ? campoVence.value : '';
+        if (!r.taxa || r.taxa <= 0) { mostrarErro(forma, 'Diga a taxa da oferta.'); return; }
+        if (!estado.ofertasRf) estado.ofertasRf = [];
+        var limpa = limparOfertasRf([Object.assign({}, r, { criadoEm: r.criadoEm || Date.now() })])[0];
+        if (existente) estado.ofertasRf = estado.ofertasRf.map(function (o) { return o.id === limpa.id ? limpa : o; });
+        else estado.ofertasRf.push(limpa);
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar(existente ? 'Oferta atualizada.' : 'Oferta anotada.');
+      }));
+      if (existente) acoes.appendChild(botao('btn btn-perigo', 'Apagar esta oferta', function () {
+        estado.ofertasRf = estado.ofertasRf.filter(function (o) { return o.id !== existente.id; });
+        salvar();
+        fecharFolha();
+        desenhar();
+        avisar('Oferta apagada.');
+      }));
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
   function desenharInvestimentos() {
     var tela = $('telaInvestimentos');
     tela.textContent = '';
     tela.appendChild(cabecalho('Investimentos', null, false));
+
+    // Renda fixa no topo e os tipos de investimento (pedido de 25/11/2026).
+    tela.appendChild(vitrineRendaFixa());
+    tela.appendChild(seletorDeTipos());
+    if (tipoInvestimento !== 'rf') {
+      var breve = cartao('liso');
+      breve.appendChild(estadoVazio(rotuloDoTipo(tipoInvestimento) + ' em breve',
+        'Ainda não mostro ' + rotuloDoTipo(tipoInvestimento).toLowerCase() + ' aqui. Por enquanto, os quadrados de cima são de renda fixa.'));
+      tela.appendChild(breve);
+    } else {
+      tela.appendChild(cartaoOfertasRf());
+    }
 
     var total = totalInvestido(null);
     var aplicado = totalAplicado();
@@ -25612,13 +26594,16 @@
     return Math.round((sobra / entradas) * 100);
   }
 
+  // Escrito para quem lê de passagem (25/11/2026): o que entrou, o que
+  // saiu, o que sobrou, e a meta em reais.
   function fraseDoGuardado(sobra, entradas, meta) {
-    if (sobra > 0) {
-      return 'Você guardou ' + taxaDeGuardado(sobra, entradas) + '% e sua meta é ' + meta + '%.';
-    }
-    if (sobra === 0) return 'Você guardou zero este mês. Sua meta é ' + meta + '%.';
-    return 'Você guardou zero este mês: saiu ' + emReais(-sobra) +
-           ' a mais do que entrou. Sua meta é ' + meta + '%.';
+    var alvo = Math.round(entradas * meta / 100);
+    var saiu = entradas - sobra;
+    var comeco = 'Entraram ' + emReais(entradas) + ' e saíram ' + emReais(saiu) + '. ';
+    var fim = 'Sua meta é guardar ' + meta + '% do que entra, ou seja, ' + emReais(alvo) + '.';
+    if (sobra > 0) return comeco + 'Sobraram ' + emReais(sobra) + ' (' + taxaDeGuardado(sobra, entradas) + '%). ' + fim;
+    if (sobra === 0) return comeco + 'Não sobrou nada. ' + fim;
+    return comeco + 'Saiu ' + emReais(-sobra) + ' a mais do que entrou. ' + fim;
   }
 
   // O quanto sobrou nos meses fechados, para a meta não ficar presa ao
@@ -25643,12 +26628,12 @@
     var h = historicoDeSobra(ano, mes, 3);
     if (!h.length) return null;
     return {
-      rotulo: 'Últimos meses:',
+      rotulo: 'Nos meses anteriores:',
       itens: h.map(function (x) {
         return {
-          texto: MESES[x.mes].slice(0, 3).toLowerCase() + ' ' +
-                 (x.sobra > 0 ? emReais(x.sobra) + ' (' + x.taxa + '%)'
-                              : x.sobra === 0 ? emReais(0) : '−' + emReais(-x.sobra)),
+          texto: MESES[x.mes] + ' ' +
+                 (x.sobra > 0 ? 'sobrou ' + emReais(x.sobra)
+                              : x.sobra === 0 ? 'empatou' : 'faltou ' + emReais(-x.sobra)),
           cor: x.sobra > 0 ? 'var(--verde)' : x.sobra === 0 ? 'var(--texto)' : 'var(--vermelho)'
         };
       })
@@ -25781,6 +26766,129 @@
   // completa, longe da tela principal.
 
   // Quando o histórico é sempre o mesmo valor, "entre X e X" não é faixa.
+  // Categoria por categoria, o que este mês gastou a mais que o anterior,
+  // com as subcategorias e os gastos de cada uma.
+  function compararComMesAnterior(atual, anterior, todas) {
+    var arvore = {};
+    function no_(cat) {
+      return arvore[cat] = arvore[cat] || { nome: cat, atual: 0, antes: 0, subs: {} };
+    }
+    function sub_(c, nome) {
+      return c.subs[nome] = c.subs[nome] || { nome: nome, atual: 0, antes: 0, itens: [] };
+    }
+    (atual || []).forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var c = no_(l.categoria || 'Outros'), sb = sub_(c, l.subcategoria || 'Sem subcategoria');
+      c.atual += l.valor; sb.atual += l.valor; sb.itens.push(l);
+    });
+    (anterior || []).forEach(function (l) {
+      if (l.tipo !== 'saida') return;
+      var c = no_(l.categoria || 'Outros'), sb = sub_(c, l.subcategoria || 'Sem subcategoria');
+      c.antes += l.valor; sb.antes += l.valor;
+    });
+    return Object.keys(arvore).map(function (k) {
+      var c = arvore[k];
+      c.dif = c.atual - c.antes;
+      c.subs = Object.keys(c.subs).map(function (n) {
+        var sb = c.subs[n];
+        sb.dif = sb.atual - sb.antes;
+        sb.itens.sort(function (a, b) { return b.valor - a.valor; });
+        return sb;
+      }).filter(function (sb) { return sb.atual > 0; })
+        .sort(function (a, b) { return b.dif - a.dif; });
+      return c;
+    }).filter(function (c) { return todas ? c.atual > 0 : c.dif >= 100; })
+      .sort(function (a, b) { return b.dif - a.dif || b.atual - a.atual; });
+  }
+
+  // Abre a fonte de um gasto: a fatura do cartão no mês dela, o extrato de
+  // onde ele veio, ou o próprio lançamento quando foi feito à mão.
+  function abrirFonteDoGasto(l, voltar) {
+    var conta = achar(estado.contas, l.contaId);
+    var abrir;
+    if (conta && ehCartao(conta)) {
+      var fat = faturasDoCartao(conta.id).filter(function (f) { return f.itens.some(function (i) { return i.id === l.id; }); })[0];
+      abrir = function () { if (fat) mesDaFaturaNaTela[conta.id] = fat.chave; abrirTelaCartao(conta.id); };
+    } else if (l.importacaoId && achar(estado.importacoes || [], l.importacaoId)) {
+      abrir = function () { abrirLevaDeExtrato(l.contaId, l.importacaoId); };
+    } else {
+      abrir = function () { abrirFolhaLancamento(l.id); };
+    }
+    if (voltar && $('folha').classList.contains('aberta')) porCima(voltar, abrir);
+    else abrir();
+  }
+
+  function fonteDoGasto(l) {
+    var conta = achar(estado.contas, l.contaId);
+    if (conta && ehCartao(conta)) return 'cartão';
+    if (l.importacaoId && achar(estado.importacoes || [], l.importacaoId)) return 'extrato';
+    return 'lançamento';
+  }
+
+  function linhaQueAbre(nome, detalhe, dif, aoAbrir) {
+    var dentro = null;
+    var b = botao('comp-linha', null, function () {
+      if (!dentro) { dentro = aoAbrir(); dentro.hidden = true; b.parentNode.insertBefore(dentro, b.nextSibling); }
+      dentro.hidden = !dentro.hidden;
+      b.classList.toggle('aberta', !dentro.hidden);
+      b.setAttribute('aria-expanded', dentro.hidden ? 'false' : 'true');
+    });
+    juntar(b, juntar(no('span', 'comp-nome'), no('b', null, nome), no('span', null, detalhe)),
+      no('span', 'comp-dif', dif), no('span', 'comp-seta', '›'));
+    b.setAttribute('aria-expanded', 'false');
+    return b;
+  }
+
+  function pintarDif(linha, dif, comparando) {
+    var d = linha.querySelector('.comp-dif');
+    if (!d || !comparando) { if (d) d.classList.add('neutro'); return; }
+    d.classList.add(dif > 0 ? 'subiu' : dif < 0 ? 'caiu' : 'neutro');
+  }
+
+  function listaComparativa(comp) {
+    var voltar = function () { abrirAnaliseCompleta(comp.ano, comp.numMes); };
+    var lista = no('div', 'comparativo');
+    var difTxt = function (d) { return d > 0 ? '+' + emReais(d) : d < 0 ? '−' + emReais(-d) : 'igual'; };
+    // Sem o mês anterior não há o que comparar: em vez de repetir o valor,
+    // diz quanto a categoria pesa no mês.
+    var detalheDe = function (x, teto) {
+      var base = comp.mesAnt ? comp.mes + ' ' + emReais(x.atual) + ' · ' + comp.mesAnt + ' ' + emReais(x.antes)
+        : Math.round(pct(x.atual, comp.total)) + '% dos gastos';
+      return base + (teto ? ' · teto ' + emReais(teto) + (x.atual > teto ? ' (passou ' + emReais(x.atual - teto) + ')' : '') : '');
+    };
+    comp.categorias.forEach(function (c) {
+      var linhaCat = linhaQueAbre(c.nome, detalheDe(c, comp.tetos && comp.tetos[c.nome]),
+        comp.mesAnt ? difTxt(c.dif) : emReais(c.atual), function () {
+          var subs = no('div', 'comp-dentro');
+          c.subs.forEach(function (sb) {
+            var linhaSub = linhaQueAbre(sb.nome, detalheDe(sb),
+              comp.mesAnt ? difTxt(sb.dif) : emReais(sb.atual), function () {
+                var itens = no('div', 'comp-dentro');
+                sb.itens.forEach(function (l) {
+                  var conta = achar(estado.contas, l.contaId);
+                  var g = botao('comp-linha comp-gasto', null, function () { abrirFonteDoGasto(l, voltar); });
+                  juntar(g, juntar(no('span', 'comp-nome'), no('b', null, l.descricao || l.categoria),
+                      no('span', null, dataBr(l.data) + (conta ? ' · ' + conta.nome : ''))),
+                    no('span', 'comp-fonte', fonteDoGasto(l)),
+                    no('span', 'comp-dif', emReais(l.valor)));
+                  itens.appendChild(g);
+                });
+                return itens;
+              });
+            pintarDif(linhaSub, sb.dif, comp.mesAnt);
+            subs.appendChild(linhaSub);
+          });
+          return subs;
+        });
+      pintarDif(linhaCat, c.dif, comp.mesAnt);
+      var bola = no('span', 'comp-bola');
+      bola.style.background = corDeCategoria(c.nome);
+      linhaCat.insertBefore(bola, linhaCat.firstChild);
+      lista.appendChild(linhaCat);
+    });
+    return lista;
+  }
+
   function comoVoceCostuma(p) {
     if (p.de === p.ate) return 'Você costuma gastar ' + emReais(p.mediana);
     return 'Você costuma ficar entre ' + emReais(p.de) + ' e ' + emReais(p.ate);
@@ -25875,17 +26983,63 @@
     });
     foraDoPadrao.sort(function (a, b) { return b.acima - a.acima; });
 
-    foraDoPadrao.slice(0, 2).forEach(function (f, i) {
+    // Um relatório só para os gastos do mês (pedido de 25/11/2026): os
+    // resumos em cima (quanto saiu, a diferença para o mês passado e o
+    // orçamento), a rosca no meio e embaixo as categorias, que abrem as
+    // subcategorias, os gastos e a fonte de cada um. Ele junta o que antes
+    // eram três cartões: o "acima do padrão", o "orçamento estourado" e o
+    // "onde gastou mais".
+    var comparativo = base.total > 0 ? compararComMesAnterior(base.base, baseAnt ? baseAnt.base : [], true) : [];
+    if (comparativo.length) {
+      var difTotal = baseAnt ? base.total - baseAnt.total : 0;
+      var planejado = estado.orcamentos.geral > 0 ? estado.orcamentos.geral : 0;
+      var estourou = planejado && base.total > planejado;
+      var tetosCat = estado.orcamentos.categorias || {};
+      var acoesRel = [{ rotulo: 'Ver as saídas', principal: true, abrir: function () { irParaTransacoes('saida', ''); } }];
+      acoesRel.push({ rotulo: planejado ? 'Rever o planejamento' : 'Planejar o mês', abrir: function () {
+        if ($('folha').classList.contains('aberta')) { fecharFolha(); setTimeout(function () { abrirFolhaOrcamento(); }, 260); }
+        else abrirFolhaOrcamento();
+      } });
+      juntarAchado({
+        id: 'gastos-mes', prioridade: estourou || difTotal > 0 ? 1 : 2, icone: '📊',
+        tom: estourou ? 'ruim' : difTotal > 0 ? 'atencao' : 'info',
+        titulo: 'Seus gastos de ' + MESES[mes],
+        valor: emReais(base.total), valorCor: 'var(--texto)',
+        subValor: baseAnt ? (difTotal > 0 ? emReais(difTotal) + ' a mais que em ' + MESES[ant.mes]
+          : difTotal < 0 ? emReais(-difTotal) + ' a menos que em ' + MESES[ant.mes] : 'o mesmo que em ' + MESES[ant.mes]) : '',
+        explicacao: '',
+        resumos: [
+          baseAnt ? { rotulo: 'vs. ' + MESES[ant.mes], valor: (difTotal > 0 ? '+' : difTotal < 0 ? '−' : '') + emReais(Math.abs(difTotal)),
+            cor: difTotal > 0 ? 'var(--vermelho)' : difTotal < 0 ? 'var(--verde)' : '' } : null,
+          planejado ? { rotulo: estourou ? 'Acima do orçamento' : 'Do orçamento', valor: estourou ? '+' + emReais(base.total - planejado)
+            : Math.round(base.total / planejado * 100) + '%', cor: estourou ? 'var(--vermelho)' : 'var(--verde)' } : null
+        ].filter(Boolean),
+        orcamento: planejado ? { gasto: base.total, planejado: planejado } : null,
+        rosca: { lista: base.lista, total: base.total },
+        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: baseAnt ? MESES[ant.mes] : '', ano: ano, numMes: mes, tetos: tetosCat, total: base.total },
+        acoes: acoesRel,
+        info: { chave: 'analise.gastos', itens: [
+          'Em cima: quanto saiu no mês, a diferença para o mês passado (vermelho subiu, verde caiu) e, se você planejou, quanto do orçamento foi usado.',
+          'No meio, a rosca mostra para onde foi o dinheiro, com as mesmas cores das categorias.',
+          'Embaixo, cada categoria com o valor do mês e o do mês passado, da que mais subiu para a que mais caiu. Toque nela para abrir as subcategorias; na subcategoria, para ver cada gasto.',
+          'Tocando num gasto, o app abre de onde ele veio: o extrato importado, a fatura do cartão naquele mês, ou o próprio lançamento. O voltar do celular traz de volta para a análise.'] }
+      });
+    }
+
+    // Sem gasto no mês não há relatório; o "acima do padrão" também não
+    // teria o que dizer. Fica o laço, desligado, para o caso raro.
+    if (!comparativo.length && false) foraDoPadrao.slice(0, 2).forEach(function (f, i) {
       juntarAchado({
         id: 'padrao-' + f.nome, prioridade: i === 0 ? 1 : 2, icone: '🔎', tom: 'atencao',
-        titulo: f.nome + ' acima do seu padrão',
+        titulo: 'Você gastou mais que o normal com ' + f.nome,
         valor: '+' + emReais(f.acima), valorCor: 'var(--vermelho)',
-        explicacao: 'Este mês: ' + emReais(f.valor) + '. ' + comoVoceCostuma(f.padrao) + '.',
+        subValor: 'a mais que o normal (+' + f.pct.toFixed(0) + '%)',
+        explicacao: 'Em ' + MESES[mes] + ' foram ' + emReais(f.valor) + ' com ' + f.nome + '. ' +
+          comoVoceCostuma(f.padrao) + ' por mês.',
         detalhes: [
-          { rotulo: 'Este mês', valor: emReais(f.valor) },
-          { rotulo: 'Seu padrão', valor: f.padrao.de === f.padrao.ate ? emReais(f.padrao.mediana)
-              : emReais(f.padrao.de) + ' – ' + emReais(f.padrao.ate) },
-          { rotulo: 'Diferença', valor: '+' + f.pct.toFixed(0) + '%' }
+          { rotulo: 'Em ' + MESES[mes], valor: emReais(f.valor) },
+          { rotulo: 'Normal nos outros meses', valor: f.padrao.de === f.padrao.ate ? emReais(f.padrao.mediana)
+              : emReais(f.padrao.de) + ' a ' + emReais(f.padrao.ate) }
         ],
         acao: { rotulo: 'Ver lançamentos', abrir: function () { irParaTransacoes('saida', f.nome); } }
       });
@@ -25926,10 +27080,11 @@
         } else {
           juntarAchado({
             id: 'fatura-subiu', prioridade: 1, icone: '💳', tom: 'atencao',
-            titulo: 'Sua fatura aumentou',
+            titulo: 'A fatura do cartão aumentou',
             valor: '+' + emReais(subiu), valorCor: 'var(--vermelho)',
-            explicacao: 'De ' + emReais(faturaAnt.total) + ' para ' + emReais(fatura.total) +
-              ' em relação ao mês anterior.',
+            subValor: 'a mais que em ' + MESES[ant.mes],
+            explicacao: 'Em ' + MESES[ant.mes] + ' as compras no cartão somaram ' + emReais(faturaAnt.total) +
+              '; em ' + MESES[mes] + ', ' + emReais(fatura.total) + '.',
             rotuloDetalhes: 'O que mudou',
             detalhes: mudancas.slice(0, 3).map(function (m) {
               return { rotulo: m.nome, valor: '+' + emReais(m.dif) };
@@ -25962,8 +27117,9 @@
       if (falta > 0) {
         juntarAchado({
           id: 'meta-economia', prioridade: sobra <= 0 ? 1 : 2, icone: '🎯', tom: 'atencao',
-          titulo: 'Sua meta de economia',
-          valor: emReais(falta) + ' abaixo', valorCor: 'var(--ouro)',
+          titulo: 'Faltou para a meta de economia',
+          valor: emReais(falta), valorCor: 'var(--ouro)',
+          subValor: 'faltam para chegar na meta de ' + meta + '%',
           explicacao: fraseDoGuardado(sobra, t.entradas, meta),
           progresso: { feito: Math.max(sobra, 0), alvo: alvo },
           nota: notaDoHistorico(ano, mes),
@@ -25973,9 +27129,10 @@
       } else {
         juntarAchado({
           id: 'meta-batida', prioridade: 3, icone: '🎉', tom: 'bom',
-          titulo: 'Meta de economia batida',
-          valor: taxaDeGuardado(sobra, t.entradas) + '% guardados', valorCor: 'var(--verde)',
-          explicacao: 'Acima da sua meta de ' + meta + '%. Sobraram ' + emReais(sobra) + '.',
+          titulo: 'Você guardou mais que a meta',
+          valor: emReais(sobra), valorCor: 'var(--verde)',
+          subValor: 'sobrou em ' + MESES[mes] + ' (' + taxaDeGuardado(sobra, t.entradas) + '% do que entrou)',
+          explicacao: fraseDoGuardado(sobra, t.entradas, meta) + ' Passou dela em ' + emReais(sobra - alvo) + '.',
           progresso: { feito: sobra, alvo: alvo },
           nota: notaDoHistorico(ano, mes),
           acao: null
@@ -25983,17 +27140,7 @@
       }
     }
 
-    // 5) Orçamento estourado.
-    if (estado.orcamentos.geral > 0 && base.total > estado.orcamentos.geral) {
-      juntarAchado({
-        id: 'orcamento', prioridade: 1, icone: '📊', tom: 'ruim',
-        titulo: 'Orçamento do mês estourado',
-        valor: '+' + emReais(base.total - estado.orcamentos.geral), valorCor: 'var(--vermelho)',
-        explicacao: 'Você planejou ' + emReais(estado.orcamentos.geral) + ' e gastou ' +
-          emReais(base.total) + '.',
-        acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
-      });
-    }
+    // 5) O orçamento mora no relatório dos gastos do mês, lá em cima.
 
     // 6) Despesas que se repetem — o total comprometido não é economia.
     var recorrentes = despesasRecorrentes();
@@ -26029,11 +27176,12 @@
           icone: '📈', tom: difProj > 0 ? 'atencao' : 'bom',
           titulo: 'Estimativa para o fim do mês',
           valor: '≈ ' + emReais(projetado), valorCor: difProj > 0 ? 'var(--ouro)' : 'var(--verde)',
-          explicacao: 'Você já gastou ' + emReais(base.total) + ' em ' + dia + ' dias. ' +
-            'Mantendo o ritmo, fecharia perto disso — é estimativa, não certeza.',
+          subValor: 'é quanto o mês deve fechar, no ritmo de hoje',
+          explicacao: 'Em ' + dia + ' dias você gastou ' + emReais(base.total) + '. Se continuar assim até o fim de ' +
+            MESES[mes] + ', o mês fecha perto de ' + emReais(projetado) + '. É estimativa, não certeza.',
           detalhes: [
-            { rotulo: 'Seu padrão', valor: emReais(pad.mediana) },
-            { rotulo: 'Diferença estimada', valor: comSinal(difProj) }
+            { rotulo: 'Seus meses costumam fechar em', valor: emReais(pad.mediana) },
+            { rotulo: difProj > 0 ? 'Ficaria acima do normal em' : 'Ficaria abaixo do normal em', valor: emReais(Math.abs(difProj)) }
           ],
           acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
         });
@@ -26055,10 +27203,11 @@
       if (quedas.length) {
         juntarAchado({
           id: 'queda', prioridade: 3, icone: '↓', tom: 'bom',
-          titulo: quedas[0].nome + ' caiu',
-          valor: '−' + emReais(quedas[0].dif), valorCor: 'var(--verde)',
-          explicacao: 'De ' + emReais(quedas[0].antes) + ' para ' +
-            emReais(quedas[0].antes - quedas[0].dif) + ' em relação ao mês anterior.',
+          titulo: 'Você gastou menos com ' + quedas[0].nome,
+          valor: emReais(quedas[0].dif), valorCor: 'var(--verde)',
+          subValor: 'a menos que em ' + MESES[ant.mes],
+          explicacao: 'Em ' + MESES[ant.mes] + ' foram ' + emReais(quedas[0].antes) + ' com ' + quedas[0].nome +
+            '; em ' + MESES[mes] + ', ' + emReais(quedas[0].antes - quedas[0].dif) + '.',
           acao: { rotulo: 'Ver lançamentos',
                   abrir: function () { irParaTransacoes('saida', quedas[0].nome); } }
         });
@@ -26234,6 +27383,11 @@
     var topo = no('div', 'achado-topo');
     topo.appendChild(no('span', 'achado-icone', a.icone));
     topo.appendChild(no('span', 'achado-titulo', a.titulo));
+    if (a.info) {
+      var bi = botaoDeInfo(a.info.chave, a.titulo, a.info.itens);
+      bi.style.marginLeft = 'auto';
+      topo.appendChild(bi);
+    }
     c.appendChild(topo);
 
     if (a.valor) {
@@ -26241,7 +27395,58 @@
       if (a.valorCor) v.style.color = a.valorCor;
       c.appendChild(v);
     }
-    c.appendChild(no('p', 'achado-texto', a.explicacao));
+    if (a.subValor) c.appendChild(no('div', 'achado-sub', a.subValor));
+    if (a.explicacao) c.appendChild(no('p', 'achado-texto', a.explicacao));
+
+    if (a.resumos && a.resumos.length) {
+      var rs = no('div', 'resumos-achado');
+      a.resumos.forEach(function (x) {
+        var r = no('div', 'resumo-achado');
+        var v = no('b', 'num', x.valor);
+        if (x.cor) v.style.color = x.cor;
+        juntar(r, no('span', null, x.rotulo), v);
+        rs.appendChild(r);
+      });
+      c.appendChild(rs);
+    }
+
+    if (a.orcamento) {
+      // O planejado é o marco; o que passou dele fica em vermelho.
+      var total = Math.max(a.orcamento.gasto, a.orcamento.planejado, 1);
+      var bo = no('div', 'barra-orcamento');
+      var dentroO = no('div', 'dentro');
+      dentroO.style.width = (Math.min(a.orcamento.gasto, a.orcamento.planejado) / total * 100) + '%';
+      bo.appendChild(dentroO);
+      if (a.orcamento.gasto > a.orcamento.planejado) {
+        var passou = no('div', 'passou');
+        passou.style.width = ((a.orcamento.gasto - a.orcamento.planejado) / total * 100) + '%';
+        bo.appendChild(passou);
+        var marco = no('div', 'marco');
+        marco.style.left = (a.orcamento.planejado / total * 100) + '%';
+        bo.appendChild(marco);
+      }
+      c.appendChild(bo);
+      var legO = no('div', 'legenda-orcamento');
+      juntar(legO,
+        juntar(no('span'), document.createTextNode('Planejado '), no('b', null, emReais(a.orcamento.planejado))),
+        juntar(no('span', a.orcamento.gasto > a.orcamento.planejado ? 'vermelho' : ''), document.createTextNode('Gasto '),
+          no('b', null, emReais(a.orcamento.gasto) + ' · ' + Math.round(a.orcamento.gasto / a.orcamento.planejado * 100) + '%')));
+      c.appendChild(legO);
+    }
+
+    if (a.rosca && a.rosca.total > 0) {
+      var segR = comCores(a.rosca.lista.slice(0, 6));
+      var restoR = a.rosca.lista.slice(6).reduce(function (t, x) { return t + x.valor; }, 0);
+      if (restoR > 0) segR.push({ nome: 'Demais', valor: restoR, cor: '#4B5A6B' });
+      var rc = rosca(segR, a.rosca.total, 'Gastos');
+      rc.classList.add('rosca-achado');
+      c.appendChild(rc);
+    }
+    if (a.comparativo) {
+      if (a.comparativo.mesAnt) c.appendChild(no('div', 'rotulo rotulo-comparativo', 'Por categoria, comparando com ' + a.comparativo.mesAnt));
+      else c.appendChild(no('div', 'rotulo rotulo-comparativo', 'Por categoria'));
+      c.appendChild(listaComparativa(a.comparativo));
+    }
 
     if (a.progresso) {
       var barra = no('div', 'meta-barra');
@@ -26250,8 +27455,8 @@
       barra.appendChild(dentro);
       c.appendChild(barra);
       var leg = no('div', 'meta-legenda');
-      leg.appendChild(no('span', null, emReais(a.progresso.feito) + ' guardados'));
-      leg.appendChild(no('span', null, 'meta ' + emReais(a.progresso.alvo)));
+      leg.appendChild(no('span', null, 'Sobrou ' + emReais(a.progresso.feito)));
+      leg.appendChild(no('span', null, 'Meta ' + emReais(a.progresso.alvo)));
       c.appendChild(leg);
     }
 
@@ -26279,7 +27484,11 @@
       c.appendChild(d);
     }
 
-    if (a.acao) {
+    if (a.acoes && a.acoes.length) {
+      var ac = no('div', 'acoes-achado');
+      a.acoes.forEach(function (x) { ac.appendChild(botao(x.principal ? 'principal' : '', x.rotulo, x.abrir)); });
+      c.appendChild(ac);
+    } else if (a.acao) {
       var b = botao('btn-acao', a.acao.rotulo + ' ›', a.acao.abrir);
       c.appendChild(b);
     }
@@ -26478,7 +27687,7 @@
     var an = analiseDoMes(ano, mes);
     abrirFolha('Análise de ' + MESES[mes], function (folha) {
       var forma = no('div');
-      var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Pequenos sinais']];
+      var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Também vale saber']];
       faixas.forEach(function (f) {
         var doNivel = an.achados.filter(function (a) { return f[0] === 1 ? a.prioridade <= 1 : a.prioridade === f[0]; });
         if (!doNivel.length) return;
@@ -26498,55 +27707,11 @@
 
   // O bloco de análise no topo do Mais. Em cinco segundos: como estou, o que
   // pede atenção, e o que dá para fazer.
+  // Em Mais fica só a saúde financeira (pedido de 25/11/2026). Os avisos
+  // e a análise completa moram no sino e na análise do mês.
   function blocoDeAnalise() {
     var caixa = no('div');
-    var ano = mesAtivo.ano, mes = mesAtivo.mes;
-    var an = analiseDoMes(ano, mes);
-
-    caixa.appendChild(cartaoDeSaude(ano, mes));
-
-    // Sem histórico não há análise: dizer qualquer coisa aqui seria inventar.
-    if (an.meses < 2 && !an.achados.length) {
-      var vazio = cartao();
-      vazio.appendChild(no('div', 'rotulo', 'Ainda conhecendo seu padrão'));
-      vazio.appendChild(no('p', 'achado-texto',
-        'Registre seus lançamentos por mais alguns meses. A partir daí eu comparo você ' +
-        'com você mesmo e mostro o que mudou.'));
-      caixa.appendChild(vazio);
-      return caixa;
-    }
-
-    if (!an.principais.length) {
-      var tudoBem = cartao('achado tom-bom');
-      var topoOk = no('div', 'achado-topo');
-      topoOk.appendChild(no('span', 'achado-icone', '✓'));
-      topoOk.appendChild(no('span', 'achado-titulo', 'Tudo dentro do padrão'));
-      tudoBem.appendChild(topoOk);
-      tudoBem.appendChild(no('p', 'achado-texto',
-        'Seus gastos estão perto do que costumam ser. Nada pedindo atenção neste mês.'));
-      caixa.appendChild(tudoBem);
-    } else {
-      an.principais.forEach(function (a, i) { caixa.appendChild(cartaoDeAchado(a, i)); });
-    }
-
-    if (an.proxima) {
-      var prox = cartao('proxima');
-      var topoP = no('div', 'achado-topo');
-      topoP.appendChild(no('span', 'achado-icone', '🚀'));
-      topoP.appendChild(no('span', 'achado-titulo', 'Próxima ação'));
-      prox.appendChild(topoP);
-      prox.appendChild(no('p', 'achado-texto', frasePraAcao(an.proxima)));
-      prox.appendChild(botao('btn btn-ouro', an.proxima.acao.rotulo, an.proxima.acao.abrir));
-      caixa.appendChild(prox);
-    }
-
-    var verTudo = botao('linha linha-verTudo', null, function () { abrirAnaliseCompleta(ano, mes); });
-    juntar(verTudo,
-      juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', 'Ver análise completa'),
-        no('div', 'linha-sub', an.achados.length + ' observação(ões) sobre ' + MESES[mes])),
-      no('div', 'linha-nota', '›'));
-    caixa.appendChild(verTudo);
+    caixa.appendChild(cartaoDeSaude(mesAtivo.ano, mesAtivo.mes));
     return caixa;
   }
 
@@ -26556,9 +27721,10 @@
     if (a.id === 'meta-economia') return 'Veja em quais categorias existe espaço para chegar mais perto da sua meta.';
     if (a.id === 'recorrentes') return 'Você tem despesas que se repetem todo mês. Vale conferir se todas ainda fazem sentido.';
     if (a.id === 'saldo') return 'Este mês saiu mais do que entrou. Olhar as maiores saídas ajuda a entender por quê.';
-    if (a.id === 'orcamento') return 'O mês passou do que você tinha planejado. Vale ver onde a diferença aconteceu.';
+
     if (a.id === 'projecao') return 'No ritmo atual o mês fecharia acima do seu costume. Dá tempo de ajustar.';
     if (a.id.indexOf('padrao-') === 0) return a.titulo + '. Ver de onde veio a diferença ajuda a decidir o que fazer.';
+    if (a.id === 'gastos-mes') return 'Veja para onde foi o dinheiro do mês, categoria por categoria, e o que mudou desde o mês passado.';
     return a.explicacao;
   }
 
@@ -26600,9 +27766,9 @@
 
     // Dados
     var cDados = cartao('liso');
-    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', itens: [
+    var topoDados = topoDeCartao('Seus dados', null, null, null, { chave: 'mais.dados', versao: 2, itens: [
         'Seus dados ficam na sua conta, na nuvem. O backup é uma cópia em arquivo, para guardar fora dela.',
-        'O arquivo de backup não tem senha: guarde num lugar seguro.',
+        'O backup sai cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre o arquivo, nem o Finanz: anote a senha num lugar seguro.',
         'Restaurar um backup troca tudo o que está no app pelo que está no arquivo.',
         '"Voltar a uma data" usa as cópias automáticas dos últimos 14 dias.'] });
     topoDados.style.padding = '16px 16px 0';
@@ -26610,7 +27776,7 @@
     cDados.appendChild(topoDados);
 
     [
-      ['💾', 'Fazer backup (JSON)', 'Salva tudo em um arquivo', fazerBackup],
+      ['💾', 'Fazer backup (com senha)', 'Um arquivo .finanz cifrado com a sua senha', fazerBackup],
       ['📊', 'Exportar CSV', 'Lançamentos para planilha', exportarCsv],
       ['🏦', 'Importar extrato do banco', 'Extrato ou fatura: PDF, Excel, OFX ou CSV', 'arquivoExtrato'],
       ['📋', 'Colar o extrato', 'Quando o celular não deixa abrir o arquivo', abrirColarExtrato],
@@ -26622,7 +27788,8 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
+      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
+      ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
       juntar(linha,
@@ -26632,13 +27799,14 @@
           no('div', 'linha-sub', o[2]))
       );
       cDados.appendChild(linha);
+      if (o[3] === 'arquivoRestaurar') {
+        var dica = no('div', 'linha-nota');
+        dica.style.padding = '2px 16px 12px';
+        dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador ' +
+          'de arquivos, toque em Compartilhar e escolha o Finanz.';
+        cDados.appendChild(dica);
+      }
     });
-
-    var dica = no('div', 'linha-nota');
-    dica.style.padding = '2px 16px 16px';
-    dica.textContent = 'Se o celular não deixar escolher o arquivo, abra ele no gerenciador ' +
-      'de arquivos, toque em Compartilhar e escolha o Finanz.';
-    cDados.appendChild(dica);
 
     if (NUVEM.ligada) {
       var sinc = botao('linha', null, function () {
@@ -28481,6 +29649,35 @@
 
   // O teto por categoria mede consumo, igual ao teto geral: a fatura paga
   // não conta de novo aqui.
+  // O que formou o gasto de uma categoria no mês: subcategorias, que abrem
+  // os gastos, que abrem de onde vieram. Mesma regra de conta do valor ao
+  // lado (a compra do cartão conta uma vez só).
+  function detalheDaCategoriaNoMes(nomeCat, voltar) {
+    var itens = visaoDeConsumo(lancamentosDoMes(mesAtivo.ano, mesAtivo.mes)).lista.filter(function (l) {
+      return l.tipo === 'saida' && l.categoria === nomeCat;
+    });
+    var arvore = compararComMesAnterior(itens, [], true)[0];
+    var caixa = no('div', 'cat-detalhe comparativo');
+    if (!arvore) return caixa;
+    arvore.subs.forEach(function (sb) {
+      caixa.appendChild(linhaQueAbre(sb.nome, sb.itens.length + (sb.itens.length === 1 ? ' gasto' : ' gastos'), emReais(sb.atual), function () {
+        var lista = no('div', 'comp-dentro');
+        sb.itens.forEach(function (l) {
+          var conta = achar(estado.contas, l.contaId);
+          var g = botao('comp-linha comp-gasto', null, function () { abrirFonteDoGasto(l, voltar); });
+          juntar(g, juntar(no('span', 'comp-nome'), no('b', null, l.descricao || l.categoria),
+              no('span', null, dataBr(l.data) + (conta ? ' · ' + conta.nome : ''))),
+            no('span', 'comp-fonte', fonteDoGasto(l)),
+            no('span', 'comp-dif', emReais(l.valor)));
+          lista.appendChild(g);
+        });
+        return lista;
+      }));
+    });
+    caixa.querySelectorAll('.comp-dif').forEach(function (d) { d.classList.add('neutro'); });
+    return caixa;
+  }
+
   function gastoDaCategoria(nomeCat) {
     var total = 0;
     visaoDeConsumo(lancamentosDoMes(mesAtivo.ano, mesAtivo.mes)).lista.forEach(function (l) {
@@ -28503,17 +29700,23 @@
       var campoGeral = entradaValor(dados.geral, false);
       forma.appendChild(campo('Teto de gastos do mês', campoGeral));
 
+      // As explicações soltas viraram o "i" (pedido de 25/11/2026).
       var topo = no('div', 'cartao-topo');
       topo.style.marginBottom = '10px';
-      juntar(topo,
-        no('div', 'rotulo', 'Categorias'),
+      var fimOrc = no('div', 'cartao-topo-fim');
+      juntar(fimOrc,
+        botaoDeInfo('planejar.folha-orcamento', 'Orçamento do mês', [
+          'O teto de gastos é quanto você quer gastar no mês, no total. A barra do Planejamento mostra quanto dele já foi.',
+          'Em "Escolher categorias" você separa um teto para cada categoria (por exemplo, Alimentação até R$ 1.500). Sem isso, vale só o teto do mês.',
+          'Cada categoria escolhida mostra o que já foi gasto nela no mês. Ajuste o valor e toque em "Salvar orçamento".',
+          'Conta como gasto o que saiu das suas contas e as compras do cartão com fatura paga; a transferência entre contas suas não conta.']),
         botao('cartao-acao', dados.categorias.length ? 'Escolher' : '+ Escolher categorias', function () {
           dados.geral = digitosParaCentavos(campoGeral.value);
           lerValoresCategorias();
           empilhar({ tipo: 'aba', voltar: function () { abrirFolhaOrcamento(dados); } });
           abrirSeletorCategorias(dados);
-        })
-      );
+        }));
+      juntar(topo, no('div', 'rotulo', 'Categorias'), fimOrc);
       forma.appendChild(topo);
 
       var campos = {};
@@ -28523,11 +29726,7 @@
         });
       }
 
-      if (!dados.categorias.length) {
-        var vazio = no('p', 'linha-sub', 'Sem teto por categoria. Toque em "Escolher categorias" para separar quanto pode gastar em cada uma.');
-        vazio.style.marginBottom = '8px';
-        forma.appendChild(vazio);
-      } else {
+      if (dados.categorias.length) {
         dados.categorias.forEach(function (c) {
           var linha = no('div', 'orc-item');
           var rot = no('div', 'rot', c.nome);
@@ -28566,7 +29765,13 @@
 
   function abrirSeletorCategorias(dados) {
     abrirFolha('Categorias', function (folha) {
-      folha.appendChild(no('p', 'linha-sub', 'Marque as categorias que você quer limitar. O valor ao lado é o que já foi gasto em ' + MESES[mesAtivo.mes] + '.'));
+      var topoSel = no('div', 'cartao-topo');
+      juntar(topoSel, no('div', 'rotulo', 'Gasto em ' + MESES[mesAtivo.mes]), botaoDeInfo('planejar.escolher-categorias', 'Categorias', [
+        'Toque no nome para marcar as categorias que você quer limitar. As marcadas ganham um teto na tela do orçamento.',
+        'O valor do lado é o que já foi gasto na categoria em ' + MESES[mesAtivo.mes] + '. Toque nele para abrir as subcategorias, e numa subcategoria para ver cada gasto.',
+        'Tocando num gasto, o app abre de onde ele veio: o extrato, a fatura do cartão ou o lançamento.',
+        'Falta uma categoria? "Adicionar categoria" no fim da lista.']));
+      folha.appendChild(topoSel);
 
       var lista = no('div', 'cartao liso');
       lista.style.marginTop = '14px';
@@ -28579,7 +29784,10 @@
         lista.textContent = '';
         categoriasDe('saida').forEach(function (nomeCat) {
           var gasto = gastoDaCategoria(nomeCat);
-          var linha = botao('cat-linha', null, function () {
+          // Marcar fica no nome; o valor gasto abre embaixo as subcategorias
+          // e cada gasto (pedido de 25/11/2026).
+          var linha = no('div', 'cat-linha cat-bloco');
+          var marcar = botao('cat-toggle', null, function () {
             if (estaMarcada(nomeCat)) {
               dados.categorias = dados.categorias.filter(function (c) { return c.nome !== nomeCat; });
             } else {
@@ -28587,12 +29795,24 @@
             }
             desenharLista();
           });
+          marcar.setAttribute('aria-pressed', estaMarcada(nomeCat) ? 'true' : 'false');
           linha.setAttribute('aria-pressed', estaMarcada(nomeCat) ? 'true' : 'false');
-          juntar(linha,
-            no('span', 'marca', estaMarcada(nomeCat) ? '✓' : ''),
-            no('span', 'nome', nomeCat),
-            no('span', 'gasto' + (gasto > 0 ? '' : ' zero'), gasto > 0 ? emReais(gasto) : '—')
-          );
+          juntar(marcar, no('span', 'marca', estaMarcada(nomeCat) ? '✓' : ''), no('span', 'nome', nomeCat));
+          var detalhe = null;
+          var valorBt = botao('cat-gasto' + (gasto > 0 ? '' : ' zero'), null, function () {
+            if (!gasto) return;
+            if (!detalhe) {
+              detalhe = detalheDaCategoriaNoMes(nomeCat, function () { abrirSeletorCategorias(dados); });
+              detalhe.hidden = true;
+              linha.parentNode.insertBefore(detalhe, linha.nextSibling);
+            }
+            detalhe.hidden = !detalhe.hidden;
+            valorBt.classList.toggle('aberta', !detalhe.hidden);
+            valorBt.setAttribute('aria-expanded', detalhe.hidden ? 'false' : 'true');
+          });
+          juntar(valorBt, no('span', 'gasto' + (gasto > 0 ? '' : ' zero'), gasto > 0 ? emReais(gasto) : '—'), gasto > 0 ? no('span', 'seta', '›') : null);
+          if (gasto > 0) valorBt.setAttribute('aria-label', 'Ver o que foi gasto em ' + nomeCat);
+          juntar(linha, marcar, valorBt);
           lista.appendChild(linha);
         });
 
@@ -32388,6 +33608,13 @@
   function lerUmExtrato(arquivo, ancora, entregar) {
     var nome = nomeDoArquivo(arquivo);
 
+    // Extrato conferido sendo relançado: o que o app leu já está aqui.
+    if (arquivo && arquivo.conteudoConferido) {
+      var lidoC = lidoDoConteudo(arquivo.conteudoConferido, nome);
+      entregar(lidoC, lidoC && lidoC.itens.length ? '' : 'formato');
+      return;
+    }
+
     bytesDoArquivo(arquivo, ancora).then(function (bytes) {
       var comeco = Extrato.textoDeBytes(bytes.subarray(0, 2048));
 
@@ -33295,7 +34522,7 @@
         saldoExtrato: dados.saldoFinal == null ? null : dados.saldoFinal,
         de: quando[0], ate: quando[quando.length - 1]
       });
-      if (estado.importacoes.length > 60) estado.importacoes = estado.importacoes.slice(-60);
+      if (estado.importacoes.length > 300) estado.importacoes = estado.importacoes.slice(-300);
       comMotivo('você importou ' + escolhidos.length + ' lançamento(s) de ' +
         ((dados.arquivo && dados.arquivo.name) || (dados.banco && dados.banco.nome) || 'um extrato'));
       // O extrato quase sempre é de outro mês. Sem levar a tela para a data
@@ -33360,10 +34587,148 @@
     });
   }
 
+  // ---------- Backup com senha ----------
+  //
+  // Pedido do Vitor em 25/11/2026: o backup saía em JSON aberto. Agora ele
+  // sai cifrado com uma senha que a pessoa escolhe na hora (AES-GCM de 256
+  // bits, chave tirada da senha com PBKDF2, 210 mil voltas) e comprimido
+  // antes de cifrar, num arquivo .finanz. Sem a senha ninguém abre — nem o
+  // app. Os backups antigos, em JSON, continuam abrindo como antes.
+
+  var VOLTAS_DO_BACKUP = 210000;
+
+  function chaveDoBackup(senha, sal, voltas) {
+    var c = window.crypto && window.crypto.subtle;
+    return c.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']).then(function (base) {
+      return c.deriveKey({ name: 'PBKDF2', salt: sal, iterations: voltas, hash: 'SHA-256' },
+        base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+
+  function passarPor(bytes, Fluxo, modo) {
+    if (!window[Fluxo]) return Promise.resolve(null);
+    var fluxo = new Blob([bytes]).stream().pipeThrough(new window[Fluxo](modo));
+    return new Response(fluxo).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+
+  function cifrarBackup(texto, senha) {
+    var cru = new TextEncoder().encode(texto);
+    var sal = window.crypto.getRandomValues(new Uint8Array(16));
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return passarPor(cru, 'CompressionStream', 'gzip').then(function (comprimido) {
+      var corpo = comprimido || cru;
+      return chaveDoBackup(senha, sal, VOLTAS_DO_BACKUP).then(function (chave) {
+        return window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, chave, corpo);
+      }).then(function (cifrado) {
+        return JSON.stringify({
+          app: 'finanz', formato: 'backup-cifrado', versao: 1, criadoEm: new Date().toISOString(),
+          comprimido: comprimido ? 'gzip' : '',
+          kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: VOLTAS_DO_BACKUP, sal: paraBase64(sal) },
+          cifra: { nome: 'AES-GCM', iv: paraBase64(iv) },
+          dados: paraBase64(new Uint8Array(cifrado))
+        });
+      });
+    });
+  }
+
+  function decifrarBackup(pacote, senha) {
+    var sal = deBase64(pacote.kdf.sal);
+    return chaveDoBackup(senha, sal, Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP).then(function (chave) {
+      return decifrarComChave(pacote, chave);
+    }).then(function (texto) { return JSON.parse(texto); });
+  }
+
+  // Comprime e cifra um texto com uma chave já pronta. Devolve as partes
+  // que vão no pacote: o iv, se foi comprimido e os dados.
+  function cifrarComChave(texto, chave) {
+    var cru = new TextEncoder().encode(texto);
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return passarPor(cru, 'CompressionStream', 'gzip').then(function (comprimido) {
+      return window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, chave, comprimido || cru).then(function (cifrado) {
+        return {
+          comprimido: comprimido ? 'gzip' : '',
+          cifra: { nome: 'AES-GCM', iv: paraBase64(iv) },
+          dados: paraBase64(new Uint8Array(cifrado))
+        };
+      });
+    });
+  }
+
+  function decifrarComChave(pacote, chave) {
+    var iv = deBase64(pacote.cifra.iv);
+    return window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, chave, deBase64(pacote.dados)).then(function (claro) {
+      var bytes = new Uint8Array(claro);
+      if (pacote.comprimido !== 'gzip') return bytes;
+      return passarPor(bytes, 'DecompressionStream', 'gzip').then(function (d) {
+        if (!d) throw new Error('Este aparelho não consegue descomprimir o arquivo.');
+        return d;
+      });
+    }).then(function (bytes) { return new TextDecoder('utf-8').decode(bytes); });
+  }
+
   function fazerBackup() {
-    var pacote = { app: 'finanz', versao: VERSAO, exportadoEm: new Date().toISOString(), dados: estado };
-    baixarArquivo('finanz-backup-' + carimbo() + '.json', JSON.stringify(pacote, null, 2), 'application/json');
-    avisar('Backup gerado.');
+    if (!(window.crypto && window.crypto.subtle)) {
+      avisarCaixa('Este navegador não cifra', 'Para gerar o backup com senha, abra o app num navegador atualizado (Chrome, Safari ou Firefox).');
+      return;
+    }
+    abrirFolha('Backup com senha', function (folha) {
+      var forma = no('div', 'forma');
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Escolha uma senha para o arquivo'), botaoDeInfo('mais.backup', 'Backup com senha', [
+        'O backup é uma cópia de tudo o que está no app, num arquivo .finanz para você guardar onde quiser (Drive, e-mail, computador).',
+        'Ele sai cifrado com a senha que você escolher agora. Sem ela, ninguém abre o arquivo — nem o Finanz. Anote a senha num lugar seguro.',
+        'Para usar o backup, vá em "Restaurar backup", escolha o arquivo e digite a senha. Restaurar troca tudo o que está no app pelo que está no arquivo.',
+        'O arquivo vai comprimido: costuma ficar bem menor que os dados abertos.']));
+      forma.appendChild(topo);
+      var s1 = no('input', 'entrada campo-senha-backup'); s1.type = 'password'; s1.autocomplete = 'new-password'; s1.placeholder = 'Pelo menos 6 caracteres';
+      var s2 = no('input', 'entrada campo-senha-backup2'); s2.type = 'password'; s2.autocomplete = 'new-password'; s2.placeholder = 'Repita a senha';
+      forma.appendChild(campo('Senha do backup', s1));
+      forma.appendChild(campo('Repita a senha', s2));
+      var acoes = no('div', 'acoes');
+      var gerar = botao('btn btn-ouro', 'Gerar backup', function () {
+        if (s1.value.length < 6) { mostrarErro(forma, 'A senha precisa de pelo menos 6 caracteres.'); return; }
+        if (s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas não são iguais.'); return; }
+        gerar.disabled = true; gerar.textContent = 'Cifrando…';
+        var pacote = { app: 'finanz', versao: VERSAO, exportadoEm: new Date().toISOString(), dados: estado };
+        cifrarBackup(JSON.stringify(pacote), s1.value).then(function (arquivo) {
+          baixarArquivo('finanz-backup-' + carimbo() + '.finanz', arquivo, 'application/octet-stream');
+          fecharFolha();
+          avisar('Backup gerado, cifrado com a sua senha.');
+        }).catch(function () {
+          gerar.disabled = false; gerar.textContent = 'Gerar backup';
+          mostrarErro(forma, 'Não consegui gerar o backup neste aparelho.');
+        });
+      });
+      acoes.appendChild(gerar);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+    });
+  }
+
+  // Pede a senha de um backup cifrado e devolve o conteúdo aberto.
+  function pedirSenhaDoBackup(pacote, aoAbrir) {
+    abrirFolha('Backup com senha', function (folha) {
+      var forma = no('div', 'forma');
+      forma.appendChild(no('p', 'linha-sub', 'Este backup foi cifrado com uma senha. Digite a senha que você escolheu ao gerar o arquivo.'));
+      var s1 = no('input', 'entrada campo-senha-restaurar'); s1.type = 'password'; s1.autocomplete = 'current-password';
+      forma.appendChild(campo('Senha do backup', s1));
+      var acoes = no('div', 'acoes');
+      var abrir = botao('btn btn-ouro', 'Abrir backup', function () {
+        abrir.disabled = true; abrir.textContent = 'Abrindo…';
+        decifrarBackup(pacote, s1.value).then(function (bruto) {
+          fecharFolha();
+          setTimeout(function () { aoAbrir(bruto); }, 260);
+        }).catch(function (e) {
+          abrir.disabled = false; abrir.textContent = 'Abrir backup';
+          mostrarErro(forma, /descomprimir/.test(String(e && e.message)) ? e.message : 'Senha errada, ou o arquivo está estragado.');
+        });
+      });
+      acoes.appendChild(abrir);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+      setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+    });
   }
 
   function campoCsv(valor) {
@@ -33709,10 +35074,14 @@
     }).then(function () {
       var corteArquivo = new Date();
       corteArquivo.setMonth(corteArquivo.getMonth() - MESES_DE_EXTRATO);
+      // O conferido fica sem prazo: é pequeno, e foi a pessoa que disse
+      // que estava certo.
       return pedirNuvem('/rest/v1/arquivos_extrato?criado_em=lt.' +
-        encodeURIComponent(corteArquivo.toISOString()), {
+        encodeURIComponent(corteArquivo.toISOString()) + '&tipo=neq.' + encodeURIComponent(TIPO_CONFERIDO), {
         metodo: 'DELETE', cabecalhos: { 'Prefer': 'return=minimal' }
       });
+    }).then(function () {
+      return apagarArquivosSemDono();
     }).catch(function () { return null; });
   }
 
@@ -33791,6 +35160,14 @@
     }).then(function (r) {
       var linha = r && r[0];
       if (!linha) throw new Error('não achei esse arquivo');
+      // O conferido não é o arquivo do banco: é o pacote cifrado com o que
+      // o app leu dele.
+      if (linha.tipo === TIPO_CONFERIDO) {
+        var pac = null;
+        try { pac = JSON.parse(linha.conteudo); } catch (e) { pac = null; }
+        if (!pac || !pac.kdf || !pac.cifra) throw new Error('o extrato conferido está estragado');
+        return { conferido: pac, nome: linha.nome, tipo: linha.tipo };
+      }
       return { bytes: deBase64(linha.conteudo), nome: linha.nome, tipo: linha.tipo };
     });
   }
@@ -33811,6 +35188,19 @@
     avisar('Baixando o arquivo guardado...');
     return bytesDeArquivoDeExtrato(a.id).then(function (x) {
       var nome = x.nome || a.nome || 'extrato';
+      if (x.conferido) {
+        // Conferido: abre com a senha dos extratos e entra na fila com o
+        // que o app tinha lido, como se fosse o arquivo.
+        return conteudoDoConferido(x.conferido).then(function (c) {
+          var arqC;
+          try { arqC = new File([''], nome, { type: 'text/plain' }); }
+          catch (e) { arqC = new Blob([''], { type: 'text/plain' }); arqC.name = nome; }
+          arqC.conteudoConferido = c;
+          if ($('folha').classList.contains('aberta')) fecharFolha();
+          limparAviso();
+          setTimeout(function () { lerVariosExtratos([arqC], null, ['']); }, 260);
+        });
+      }
       var tipo = x.tipo || a.tipo || 'application/octet-stream';
       var arq;
       try {
@@ -33824,27 +35214,254 @@
       fecharFolha();
       limparAviso();
       setTimeout(function () { lerVariosExtratos([arq], null, ['']); }, 260);
-    }).catch(function () {
+    }).catch(function (e) {
+      if (e && e.message === 'sem senha') { limparAviso(); return; }
       avisar('Não consegui baixar o arquivo para relançar.');
+    });
+  }
+
+  // ---------- Extratos conferidos (pedido de 25/11/2026) ----------
+  //
+  // Quando a pessoa confere a conta e diz que está tudo certo, os arquivos
+  // dela deixam de ser guardados como vieram do banco. Fica só o que o app
+  // leu deles (as linhas do PDF, as linhas da planilha ou o texto do OFX e
+  // do CSV), comprimido e cifrado no celular com a "senha dos extratos".
+  // "Reler e corrigir" e "Relançar" continuam funcionando, porque o leitor
+  // de hoje lê de novo essas mesmas linhas. O que se perde é o PDF original.
+  // A chave vive só na memória, enquanto o app está aberto.
+  var TIPO_CONFERIDO = 'application/vnd.finanz.conferido';
+  var chaveDosExtratos = null;
+
+  function ehConferido(a) { return !!a && a.tipo === TIPO_CONFERIDO; }
+
+  // Os bytes do arquivo do banco → o que o leitor usa.
+  function conteudoDoArquivo(bytes, nome) {
+    var n = String(nome || '').toLowerCase();
+    var comeco = Extrato.textoDeBytes(bytes.subarray(0, 2048));
+    if (comeco.indexOf('%PDF') >= 0 || /\.pdf$/.test(n)) {
+      return Extrato.lerPdf(bytes, '').then(function (r) {
+        if (!r || r.precisaSenha) return { precisaSenha: true };
+        return { origem: 'pdf', linhas: r.linhas || [] };
+      });
+    }
+    if ((bytes[0] === 0x50 && bytes[1] === 0x4B) || /\.xlsx?$/.test(n)) {
+      return Extrato.lerXlsx(bytes).then(function (linhas) { return { origem: 'tabela', linhas: linhas || [] }; });
+    }
+    var texto;
+    try { texto = new TextDecoder('utf-8').decode(bytes); } catch (e) { texto = Extrato.textoDeBytes(bytes); }
+    if (/\uFFFD/.test(texto.slice(0, 4000))) texto = Extrato.textoDeBytes(bytes);
+    return Promise.resolve({ origem: 'texto', texto: texto });
+  }
+
+  // O que foi guardado → o "lido" de sempre, pelo leitor de hoje.
+  function lidoDoConteudo(c, nome) {
+    var n = String(nome || '').toLowerCase();
+    if (c.origem === 'pdf') return Extrato.lerLinhas(c.linhas || [], n);
+    if (c.origem === 'tabela') return Extrato.lerTabela(c.linhas || [], n);
+    var t = String(c.texto || '');
+    if (/<OFX|OFXHEADER|<STMTTRN>/i.test(t.slice(0, 6000))) return Extrato.lerOfx(t, n);
+    return Extrato.lerCsv(t, n);
+  }
+
+  function fecharConferido(c, nome, k) {
+    var texto = JSON.stringify({ nome: nome, origem: c.origem, linhas: c.linhas, texto: c.texto });
+    return cifrarComChave(texto, k.chave).then(function (x) {
+      return JSON.stringify({
+        app: 'finanz', formato: 'extrato-conferido', versao: 1, conferidoEm: new Date().toISOString(),
+        kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: k.voltas, sal: k.sal },
+        comprimido: x.comprimido, cifra: x.cifra, dados: x.dados
+      });
+    });
+  }
+
+  // Abre um conferido: pede a senha se a chave ainda não está na memória.
+  function conteudoDoConferido(pacote) {
+    return chaveParaPacote(pacote).then(function (k) {
+      return decifrarComChave(pacote, k.chave);
+    }).then(function (t) { return JSON.parse(t); });
+  }
+
+  function chaveParaPacote(pacote) {
+    if (chaveDosExtratos && chaveDosExtratos.sal === pacote.kdf.sal) return Promise.resolve(chaveDosExtratos);
+    var voltas = Number(pacote.kdf.voltas) || VOLTAS_DO_BACKUP;
+    return pedirSenhaDosExtratos(false, function (senha) {
+      return chaveDoBackup(senha, deBase64(pacote.kdf.sal), voltas).then(function (chave) {
+        // Abrir o próprio pacote é a prova de que a senha está certa.
+        return decifrarComChave(pacote, chave).then(function () {
+          return { chave: chave, sal: pacote.kdf.sal, voltas: voltas };
+        });
+      });
+    }).then(function (k) { chaveDosExtratos = k; return k; });
+  }
+
+  // Para conferir: se já existe algum conferido na conta da pessoa, a senha
+  // tem de ser a mesma dele; se é o primeiro, a senha nasce agora.
+  function chaveParaConferir() {
+    if (chaveDosExtratos) return Promise.resolve(chaveDosExtratos);
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?select=id,tamanho&tipo=eq.' +
+        encodeURIComponent(TIPO_CONFERIDO) + '&order=tamanho.asc&limit=1', {});
+    }).then(function (r) {
+      if (r && r[0]) return bytesDeArquivoDeExtrato(r[0].id).then(function (x) { return chaveParaPacote(x.conferido); });
+      return pedirSenhaDosExtratos(true, function (senha) {
+        var sal = window.crypto.getRandomValues(new Uint8Array(16));
+        return chaveDoBackup(senha, sal, VOLTAS_DO_BACKUP).then(function (chave) {
+          return { chave: chave, sal: paraBase64(sal), voltas: VOLTAS_DO_BACKUP };
+        });
+      }).then(function (k) { chaveDosExtratos = k; return k; });
+    });
+  }
+
+  function pedirSenhaDosExtratos(criar, provar) {
+    return new Promise(function (resolver, recusar) {
+      abrirFolha('Senha dos extratos', function (folha) {
+        var forma = no('div', 'forma');
+        var topo = no('div', 'cartao-topo');
+        juntar(topo, no('div', 'rotulo', criar ? 'Crie a senha dos extratos' : 'Digite a senha dos extratos'),
+          botaoDeInfo('conta.senha-extratos', 'Senha dos extratos', [
+            'Os extratos conferidos ficam guardados cifrados com esta senha: sem ela, ninguém lê o conteúdo desses arquivos.',
+            'O app pede a senha uma vez enquanto está aberto, quando precisa dela: para conferir, reler ou relançar um extrato conferido.',
+            'Não dá para recuperar a senha. Se você esquecer, os seus lançamentos continuam todos no app; só não dá mais para reler os extratos conferidos.',
+            'Ela não é a senha da sua conta nem a do backup. Anote num lugar seguro.']));
+        forma.appendChild(topo);
+        var s1 = no('input', 'entrada campo-senha-extratos'); s1.type = 'password';
+        s1.autocomplete = criar ? 'new-password' : 'current-password';
+        if (criar) s1.placeholder = 'Pelo menos 6 caracteres';
+        forma.appendChild(campo('Senha', s1));
+        var s2 = null;
+        if (criar) {
+          s2 = no('input', 'entrada campo-senha-extratos2'); s2.type = 'password'; s2.autocomplete = 'new-password';
+          s2.placeholder = 'Repita a senha';
+          forma.appendChild(campo('Repita a senha', s2));
+        }
+        var acoes = no('div', 'acoes');
+        var seguir = botao('btn btn-ouro', 'Continuar', function () {
+          if (!s1.value) { mostrarErro(forma, 'Digite a senha.'); return; }
+          if (criar && s1.value.length < 6) { mostrarErro(forma, 'A senha precisa de pelo menos 6 caracteres.'); return; }
+          if (criar && s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas não são iguais.'); return; }
+          seguir.disabled = true; seguir.textContent = 'Um momento…';
+          provar(s1.value).then(function (k) {
+            fecharFolha();
+            setTimeout(function () { resolver(k); }, 260);
+          }).catch(function () {
+            seguir.disabled = false; seguir.textContent = 'Continuar';
+            mostrarErro(forma, criar ? 'Não consegui criar a senha neste aparelho.' : 'Senha errada.');
+          });
+        });
+        var desistir = botao('btn btn-fantasma', 'Agora não', function () {
+          fecharFolha();
+          recusar(new Error('sem senha'));
+        });
+        juntar(acoes, desistir, seguir);
+        forma.appendChild(acoes);
+        folha.appendChild(forma);
+        setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+      });
+    });
+  }
+
+  // Troca os arquivos da conta pela versão conferida, um de cada vez. Só
+  // troca quando o texto guardado lê lançamentos de novo e o pacote abre
+  // com a chave: na dúvida, o original fica.
+  function conferirExtratosDaConta(id, arquivos) {
+    if (!(window.crypto && window.crypto.subtle)) {
+      avisarCaixa('Este navegador não cifra', 'Para conferir, abra o app num navegador atualizado (Chrome, Safari ou Firefox).');
+      return;
+    }
+    chaveParaConferir().then(function (k) {
+      var feitos = 0, comSenha = 0, falhas = 0, antes = 0, depois = 0;
+      return arquivos.reduce(function (p, a, idx) {
+        return p.then(function () {
+          avisar('Conferindo ' + (idx + 1) + ' de ' + arquivos.length + '...');
+          return bytesDeArquivoDeExtrato(a.id).then(function (x) {
+            if (x.conferido) return;
+            var nome = x.nome || a.nome || 'extrato';
+            return conteudoDoArquivo(x.bytes, nome).then(function (c) {
+              if (c.precisaSenha) { comSenha++; return; }
+              var lido = lidoDoConteudo(c, nome);
+              if (!lido || !lido.itens || !lido.itens.length) { falhas++; return; }
+              return fecharConferido(c, nome, k).then(function (texto) {
+                return decifrarComChave(JSON.parse(texto), k.chave).then(function () {
+                  return pedirNuvem('/rest/v1/arquivos_extrato?id=eq.' + encodeURIComponent(a.id), {
+                    metodo: 'PATCH',
+                    corpo: { tipo: TIPO_CONFERIDO, conteudo: texto, tamanho: texto.length },
+                    cabecalhos: { 'Prefer': 'return=minimal' }
+                  });
+                }).then(function () {
+                  feitos++;
+                  antes += inteiro(a.tamanho) || x.bytes.length;
+                  depois += texto.length;
+                });
+              });
+            });
+          }).catch(function () { falhas++; });
+        });
+      }, comTokenValido()).then(function () {
+        limparAviso();
+        var partes = [];
+        if (feitos) partes.push(feitos + ' extrato(s) conferido(s) ✓. Os arquivos foram de ' + tamanhoDeArquivo(antes) +
+          ' para ' + tamanhoDeArquivo(depois) + ', cifrados com a senha dos extratos.');
+        if (comSenha) partes.push(comSenha + ' PDF(s) têm senha do banco e ficaram como vieram.');
+        if (falhas) partes.push(falhas + ' arquivo(s) não deu para trocar agora e ficaram como vieram. Confira a internet e tente de novo.');
+        if (!partes.length) partes.push('Não havia arquivo para conferir.');
+        avisarCaixa(feitos ? 'Conferido ✓' : 'Nada foi trocado', partes.join('\n\n'), function () {
+          setTimeout(function () { abrirFolhaConferencia(id); }, 200);
+        });
+      });
+    }).catch(function () { limparAviso(); });
+  }
+
+  // O arquivo que perdeu o dono sai sozinho (pedido de 25/11/2026). Três
+  // travas: nenhuma importação aponta para ele, nenhum lançamento veio
+  // dele, e ele subiu há mais de um dia (a importação feita agora em outro
+  // celular pode ainda não ter chegado aqui).
+  function apagarArquivosSemDono() {
+    var imps = estado.importacoes || [];
+    if (!imps.length && !estado.lancamentos.length) return Promise.resolve(0);
+    var vivos = {};
+    imps.forEach(function (i) { vivos[i.id] = true; });
+    estado.lancamentos.forEach(function (l) { if (l.importacaoId) vivos[l.importacaoId] = true; });
+    var corte = Date.now() - 24 * 60 * 60 * 1000;
+    return pedirNuvem('/rest/v1/arquivos_extrato?select=id,importacao_id,criado_em', {}).then(function (r) {
+      var soltos = (r || []).filter(function (a) {
+        var t = Date.parse(a.criado_em);
+        return !vivos[a.importacao_id] && isFinite(t) && t < corte;
+      }).map(function (a) { return a.id; });
+      if (!soltos.length) return 0;
+      return apagarArquivosDeExtrato(soltos).then(function () { return soltos.length; });
     });
   }
 
   // Lê de novo o arquivo de um extrato já importado e compara com o que
   // entrou. Só o tipo (receita ou despesa) e a categoria podem mudar, e só
   // depois de a pessoa ver a lista e confirmar.
-  function relerECorrigirExtrato(contaId, impId, a) {
-    avisar('Relendo o arquivo guardado...');
-    bytesDeArquivoDeExtrato(a.id).then(function (x) {
+  // O "lido" do arquivo guardado: do original, pelo leitor de sempre, ou do
+  // conferido, com a senha dos extratos.
+  function lidoDoArquivoGuardado(a) {
+    return bytesDeArquivoDeExtrato(a.id).then(function (x) {
       var nome = x.nome || a.nome || 'extrato';
+      if (x.conferido) {
+        return conteudoDoConferido(x.conferido).then(function (c) { return lidoDoConteudo(c, nome); });
+      }
       var tipo = x.tipo || a.tipo || 'application/octet-stream';
       var arq;
       try { arq = new File([x.bytes], nome, { type: tipo }); }
       catch (e) { arq = new Blob([x.bytes], { type: tipo }); arq.name = nome; }
-      lerUmExtrato(arq, '', function (lido) {
+      return new Promise(function (resolver) { lerUmExtrato(arq, '', function (lido) { resolver(lido); }); });
+    });
+  }
+
+  function relerECorrigirExtrato(contaId, impId, a) {
+    avisar('Relendo o arquivo guardado...');
+    lidoDoArquivoGuardado(a).then(function (lido) {
         limparAviso();
         var vieram = estado.lancamentos.filter(function (l) {
           return l.importacaoId === impId && (l.tipo === 'entrada' || l.tipo === 'saida');
         });
+        if (!$('folha').classList.contains('aberta') || !$('folha').querySelector('.botao-reler')) {
+          // Veio da senha: a folha do extrato já tinha dado lugar a ela.
+          abrirLevaDeExtrato(contaId, impId);
+        }
         if (!lido || !lido.itens.length) {
           avisarCaixa('Não consegui reler', 'O arquivo guardado não trouxe lançamentos que eu soubesse ler. Nada foi mudado.', function () {});
           return;
@@ -33879,9 +35496,9 @@
             avisar(trocas.length + ' lançamento(s) corrigido(s).');
           }, 260);
         });
-      });
-    }).catch(function () {
+    }).catch(function (e) {
       limparAviso();
+      if (e && e.message === 'sem senha') return;
       avisar('Não consegui baixar o arquivo para reler.');
     });
   }
@@ -34241,6 +35858,25 @@
         return;
       }
 
+      // Backup cifrado (.finanz): pede a senha e segue com o que estava dentro.
+      if (bruto && bruto.formato === 'backup-cifrado') {
+        pedirSenhaDoBackup(bruto, continuarRestauracao);
+        return;
+      }
+      continuarRestauracao(bruto);
+    }, function (e) {
+      if (soltar) soltar();
+      perguntar({
+        titulo: 'Não deu para abrir',
+        texto: recadoDeLeitura(e, arquivo),
+        ok: 'Escolher de novo', cancelar: 'Fechar'
+      }, function () {
+        setTimeout(function () { $('arquivoRestaurar').click(); }, 200);
+      });
+    });
+  }
+
+  function continuarRestauracao(bruto) {
       var dados = null;
       if (bruto && bruto.dados) dados = bruto.dados;
       else if (bruto && Array.isArray(bruto.lancamentos)) dados = bruto;
@@ -34293,16 +35929,6 @@
           avisar('Não deu para restaurar: ' + (e && e.message ? e.message : 'erro ao salvar'));
         });
       });
-    }, function (e) {
-      if (soltar) soltar();
-      perguntar({
-        titulo: 'Não deu para abrir',
-        texto: recadoDeLeitura(e, arquivo),
-        ok: 'Escolher de novo', cancelar: 'Fechar'
-      }, function () {
-        setTimeout(function () { $('arquivoRestaurar').click(); }, 200);
-      });
-    });
   }
 
   // Apagar tudo apagava nada.
