@@ -2603,7 +2603,7 @@
         'Os dias contam pela data do calendário, não por 24 horas: atualizado hoje, amanhã já é "1 dia", em todas as contas e no sino.',
         'Faturas: "Vinculada ao extrato", "Paga fora do mês" ou "Só a fatura" agora é uma etiqueta pequena do lado da situação, sem o texto embaixo. A explicação ficou no "i" das Faturas, que abre mais uma vez para mostrar.',
         'Na tela do cartão saiu o "Últimos gastos": as compras de cada mês já aparecem em "Lançamentos desta fatura".',
-        'Parcelas: a sugestão de lançar aparece na fatura onde a parcela deve cair e ainda não está (a aberta ou uma futura), não mais na fatura que já veio cheia do banco. Em cada compra você escolhe lançar só a parcela daquele mês ou ela e as próximas.'
+        'Parcelas: a sugestão de lançar fica embaixo dos lançamentos da fatura, na fatura onde a parcela deve cair e ainda não está, tenha ela outros lançamentos ou não. Em cada compra você escolhe lançar só a parcela daquele mês ou ela e as próximas.'
       ]
     },
     {
@@ -12200,7 +12200,7 @@
       'O elo (🔗) do lado do mês, e a etiqueta "Vinculada ao extrato" do lado da situação, querem dizer que o pagamento da fatura apareceu numa conta sua, no mesmo valor e no mesmo mês. Aí as compras contam nos gastos, no lugar do pagamento.',
       '"Paga fora do mês": o pagamento existe, mas é de outro mês, então não vincula; nos gastos entra o pagamento, não as compras. "Só a fatura": nenhum pagamento no extrato liga com ela ainda, e as compras não contam nos gastos.',
       'Paga é a que tem um pagamento do mesmo valor numa conta sua. Enquanto não está paga, ela ocupa o limite.',
-      'Na fatura aberta ou futura aparecem as parcelas que deviam cair nela e ainda não estão lançadas (a 8/9 de uma compra que estava na 7/9 no mês anterior). Toque em "Lançar" e escolha: só a desta fatura, ou esta e as próximas.',
+      'Embaixo dos lançamentos de cada mês aparecem as parcelas que deviam cair naquela fatura e ainda não estão lançadas (a 8/9 de uma compra que estava na 7/9 no mês anterior). Toque em "Lançar" e escolha: só a desta fatura, ou esta e as próximas.',
       'Em "Lançamentos desta fatura", toque numa compra para trocar a categoria, o valor ou a data.'] });
     topo.style.padding = '16px 16px 0';
     c.appendChild(topo);
@@ -12242,8 +12242,6 @@
       corpo.innerHTML = '';
       var f = faturas[chaves.indexOf(chave)];
       corpo.appendChild(painelDaFatura(id, cart, f, lado));
-      var faltando = parcelasQueFaltam(id, cart, f);
-      if (faltando.length) corpo.appendChild(caixaDeParcelasFaltando(id, cart, faltando));
       if (f.itens.length) {
         corpo.appendChild(no('div', 'subtitulo-fatura', 'Lançamentos desta fatura'));
         f.itens.slice().sort(function (a, b) {
@@ -12253,6 +12251,10 @@
       } else {
         corpo.appendChild(no('div', 'sanfona-vazio', 'Nenhum lançamento nesta fatura ainda.'));
       }
+      // As parcelas que faltam ficam embaixo dos lançamentos (pedido de
+      // 25/11/2026), em qualquer fatura onde elas deviam cair.
+      var faltando = parcelasQueFaltam(id, cart, f);
+      if (faltando.length) corpo.appendChild(caixaDeParcelasFaltando(id, cart, faltando));
     }
 
     // Arrastar para o lado troca de mês.
@@ -12323,13 +12325,13 @@
 
   // As parcelas que deviam cair nesta fatura e não estão nela (pedido de
   // 25/11/2026). Olha as compras parceladas das faturas de antes: a "Parcela
-  // 7/9" de novembro quer a 8/9 em dezembro. Só na fatura aberta ou futura;
-  // fatura fechada já veio inteira do banco e não precisa de sugestão.
+  // 7/9" de novembro quer a 8/9 em dezembro. Vale para qualquer fatura,
+  // tenha ela lançamentos ou não: a fatura que veio cheia do banco já traz a
+  // parcela, e aí não sobra nada para sugerir.
   function mesesEntreChaves(a, b) {
     return (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
   }
   function parcelasQueFaltam(id, cart, f) {
-    if (f.situacao !== 'aberta' && f.situacao !== 'futura') return [];
     var meus = estado.lancamentos.filter(function (o) { return o.contaId === id && o.tipo === 'saida'; });
     var existe = function (base, total, numero, valor) {
       return meus.some(function (o) {

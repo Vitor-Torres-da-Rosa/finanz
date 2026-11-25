@@ -83,6 +83,8 @@ await page.locator('#folha .cartao-faturas-mes').screenshot({ path: dir + '/z114
 // Em dezembro (aberta) a 6/10 devia cair e não está: aparece a sugestão.
 await page.click('#folha .mes-fatura:has-text("dezembro")'); await page.waitForTimeout(700);
 const falt = limpo(await page.textContent('#folha .parcelas-faltando').catch(() => ''));
+const embaixo = await page.evaluate(() => { const c = document.querySelector('#folha .parcelas-faltando'), t = document.querySelector('#folha .subtitulo-fatura'); return !!(c && t && (t.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING)); });
+conferir('6c. a caixa fica embaixo dos lançamentos da fatura', embaixo);
 conferir('6b. em dezembro, a 6/10 que devia cair ali', /1 parcela para esta fatura/.test(falt) && /Parcela 6 de 10 · R\$ 2\.180,55/.test(falt) && /Lançar 6\/10/.test(falt), falt);
 await page.locator('#folha .cartao-faturas-mes').screenshot({ path: dir + '/z128-parcela-em-dezembro.png' });
 await page.click('#folha .parcelas-faltando button:has-text("Lançar 6/10")'); await page.waitForTimeout(700);
