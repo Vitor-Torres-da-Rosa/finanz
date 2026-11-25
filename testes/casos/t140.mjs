@@ -164,6 +164,8 @@ const gastos = todosOsMeses;
 conferir('11. cada uma com "(1/3)", "(2/3)", "(3/3)"', /Geladeira \(1\/3\)/.test(gastos) && /Geladeira \(3\/3\)/.test(gastos));
 
 // Abrindo uma parcela: dá para apagar as três de uma vez.
+// A 2/3 está na fatura do mês seguinte: abre aquele mês e toca nela.
+await page.click('#folha .mes-fatura[data-chave="' + esperadoMeses[1].getFullYear() + '-' + String(esperadoMeses[1].getMonth() + 1).padStart(2, '0') + '"]'); await page.waitForTimeout(600);
 await page.click('#folha .linha-alvo:has-text("Geladeira (2/3)")'); await page.waitForTimeout(1200);
 const edicao = limpo(await page.textContent('#folha'));
 conferir('12. editando uma parcela, oferece excluir as 3', /Excluir todas as 3 do grupo/.test(edicao));
