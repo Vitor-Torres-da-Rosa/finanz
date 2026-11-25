@@ -152,7 +152,7 @@ for (const d of esperadoMeses) {
   const tab = page.locator('#folha .mes-fatura[data-chave="' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '"]');
   if (!(await tab.count())) { faturas.push(rotulo(d) + ': sem aba'); continue; }
   await tab.click(); await page.waitForTimeout(500);
-  faturas.push(rotulo(d) + ': ' + limpo(await page.textContent('#folha .painel-fatura')).slice(0, 60));
+  faturas.push(rotulo(d) + ': ' + (limpo(await page.textContent('#folha .painel-fatura')).match(/Compras e débitos\s*R\$ [\d.,]+/) || ['sem compras'])[0]);
 }
 console.log('faturas:', faturas);
 conferir('10. uma parcela em cada uma das 3 faturas seguidas',
