@@ -214,17 +214,17 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeout(1800);
 const mais = limpo(await page.textContent('#telaMais'));
 conferir('16. não aparece percentual negativo em lugar nenhum', !/-\d+%/.test(mais));
-conferir('17. diz que guardou zero', /Você guardou zero este mês/.test(mais));
-conferir('18. mostra os últimos meses embaixo', /Últimos meses: \w+ R\$ [\d.,]+ \(\d+%\)/.test(mais),
-  (mais.match(/Últimos meses:.{0,70}/) || ['(sem histórico)'])[0]);
+conferir('17. diz que não sobrou (saiu mais do que entrou)', /Saiu R\$ [\d.,]+ a mais do que entrou|Não sobrou nada/.test(mais));
+conferir('18. mostra os meses anteriores embaixo', /Nos meses anteriores: [a-zç]+ sobrou R\$ [\d.,]+/.test(mais),
+  (mais.match(/Nos meses anteriores:.{0,70}/) || ['(sem histórico)'])[0]);
 const cores = await page.$$eval('#telaMais .achado-nota span', ns => ns
   .map(n => n.style.color).filter(Boolean));
 conferir('19. cada mês do histórico vem colorido pelo sinal',
   cores.length >= 3 && cores.some(c => /verde/.test(c)) && cores.some(c => /vermelho/.test(c)),
   cores.join(' | '));
-conferir('20. o mês negativo aparece com o valor, não como zero',
-  /\w+ −R\$ 300,00/.test(mais) && !/\w+ R\$ 0,00/.test(mais),
-  (mais.match(/Últimos meses:.{0,70}/) || [''])[0]);
+conferir('20. o mês negativo aparece como "faltou", com o valor',
+  /[a-zç]+ faltou R\$ 300,00/.test(mais) && !/empatou/.test(mais),
+  (mais.match(/Nos meses anteriores:.{0,90}/) || [''])[0]);
 await page.screenshot({ path: dir+'/u14-meta.png', fullPage: true });
 
 await browser.close();

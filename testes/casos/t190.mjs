@@ -47,6 +47,10 @@ conferir('2. mostra onde mais saiu, com o teto da categoria quando tem', /Onde m
 const botoes = await card.locator('.acoes-achado button').allTextContents();
 conferir('3. dois caminhos: ver as saídas e rever o planejamento', botoes.join('|') === 'Ver as saídas|Rever o planejamento', botoes.join('|'));
 await card.screenshot({ path: dir + '/z130-orcamento-estourado.png' });
+const metaCard = limpo(await page.locator('#folha .achado', { hasText: 'Faltou para a meta de economia' }).first().textContent().catch(() => ''));
+console.log('meta:', metaCard);
+conferir('3b. a meta de economia fala claro: o que entrou, saiu, sobrou e a meta em reais',
+  /R\$ 186,13\s*faltam para chegar na meta de 20%/.test(metaCard) && /Entraram R\$ 9\.000,00 e saíram R\$ 7\.386,13\. Sobraram R\$ 1\.613,87 \(18%\)\. Sua meta é guardar 20% do que entra, ou seja, R\$ 1\.800,00\./.test(metaCard), metaCard.slice(0, 260));
 await card.locator('.acoes-achado button:has-text("Rever o planejamento")').click(); await page.waitForTimeout(1500);
 const titulo = limpo(await page.textContent('#folhaTitulo').catch(() => ''));
 conferir('4. "Rever o planejamento" abre o orçamento', /Orçamento/i.test(titulo), titulo);

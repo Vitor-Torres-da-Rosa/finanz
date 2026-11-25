@@ -25627,13 +25627,16 @@
     return Math.round((sobra / entradas) * 100);
   }
 
+  // Escrito para quem lê de passagem (25/11/2026): o que entrou, o que
+  // saiu, o que sobrou, e a meta em reais.
   function fraseDoGuardado(sobra, entradas, meta) {
-    if (sobra > 0) {
-      return 'Você guardou ' + taxaDeGuardado(sobra, entradas) + '% e sua meta é ' + meta + '%.';
-    }
-    if (sobra === 0) return 'Você guardou zero este mês. Sua meta é ' + meta + '%.';
-    return 'Você guardou zero este mês: saiu ' + emReais(-sobra) +
-           ' a mais do que entrou. Sua meta é ' + meta + '%.';
+    var alvo = Math.round(entradas * meta / 100);
+    var saiu = entradas - sobra;
+    var comeco = 'Entraram ' + emReais(entradas) + ' e saíram ' + emReais(saiu) + '. ';
+    var fim = 'Sua meta é guardar ' + meta + '% do que entra, ou seja, ' + emReais(alvo) + '.';
+    if (sobra > 0) return comeco + 'Sobraram ' + emReais(sobra) + ' (' + taxaDeGuardado(sobra, entradas) + '%). ' + fim;
+    if (sobra === 0) return comeco + 'Não sobrou nada. ' + fim;
+    return comeco + 'Saiu ' + emReais(-sobra) + ' a mais do que entrou. ' + fim;
   }
 
   // O quanto sobrou nos meses fechados, para a meta não ficar presa ao
@@ -25658,12 +25661,12 @@
     var h = historicoDeSobra(ano, mes, 3);
     if (!h.length) return null;
     return {
-      rotulo: 'Últimos meses:',
+      rotulo: 'Nos meses anteriores:',
       itens: h.map(function (x) {
         return {
-          texto: MESES[x.mes].slice(0, 3).toLowerCase() + ' ' +
-                 (x.sobra > 0 ? emReais(x.sobra) + ' (' + x.taxa + '%)'
-                              : x.sobra === 0 ? emReais(0) : '−' + emReais(-x.sobra)),
+          texto: MESES[x.mes] + ' ' +
+                 (x.sobra > 0 ? 'sobrou ' + emReais(x.sobra)
+                              : x.sobra === 0 ? 'empatou' : 'faltou ' + emReais(-x.sobra)),
           cor: x.sobra > 0 ? 'var(--verde)' : x.sobra === 0 ? 'var(--texto)' : 'var(--vermelho)'
         };
       })
@@ -25893,14 +25896,15 @@
     foraDoPadrao.slice(0, 2).forEach(function (f, i) {
       juntarAchado({
         id: 'padrao-' + f.nome, prioridade: i === 0 ? 1 : 2, icone: '🔎', tom: 'atencao',
-        titulo: f.nome + ' acima do seu padrão',
+        titulo: 'Você gastou mais que o normal com ' + f.nome,
         valor: '+' + emReais(f.acima), valorCor: 'var(--vermelho)',
-        explicacao: 'Este mês: ' + emReais(f.valor) + '. ' + comoVoceCostuma(f.padrao) + '.',
+        subValor: 'a mais que o normal (+' + f.pct.toFixed(0) + '%)',
+        explicacao: 'Em ' + MESES[mes] + ' foram ' + emReais(f.valor) + ' com ' + f.nome + '. ' +
+          comoVoceCostuma(f.padrao) + ' por mês.',
         detalhes: [
-          { rotulo: 'Este mês', valor: emReais(f.valor) },
-          { rotulo: 'Seu padrão', valor: f.padrao.de === f.padrao.ate ? emReais(f.padrao.mediana)
-              : emReais(f.padrao.de) + ' – ' + emReais(f.padrao.ate) },
-          { rotulo: 'Diferença', valor: '+' + f.pct.toFixed(0) + '%' }
+          { rotulo: 'Em ' + MESES[mes], valor: emReais(f.valor) },
+          { rotulo: 'Normal nos outros meses', valor: f.padrao.de === f.padrao.ate ? emReais(f.padrao.mediana)
+              : emReais(f.padrao.de) + ' a ' + emReais(f.padrao.ate) }
         ],
         acao: { rotulo: 'Ver lançamentos', abrir: function () { irParaTransacoes('saida', f.nome); } }
       });
@@ -25941,10 +25945,11 @@
         } else {
           juntarAchado({
             id: 'fatura-subiu', prioridade: 1, icone: '💳', tom: 'atencao',
-            titulo: 'Sua fatura aumentou',
+            titulo: 'A fatura do cartão aumentou',
             valor: '+' + emReais(subiu), valorCor: 'var(--vermelho)',
-            explicacao: 'De ' + emReais(faturaAnt.total) + ' para ' + emReais(fatura.total) +
-              ' em relação ao mês anterior.',
+            subValor: 'a mais que em ' + MESES[ant.mes],
+            explicacao: 'Em ' + MESES[ant.mes] + ' as compras no cartão somaram ' + emReais(faturaAnt.total) +
+              '; em ' + MESES[mes] + ', ' + emReais(fatura.total) + '.',
             rotuloDetalhes: 'O que mudou',
             detalhes: mudancas.slice(0, 3).map(function (m) {
               return { rotulo: m.nome, valor: '+' + emReais(m.dif) };
@@ -25977,8 +25982,9 @@
       if (falta > 0) {
         juntarAchado({
           id: 'meta-economia', prioridade: sobra <= 0 ? 1 : 2, icone: '🎯', tom: 'atencao',
-          titulo: 'Sua meta de economia',
-          valor: emReais(falta) + ' abaixo', valorCor: 'var(--ouro)',
+          titulo: 'Faltou para a meta de economia',
+          valor: emReais(falta), valorCor: 'var(--ouro)',
+          subValor: 'faltam para chegar na meta de ' + meta + '%',
           explicacao: fraseDoGuardado(sobra, t.entradas, meta),
           progresso: { feito: Math.max(sobra, 0), alvo: alvo },
           nota: notaDoHistorico(ano, mes),
@@ -25988,9 +25994,10 @@
       } else {
         juntarAchado({
           id: 'meta-batida', prioridade: 3, icone: '🎉', tom: 'bom',
-          titulo: 'Meta de economia batida',
-          valor: taxaDeGuardado(sobra, t.entradas) + '% guardados', valorCor: 'var(--verde)',
-          explicacao: 'Acima da sua meta de ' + meta + '%. Sobraram ' + emReais(sobra) + '.',
+          titulo: 'Você guardou mais que a meta',
+          valor: emReais(sobra), valorCor: 'var(--verde)',
+          subValor: 'sobrou em ' + MESES[mes] + ' (' + taxaDeGuardado(sobra, t.entradas) + '% do que entrou)',
+          explicacao: fraseDoGuardado(sobra, t.entradas, meta) + ' Passou dela em ' + emReais(sobra - alvo) + '.',
           progresso: { feito: sobra, alvo: alvo },
           nota: notaDoHistorico(ano, mes),
           acao: null
@@ -26057,11 +26064,12 @@
           icone: '📈', tom: difProj > 0 ? 'atencao' : 'bom',
           titulo: 'Estimativa para o fim do mês',
           valor: '≈ ' + emReais(projetado), valorCor: difProj > 0 ? 'var(--ouro)' : 'var(--verde)',
-          explicacao: 'Você já gastou ' + emReais(base.total) + ' em ' + dia + ' dias. ' +
-            'Mantendo o ritmo, fecharia perto disso — é estimativa, não certeza.',
+          subValor: 'é quanto o mês deve fechar, no ritmo de hoje',
+          explicacao: 'Em ' + dia + ' dias você gastou ' + emReais(base.total) + '. Se continuar assim até o fim de ' +
+            MESES[mes] + ', o mês fecha perto de ' + emReais(projetado) + '. É estimativa, não certeza.',
           detalhes: [
-            { rotulo: 'Seu padrão', valor: emReais(pad.mediana) },
-            { rotulo: 'Diferença estimada', valor: comSinal(difProj) }
+            { rotulo: 'Seus meses costumam fechar em', valor: emReais(pad.mediana) },
+            { rotulo: difProj > 0 ? 'Ficaria acima do normal em' : 'Ficaria abaixo do normal em', valor: emReais(Math.abs(difProj)) }
           ],
           acao: { rotulo: 'Ver as saídas', abrir: function () { irParaTransacoes('saida', ''); } }
         });
@@ -26083,10 +26091,11 @@
       if (quedas.length) {
         juntarAchado({
           id: 'queda', prioridade: 3, icone: '↓', tom: 'bom',
-          titulo: quedas[0].nome + ' caiu',
-          valor: '−' + emReais(quedas[0].dif), valorCor: 'var(--verde)',
-          explicacao: 'De ' + emReais(quedas[0].antes) + ' para ' +
-            emReais(quedas[0].antes - quedas[0].dif) + ' em relação ao mês anterior.',
+          titulo: 'Você gastou menos com ' + quedas[0].nome,
+          valor: emReais(quedas[0].dif), valorCor: 'var(--verde)',
+          subValor: 'a menos que em ' + MESES[ant.mes],
+          explicacao: 'Em ' + MESES[ant.mes] + ' foram ' + emReais(quedas[0].antes) + ' com ' + quedas[0].nome +
+            '; em ' + MESES[mes] + ', ' + emReais(quedas[0].antes - quedas[0].dif) + '.',
           acao: { rotulo: 'Ver lançamentos',
                   abrir: function () { irParaTransacoes('saida', quedas[0].nome); } }
         });
@@ -26303,8 +26312,8 @@
       barra.appendChild(dentro);
       c.appendChild(barra);
       var leg = no('div', 'meta-legenda');
-      leg.appendChild(no('span', null, emReais(a.progresso.feito) + ' guardados'));
-      leg.appendChild(no('span', null, 'meta ' + emReais(a.progresso.alvo)));
+      leg.appendChild(no('span', null, 'Sobrou ' + emReais(a.progresso.feito)));
+      leg.appendChild(no('span', null, 'Meta ' + emReais(a.progresso.alvo)));
       c.appendChild(leg);
     }
 
@@ -26535,7 +26544,7 @@
     var an = analiseDoMes(ano, mes);
     abrirFolha('Análise de ' + MESES[mes], function (folha) {
       var forma = no('div');
-      var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Pequenos sinais']];
+      var faixas = [[1, 'Merece atenção agora'], [2, 'Vale acompanhar'], [3, 'Também vale saber']];
       faixas.forEach(function (f) {
         var doNivel = an.achados.filter(function (a) { return f[0] === 1 ? a.prioridade <= 1 : a.prioridade === f[0]; });
         if (!doNivel.length) return;
