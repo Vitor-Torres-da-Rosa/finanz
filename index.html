@@ -29323,17 +29323,23 @@
       var campoGeral = entradaValor(dados.geral, false);
       forma.appendChild(campo('Teto de gastos do mês', campoGeral));
 
+      // As explicações soltas viraram o "i" (pedido de 25/11/2026).
       var topo = no('div', 'cartao-topo');
       topo.style.marginBottom = '10px';
-      juntar(topo,
-        no('div', 'rotulo', 'Categorias'),
+      var fimOrc = no('div', 'cartao-topo-fim');
+      juntar(fimOrc,
+        botaoDeInfo('planejar.folha-orcamento', 'Orçamento do mês', [
+          'O teto de gastos é quanto você quer gastar no mês, no total. A barra do Planejamento mostra quanto dele já foi.',
+          'Em "Escolher categorias" você separa um teto para cada categoria (por exemplo, Alimentação até R$ 1.500). Sem isso, vale só o teto do mês.',
+          'Cada categoria escolhida mostra o que já foi gasto nela no mês. Ajuste o valor e toque em "Salvar orçamento".',
+          'Conta como gasto o que saiu das suas contas e as compras do cartão com fatura paga; a transferência entre contas suas não conta.']),
         botao('cartao-acao', dados.categorias.length ? 'Escolher' : '+ Escolher categorias', function () {
           dados.geral = digitosParaCentavos(campoGeral.value);
           lerValoresCategorias();
           empilhar({ tipo: 'aba', voltar: function () { abrirFolhaOrcamento(dados); } });
           abrirSeletorCategorias(dados);
-        })
-      );
+        }));
+      juntar(topo, no('div', 'rotulo', 'Categorias'), fimOrc);
       forma.appendChild(topo);
 
       var campos = {};
@@ -29343,11 +29349,7 @@
         });
       }
 
-      if (!dados.categorias.length) {
-        var vazio = no('p', 'linha-sub', 'Sem teto por categoria. Toque em "Escolher categorias" para separar quanto pode gastar em cada uma.');
-        vazio.style.marginBottom = '8px';
-        forma.appendChild(vazio);
-      } else {
+      if (dados.categorias.length) {
         dados.categorias.forEach(function (c) {
           var linha = no('div', 'orc-item');
           var rot = no('div', 'rot', c.nome);
@@ -29386,7 +29388,13 @@
 
   function abrirSeletorCategorias(dados) {
     abrirFolha('Categorias', function (folha) {
-      folha.appendChild(no('p', 'linha-sub', 'Marque as categorias que você quer limitar. O valor ao lado é o que já foi gasto em ' + MESES[mesAtivo.mes] + '.'));
+      var topoSel = no('div', 'cartao-topo');
+      juntar(topoSel, no('div', 'rotulo', 'Gasto em ' + MESES[mesAtivo.mes]), botaoDeInfo('planejar.escolher-categorias', 'Categorias', [
+        'Toque no nome para marcar as categorias que você quer limitar. As marcadas ganham um teto na tela do orçamento.',
+        'O valor do lado é o que já foi gasto na categoria em ' + MESES[mesAtivo.mes] + '. Toque nele para abrir as subcategorias, e numa subcategoria para ver cada gasto.',
+        'Tocando num gasto, o app abre de onde ele veio: o extrato, a fatura do cartão ou o lançamento.',
+        'Falta uma categoria? "Adicionar categoria" no fim da lista.']));
+      folha.appendChild(topoSel);
 
       var lista = no('div', 'cartao liso');
       lista.style.marginTop = '14px';

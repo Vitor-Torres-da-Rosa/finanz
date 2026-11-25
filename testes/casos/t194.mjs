@@ -34,7 +34,11 @@ await page.evaluate(() => new Promise(res => {
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Planejar")'); await page.waitForTimeout(1200);
 await page.click('#telaPlanejamento .cartao:has-text("Orçamento mensal") .cartao-acao'); await page.waitForTimeout(1000);
+const folhaOrc = limpo(await page.textContent('#folha'));
+conferir('0a. o orçamento tem o "i" e não tem mais a explicação solta', (await page.locator('#folha .dica-i-botao').count()) === 1 && !/Sem teto por categoria/.test(folhaOrc), folhaOrc.slice(0, 120));
 await page.click('#folha .cartao-acao:has-text("Escolher")'); await page.waitForTimeout(1000);
+const folhaSel = limpo(await page.textContent('#folha'));
+conferir('0b. a escolha de categorias também tem o "i", sem o parágrafo', (await page.locator('#folha .dica-i-botao').count()) === 1 && !/Marque as categorias/.test(folhaSel), folhaSel.slice(0, 120));
 const linhaMoradia = page.locator('#folha .cat-bloco', { hasText: 'Moradia' });
 const valor = limpo(await linhaMoradia.locator('.cat-gasto').textContent());
 conferir('1. o valor gasto aparece com a setinha de abrir', /R\$ 2\.031,61\s*›/.test(valor), valor);
