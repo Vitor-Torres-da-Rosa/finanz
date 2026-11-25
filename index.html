@@ -6302,6 +6302,7 @@
   }
 
   function gravarSessaoNuvem(dados) {
+    if (!dados && sessaoNuvem && sessaoNuvem.usuario) esquecerChaveDoCofre(sessaoNuvem.usuario.id);
     sessaoNuvem = dados;
     try {
       if (dados) localStorage.setItem(CHAVE_NUVEM, JSON.stringify(dados));
@@ -6605,6 +6606,579 @@
         try { localStorage.setItem(CHAVE_APARELHO, bruta); } catch (e) { /* segue sem guardar */ }
         return chave;
       });
+    });
+  }
+
+  // ---------- Cofre: criptografia de ponta a ponta (pedido de 25/11/2026) ----------
+  //
+  // O Vitor pediu que ninguém além da própria pessoa leia os dados dela —
+  // nem quem administra o servidor, nem ele pelo painel do Supabase. Com o
+  // cofre ligado, cada registro sai do celular já cifrado com a chave
+  // mestra da pessoa (AES-GCM de 256 bits, com o id do registro como dado
+  // associado, para uma linha não poder ser trocada por outra) e mora na
+  // tabela `cofre`. O servidor vê só de quem é, de que tipo, quando mudou e
+  // o tamanho.
+  //
+  // A chave mestra nasce no celular e sobe só embrulhada pela "senha dos
+  // dados" (PBKDF2, 210 mil voltas). Neste aparelho ela fica guardada
+  // embrulhada pela chave do aparelho, para não pedir a senha a cada vez.
+  // Sem código de recuperação, por escolha do Vitor: perdeu a senha, a
+  // nuvem não abre mais, e a pessoa escolhe se apaga para recomeçar.
+  //
+  // O transporte é o único que muda: as linhas são as mesmas de sempre
+  // (linhasDoEstado e montarEstadoDeLinhas não sabem que o cofre existe).
+  //
+  // As áreas do Empreendedor que estão compartilhadas continuam abertas na
+  // tabela antiga até a etapa do par de chaves: a outra pessoa precisa ler.
+  var cofre = { info: null, chave: null, sal: '', ativo: false, lido: false };
+  var convertendoCofre = false;
+  var pedindoSenhaDoCofre = false;
+
+  function cofreLigado() { return !!(cofre.ativo && cofre.chave); }
+  function cofreTrancado() { return !!(cofre.ativo && !cofre.chave); }
+
+  function chaveDoCofreNoAparelho(uid) {
+    return 'finanz.cofre.v1:' + (uid || (sessaoNuvem && sessaoNuvem.usuario && sessaoNuvem.usuario.id) || '');
+  }
+
+  function guardarChaveDoCofre(cm, sal) {
+    var onde = chaveDoCofreNoAparelho();
+    return Promise.all([chaveDoAparelho(), exportarChave(cm)]).then(function (r) {
+      return cifrarBytes(r[0], deBase64(r[1]));
+    }).then(function (env) {
+      try { localStorage.setItem(onde, JSON.stringify({ sal: sal, chave: env })); } catch (e) { /* fica só nesta aba */ }
+    }).catch(function () { /* fica só nesta aba */ });
+  }
+
+  function lerChaveDoCofre(sal) {
+    var g = null;
+    try { g = JSON.parse(localStorage.getItem(chaveDoCofreNoAparelho()) || 'null'); } catch (e) { g = null; }
+    if (!g || g.sal !== sal || !g.chave) return Promise.resolve(null);
+    return chaveDoAparelho().then(function (ka) { return decifrarBytes(ka, g.chave); })
+      .then(function (bruto) { return importarChave(paraBase64(bruto)); })
+      .catch(function () { return null; });
+  }
+
+  function esquecerChaveDoCofre(uid) {
+    try { localStorage.removeItem(chaveDoCofreNoAparelho(uid)); } catch (e) { /* nada */ }
+    cofre = { info: null, chave: null, sal: '', ativo: false, lido: false };
+  }
+
+  function cifrarLinhaDoCofre(id, linha) {
+    var iv = bytesAleatorios(12);
+    return cripto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(id) },
+      cofre.chave, new TextEncoder().encode(JSON.stringify(linha))).then(function (c) {
+      var saida = new Uint8Array(12 + c.byteLength);
+      saida.set(iv, 0);
+      saida.set(new Uint8Array(c), 12);
+      return paraBase64(saida);
+    });
+  }
+
+  function decifrarLinhaDoCofre(id, b64) {
+    var b = deBase64(b64);
+    return cripto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12), additionalData: new TextEncoder().encode(id) },
+      cofre.chave, b.slice(12)).then(function (c) { return JSON.parse(new TextDecoder().decode(c)); });
+  }
+
+  // "<tabela>|<chave>": o mesmo registro cai sempre na mesma linha do cofre.
+  function idDoCofre(tabela, linha, conflito) {
+    var cs = String(conflito || 'id').split(',').filter(function (c) { return c && c !== 'user_id'; });
+    return tabela + '|' + cs.map(function (c) { return String(linha[c] == null ? '' : linha[c]); }).join('|');
+  }
+
+  function euCompartilhoArea(area) {
+    return (meusConvites || []).some(function (l) {
+      return l.situacao !== 'recusado' && (l.areas || []).indexOf(area) >= 0;
+    });
+  }
+
+  // Registro de área compartilhada (minha, ou de quem compartilhou comigo):
+  // fica aberto até a etapa do par de chaves.
+  function linhaFicaAberta(tabela, l) {
+    if (tabela !== 'empreendedor_registros') return false;
+    var a = areaDoTipo(l && l.tipo);
+    return !!a && (!!donoDaArea(a) || euCompartilhoArea(a));
+  }
+
+  function enviarAoCofre(tabela, linhas, conflito) {
+    if (!linhas.length) return Promise.resolve();
+    var uid = sessaoNuvem.usuario.id;
+    var lotes = [];
+    for (var i = 0; i < linhas.length; i += LOTE_DE_ENVIO) lotes.push(linhas.slice(i, i + LOTE_DE_ENVIO));
+    return lotes.reduce(function (antes, lote) {
+      return antes.then(function () {
+        return Promise.all(lote.map(function (l) {
+          var id = idDoCofre(tabela, l, conflito);
+          return cifrarLinhaDoCofre(id, l).then(function (d) {
+            return { user_id: uid, id: id, tabela: tabela, dados: d, excluido_em: null };
+          });
+        })).then(function (corpo) {
+          return comTentativas(function () {
+            return pedirNuvem('/rest/v1/cofre?on_conflict=user_id,id', {
+              metodo: 'POST', corpo: corpo,
+              cabecalhos: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+            });
+          });
+        });
+      });
+    }, Promise.resolve());
+  }
+
+  // As linhas vivas de uma tabela, já abertas; ou, com `apagados`, só os
+  // ids das que foram apagadas.
+  function baixarDoCofre(tabela, apagados) {
+    var consulta = 'select=id' + (apagados ? '' : ',dados') + '&tabela=eq.' + encodeURIComponent(tabela) +
+      '&excluido_em=' + (apagados ? 'not.is.null' : 'is.null');
+    return baixarTudo('cofre', consulta).then(function (r) {
+      var corte = tabela.length + 1;
+      if (apagados) return (r || []).map(function (x) { return { id: String(x.id).slice(corte) }; });
+      return Promise.all((r || []).map(function (x) { return decifrarLinhaDoCofre(String(x.id), x.dados); }));
+    });
+  }
+
+  // Leitura de uma tabela da sincronia, pelo cofre quando ele está ligado.
+  function baixarTabela(t, consulta) {
+    if (!cofreLigado()) return baixarTudo(t, consulta);
+    var apagados = /excluido_em=not\.is\.null/.test(consulta);
+    return baixarDoCofre(t, apagados).then(function (doCofre) {
+      if (t !== 'empreendedor_registros') return doCofre;
+      return baixarTudo(t, consulta).catch(function (e) {
+        if (ehTabelaQueFalta(e)) return [];
+        throw e;
+      }).then(function (abertas) {
+        var vistos = {};
+        var saida = [];
+        (abertas || []).forEach(function (l) {
+          if (apagados || linhaFicaAberta(t, l)) { vistos[String(l.id)] = true; saida.push(l); }
+        });
+        doCofre.forEach(function (l) { if (!vistos[String(l.id)]) saida.push(l); });
+        return saida;
+      });
+    });
+  }
+
+  function baixarTabelaPorPulo(t, consulta, ordem) {
+    if (!cofreLigado()) return baixarTudoPorPulo(t, consulta, ordem);
+    return baixarDoCofre(t, false);
+  }
+
+  // Marca como apagadas (lote de ids de uma tabela).
+  function marcarApagadosNaNuvem(t, ids, agora) {
+    var aberto = function () {
+      var lista = ids.map(function (id) { return '"' + String(id).replace(/"/g, '') + '"'; }).join(',');
+      return pedirNuvem('/rest/v1/' + t + '?id=in.(' + encodeURIComponent(lista) + ')', {
+        metodo: 'PATCH', corpo: { excluido_em: agora }, cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    };
+    if (!cofreLigado()) return aberto();
+    var listaC = ids.map(function (id) { return '"' + (t + '|' + String(id)).replace(/"/g, '') + '"'; }).join(',');
+    var feito = pedirNuvem('/rest/v1/cofre?id=in.(' + encodeURIComponent(listaC) + ')', {
+      metodo: 'PATCH', corpo: { excluido_em: agora, dados: '' }, cabecalhos: { 'Prefer': 'return=minimal' }
+    });
+    return t === 'empreendedor_registros' ? feito.then(aberto) : feito;
+  }
+
+  // Orçamentos e categorias trocam inteiros a cada envio.
+  function limparTabelaNaNuvem(t, uid) {
+    if (cofreLigado()) {
+      return pedirNuvem('/rest/v1/cofre?tabela=eq.' + encodeURIComponent(t), { metodo: 'DELETE' });
+    }
+    return pedirNuvem('/rest/v1/' + t + '?user_id=eq.' + uid, { metodo: 'DELETE' });
+  }
+
+  function ehColunaQueFalta(e) {
+    var codigo = String((e && e.codigo) || '');
+    var msg = String((e && e.message) || '');
+    return codigo === '42703' || codigo === 'PGRST204' || /column .* does not exist|could not find the .* column/i.test(msg);
+  }
+
+  // Antes de cada sincronia: o cofre desta conta existe? A chave está aqui?
+  function prepararCofre() {
+    if (faltaNoBanco['cofre']) return Promise.resolve();
+    var uid = sessaoNuvem.usuario.id;
+    return pedirNuvem('/rest/v1/perfis?select=cofre&id=eq.' + encodeURIComponent(uid), {}).then(function (r) {
+      var info = r && r[0] ? r[0].cofre : null;
+      cofre.lido = true;
+      if (!info || !info.kdf || !info.chave) {
+        cofre.info = null; cofre.ativo = false; cofre.chave = null;
+        talvezPedirCriarCofre();
+        return;
+      }
+      cofre.info = info;
+      cofre.ativo = true;
+      if (cofre.chave && cofre.sal === info.kdf.sal) return;
+      return lerChaveDoCofre(info.kdf.sal).then(function (k) {
+        if (k) { cofre.chave = k; cofre.sal = info.kdf.sal; return; }
+        cofre.chave = null;
+        abrirSenhaDoCofre();
+        var e = new Error('Digite a senha dos dados para sincronizar.');
+        e.trancado = true;
+        throw e;
+      });
+    }).catch(function (e) {
+      if (e && e.trancado) throw e;
+      if (ehColunaQueFalta(e) || ehTabelaQueFalta(e)) { faltaNoBanco['cofre'] = true; return; }
+      throw e;
+    });
+  }
+
+  // Cria o cofre: só depois de uma sincronia boa (o estado daqui é o da
+  // nuvem), e só se outro aparelho não criou antes.
+  function criarCofre(senha) {
+    var uid = sessaoNuvem.usuario.id;
+    var sal = paraBase64(bytesAleatorios(16));
+    var cm = null, info = null;
+    return sincronizar(true).then(function () {
+      if (falhaDaSincronia) throw new Error('Sincronize antes de criar a senha: ' + (falhaDaSincronia.mensagem || 'a nuvem não respondeu.'));
+      return novaChaveMestra();
+    }).then(function (k) {
+      cm = k;
+      return embrulhar(cm, senha, sal);
+    }).then(function (env) {
+      info = { versao: 1, kdf: { nome: 'PBKDF2', hash: 'SHA-256', voltas: 210000, sal: sal },
+               cifra: 'AES-GCM', chave: env, criadoEm: new Date().toISOString() };
+      return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid) + '&cofre=is.null', {
+        metodo: 'PATCH', corpo: { cofre: info }, cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/perfis?select=cofre&id=eq.' + encodeURIComponent(uid), {});
+    }).then(function (r) {
+      var la = r && r[0] ? r[0].cofre : null;
+      if (!la || !la.kdf || la.kdf.sal !== sal) {
+        var e = new Error('Outro aparelho já criou a senha dos dados. Use a senha que você criou lá.');
+        e.jaExiste = true;
+        throw e;
+      }
+      cofre.info = info; cofre.ativo = true; cofre.chave = cm; cofre.sal = sal;
+      return guardarChaveDoCofre(cm, sal);
+    }).then(function () {
+      // Tudo sobe de novo, agora cifrado.
+      estado.pendente = true;
+      comMotivo('você criou a senha dos dados: tudo passa a subir cifrado');
+      return salvar(true);
+    }).then(function () { return sincronizar(true); });
+  }
+
+  function destrancarCofre(senha) {
+    var info = cofre.info;
+    if (!info) return Promise.reject(new Error('sem cofre'));
+    return desembrulhar(info.chave, senha, info.kdf.sal).then(function (cm) {
+      cofre.chave = cm; cofre.sal = info.kdf.sal;
+      return guardarChaveDoCofre(cm, info.kdf.sal);
+    });
+  }
+
+  // Perdeu a senha: apaga o que está cifrado na nuvem, para recomeçar.
+  function apagarCofreDaNuvem() {
+    var uid = sessaoNuvem.usuario.id;
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/cofre?user_id=eq.' + encodeURIComponent(uid), { metodo: 'DELETE' });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/instantaneos?user_id=eq.' + encodeURIComponent(uid), { metodo: 'DELETE' }).catch(function () { return null; });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/arquivos_extrato?user_id=eq.' + encodeURIComponent(uid), { metodo: 'DELETE' }).catch(function () { return null; });
+    }).then(function () {
+      return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+        metodo: 'PATCH', corpo: { cofre: null }, cabecalhos: { 'Prefer': 'return=minimal' }
+      });
+    }).then(function () {
+      esquecerChaveDoCofre();
+      estado.carimbo = '';
+    });
+  }
+
+  // O perfil aberto, com tudo no padrão: é o que fica na tabela antiga
+  // depois da conversão.
+  function perfilNeutro(uid) {
+    var guardado = estado;
+    var p;
+    try { estado = estadoPadrao(); p = perfilParaLinha(uid); }
+    finally { estado = guardado; }
+    delete p.id;
+    return semColunas([p], faltaNoBanco['colunas:perfis'] || [])[0];
+  }
+
+  // Depois que tudo subiu cifrado: confere que o cofre abre e tem tudo, e
+  // só então apaga as linhas abertas das tabelas antigas.
+  function converterParaOCofre() {
+    if (!cofreLigado() || !cofre.info || cofre.info.convertido || convertendoCofre) return Promise.resolve(false);
+    if (!sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
+    convertendoCofre = true;
+    var uid = sessaoNuvem.usuario.id;
+    var linhas = linhasDoEstado(uid);
+    var faltou = 0;
+    var tarefa = comTokenValido();
+    TABELAS_SINCRONIA.forEach(function (t) {
+      tarefa = tarefa.then(function () { return baixarDoCofre(t, false); }).then(function (r) {
+        var tem = {};
+        (r || []).forEach(function (l) { tem[String(l.id)] = true; });
+        (linhas[t] || []).forEach(function (l) { if (!linhaFicaAberta(t, l) && !tem[String(l.id)]) faltou++; });
+      });
+    });
+    tarefa = tarefa.then(function () { return baixarDoCofre('perfis', false); })
+      .then(function (r) { if (!r || !r.length) faltou++; });
+    return tarefa.then(function () {
+      if (faltou) throw new Error('o cofre ainda não tem ' + faltou + ' registro(s)');
+      var t2 = Promise.resolve();
+      var apagar = function (t, filtro) {
+        t2 = t2.then(function () {
+          return pedirNuvem('/rest/v1/' + t + '?' + filtro, { metodo: 'DELETE' });
+        }).catch(function (e) { if (ehTabelaQueFalta(e)) return null; throw e; });
+      };
+      TABELAS_SINCRONIA.slice().reverse().forEach(function (t) {
+        if (t !== 'empreendedor_registros') { apagar(t, 'user_id=eq.' + uid); return; }
+        // Do Empreendedor, só o que não está compartilhado.
+        t2 = t2.then(function () {
+          return baixarTudo(t, 'select=id,tipo&user_id=eq.' + uid).catch(function (e) {
+            if (ehTabelaQueFalta(e)) return [];
+            throw e;
+          });
+        }).then(function (r) {
+          var ids = (r || []).filter(function (l) { return !linhaFicaAberta(t, l); }).map(function (l) { return String(l.id); });
+          var g = Promise.resolve();
+          for (var i = 0; i < ids.length; i += 80) {
+            (function (parte) {
+              g = g.then(function () {
+                var lista = parte.map(function (x) { return '"' + x.replace(/"/g, '') + '"'; }).join(',');
+                return pedirNuvem('/rest/v1/' + t + '?id=in.(' + encodeURIComponent(lista) + ')', { metodo: 'DELETE' });
+              });
+            })(ids.slice(i, i + 80));
+          }
+          return g;
+        });
+      });
+      ['orcamentos', 'categorias_extras', 'subcategorias_extras'].forEach(function (t) { apagar(t, 'user_id=eq.' + uid); });
+      t2 = t2.then(function () {
+        return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+          metodo: 'PATCH', corpo: perfilNeutro(uid), cabecalhos: { 'Prefer': 'return=minimal' }
+        });
+      }).then(function () {
+        var info = JSON.parse(JSON.stringify(cofre.info));
+        info.convertido = new Date().toISOString();
+        return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+          metodo: 'PATCH', corpo: { cofre: info }, cabecalhos: { 'Prefer': 'return=minimal' }
+        }).then(function () { cofre.info = info; });
+      });
+      return t2;
+    }).then(function () {
+      convertendoCofre = false;
+      anotarNoHistorico('seus dados na nuvem passaram a ficar só cifrados', false);
+      return true;
+    }).catch(function () {
+      // Tenta de novo na próxima sincronia. Nada aberto foi apagado antes
+      // de o cofre provar que tem tudo.
+      convertendoCofre = false;
+      return false;
+    });
+  }
+
+  // ---------- Cofre: as telas ----------
+
+  var INFO_COFRE = [
+    'Com a senha dos dados, tudo o que vai para a nuvem sai do seu celular já cifrado. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+    'A senha nunca sai do celular. Em cada aparelho novo, o app pede a senha uma vez.',
+    'Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais. Aí você pode apagar a nuvem e recomeçar, ou restaurar um backup .finanz.',
+    'O servidor continua vendo só o mínimo: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.'
+  ];
+
+  var pediuCriarCofre = false;
+  function talvezPedirCriarCofre() {
+    if (pediuCriarCofre || cofre.ativo) return;
+    if (navigator.webdriver) {
+      var querTeste = false;
+      try { querTeste = localStorage.getItem('finanz.cofre.teste') === '1'; } catch (e) { querTeste = false; }
+      if (!querTeste) return;
+    }
+    pediuCriarCofre = true;
+    var tentar = function () {
+      // Não passa por cima das boas-vindas nem de uma folha aberta.
+      if (document.querySelector('.boas-vindas') || $('folha').classList.contains('aberta')) { setTimeout(tentar, 1500); return; }
+      if (cofre.ativo) return;
+      abrirCriarCofre();
+    };
+    setTimeout(tentar, 800);
+  }
+
+  function campoDeSenha(classe, dica, nova) {
+    var i = no('input', 'entrada ' + classe);
+    i.type = 'password';
+    i.autocomplete = nova ? 'new-password' : 'current-password';
+    if (dica) i.placeholder = dica;
+    return i;
+  }
+
+  function abrirCriarCofre() {
+    abrirFolha('Proteja seus dados', function (folha) {
+      var forma = no('div', 'forma');
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Crie a senha dos dados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      forma.appendChild(topo);
+      forma.appendChild(no('p', 'linha-sub', 'Com ela, seus dados vão para a nuvem embaralhados, e só você consegue abrir. Guarde bem: esquecendo, não tem como recuperar.'));
+      var s1 = campoDeSenha('campo-senha-dados', 'Pelo menos 8 caracteres', true);
+      var s2 = campoDeSenha('campo-senha-dados2', 'Repita a senha', true);
+      forma.appendChild(campo('Senha dos dados', s1));
+      forma.appendChild(campo('Repita a senha', s2));
+      var acoes = no('div', 'acoes');
+      var criar = botao('btn btn-ouro botao-criar-cofre', 'Criar a senha e cifrar tudo', function () {
+        if (s1.value.length < 8) { mostrarErro(forma, 'A senha precisa de pelo menos 8 caracteres.'); return; }
+        if (s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas não são iguais.'); return; }
+        criar.disabled = true; criar.textContent = 'Cifrando seus dados…';
+        criarCofre(s1.value).then(function () {
+          fecharFolha();
+          setTimeout(function () {
+            avisarCaixa('Seus dados estão cifrados', 'Pronto. Daqui para a frente, tudo vai para a nuvem embaralhado com a sua senha, e o que estava lá aberto foi convertido. Em outro aparelho, o app vai pedir a senha uma vez.');
+            desenhar();
+          }, 260);
+        }).catch(function (e) {
+          criar.disabled = false; criar.textContent = 'Criar a senha e cifrar tudo';
+          if (e && e.jaExiste) {
+            fecharFolha();
+            setTimeout(function () { prepararCofre().catch(function () { /* abre a senha */ }); }, 260);
+            return;
+          }
+          mostrarErro(forma, (e && e.message) || 'Não consegui criar a senha agora.');
+        });
+      });
+      var depois = botao('btn btn-fantasma', 'Agora não', function () { fecharFolha(); });
+      juntar(acoes, depois, criar);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  var pediuSenhaDoCofre = false;
+  function abrirSenhaDoCofre(deNovo) {
+    if (pediuSenhaDoCofre && !deNovo) return;
+    pediuSenhaDoCofre = true;
+    var abrir = function () {
+      if (document.querySelector('.boas-vindas')) { setTimeout(abrir, 1500); return; }
+      abrirFolha('Senha dos dados', function (folha) {
+        var forma = no('div', 'forma');
+        var topo = no('div', 'cartao-topo');
+        juntar(topo, no('div', 'rotulo', 'Seus dados estão cifrados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+        forma.appendChild(topo);
+        forma.appendChild(no('p', 'linha-sub', 'Digite a senha dos dados para abrir o que está na nuvem neste aparelho. Ela é pedida uma vez só.'));
+        var s1 = campoDeSenha('campo-senha-dados', '', false);
+        forma.appendChild(campo('Senha dos dados', s1));
+        var acoes = no('div', 'acoes');
+        var abrirB = botao('btn btn-ouro botao-abrir-cofre', 'Abrir meus dados', function () {
+          if (!s1.value) { mostrarErro(forma, 'Digite a senha.'); return; }
+          abrirB.disabled = true; abrirB.textContent = 'Abrindo…';
+          destrancarCofre(s1.value).then(function () {
+            fecharFolha();
+            avisar('Dados abertos neste aparelho.');
+            setTimeout(function () { sincronizar(false); }, 260);
+          }).catch(function () {
+            abrirB.disabled = false; abrirB.textContent = 'Abrir meus dados';
+            mostrarErro(forma, 'Senha errada.');
+          });
+        });
+        acoes.appendChild(abrirB);
+        forma.appendChild(acoes);
+        var esqueci = botao('link-ouro botao-esqueci-cofre', 'Esqueci a senha', function () { esqueciSenhaDoCofre(); });
+        esqueci.style.marginTop = '14px';
+        forma.appendChild(esqueci);
+        folha.appendChild(forma);
+        setTimeout(function () { try { s1.focus(); } catch (e) { /* teclado */ } }, 300);
+      });
+    };
+    abrir();
+  }
+
+  function esqueciSenhaDoCofre() {
+    perguntar({
+      titulo: 'Esqueceu a senha dos dados?',
+      texto: 'Sem a senha, os dados cifrados na nuvem não abrem mais. Ninguém consegue abrir: nem você, nem quem administra o servidor.\n\n' +
+             'Você pode apagar o que está na nuvem e recomeçar com uma senha nova (o que está neste aparelho continua aqui, e um backup .finanz pode ser restaurado depois). ' +
+             'Ou deixar como está, para tentar de novo se lembrar.',
+      ok: 'Apagar a nuvem', cancelar: 'Deixar como está', tom: 'perigo'
+    }, function () {
+      setTimeout(function () {
+        perguntar({
+          titulo: 'Apagar de vez?',
+          texto: 'Os dados cifrados, as cópias automáticas e os arquivos de extrato da sua conta saem da nuvem. Isso não tem volta.',
+          ok: 'Apagar de vez', tom: 'perigo'
+        }, function () {
+          apagarCofreDaNuvem().then(function () {
+            fecharFolha();
+            pediuCriarCofre = false;
+            pediuSenhaDoCofre = false;
+            avisar('A nuvem foi apagada. Crie uma senha nova.');
+            setTimeout(abrirCriarCofre, 400);
+          }).catch(function () {
+            avisarCaixa('Não consegui apagar agora', 'Confira a internet e tente de novo.');
+          });
+        });
+      }, 260);
+    });
+  }
+
+  function trocarSenhaDoCofre() {
+    abrirFolha('Trocar a senha dos dados', function (folha) {
+      var forma = no('div', 'forma');
+      var atual = campoDeSenha('campo-senha-atual', '', false);
+      var s1 = campoDeSenha('campo-senha-dados', 'Pelo menos 8 caracteres', true);
+      var s2 = campoDeSenha('campo-senha-dados2', 'Repita a senha nova', true);
+      forma.appendChild(campo('Senha atual', atual));
+      forma.appendChild(campo('Senha nova', s1));
+      forma.appendChild(campo('Repita a senha nova', s2));
+      var acoes = no('div', 'acoes');
+      var ok = botao('btn btn-ouro', 'Trocar a senha', function () {
+        if (s1.value.length < 8) { mostrarErro(forma, 'A senha nova precisa de pelo menos 8 caracteres.'); return; }
+        if (s1.value !== s2.value) { mostrarErro(forma, 'As duas senhas novas não são iguais.'); return; }
+        ok.disabled = true; ok.textContent = 'Trocando…';
+        var info = cofre.info, sal = paraBase64(bytesAleatorios(16)), uid = sessaoNuvem.usuario.id;
+        desembrulhar(info.chave, atual.value, info.kdf.sal).then(function (cm) {
+          return embrulhar(cm, s1.value, sal).then(function (env) {
+            var novo = JSON.parse(JSON.stringify(info));
+            novo.kdf.sal = sal; novo.chave = env; novo.trocadaEm = new Date().toISOString();
+            return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
+              metodo: 'PATCH', corpo: { cofre: novo }, cabecalhos: { 'Prefer': 'return=minimal' }
+            }).then(function () {
+              cofre.info = novo; cofre.chave = cm; cofre.sal = sal;
+              return guardarChaveDoCofre(cm, sal);
+            });
+          });
+        }, function () { throw new Error('A senha atual está errada.'); }).then(function () {
+          fecharFolha();
+          avisar('Senha dos dados trocada.');
+        }).catch(function (e) {
+          ok.disabled = false; ok.textContent = 'Trocar a senha';
+          mostrarErro(forma, (e && e.message) || 'Não consegui trocar agora.');
+        });
+      });
+      acoes.appendChild(ok);
+      forma.appendChild(acoes);
+      folha.appendChild(forma);
+    });
+  }
+
+  function textoDoCofre() {
+    if (!NUVEM.ligada || !sessaoNuvem) return 'Só com a conta na nuvem';
+    if (faltaNoBanco['cofre']) return 'O servidor ainda não tem o cofre';
+    if (cofreLigado()) return 'Ligada: seus dados sobem cifrados';
+    if (cofreTrancado()) return 'Trancado neste aparelho: toque para digitar';
+    return 'Proteja seus dados com uma senha';
+  }
+
+  function abrirFolhaCofre() {
+    if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Senha dos dados', 'A senha dos dados protege o que vai para a nuvem. Entre na sua conta para usar.'); return; }
+    if (faltaNoBanco['cofre']) { avisarCaixa('Ainda não dá', 'O servidor ainda não recebeu a atualização do cofre. Tente de novo mais tarde.'); return; }
+    if (cofreTrancado()) { abrirSenhaDoCofre(true); return; }
+    if (!cofre.ativo) { abrirCriarCofre(); return; }
+    abrirFolha('Senha dos dados', function (folha) {
+      var c = cartao();
+      var topo = no('div', 'cartao-topo');
+      juntar(topo, no('div', 'rotulo', 'Criptografia de ponta a ponta'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      c.appendChild(topo);
+      c.appendChild(no('div', 'linha-nota verde estado-cofre', cofre.info && cofre.info.convertido
+        ? 'Ligada ✓ Tudo o que está na nuvem está cifrado com a sua senha.'
+        : 'Ligada ✓ Seus dados estão sendo convertidos; termina na próxima sincronização.'));
+      folha.appendChild(c);
+      var acoes = no('div', 'acoes');
+      acoes.appendChild(botao('btn btn-fantasma', 'Trocar a senha', function () { trocarSenhaDoCofre(); }));
+      folha.appendChild(acoes);
     });
   }
 
@@ -7107,8 +7681,17 @@
 
   var LOTE_DE_ENVIO = 400;
 
-  function enviarLinhas(tabela, linhas, aoConflito) {
+  function enviarLinhas(tabela, linhas, aoConflito, direto) {
     if (!linhas.length) return Promise.resolve();
+    if (!direto && cofreLigado()) {
+      // Com o cofre, tudo sobe cifrado; só o Empreendedor compartilhado
+      // segue aberto, na tabela de sempre.
+      var abertas = linhas.filter(function (l) { return linhaFicaAberta(tabela, l); });
+      var fechadas = abertas.length ? linhas.filter(function (l) { return !linhaFicaAberta(tabela, l); }) : linhas;
+      return enviarAoCofre(tabela, fechadas, aoConflito).then(function () {
+        return abertas.length ? enviarLinhas(tabela, abertas, aoConflito, true) : null;
+      });
+    }
     if (faltaNoBanco['tabela:' + tabela]) return Promise.resolve();
     // Milhares de linhas num pedido só pesam no celular e, se a rede cair
     // no meio, perdem tudo. Em lotes, cada um sobe por conta própria.
@@ -7116,7 +7699,7 @@
       var lotes = [];
       for (var i = 0; i < linhas.length; i += LOTE_DE_ENVIO) lotes.push(linhas.slice(i, i + LOTE_DE_ENVIO));
       return lotes.reduce(function (antes, lote) {
-        return antes.then(function () { return enviarLinhas(tabela, lote, aoConflito); });
+        return antes.then(function () { return enviarLinhas(tabela, lote, aoConflito, direto); });
       }, Promise.resolve());
     }
     var tirar = faltaNoBanco['colunas:' + tabela] || [];
@@ -7132,7 +7715,7 @@
       var faltando = oQueFaltou(e, tabela);
       if (faltando) {
         faltaNoBanco['colunas:' + tabela] = tirar.concat(faltando);
-        return enviarLinhas(tabela, linhas, aoConflito);
+        return enviarLinhas(tabela, linhas, aoConflito, direto);
       }
       // Tabela que ainda não existe: some desta sincronia, volta na próxima
       // sessão, depois de a migração rodar.
@@ -7199,13 +7782,8 @@
       return lotes.reduce(function (antes, lote) {
         return antes.then(function () {
           if (faltaNoBanco['tabela:' + lote.t]) return null;
-          var lista = lote.ids.map(function (id) { return '"' + String(id).replace(/"/g, '') + '"'; }).join(',');
           return comTentativas(function () {
-            return pedirNuvem('/rest/v1/' + lote.t + '?id=in.(' + encodeURIComponent(lista) + ')', {
-              metodo: 'PATCH',
-              corpo: { excluido_em: agora },
-              cabecalhos: { 'Prefer': 'return=minimal' }
-            });
+            return marcarApagadosNaNuvem(lote.t, lote.ids, agora);
           }).then(function () {
             var feitos = {};
             lote.ids.forEach(function (id) { feitos[lote.t + '|' + id] = true; });
@@ -7240,14 +7818,14 @@
     // Orçamento por categoria e categorias criadas na mão: troca tudo,
     // porque a chave é composta e some quando a pessoa desmarca.
     tarefa = tarefa.then(function () {
-      return pedirNuvem('/rest/v1/orcamentos?user_id=eq.' + uid, { metodo: 'DELETE' });
+      return limparTabelaNaNuvem('orcamentos', uid);
     }).then(function () {
       var linhasOrc = Object.keys(estado.orcamentos.categorias).map(function (c) {
         return { user_id: uid, categoria: c, valor: estado.orcamentos.categorias[c] };
       });
       return enviarLinhas('orcamentos', linhasOrc, 'user_id,categoria');
     }).then(function () {
-      return pedirNuvem('/rest/v1/categorias_extras?user_id=eq.' + uid, { metodo: 'DELETE' });
+      return limparTabelaNaNuvem('categorias_extras', uid);
     }).then(function () {
       var extras = [];
       ['saida', 'entrada'].forEach(function (tipo) {
@@ -7258,7 +7836,7 @@
       return enviarLinhas('categorias_extras', extras, 'user_id,tipo,nome');
     }).then(function () {
       if (faltaNoBanco['tabela:subcategorias_extras']) return null;
-      return pedirNuvem('/rest/v1/subcategorias_extras?user_id=eq.' + uid, { metodo: 'DELETE' })
+      return limparTabelaNaNuvem('subcategorias_extras', uid)
         .catch(function () { return null; });
     }).then(function () {
       var subs = [];
@@ -7365,12 +7943,13 @@
     var recolhido = {};
 
     var tarefa = comTokenValido().then(function () {
+      if (cofreLigado()) return baixarDoCofre('perfis', false);
       return pedirNuvem('/rest/v1/perfis?select=*', {});
     }).then(function (r) { recolhido.perfis = r || []; });
 
     TABELAS_SINCRONIA.forEach(function (t) {
       tarefa = tarefa.then(function () {
-        return baixarTudo(t, 'select=*&excluido_em=is.null').catch(function (e) {
+        return baixarTabela(t, 'select=*&excluido_em=is.null').catch(function (e) {
           // Tabela que ainda não existe lá: null quer dizer "não sei", e o
           // que está no aparelho fica como está.
           if (TABELAS_OPCIONAIS.indexOf(t) >= 0 && ehTabelaQueFalta(e)) {
@@ -7386,21 +7965,21 @@
     // É o que separa "apagado em outro aparelho" de "ainda não subiu".
     tarefa = tarefa.then(function () {
       if (recolhido.empreendedor_registros == null) return;
-      return baixarTudo('empreendedor_registros', 'select=id&excluido_em=not.is.null')
+      return baixarTabela('empreendedor_registros', 'select=id&excluido_em=not.is.null')
         .then(function (r) { recolhido.empreendedorApagados = r || []; })
         .catch(function () { recolhido.empreendedorApagados = null; });
     });
 
     tarefa = tarefa.then(function () {
-      return baixarTudoPorPulo('orcamentos', 'select=*', 'categoria.asc');
+      return baixarTabelaPorPulo('orcamentos', 'select=*', 'categoria.asc');
     }).then(function (r) { recolhido.orcamentos = r || []; })
       .then(function () {
-        return baixarTudoPorPulo('categorias_extras', 'select=*', 'tipo.asc,nome.asc');
+        return baixarTabelaPorPulo('categorias_extras', 'select=*', 'tipo.asc,nome.asc');
       })
       .then(function (r) { recolhido.categorias_extras = r || []; })
       // Banco sem a migração nova: volta vazio em vez de derrubar a leitura.
       .then(function () {
-        return baixarTudoPorPulo('subcategorias_extras', 'select=*',
+        return baixarTabelaPorPulo('subcategorias_extras', 'select=*',
           'tipo.asc,categoria.asc,nome.asc').catch(function () { return []; });
       })
       .then(function (r) { recolhido.subcategorias_extras = r || []; });
@@ -7779,6 +8358,7 @@
   }
 
   function copiaDoDiaUmaVez() {
+    converterParaOCofre();
     if (instantaneoTentado) return;
     instantaneoTentado = true;
     guardarInstantaneoDoDia().then(function () { recuperarModulosDasCopias(); });
@@ -7852,6 +8432,8 @@
 
     return comTokenValido().then(function () {
       return carregarCompartilhamentos();
+    }).then(function () {
+      return prepararCofre();
     }).then(function () {
       return carimboDaConta();
     }).then(function (carimbo) {
@@ -7955,6 +8537,8 @@
       });
     }).catch(function (e) {
       sincronizando = false;
+      // Cofre trancado não é falha: espera a senha.
+      if (e && e.trancado) { if (!silenciosa) avisar(e.message); return false; }
       var f = marcarFalhaDeSincronia(e);
       agendarNovaTentativa(f.seguidas);
       if (!silenciosa) { avisar('Não sincronizou: ' + f.mensagem); return false; }
@@ -27789,6 +28373,7 @@
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
       ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias],
+      ['🔐', 'Senha dos dados', textoDoCofre(), abrirFolhaCofre],
       ['🔒', 'Como seus dados são protegidos', 'Onde ficam, como o app lê os extratos e o que nunca acontece', function () { abrirBoasVindas(true); }]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha', null, o[3]);
@@ -34787,7 +35372,7 @@
         var filtro = t === 'empreendedor_registros'
           ? 'select=id,tipo&excluido_em=is.null&user_id=eq.' + uidAqui
           : 'select=id&excluido_em=is.null';
-        return baixarTudo(t, filtro).catch(function (e) {
+        return baixarTabela(t, filtro).catch(function (e) {
           if (TABELAS_OPCIONAIS.indexOf(t) >= 0 && ehTabelaQueFalta(e)) return [];
           throw e;
         });
