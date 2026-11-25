@@ -8,6 +8,8 @@
 // Até a 5.16.1 esta opção não apagava nada numa conta com nuvem: esvaziava
 // o aparelho, e a sincronização seguinte baixava tudo de volta em quatro
 // segundos. O app dizia "Tudo apagado" e os dados reapareciam na tela.
+// 25/11/2026: o backup na nuvem só existe com a senha dos dados; aqui ela
+// é criada sozinha ('finanz.cofre.auto'), sem tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -55,15 +57,16 @@ const naConta = async () => page.evaluate(async () => {
     const j = await r.json();
     return Array.isArray(j) ? j : [];
   };
+  // Com o cofre, a nuvem vai cifrada: o gancho de teste lê como o app lê.
   return {
-    lancamentos: (await pegar('lancamentos', 'select=id&excluido_em=is.null')).length,
-    contas: (await pegar('contas', 'select=id&excluido_em=is.null')).length,
-    copias: (await pegar('instantaneos', 'select=motivo')).map((i) => i.motivo)
+    lancamentos: (await window.__finanzTeste.tabela('lancamentos')).length,
+    contas: (await window.__finanzTeste.tabela('contas')).length,
+    copias: (await window.__finanzTeste.copias()).map((i) => i.motivo)
   };
 });
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);

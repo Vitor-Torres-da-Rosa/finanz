@@ -10,6 +10,8 @@
 //
 // A segunda parte é a rede que não depende deste aparelho: entrando numa
 // conta vazia, se a nuvem tiver cópia, o app oferece voltar para ela.
+// 25/11/2026: o backup na nuvem só existe com a senha dos dados; aqui ela
+// é criada sozinha ('finanz.cofre.auto'), sem tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -62,11 +64,8 @@ const totalEmContas = async () => {
 const copias = async () => page.evaluate(async () => {
   const pac = localStorage.getItem('caixa.nuvem.v4');
   if (!pac) return [];
-  const tok = JSON.parse(pac).access_token;
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/instantaneos?select=motivo,resumo,criado_em', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });
-  return (await r.json()).map((i) => i.motivo);
+  // Com o cofre, a cópia vai cifrada: o gancho de teste lê como o app lê.
+  return (await window.__finanzTeste.copias()).map((i) => i.motivo);
 });
 
 let emailDaConta = '';
@@ -84,7 +83,7 @@ async function criarConta(marca) {
 }
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await criarConta('t113');
 
@@ -133,8 +132,9 @@ const apagados = await page.evaluate(async () => {
   const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok };
   const uid = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).usuario.id;
   const fora = [];
+  // Com o cofre, os dados moram na tabela cofre.
   for (const t of ['lancamentos', 'contas']) {
-    const r = await fetch(cfg.supabaseUrl + '/rest/v1/' + t + '?user_id=eq.' + uid,
+    const r = await fetch(cfg.supabaseUrl + '/rest/v1/cofre?tabela=eq.' + t,
       { method: 'DELETE', headers: cab });
     fora.push(t + ':' + r.status);
   }
@@ -143,14 +143,18 @@ const apagados = await page.evaluate(async () => {
 console.log('linhas vivas apagadas ·', apagados);
 
 // E apago TUDO do aparelho, como quem reinstala o app ou troca de celular.
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-contorno:has-text("Entrar na minha conta")'); await page.waitForTimeout(1200);
 const campos = page.locator('.ent-campo input');
 await campos.nth(0).fill(emailDaConta);
 await campos.nth(1).fill('senha123');
-await page.click('.btn-dourado:has-text("Entrar")'); await page.waitForTimeout(12000);
+await page.click('.btn-dourado:has-text("Entrar")');
+// A conta tem a senha dos dados: o aparelho novo pede uma vez.
+await page.waitForSelector('#folha .botao-abrir-cofre', { timeout: 30000 });
+await page.fill('#folha .campo-senha-dados', 'senha-do-cofre-123');
+await page.click('#folha .botao-abrir-cofre'); await page.waitForTimeout(12000);
 const tituloConvite = limpo(await page.textContent('#dialogoTitulo').catch(() => ''));
 const convite = limpo(await page.textContent('#dialogoTexto').catch(() => ''));
 console.log('convite:', tituloConvite, '|', convite.slice(0, 200));

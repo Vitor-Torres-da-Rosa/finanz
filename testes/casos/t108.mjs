@@ -9,6 +9,8 @@
 // Pedido dele: "um backup automático 1 vez por dia por conta, guardado
 // de até 2 semanas, e a pessoa só chega ali, escolhe a data de
 // recuperação e recupera tudo na nuvem".
+// 25/11/2026: o backup na nuvem só existe com a senha dos dados; aqui ela
+// é criada sozinha ('finanz.cofre.auto'), sem tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -56,14 +58,16 @@ const instantaneosNaNuvem = async () => page.evaluate(async () => {
   const pac = localStorage.getItem('caixa.nuvem.v4');
   if (!pac) return 'sem sessão';
   const tok = JSON.parse(pac).access_token;
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/instantaneos?select=*', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });
-  return (await r.json()).map((i) => ({ dia: i.dia, resumo: i.resumo, tamanho: i.tamanho, bytes: (i.dados || '').length }));
+  // Com o cofre, a cópia vai cifrada: o gancho de teste lê como o app lê
+  // (o resumo); o tamanho do que subiu vem da tabela, que já é o cifrado.
+  const cru = await (await fetch(window.FINANZ_CONFIG.supabaseUrl + '/rest/v1/instantaneos?select=id,dados', {
+    headers: { apikey: window.FINANZ_CONFIG.supabaseAnonKey, Authorization: 'Bearer ' + tok } })).json();
+  const bytes = {}; cru.forEach((i) => { bytes[i.id] = (i.dados || '').length; });
+  return (await window.__finanzTeste.copias()).map((i) => ({ dia: i.dia, resumo: i.resumo, tamanho: i.tamanho, bytes: bytes[i.id] }));
 });
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -162,11 +166,7 @@ const depoisDeRecarregar = await totalEmContas();
 conferir('11. recarregando, a nuvem devolve o estado bom',
   depoisDeRecarregar === '-R$ 320,00', depoisDeRecarregar);
 const naNuvem = await page.evaluate(async () => {
-  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).access_token;
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=nome&excluido_em=is.null', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });
-  return (await r.json()).map((x) => x.nome);
+  return (await window.__finanzTeste.tabela('contas')).map((x) => x.nome);
 });
 conferir('12. e no servidor só sobrou o Banco Inter',
   JSON.stringify(naNuvem) === JSON.stringify(['Banco Inter']), JSON.stringify(naNuvem));

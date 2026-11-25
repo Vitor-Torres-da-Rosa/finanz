@@ -2874,7 +2874,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.104.0';
+  var VERSAO = '5.105.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2883,6 +2883,16 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.105.0',
+      data: '2026-11-25',
+      itens: [
+        'Backup na nuvem agora é escolha sua: sem a senha dos dados, nenhuma cópia vai para a nuvem (nem das versões antigas do app: o servidor recusa cópia que não chegue cifrada). Para ligar, vá em Mais → Proteja seus dados → Backup na nuvem e crie a senha.',
+        'O app não pede mais sozinho para criar a senha dos dados.',
+        'O backup no celular (o arquivo .finanz, com senha própria) continua funcionando com ou sem a senha dos dados.',
+        'Num aparelho novo, depois de digitar a senha dos dados, o app volta a oferecer a cópia da nuvem quando a conta está vazia.'
+      ]
+    },
     {
       versao: '5.104.0',
       data: '2026-11-25',
@@ -7158,6 +7168,36 @@
     });
   }
 
+  // Só nos testes automáticos (navigator.webdriver): ler e gravar a nuvem
+  // como o app lê e grava, já cifrado ou decifrado. Com o cofre, ler as
+  // tabelas direto devolve só texto embaralhado.
+  if (navigator.webdriver) {
+    window.__finanzTeste = {
+      cofreLigado: function () { return cofreLigado(); },
+      copias: function () { return listarInstantaneos(); },
+      tabela: function (t, apagados) {
+        return comTokenValido().then(function () {
+          return baixarTabela(t, apagados ? 'select=id&excluido_em=not.is.null' : 'select=*&excluido_em=is.null');
+        });
+      },
+      dadosDaCopia: function (id) {
+        return pedirNuvem('/rest/v1/instantaneos?select=dados&id=eq.' + encodeURIComponent(id), {})
+          .then(function (r) { return textoDaCopia(r[0].dados); }).then(function (t) { return JSON.parse(t); });
+      },
+      // Cópias montadas pelo teste: o `dados` vai cifrado (base64 vira os
+      // bytes de verdade; texto solto vira os bytes do texto).
+      inserirCopias: function (linhas) {
+        return Promise.all(linhas.map(function (l) {
+          var bytes;
+          try { bytes = deBase64(l.dados); } catch (e) { bytes = new TextEncoder().encode(String(l.dados)); }
+          return cifrarParaOCofre(bytes).then(function (d) { var n = Object.assign({}, l); n.dados = d; return n; });
+        })).then(function (corpo) {
+          return pedirNuvem('/rest/v1/instantaneos', { metodo: 'POST', corpo: corpo, cabecalhos: { 'Prefer': 'return=minimal' } });
+        }).then(function () { return 201; }, function (e) { return 'erro: ' + (e && e.message); });
+      }
+    };
+  }
+
   // ---------- Cofre: as telas ----------
 
   var INFO_COFRE = [
@@ -7168,21 +7208,17 @@
   ];
 
   var pediuCriarCofre = false;
+  // A senha dos dados é escolha da pessoa (pedido de 25/11/2026): o app
+  // não pede sozinho. Quem quer o backup na nuvem vai em Proteja seus
+  // dados e liga. Nos testes automáticos, 'finanz.cofre.auto' cria a senha
+  // sem tela, para a suíte poder usar a nuvem cifrada.
   function talvezPedirCriarCofre() {
-    if (pediuCriarCofre || cofre.ativo) return;
-    if (navigator.webdriver) {
-      var querTeste = false;
-      try { querTeste = localStorage.getItem('finanz.cofre.teste') === '1'; } catch (e) { querTeste = false; }
-      if (!querTeste) return;
-    }
+    if (pediuCriarCofre || cofre.ativo || !navigator.webdriver) return;
+    var auto = '';
+    try { auto = localStorage.getItem('finanz.cofre.auto') || ''; } catch (e) { auto = ''; }
+    if (!auto) return;
     pediuCriarCofre = true;
-    var tentar = function () {
-      // Não passa por cima das boas-vindas nem de uma folha aberta.
-      if (document.querySelector('.boas-vindas') || $('folha').classList.contains('aberta')) { setTimeout(tentar, 1500); return; }
-      if (cofre.ativo) return;
-      abrirCriarCofre();
-    };
-    setTimeout(tentar, 800);
+    setTimeout(function () { criarCofre(auto).catch(function () { pediuCriarCofre = false; }); }, 300);
   }
 
   function campoDeSenha(classe, dica, nova) {
@@ -7253,7 +7289,9 @@
           destrancarCofre(s1.value).then(function () {
             fecharFolha();
             avisar('Dados abertos neste aparelho.');
-            setTimeout(function () { sincronizar(false); }, 260);
+            // Aberto o cofre, vale o que valeria logo depois de entrar: se a
+            // conta estiver vazia, oferecer a cópia da nuvem.
+            setTimeout(function () { sincronizar(false).then(function () { return convidarATrazer(); }); }, 260);
           }).catch(function () {
             abrirB.disabled = false; abrirB.textContent = 'Abrir meus dados';
             mostrarErro(forma, 'Senha errada.');
@@ -11266,7 +11304,7 @@
       ] },
       { id: 'backup', icone: 'cadeado', titulo: 'Backup e cópias', resumo: 'Para nunca perder nada', itens: [
         ['Backup com senha.', 'Um arquivo .finanz com tudo, cifrado com uma senha que você escolhe na hora. Sem ela, ninguém abre, nem o Finanz.'],
-        ['Cópias automáticas.', 'O app guarda sozinho uma cópia por dia dos últimos 14 dias, para voltar a uma data.'],
+        ['Backup na nuvem.', 'Com a senha dos dados criada, o app guarda sozinho uma cópia cifrada a cada mudança, por 14 dias, para voltar a uma data. Sem a senha, ele fica desligado.'],
         ['Histórico do saldo.', 'Cada mudança nos seus números fica anotada, com o motivo.']
       ] },
       { id: 'termos', icone: 'info', titulo: TEXTOS.termos.titulo, resumo: 'As regras de uso do app', itens:
@@ -36225,7 +36263,7 @@
   }
 
   var INFO_BACKUPS = [
-    'Na nuvem: o app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias. Com a senha dos dados ligada, essas cópias ficam cifradas com ela: sem a senha dos dados, ninguém abre, nem você.',
+    'Na nuvem: com a senha dos dados criada, o app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias, cifrada com essa senha. Sem a senha dos dados, o backup na nuvem fica desligado.',
     'No celular: o backup é um arquivo .finanz que você gera quando quiser e guarda onde preferir (no celular, no Drive, no e-mail). Ele tem uma senha própria, escolhida na hora, diferente da senha dos dados. Sem a senha do backup, ele também não abre.',
     'O app neste celular guarda ainda uma cópia de trabalho, que abre com o seu login. Esquecendo a senha dos dados, este celular continua com tudo: dá para apagar a nuvem, criar uma senha nova e subir de novo.',
     'Se perder o celular e a senha dos dados, o arquivo .finanz é a rede de segurança: num aparelho novo, restaure o arquivo e crie uma senha dos dados nova. Ele vale até a data em que foi gerado.',
@@ -36256,8 +36294,8 @@
       'Ela nunca sai do seu celular. Por isso ninguém além de você consegue ler o que está na nuvem: nem quem administra o servidor, nem o Supabase.',
       'É diferente da senha de entrar na conta e da senha do backup.']],
     ['O que é o backup na nuvem?', [
-      'O app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias. Serve para "voltar a uma data".',
-      'Com a senha dos dados ligada, essas cópias ficam cifradas com ela.']],
+      'Com a senha dos dados criada, o app guarda sozinho uma cópia inteira dos seus dados a cada mudança, mais uma por dia, por 14 dias. Serve para "voltar a uma data".',
+      'As cópias saem cifradas com a senha dos dados. Sem a senha criada, o backup na nuvem fica desligado: nenhuma cópia vai para a nuvem.']],
     ['O que é o backup no celular?', [
       'É um arquivo .finanz que você gera quando quiser e guarda onde preferir: no celular, no Drive, no e-mail.',
       'Ele tem uma senha própria, escolhida na hora de gerar. Sem ela, o arquivo não abre.',
@@ -36279,6 +36317,19 @@
       'As áreas do Empreendedor que você compartilha (Doces, Uber, Casa) a outra pessoa vê, porque é para isso que serve compartilhar.',
       'Por enquanto, essas áreas ficam legíveis também no servidor. A versão cifrada do compartilhado está a caminho.']]
   ];
+
+  function ligarBackupNaNuvem() {
+    if (!NUVEM.ligada || !sessaoNuvem) { avisarCaixa('Backup na nuvem', 'Entre na sua conta para usar o backup na nuvem.'); return; }
+    if (faltaNoBanco['cofre']) { avisarCaixa('Ainda não dá', 'O servidor ainda não recebeu a atualização do cofre. Tente de novo mais tarde.'); return; }
+    if (cofreTrancado()) { abrirSenhaDoCofre(true); return; }
+    perguntar({
+      titulo: 'Ligar o backup na nuvem?',
+      texto: 'O backup na nuvem guarda sozinho uma cópia dos seus dados a cada mudança, por 14 dias, para você poder voltar a uma data.\n\n' +
+             'Para ligar, você cria a senha dos dados: as cópias (e tudo o que vai para a nuvem) saem do celular cifradas com ela, e só você abre. ' +
+             'Não tem recuperação: guarde bem a senha.',
+      ok: 'Criar a senha e ligar', cancelar: 'Agora não'
+    }, function () { setTimeout(abrirCriarCofre, 260); });
+  }
 
   function resumoDaProtecao() {
     if (!NUVEM.ligada || !sessaoNuvem) return 'só com a conta na nuvem';
@@ -36304,10 +36355,12 @@
         : cofreLigado() ? 'Ligada ✓ tudo sobe cifrado com ela'
         : cofreTrancado() ? 'Trancada neste aparelho: toque para digitar'
         : 'Ainda não criada: toque para criar';
-      var subNuvem = no('div', 'linha-sub', semNuvem ? 'Entre na conta para usar' : 'Procurando as cópias…');
+      var nuvemLigada = !semNuvem && cofreLigado();
+      var subNuvem = no('div', 'linha-sub', semNuvem ? 'Entre na conta para usar'
+        : !nuvemLigada ? 'Desligado · toque para ligar (pede a senha dos dados)' : 'Procurando as cópias…');
       [
         ['🔐', 'Senha dos dados', no('div', 'linha-sub estado-senha-dados', estadoTxt), function () { abrirFolhaCofre(); }, 'botao-senha-dados'],
-        ['☁', 'Backup na nuvem', subNuvem, function () { abrirFolhaInstantaneos(); }, 'botao-backup-nuvem'],
+        ['☁', 'Backup na nuvem', subNuvem, function () { nuvemLigada ? abrirFolhaInstantaneos() : ligarBackupNaNuvem(); }, 'botao-backup-nuvem'],
         ['📱', 'Backup no celular', no('div', 'linha-sub', 'Arquivo .finanz · ' + resumoDosBackupsDoCelular().toLowerCase()), function () { abrirBackupNoCelular(); }, 'botao-backup-celular']
       ].forEach(function (o) {
         var l = botao('linha ' + o[4], null, o[3]);
@@ -36315,11 +36368,11 @@
         cx.appendChild(l);
       });
       cx.appendChild(no('div', 'linha-nota backup-nota', 'As senhas são diferentes: a nuvem abre com a senha dos dados; o arquivo do celular, com a senha do backup.'));
-      if (!semNuvem) {
+      if (nuvemLigada) {
         listarInstantaneos().then(function (lista) {
-          if (!lista.length) { subNuvem.textContent = 'Nenhuma cópia ainda'; return; }
+          if (!lista.length) { subNuvem.textContent = 'Ligado · a primeira cópia sai na próxima sincronização'; return; }
           var u = lista[0];
-          subNuvem.textContent = 'Automático · ' + lista.length + ' cópia(s) · última ' + (u.dia === hojeTexto() ? 'hoje' : dataBr(u.dia)) + ' às ' + horaDe(u.criado_em);
+          subNuvem.textContent = 'Ligado · ' + lista.length + ' cópia(s) · última ' + (u.dia === hojeTexto() ? 'hoje' : dataBr(u.dia)) + ' às ' + horaDe(u.criado_em);
         }).catch(function () { subNuvem.textContent = 'Sem conexão agora'; });
       }
       folha.appendChild(cx);
@@ -36574,7 +36627,9 @@
     return comTokenValido().then(function () {
       return cofrePronto();
     }).then(function () {
-      if (!podeSubirAvulso()) throw new Error('cofre trancado');
+      // Backup na nuvem só com a senha dos dados (pedido de 25/11/2026):
+      // sem ela, nada sobe. O servidor também recusa cópia aberta.
+      if (!cofreLigado()) throw new Error('sem a senha dos dados, o backup na nuvem fica desligado');
       return comprimirTexto(texto);
     }).then(function (c) {
       var linha = {

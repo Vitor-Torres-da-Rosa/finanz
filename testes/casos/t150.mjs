@@ -3,6 +3,8 @@
 // Conserto de uma vez só para o que sumiu em 02/11/2026: o app procura nas
 // cópias automáticas mais recentes o Uber e os Doces que não estão nem no
 // aparelho nem no servidor e devolve.
+// 25/11/2026: o backup na nuvem só existe com a senha dos dados; aqui ela
+// é criada sozinha ('finanz.cofre.auto'), sem tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -16,7 +18,7 @@ const conferir = (rotulo, ok, achado) => {
 const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -45,9 +47,9 @@ await page.evaluate(async (suf) => {
   };
   const texto = JSON.stringify(copia);
   const b64 = btoa(unescape(encodeURIComponent(texto)));
-  await fetch(cfg.supabaseUrl + '/rest/v1/instantaneos', { method: 'POST', headers: h,
-    body: JSON.stringify([{ id: 'inst-' + suf, user_id: pac.usuario.id, dia: new Date().toISOString().slice(0, 10),
-      motivo: 'alteração', resumo: 'teste', dados: b64, tamanho: texto.length }]) });
+  // O servidor só aceita cópia cifrada: o gancho de teste cifra como o app.
+  await window.__finanzTeste.inserirCopias([{ id: 'inst-' + suf, user_id: pac.usuario.id, dia: new Date().toISOString().slice(0, 10),
+      motivo: 'alteração', resumo: 'teste', dados: b64, tamanho: texto.length }]);
   await fetch(cfg.supabaseUrl + '/rest/v1/empreendedor_registros', { method: 'POST', headers: h,
     body: JSON.stringify([{ id: 'apagado-' + suf, user_id: pac.usuario.id, tipo: 'doce_produto',
       dados: { nome: 'Bolo apagado' }, excluido_em: new Date().toISOString() }]) });

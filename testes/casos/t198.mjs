@@ -38,10 +38,9 @@ await c.nth(0).fill('Vitor'); await c.nth(1).fill(email); await c.nth(3).fill('s
 await p1.click('.btn-dourado:has-text("Continuar")'); await p1.waitForTimeout(400);
 await p1.click('.btn-dourado:has-text("Continuar")'); await p1.waitForTimeout(400);
 await p1.click('.btn-dourado:has-text("Criar minha conta")');
-await p1.waitForSelector('#folha .botao-criar-cofre', { timeout: 30000 }).catch(() => {});
-conferir('1. conta sem cofre: o app pede para criar a senha dos dados', await p1.locator('#folha .botao-criar-cofre').count() === 1);
-await p1.screenshot({ path: dir + '/z198-criar-cofre.png' });
-await p1.click('#folha .btn-fantasma:has-text("Agora não")'); await p1.waitForTimeout(800);
+await p1.waitForTimeout(6000);
+// 25/11/2026: o app não pede a senha sozinho; quem quer, liga em Proteja seus dados.
+conferir('1. conta sem cofre: o app NÃO pede sozinho para criar a senha', await p1.locator('#folha.aberta .botao-criar-cofre').count() === 0);
 
 // dados abertos, do jeito antigo
 await p1.evaluate(() => new Promise(res => {
@@ -94,7 +93,13 @@ for (let i = 0; i < 30; i++) {
   await p1.waitForTimeout(1000);
 }
 const cofreLinhas = await nuvem(p1, 'GET', '/rest/v1/cofre?select=id,tabela,dados,excluido_em');
-const perfil = (await nuvem(p1, 'GET', '/rest/v1/perfis?select=*'))[0] || {};
+// A conversão termina marcando o perfil: espera essa marca.
+let perfil = {};
+for (let i = 0; i < 20; i++) {
+  perfil = (await nuvem(p1, 'GET', '/rest/v1/perfis?select=*'))[0] || {};
+  if (perfil.cofre && perfil.cofre.convertido) break;
+  await p1.waitForTimeout(1000);
+}
 const contasAbertas = await nuvem(p1, 'GET', '/rest/v1/contas?select=id');
 const metasAbertas = await nuvem(p1, 'GET', '/rest/v1/metas?select=id');
 const orcAbertos = await nuvem(p1, 'GET', '/rest/v1/orcamentos?select=categoria');

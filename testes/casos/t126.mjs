@@ -10,6 +10,8 @@
 //
 // E a volta a uma cópia passou a avisar na hora que terminou, em vez de um
 // toque que some em dois segundos enquanto o app parece parado.
+// 25/11/2026: o backup na nuvem só existe com a senha dos dados; aqui ela
+// é criada sozinha ('finanz.cofre.auto'), sem tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -62,7 +64,7 @@ const fecharTudo = async () => {
 };
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);

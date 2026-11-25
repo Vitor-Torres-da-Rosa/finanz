@@ -781,3 +781,11 @@ $$;
 
 revoke all on function public.carimbo_da_conta() from public;
 grant execute on function public.carimbo_da_conta() to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Backup na nuvem só cifrado (o mesmo da migracao-21.sql)
+-- ---------------------------------------------------------------------
+
+alter table public.instantaneos drop constraint if exists instantaneos_so_cifrado;
+alter table public.instantaneos
+  add constraint instantaneos_so_cifrado check (dados like 'cofre1:%') not valid;

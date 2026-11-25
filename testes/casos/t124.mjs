@@ -14,6 +14,8 @@
 // Como se chega lá sem fazer nada de errado: outro aparelho apaga a
 // conta, a transferência sobrevive porque ela mora na outra ponta, e o
 // download traz um estado com a transferência e sem a conta.
+// 25/11/2026: o backup na nuvem só existe com a senha dos dados; aqui ela
+// é criada sozinha ('finanz.cofre.auto'), sem tela.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 import { tocarFab } from '../comum.mjs';
 const browser = await chromium.launch();
@@ -60,14 +62,13 @@ const avisoDeSincronia = async () => {
 const noServidor = async () => page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=descricao&excluido_em=is.null', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-  const j = await r.json();
-  return Array.isArray(j) ? j.map((l) => l.descricao).sort() : ('erro ' + r.status);
+  // Com o cofre, a nuvem vai cifrada: o gancho de teste lê como o app lê.
+  const j = await window.__finanzTeste.tabela('lancamentos').catch((e) => 'erro ' + e.message);
+  return Array.isArray(j) ? j.map((l) => l.descricao).sort() : j;
 });
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -106,9 +107,7 @@ const montado = await page.evaluate(async (marca) => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
   const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token };
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id,nome&excluido_em=is.null',
-    { headers: cab });
-  const contas = await r.json();
+  const contas = await window.__finanzTeste.tabela('contas');
   const origem = contas[0];
 
   const estado = {
@@ -130,13 +129,10 @@ const montado = await page.evaluate(async (marca) => {
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
 
   const hoje = new Date().toISOString().slice(0, 10);
-  const post = await fetch(cfg.supabaseUrl + '/rest/v1/instantaneos', {
-    method: 'POST',
-    headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }, cab),
-    body: JSON.stringify([{ id: marca + 'cop', user_id: pac.usuario.id, dia: hoje,
+  // O servidor só aceita cópia cifrada: o gancho cifra como o app.
+  return await window.__finanzTeste.inserirCopias([{ id: marca + 'cop', user_id: pac.usuario.id, dia: hoje,
       motivo: 'cópia feita por você', resumo: 'a de teste', dados: btoa(bin),
-      tamanho: texto.length, criado_em: new Date().toISOString() }]) });
-  return post.status;
+      tamanho: texto.length, criado_em: new Date().toISOString() }]);
 }, 't124-' + Date.now() + '-');
 console.log('cópia montada ·', montado);
 

@@ -9,6 +9,12 @@ let falhas = 0;
 const conferir = (rotulo, ok, achado) => { if (!ok) falhas++; console.log((ok ? 'ok   ' : 'FALHA') + ' · ' + rotulo + (achado === undefined ? '' : ' · ' + achado)); };
 const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
 
+const nuvem = (metodo, caminho) => page.evaluate(async ({ metodo, caminho }) => {
+  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).access_token;
+  const cfg = window.FINANZ_CONFIG;
+  const r = await fetch(cfg.supabaseUrl + caminho, { method: metodo, headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });
+  return r.json().catch(() => []);
+}, { metodo, caminho });
 await page.goto(ENDERECO, { waitUntil: 'networkidle' }); await page.waitForTimeout(400);
 await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); sessionStorage.setItem('finanz.privado', '0'); });
 await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1600);
@@ -51,10 +57,15 @@ await page.screenshot({ path: dir + '/z200-duvidas-no-i.png' });
 await page.mouse.click(10, 10); await page.waitForTimeout(500);
 
 // nuvem
-await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(2500);
-const nuvem = limpo(await page.textContent('#folha'));
-conferir('4. "Na nuvem" abre as cópias automáticas, com "Guardar uma cópia agora"', /Backup na nuvem/.test(nuvem) && /Guardar uma cópia agora/.test(nuvem), nuvem.slice(0, 160));
-await page.goBack(); await page.waitForTimeout(700);
+// 25/11/2026: sem a senha dos dados, o backup na nuvem fica desligado.
+const linhaNuvem = limpo(await page.textContent('#folha .botao-backup-nuvem'));
+await page.click('#folha .botao-backup-nuvem'); await page.waitForTimeout(800);
+const ligar = limpo(await page.textContent('#dialogoFundo').catch(() => ''));
+conferir('4. sem a senha dos dados, o backup na nuvem está desligado e ligar pede a senha', /Desligado/.test(linhaNuvem) &&
+  /Ligar o backup na nuvem\?/.test(ligar) && /senha dos dados/.test(ligar), linhaNuvem + ' | ' + ligar.slice(0, 120));
+await page.click('#dialogoAcoes button:has-text("Agora não")'); await page.waitForTimeout(600);
+const nuvemAberta = await nuvem('GET', '/rest/v1/instantaneos?select=id');
+conferir('4b. e nenhuma cópia foi para a nuvem', Array.isArray(nuvemAberta) && nuvemAberta.length === 0, JSON.stringify(nuvemAberta).slice(0, 80));
 
 // celular
 if (!(await page.locator('#folha.aberta .botao-backup-celular').count())) { await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(800); }
