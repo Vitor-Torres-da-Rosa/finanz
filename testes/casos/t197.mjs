@@ -16,7 +16,8 @@ const seta = page.locator('#entrada .ent-seta');
 const info = await seta.evaluate(n => ({ classe: n.className, anim: getComputedStyle(n).animationName, op: getComputedStyle(n).opacity }));
 conferir('1. na abertura aparece a seta, com movimento', /ent-seta/.test(info.classe) && !/sumiu/.test(info.classe) && info.anim === 'ent-seta-anda', JSON.stringify(info));
 await page.screenshot({ path: dir + '/z197-seta-abertura.png' });
-await seta.click(); await page.waitForTimeout(1000);
+// Ela sobe e desce sem parar: o clique não espera ficar parada.
+await seta.click({ force: true }); await page.waitForTimeout(1000);
 const topo = await page.evaluate(() => document.getElementById('entrada').scrollTop);
 conferir('2. tocar na seta desce a tela e a seta some', topo > 100 && /sumiu/.test(await seta.getAttribute('class')), topo);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 0; }); await page.waitForTimeout(400);
