@@ -1,7 +1,6 @@
 // Pedido do Vitor em 25/11/2026: na análise, um cartão com tudo o que subiu
 // em relação ao mês passado, categoria por categoria; a categoria abre as
 // subcategorias, a subcategoria abre os gastos, e o gasto abre a fonte.
-importar de novo.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -45,13 +44,17 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1200);
 await page.click('#telaInicio .marca-sino'); await page.waitForTimeout(1500);
 if (await page.locator('#folha button:has-text("Ver a análise de novembro")').count()) { await page.click('#folha button:has-text("Ver a análise de novembro")'); await page.waitForTimeout(1500); }
-const card = page.locator('#folha .achado', { hasText: 'Onde você gastou mais que em outubro' }).first();
+const card = page.locator('#folha .achado', { hasText: 'Seus gastos de novembro' }).first();
 const txt = limpo(await card.textContent().catch(() => ''));
 console.log('cartão:', txt.slice(0, 300));
-conferir('1. um cartão só com o que subiu, somando tudo', /\+R\$ 279,49\s*a mais, somando as 2 categorias que subiram/.test(txt) && !/Moradia/.test(txt), txt.slice(0, 140));
+conferir('1. em cima, o que saiu e a diferença para outubro', /Saiu\s*R\$ 2\.188,49/.test(txt) && /vs\. outubro\s*−R\$ 211,51/.test(txt), txt.slice(0, 160));
+conferir('1b. a rosca no meio', (await card.locator('.rosca-achado svg').count()) === 1);
 const cats = await card.locator('.comparativo > .comp-linha').allTextContents();
-conferir('2. cada categoria com novembro, outubro e a diferença, a que mais subiu primeiro',
-  cats.length === 2 && /Impostos e taxas\s*novembro R\$ 379,95 · outubro R\$ 100,00\s*\+R\$ 279,95/.test(limpo(cats[0])) && /Educação/.test(cats[1]), cats.map(limpo).join(' | '));
+conferir('2. embaixo, todas as categorias, da que mais subiu para a que mais caiu',
+  cats.length === 3 && /Impostos e taxas\s*novembro R\$ 379,95 · outubro R\$ 100,00\s*\+R\$ 279,95/.test(limpo(cats[0])) && /Educação/.test(cats[1]) &&
+  /Moradia\s*novembro R\$ 1\.500,00 · outubro R\$ 2\.000,00\s*−R\$ 500,00/.test(limpo(cats[2])), cats.map(limpo).join(' | '));
+conferir('2b. subiu em vermelho, caiu em verde', (await card.locator('.comparativo > .comp-linha .comp-dif.subiu').count()) === 2 &&
+  (await card.locator('.comparativo > .comp-linha .comp-dif.caiu').count()) === 1);
 await card.locator('.comparativo > .comp-linha', { hasText: 'Impostos e taxas' }).click(); await page.waitForTimeout(400);
 const subs = await card.locator('.comparativo > .comp-dentro:not([hidden]) > .comp-linha').allTextContents();
 conferir('3. tocando na categoria, abrem as subcategorias com os valores', subs.length === 2 &&
@@ -66,7 +69,7 @@ conferir('5. o gasto do extrato abre o extrato de onde veio', /nov\.pdf/.test(fo
 await page.goBack(); await page.waitForTimeout(1500);
 const voltou = limpo(await page.textContent('#folhaTitulo').catch(() => ''));
 conferir('6. voltando, cai de novo na análise', /Análise de novembro/.test(voltou), voltou);
-const card2 = page.locator('#folha .achado', { hasText: 'Onde você gastou mais que em outubro' }).first();
+const card2 = page.locator('#folha .achado', { hasText: 'Seus gastos de novembro' }).first();
 await card2.locator('.comparativo > .comp-linha', { hasText: 'Impostos e taxas' }).click(); await page.waitForTimeout(300);
 await card2.locator('.comp-dentro .comp-linha', { hasText: 'IPVA' }).first().click(); await page.waitForTimeout(300);
 await card2.locator('.comp-gasto', { hasText: 'IPVA parcela' }).click(); await page.waitForTimeout(1500);

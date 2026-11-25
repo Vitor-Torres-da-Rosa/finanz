@@ -37,13 +37,15 @@ await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitF
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1200);
 await page.click('#telaInicio .marca-sino'); await page.waitForTimeout(1500);
 if (await page.locator('#folha button:has-text("Ver a análise de novembro")').count()) { await page.click('#folha button:has-text("Ver a análise de novembro")'); await page.waitForTimeout(1500); }
-const card = page.locator('#folha .achado', { hasText: 'Orçamento do mês estourado' }).first();
+const card = page.locator('#folha .achado', { hasText: 'Seus gastos de novembro' }).first();
 await card.scrollIntoViewIfNeeded().catch(() => {});
 const txt = limpo(await card.textContent().catch(() => ''));
 console.log('cartão:', txt);
-conferir('1. diz quanto passou, com a barra do planejado e do gasto', /\+R\$ 2\.386,13\s*acima do planejado/.test(txt) && /Planejado R\$ 5\.000,00\s*Gasto R\$ 7\.386,13 · 148%/.test(txt) &&
-  (await card.locator('.barra-orcamento .passou').count()) === 1, txt.slice(0, 160));
-conferir('2. mostra onde mais saiu, com o teto da categoria quando tem', /Onde mais saiu\s*Moradia\s*R\$ 3\.200,00\s*Alimentação · teto R\$ 1\.500,00\s*R\$ 2\.500,00\s*Transporte\s*R\$ 1\.686,13/.test(txt), txt);
+conferir('1. um relatório só: o que saiu, o orçamento em cima, com a barra', /Saiu\s*R\$ 7\.386,13/.test(txt) && /Acima do orçamento\s*\+R\$ 2\.386,13/.test(txt) &&
+  /Planejado R\$ 5\.000,00\s*Gasto R\$ 7\.386,13 · 148%/.test(txt) && (await card.locator('.barra-orcamento .passou').count()) === 1, txt.slice(0, 200));
+conferir('1b. a rosca no meio', (await card.locator('.rosca-achado svg').count()) === 1);
+conferir('2. embaixo, as categorias, com o teto quando tem', /Moradia\s*novembro R\$ 3\.200,00\s*R\$ 3\.200,00/.test(txt) && /Alimentação\s*novembro R\$ 2\.500,00 · teto R\$ 1\.500,00/.test(txt), txt);
+conferir('2b. o cartão separado de "orçamento estourado" não aparece mais', !(await page.locator('#folha .achado', { hasText: 'Orçamento do mês estourado' }).count()));
 const botoes = await card.locator('.acoes-achado button').allTextContents();
 conferir('3. dois caminhos: ver as saídas e rever o planejamento', botoes.join('|') === 'Ver as saídas|Rever o planejamento', botoes.join('|'));
 await card.screenshot({ path: dir + '/z130-orcamento-estourado.png' });

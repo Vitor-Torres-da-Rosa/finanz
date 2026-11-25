@@ -657,6 +657,15 @@
   .comp-dentro[hidden] { display: none; }
   .comp-dentro .comp-linha b { font-size: 13.5px; }
   .comp-gasto .comp-dif { color: var(--texto); font-weight: 600; font-size: 13px; }
+  .comp-linha .comp-dif.caiu { color: var(--verde); }
+  .comp-linha .comp-dif.neutro { color: var(--texto); }
+  .comp-bola { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; }
+  .resumos-achado { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 12px; }
+  .resumo-achado { border: 1px solid var(--borda); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+  .resumo-achado span { display: block; font-size: 11px; color: var(--suave); }
+  .resumo-achado b { display: block; font-size: 14px; margin-top: 2px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rosca-achado { margin: 14px auto 4px; }
+  .rotulo-comparativo { margin-top: 14px; }
   .comp-gasto .comp-fonte { flex: 0 0 auto; font-size: 11px; color: var(--ouro); border: 1px solid rgba(233,180,76,.4);
     border-radius: 999px; padding: 1px 7px; }
   .acoes-achado { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
@@ -25818,7 +25827,7 @@
   // Quando o histórico é sempre o mesmo valor, "entre X e X" não é faixa.
   // Categoria por categoria, o que este mês gastou a mais que o anterior,
   // com as subcategorias e os gastos de cada uma.
-  function compararComMesAnterior(atual, anterior) {
+  function compararComMesAnterior(atual, anterior, todas) {
     var arvore = {};
     function no_(cat) {
       return arvore[cat] = arvore[cat] || { nome: cat, atual: 0, antes: 0, subs: {} };
@@ -25847,8 +25856,8 @@
       }).filter(function (sb) { return sb.atual > 0; })
         .sort(function (a, b) { return b.dif - a.dif; });
       return c;
-    }).filter(function (c) { return c.dif >= 100; })
-      .sort(function (a, b) { return b.dif - a.dif; });
+    }).filter(function (c) { return todas ? c.atual > 0 : c.dif >= 100; })
+      .sort(function (a, b) { return b.dif - a.dif || b.atual - a.atual; });
   }
 
   // Abre a fonte de um gasto: a fatura do cartão no mês dela, o extrato de
@@ -25889,18 +25898,27 @@
     return b;
   }
 
+  function pintarDif(linha, dif, comparando) {
+    var d = linha.querySelector('.comp-dif');
+    if (!d || !comparando) { if (d) d.classList.add('neutro'); return; }
+    d.classList.add(dif > 0 ? 'subiu' : dif < 0 ? 'caiu' : 'neutro');
+  }
+
   function listaComparativa(comp) {
     var voltar = function () { abrirAnaliseCompleta(comp.ano, comp.numMes); };
     var lista = no('div', 'comparativo');
+    var difTxt = function (d) { return d > 0 ? '+' + emReais(d) : d < 0 ? '−' + emReais(-d) : 'igual'; };
+    var detalheDe = function (x, teto) {
+      return comp.mes + ' ' + emReais(x.atual) + (comp.mesAnt ? ' · ' + comp.mesAnt + ' ' + emReais(x.antes) : '') +
+        (teto ? ' · teto ' + emReais(teto) : '');
+    };
     comp.categorias.forEach(function (c) {
-      lista.appendChild(linhaQueAbre(c.nome,
-        comp.mes + ' ' + emReais(c.atual) + ' · ' + comp.mesAnt + ' ' + emReais(c.antes),
-        '+' + emReais(c.dif), function () {
+      var linhaCat = linhaQueAbre(c.nome, detalheDe(c, comp.tetos && comp.tetos[c.nome]),
+        comp.mesAnt ? difTxt(c.dif) : emReais(c.atual), function () {
           var subs = no('div', 'comp-dentro');
           c.subs.forEach(function (sb) {
-            subs.appendChild(linhaQueAbre(sb.nome,
-              comp.mes + ' ' + emReais(sb.atual) + ' · ' + comp.mesAnt + ' ' + emReais(sb.antes),
-              (sb.dif >= 0 ? '+' : '−') + emReais(Math.abs(sb.dif)), function () {
+            var linhaSub = linhaQueAbre(sb.nome, detalheDe(sb),
+              comp.mesAnt ? difTxt(sb.dif) : emReais(sb.atual), function () {
                 var itens = no('div', 'comp-dentro');
                 sb.itens.forEach(function (l) {
                   var conta = achar(estado.contas, l.contaId);
@@ -25912,10 +25930,17 @@
                   itens.appendChild(g);
                 });
                 return itens;
-              }));
+              });
+            pintarDif(linhaSub, sb.dif, comp.mesAnt);
+            subs.appendChild(linhaSub);
           });
           return subs;
-        }));
+        });
+      pintarDif(linhaCat, c.dif, comp.mesAnt);
+      var bola = no('span', 'comp-bola');
+      bola.style.background = corDeCategoria(c.nome);
+      linhaCat.insertBefore(bola, linhaCat.firstChild);
+      lista.appendChild(linhaCat);
     });
     return lista;
   }
@@ -26014,24 +26039,48 @@
     });
     foraDoPadrao.sort(function (a, b) { return b.acima - a.acima; });
 
-    // O que subiu em relação ao mês passado, categoria por categoria e
-    // subcategoria por subcategoria, na ponta do lápis (pedido de 25/11/2026).
-    // Com o mês anterior para comparar, este cartão substitui os de "acima
-    // do padrão": é a mesma pergunta, respondida inteira.
-    var comparativo = baseAnt ? compararComMesAnterior(base.base, baseAnt.base) : [];
+    // Um relatório só para os gastos do mês (pedido de 25/11/2026): os
+    // resumos em cima (quanto saiu, a diferença para o mês passado e o
+    // orçamento), a rosca no meio e embaixo as categorias, que abrem as
+    // subcategorias, os gastos e a fonte de cada um. Ele junta o que antes
+    // eram três cartões: o "acima do padrão", o "orçamento estourado" e o
+    // "onde gastou mais".
+    var comparativo = base.total > 0 ? compararComMesAnterior(base.base, baseAnt ? baseAnt.base : [], true) : [];
     if (comparativo.length) {
-      var aMais = comparativo.reduce(function (t, c) { return t + c.dif; }, 0);
+      var difTotal = baseAnt ? base.total - baseAnt.total : 0;
+      var planejado = estado.orcamentos.geral > 0 ? estado.orcamentos.geral : 0;
+      var estourou = planejado && base.total > planejado;
+      var tetosCat = estado.orcamentos.categorias || {};
+      var acoesRel = [{ rotulo: 'Ver as saídas', principal: true, abrir: function () { irParaTransacoes('saida', ''); } }];
+      acoesRel.push({ rotulo: planejado ? 'Rever o planejamento' : 'Planejar o mês', abrir: function () {
+        if ($('folha').classList.contains('aberta')) { fecharFolha(); setTimeout(function () { abrirFolhaOrcamento(); }, 260); }
+        else abrirFolhaOrcamento();
+      } });
       juntarAchado({
-        id: 'a-mais', prioridade: 1, icone: '🔎', tom: 'atencao',
-        titulo: 'Onde você gastou mais que em ' + MESES[ant.mes],
-        valor: '+' + emReais(aMais), valorCor: 'var(--vermelho)',
-        subValor: 'a mais, somando ' + (comparativo.length === 1 ? 'a categoria que subiu' : 'as ' + comparativo.length + ' categorias que subiram'),
-        explicacao: 'Toque numa categoria para ver as subcategorias; numa subcategoria, para ver cada gasto; e no gasto, para abrir de onde ele veio.',
-        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: MESES[ant.mes], ano: ano, numMes: mes }
+        id: 'gastos-mes', prioridade: estourou || difTotal > 0 ? 1 : 2, icone: '📊',
+        tom: estourou ? 'ruim' : difTotal > 0 ? 'atencao' : 'info',
+        titulo: 'Seus gastos de ' + MESES[mes],
+        valor: emReais(base.total), valorCor: 'var(--texto)',
+        subValor: baseAnt ? (difTotal > 0 ? emReais(difTotal) + ' a mais que em ' + MESES[ant.mes]
+          : difTotal < 0 ? emReais(-difTotal) + ' a menos que em ' + MESES[ant.mes] : 'o mesmo que em ' + MESES[ant.mes]) : '',
+        explicacao: '',
+        resumos: [
+          { rotulo: 'Saiu', valor: emReais(base.total) },
+          baseAnt ? { rotulo: 'vs. ' + MESES[ant.mes], valor: (difTotal > 0 ? '+' : difTotal < 0 ? '−' : '') + emReais(Math.abs(difTotal)),
+            cor: difTotal > 0 ? 'var(--vermelho)' : difTotal < 0 ? 'var(--verde)' : '' } : null,
+          planejado ? { rotulo: estourou ? 'Acima do orçamento' : 'Do orçamento', valor: estourou ? '+' + emReais(base.total - planejado)
+            : Math.round(base.total / planejado * 100) + '%', cor: estourou ? 'var(--vermelho)' : 'var(--verde)' } : null
+        ].filter(Boolean),
+        orcamento: planejado ? { gasto: base.total, planejado: planejado } : null,
+        rosca: { lista: base.lista, total: base.total },
+        comparativo: { categorias: comparativo, mes: MESES[mes], mesAnt: baseAnt ? MESES[ant.mes] : '', ano: ano, numMes: mes, tetos: tetosCat },
+        acoes: acoesRel
       });
     }
 
-    if (!comparativo.length) foraDoPadrao.slice(0, 2).forEach(function (f, i) {
+    // Sem gasto no mês não há relatório; o "acima do padrão" também não
+    // teria o que dizer. Fica o laço, desligado, para o caso raro.
+    if (!comparativo.length && false) foraDoPadrao.slice(0, 2).forEach(function (f, i) {
       juntarAchado({
         id: 'padrao-' + f.nome, prioridade: i === 0 ? 1 : 2, icone: '🔎', tom: 'atencao',
         titulo: 'Você gastou mais que o normal com ' + f.nome,
@@ -26143,30 +26192,7 @@
       }
     }
 
-    // 5) Orçamento estourado.
-    if (estado.orcamentos.geral > 0 && base.total > estado.orcamentos.geral) {
-      var tetos = estado.orcamentos.categorias || {};
-      juntarAchado({
-        id: 'orcamento', prioridade: 1, icone: '📊', tom: 'ruim',
-        titulo: 'Orçamento do mês estourado',
-        valor: '+' + emReais(base.total - estado.orcamentos.geral), valorCor: 'var(--vermelho)',
-        subValor: 'acima do planejado',
-        explicacao: '',
-        orcamento: { gasto: base.total, planejado: estado.orcamentos.geral },
-        rotuloDetalhes: 'Onde mais saiu',
-        detalhes: base.lista.slice(0, 3).map(function (c) {
-          var teto = tetos[c.nome];
-          return { rotulo: c.nome + (teto ? ' · teto ' + emReais(teto) : ''), valor: emReais(c.valor) };
-        }),
-        acoes: [
-          { rotulo: 'Ver as saídas', principal: true, abrir: function () { irParaTransacoes('saida', ''); } },
-          { rotulo: 'Rever o planejamento', abrir: function () {
-            if ($('folha').classList.contains('aberta')) { fecharFolha(); setTimeout(function () { abrirFolhaOrcamento(); }, 260); }
-            else abrirFolhaOrcamento();
-          } }
-        ]
-      });
-    }
+    // 5) O orçamento mora no relatório dos gastos do mês, lá em cima.
 
     // 6) Despesas que se repetem — o total comprometido não é economia.
     var recorrentes = despesasRecorrentes();
@@ -26419,7 +26445,17 @@
     if (a.subValor) c.appendChild(no('div', 'achado-sub', a.subValor));
     if (a.explicacao) c.appendChild(no('p', 'achado-texto', a.explicacao));
 
-    if (a.comparativo) c.appendChild(listaComparativa(a.comparativo));
+    if (a.resumos && a.resumos.length) {
+      var rs = no('div', 'resumos-achado');
+      a.resumos.forEach(function (x) {
+        var r = no('div', 'resumo-achado');
+        var v = no('b', 'num', x.valor);
+        if (x.cor) v.style.color = x.cor;
+        juntar(r, no('span', null, x.rotulo), v);
+        rs.appendChild(r);
+      });
+      c.appendChild(rs);
+    }
 
     if (a.orcamento) {
       // O planejado é o marco; o que passou dele fica em vermelho.
@@ -26443,6 +26479,20 @@
         juntar(no('span', a.orcamento.gasto > a.orcamento.planejado ? 'vermelho' : ''), document.createTextNode('Gasto '),
           no('b', null, emReais(a.orcamento.gasto) + ' · ' + Math.round(a.orcamento.gasto / a.orcamento.planejado * 100) + '%')));
       c.appendChild(legO);
+    }
+
+    if (a.rosca && a.rosca.total > 0) {
+      var segR = comCores(a.rosca.lista.slice(0, 6));
+      var restoR = a.rosca.lista.slice(6).reduce(function (t, x) { return t + x.valor; }, 0);
+      if (restoR > 0) segR.push({ nome: 'Demais', valor: restoR, cor: '#4B5A6B' });
+      var rc = rosca(segR, a.rosca.total, 'Gastos');
+      rc.classList.add('rosca-achado');
+      c.appendChild(rc);
+    }
+    if (a.comparativo) {
+      if (a.comparativo.mesAnt) c.appendChild(no('div', 'rotulo rotulo-comparativo', 'Por categoria, comparando com ' + a.comparativo.mesAnt));
+      else c.appendChild(no('div', 'rotulo rotulo-comparativo', 'Por categoria'));
+      c.appendChild(listaComparativa(a.comparativo));
     }
 
     if (a.progresso) {
@@ -26762,10 +26812,10 @@
     if (a.id === 'meta-economia') return 'Veja em quais categorias existe espaço para chegar mais perto da sua meta.';
     if (a.id === 'recorrentes') return 'Você tem despesas que se repetem todo mês. Vale conferir se todas ainda fazem sentido.';
     if (a.id === 'saldo') return 'Este mês saiu mais do que entrou. Olhar as maiores saídas ajuda a entender por quê.';
-    if (a.id === 'orcamento') return 'O mês passou do que você tinha planejado. Vale ver onde a diferença aconteceu.';
+
     if (a.id === 'projecao') return 'No ritmo atual o mês fecharia acima do seu costume. Dá tempo de ajustar.';
     if (a.id.indexOf('padrao-') === 0) return a.titulo + '. Ver de onde veio a diferença ajuda a decidir o que fazer.';
-    if (a.id === 'a-mais') return 'Algumas categorias subiram em relação ao mês passado. Vale ver, gasto por gasto, de onde veio a diferença.';
+    if (a.id === 'gastos-mes') return 'Veja para onde foi o dinheiro do mês, categoria por categoria, e o que mudou desde o mês passado.';
     return a.explicacao;
   }
 
