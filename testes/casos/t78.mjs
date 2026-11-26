@@ -43,6 +43,7 @@ await page.evaluate(() => new Promise(res => {
 await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(3000);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1500);
 await page.click('#telaInicio .linha:has-text("Banco Inter")'); await page.waitForTimeout(1400);
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Conferir esta conta")'); await page.waitForTimeout(1600);
 
 const barras = await page.$$eval('#folha .paginas-conta', ns=>ns.map(n=>n.textContent));

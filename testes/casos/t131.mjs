@@ -142,6 +142,7 @@ await semDialogo();
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(900);
 await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")');
 await page.waitForTimeout(1500);
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Conferir esta conta")'); await page.waitForTimeout(3500);
 const temBaixar = await page.locator('#folha button:has-text("Baixar"):visible').count();
 const temRelancar = await page.locator('#folha button:has-text("Relançar"):visible').count();

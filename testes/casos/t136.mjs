@@ -57,6 +57,7 @@ await page.click('#folha .btn-ouro'); await page.waitForTimeout(1200);
 // Abrir conferência
 await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")');
 await page.waitForTimeout(1500);
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Conferir esta conta")'); await page.waitForTimeout(3500);
 
 // ---- 1. Saldo negativo ----

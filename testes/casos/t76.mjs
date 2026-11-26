@@ -36,6 +36,7 @@ await page.click('#dialogoAcoes button'); await page.waitForTimeout(1500);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1200);
 await page.click('#telaInicio .linha:has-text("Banco Inter")'); await page.waitForTimeout(1200);
 console.log('3. saldo da conta:', await page.textContent('#folha .valorao'));
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Conferir esta conta")'); await page.waitForTimeout(1400);
 console.log('4. folha:', await page.textContent('#folhaTitulo'));
 console.log('5. números:', await page.$$eval('#folha .conf-item', ns=>ns.map(n=>n.textContent.replace(/\s+/g,' '))));

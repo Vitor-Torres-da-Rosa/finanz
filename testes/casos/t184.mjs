@@ -42,6 +42,7 @@ conferir('1. a carteira (dinheiro físico) não tem "Extratos" nem "+ Importar"'
 await page.screenshot({ path: dir + '/z115-carteira-sem-extrato.png' });
 
 // Ajusta para R$ 2.400,00: lança uma despesa de R$ 300,00.
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha button:has-text("Ajustar saldo")'); await page.waitForTimeout(900);
 const campoSaldo = page.locator('#folha .campo-saldo-certo');
 await campoSaldo.evaluate(n => { n.value = '240000'; n.dispatchEvent(new Event('input')); }); await page.waitForTimeout(300);
@@ -63,6 +64,7 @@ conferir('5. a carteira fica com R$ 2.400,00', (await saldoDe('Carteira')) === '
 // No Inter, ajusta o saldo inicial: R$ 100,00 → R$ 250,00.
 await contas.locator('.linha-alvo', { hasText: 'Banco Inter' }).click(); await page.waitForTimeout(1200);
 conferir('6. a conta do banco continua com "Extratos"', (await page.locator('#folha .cartao-extratos').count()) === 1);
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha button:has-text("Ajustar saldo")'); await page.waitForTimeout(900);
 await campoSaldo.evaluate(n => { n.value = '25000'; n.dispatchEvent(new Event('input')); }); await page.waitForTimeout(300);
 await page.click('#folha button:has-text("Continuar")'); await page.waitForTimeout(800);

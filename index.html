@@ -2825,6 +2825,10 @@
     .tela.entrando > .cartao, .tela.entrando > .kpis, .tela.entrando > .modulos-lista { animation: none !important; }
     .heroi-linha { stroke-dashoffset: 0; }
   }
+  .botao-saldo-correto { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .botao-saldo-correto::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg); transition: transform .2s ease; opacity: .8; }
+  .botao-saldo-correto.aberto::after { transform: translateY(2px) rotate(225deg); }
 </style>
 </head>
 <body>
@@ -2880,7 +2884,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.107.0';
+  var VERSAO = '5.108.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2889,6 +2893,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.108.0',
+      data: '2026-11-26',
+      itens: [
+        'Dentro de cada conta, embaixo do saldo, agora aparece só "O saldo está correto?". Tocando, abrem "Conferir esta conta", "Ajustar saldo", "Editar esta conta" e o "Conferido ✓", que saiu da conferência e veio para cá.',
+        'Confirmou que está tudo certo (Conferido ✓)? A lista de "Possíveis repetidos" daquela conta some. Repetido que aparecer depois, de um extrato novo, volta a aparecer.'
+      ]
+    },
     {
       versao: '5.107.0',
       data: '2026-11-25',
@@ -5467,6 +5479,9 @@
         var v = bruto.revisados[k];
         if (typeof k === 'string' && (v === 'manter' || v === 'revisar' || v === 'fora')) {
           limpo.revisados[k.slice(0, 80)] = v;
+        } else if (typeof k === 'string' && k.indexOf('repetidos:') === 0 && inteiro(v) > 0) {
+          // Quando a pessoa confirmou o saldo da conta (Conferido ✓).
+          limpo.revisados[k.slice(0, 80)] = inteiro(v);
         }
       });
     }
@@ -26358,6 +26373,19 @@
     return grupos;
   }
 
+  // Os repetidos que a pessoa ainda não viu. Confirmando que o saldo está
+  // certo (Conferido ✓, pedido de 26/11/2026), os grupos de até ali saem:
+  // ela disse que estão certos. Grupo com lançamento que entrou depois da
+  // confirmação volta.
+  function repetidosAbertosDaConta(id) {
+    var marca = estado.revisados && estado.revisados['repetidos:' + id];
+    var grupos = repetidosDaConta(id);
+    if (!marca) return grupos;
+    return grupos.filter(function (g) {
+      return g.some(function (l) { return (l.criadoEm || 0) > marca; });
+    });
+  }
+
   // As cópias a mais de cada grupo repetido — o que sobra depois de guardar
   // uma de cada. É isso que um extrato importado duas vezes deixa para trás.
   //
@@ -26370,7 +26398,7 @@
       if (p.lancamentoId) apontada[p.lancamentoId] = true;
     });
     var sobrando = [];
-    repetidosDaConta(id).forEach(function (g) {
+    repetidosAbertosDaConta(id).forEach(function (g) {
       var ordenado = g.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
       var ficam = ordenado.filter(function (l) { return apontada[l.id]; });
       if (!ficam.length) ficam = [ordenado[0]];
@@ -26507,6 +26535,81 @@
     });
   }
 
+  // O "Conferido ✓" (pedido de 25/11/2026), que mora dentro de "O saldo
+  // está correto?" na folha da conta (pedido de 26/11/2026).
+  function cartaoConferido(id) {
+    var conta = achar(estado.contas, id);
+      // Se o saldo bate e os lançamentos estão certos, a pessoa confirma, e
+      // os arquivos da conta viram a versão compacta e cifrada.
+      var cConf = cartao('cartao-conferido');
+      var topoConf = no('div', 'cartao-topo');
+      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido.v3', 'Conferido ✓', [
+        'Fica em "O saldo está correto?", embaixo do saldo da conta. Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
+        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado: com a senha dos dados, se ela estiver ligada (uma senha só para tudo), ou com a senha dos extratos. Fica bem menor, e só quem tem a senha lê.',
+        '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
+        'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
+        'Extrato importado depois chega como PDF de novo: é só conferir outra vez.',
+        'Confirmando, a lista de "Possíveis repetidos" desta conta (em "Conferir esta conta") some: você disse que está certo. Repetido que aparecer depois, de um extrato novo, volta a aparecer.']));
+      cConf.appendChild(topoConf);
+      var estadoConf = no('div', 'linha-nota estado-conferido', 'Vendo os arquivos guardados...');
+      cConf.appendChild(estadoConf);
+      var paraConferir = [];
+      var botaoConferido = botao('btn btn-ouro botao-conferido', 'Conferido ✓', function () {
+        if (!paraConferir.length) return;
+        perguntar({
+          titulo: 'Marcar como conferido?',
+          texto: 'Você confirma que o saldo e os lançamentos de "' + conta.nome + '" estão certos.\n\n' +
+                 'Os ' + paraConferir.length + ' arquivo(s) desta conta deixam de ser guardados como vieram do banco: ' +
+                 'fica só o que o app leu deles, compacto e cifrado com a senha dos extratos.\n\n' +
+                 '"Reler e corrigir" e "Relançar" continuam funcionando. Baixar o PDF original deixa de dar.',
+          ok: 'Conferido ✓'
+        }, function () {
+          // Confirmado que está certo: os "Possíveis repetidos" de até aqui
+          // saem da lista (pedido de 26/11/2026). Os que vierem depois, de um
+          // extrato novo, voltam a aparecer.
+          if (!estado.revisados) estado.revisados = {};
+          estado.revisados['repetidos:' + id] = Date.now();
+          salvar();
+          var lista = paraConferir.slice();
+          setTimeout(function () { conferirExtratosDaConta(id, lista); }, 260);
+        });
+      });
+      botaoConferido.style.marginTop = '10px';
+      botaoConferido.disabled = true;
+      cConf.appendChild(botaoConferido);
+      function atualizarConferido() {
+        botaoConferido.disabled = !paraConferir.length;
+      }
+      var levasDaConta = {};
+      (estado.importacoes || []).forEach(function (i) { if (i.contaId === id) levasDaConta[i.id] = true; });
+      if (!NUVEM.ligada || !sessaoNuvem) {
+        estadoConf.textContent = 'Os arquivos dos extratos ficam guardados na nuvem. Entre na sua conta para conferir.';
+        botaoConferido.style.display = 'none';
+      } else {
+        listarArquivosDeExtrato(id).then(function (lista) {
+          var daConta = (lista || []).filter(function (a) { return levasDaConta[a.importacao_id]; });
+          var jaFeitos = daConta.filter(ehConferido);
+          paraConferir = daConta.filter(function (a) { return !ehConferido(a); });
+          if (!daConta.length) {
+            estadoConf.textContent = 'Nenhum arquivo de extrato guardado nesta conta.';
+            botaoConferido.style.display = 'none';
+          } else if (!paraConferir.length) {
+            estadoConf.textContent = 'Conferido ✓ ' + (jaFeitos.length === 1 ? 'O extrato desta conta está guardado'
+              : 'Os ' + jaFeitos.length + ' extratos desta conta estão guardados') + ' na versão compacta e cifrada.';
+            estadoConf.className = 'linha-nota verde estado-conferido';
+            botaoConferido.style.display = 'none';
+          } else {
+            var pesa = paraConferir.reduce(function (t, a) { return t + inteiro(a.tamanho); }, 0);
+            estadoConf.textContent = (jaFeitos.length ? jaFeitos.length + ' extrato(s) já conferido(s). ' : '') +
+              paraConferir.length + ' arquivo(s) ainda como vieram do banco (' + tamanhoDeArquivo(pesa) + '). ' +
+              'Se o saldo bate e os lançamentos estão certos, marque como conferido.';
+          }
+          atualizarConferido();
+        });
+      }
+      return cConf;
+  }
+
   function abrirFolhaConferencia(id) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
@@ -26557,80 +26660,10 @@
       conf.appendChild(ajustar);
       forma.appendChild(conf);
 
-      // ---- conferido (pedido de 25/11/2026) ----
-      // Se o saldo bate e os lançamentos estão certos, a pessoa confirma, e
-      // os arquivos da conta viram a versão compacta e cifrada.
-      var cConf = cartao('cartao-conferido');
-      var topoConf = no('div', 'cartao-topo');
-      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido.v2', 'Conferido ✓', [
-        'Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
-        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado: com a senha dos dados, se ela estiver ligada (uma senha só para tudo), ou com a senha dos extratos. Fica bem menor, e só quem tem a senha lê.',
-        '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
-        'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
-        'Extrato importado depois chega como PDF de novo: é só conferir outra vez.']));
-      cConf.appendChild(topoConf);
-      var estadoConf = no('div', 'linha-nota estado-conferido', 'Vendo os arquivos guardados...');
-      cConf.appendChild(estadoConf);
-      var notaBate = no('div', 'linha-nota vermelho', 'O saldo do banco ainda não bate com o app. Acerte a diferença antes de conferir.');
-      notaBate.style.display = 'none';
-      cConf.appendChild(notaBate);
-      var paraConferir = [];
-      var bateComBanco = true;
-      var botaoConferido = botao('btn btn-ouro botao-conferido', 'Conferido ✓', function () {
-        if (!paraConferir.length || !bateComBanco) return;
-        perguntar({
-          titulo: 'Marcar como conferido?',
-          texto: 'Você confirma que o saldo e os lançamentos de "' + conta.nome + '" estão certos.\n\n' +
-                 'Os ' + paraConferir.length + ' arquivo(s) desta conta deixam de ser guardados como vieram do banco: ' +
-                 'fica só o que o app leu deles, compacto e cifrado com a senha dos extratos.\n\n' +
-                 '"Reler e corrigir" e "Relançar" continuam funcionando. Baixar o PDF original deixa de dar.',
-          ok: 'Conferido ✓'
-        }, function () {
-          var lista = paraConferir.slice();
-          setTimeout(function () { conferirExtratosDaConta(id, lista); }, 260);
-        });
-      });
-      botaoConferido.style.marginTop = '10px';
-      botaoConferido.disabled = true;
-      cConf.appendChild(botaoConferido);
-      function atualizarConferido() {
-        botaoConferido.disabled = !(paraConferir.length && bateComBanco);
-        notaBate.style.display = paraConferir.length && !bateComBanco ? '' : 'none';
-      }
-      var levasDaConta = {};
-      (estado.importacoes || []).forEach(function (i) { if (i.contaId === id) levasDaConta[i.id] = true; });
-      if (!NUVEM.ligada || !sessaoNuvem) {
-        estadoConf.textContent = 'Os arquivos dos extratos ficam guardados na nuvem. Entre na sua conta para conferir.';
-        botaoConferido.style.display = 'none';
-      } else {
-        listarArquivosDeExtrato(id).then(function (lista) {
-          var daConta = (lista || []).filter(function (a) { return levasDaConta[a.importacao_id]; });
-          var jaFeitos = daConta.filter(ehConferido);
-          paraConferir = daConta.filter(function (a) { return !ehConferido(a); });
-          if (!daConta.length) {
-            estadoConf.textContent = 'Nenhum arquivo de extrato guardado nesta conta.';
-            botaoConferido.style.display = 'none';
-          } else if (!paraConferir.length) {
-            estadoConf.textContent = 'Conferido ✓ ' + (jaFeitos.length === 1 ? 'O extrato desta conta está guardado'
-              : 'Os ' + jaFeitos.length + ' extratos desta conta estão guardados') + ' na versão compacta e cifrada.';
-            estadoConf.className = 'linha-nota verde estado-conferido';
-            botaoConferido.style.display = 'none';
-          } else {
-            var pesa = paraConferir.reduce(function (t, a) { return t + inteiro(a.tamanho); }, 0);
-            estadoConf.textContent = (jaFeitos.length ? jaFeitos.length + ' extrato(s) já conferido(s). ' : '') +
-              paraConferir.length + ' arquivo(s) ainda como vieram do banco (' + tamanhoDeArquivo(pesa) + '). ' +
-              'Se o saldo bate e os lançamentos estão certos, marque como conferido.';
-          }
-          atualizarConferido();
-        });
-      }
-      forma.appendChild(cConf);
 
       function medirDiferenca() {
         var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
-        bateComBanco = !falta;
-        atualizarConferido();
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
           diferenca.className = 'linha-nota verde';
@@ -26723,7 +26756,7 @@
       }
 
       // ---- possíveis repetidos ----
-      var grupos = repetidosDaConta(id);
+      var grupos = repetidosAbertosDaConta(id);
       if (grupos.length) {
         var rep = cartao();
         rep.appendChild(no('div', 'rotulo', 'Possíveis repetidos'));
@@ -27189,7 +27222,7 @@
     });
   }
 
-  function abrirExtratoConta(id) {
+  function abrirExtratoConta(id, abrirPainel) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
 
@@ -27201,26 +27234,51 @@
       topo.appendChild(no('div', 'valorao num' + (saldo < 0 ? ' vermelho' : ''), emReais(saldo)));
       topo.appendChild(no('div', 'linha-nota', conta.tipo + ' · saldo inicial de ' + emReais(conta.saldoInicial)));
 
-      var conferir = botao('btn btn-ouro', 'Conferir esta conta', function () {
-        fecharFolha();
-        setTimeout(function () { abrirFolhaConferencia(id); }, 240);
+      // Embaixo do saldo, só a pergunta (pedido de 26/11/2026). Tocando,
+      // abrem as três opções e o "Conferido ✓".
+      var painel = no('div', 'painel-saldo');
+      painel.hidden = true;
+      var pergunta = botao('btn btn-ouro botao-saldo-correto', 'O saldo está correto?', function () {
+        var abrir = painel.hidden;
+        if (abrir && !painel.firstChild) montarPainel();
+        painel.hidden = !abrir;
+        marcarPergunta(abrir);
       });
-      conferir.style.marginTop = '14px';
-      topo.appendChild(conferir);
-
-      // Ajustar saldo (pedido de 19/11/2026): diz o saldo certo e escolhe se
-      // a diferença vira receita/despesa ou muda o saldo inicial.
-      var duasAcoes = no('div', 'duas');
-      duasAcoes.style.marginTop = '8px';
-      duasAcoes.appendChild(botao('btn btn-fantasma', 'Ajustar saldo', function () {
-        fecharFolha();
-        setTimeout(function () { abrirAjusteDeSaldo(id); }, 240);
-      }));
-      duasAcoes.appendChild(botao('btn btn-fantasma', 'Editar esta conta', function () {
-        fecharFolha();
-        setTimeout(function () { abrirFolhaConta(id); }, 240);
-      }));
-      topo.appendChild(duasAcoes);
+      // Aberta, a pergunta fica discreta: o destaque passa para as opções.
+      function marcarPergunta(aberta) {
+        pergunta.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+        pergunta.classList.toggle('aberto', aberta);
+        pergunta.classList.toggle('btn-ouro', !aberta);
+        pergunta.classList.toggle('btn-fantasma', aberta);
+      }
+      pergunta.setAttribute('aria-expanded', 'false');
+      pergunta.style.marginTop = '14px';
+      function montarPainel() {
+        var conferir = botao('btn btn-ouro', 'Conferir esta conta', function () {
+          fecharFolha();
+          setTimeout(function () { abrirFolhaConferencia(id); }, 240);
+        });
+        conferir.style.marginTop = '12px';
+        painel.appendChild(conferir);
+        // Ajustar saldo (pedido de 19/11/2026): diz o saldo certo e escolhe se
+        // a diferença vira receita/despesa ou muda o saldo inicial.
+        var duasAcoes = no('div', 'duas');
+        duasAcoes.style.marginTop = '8px';
+        duasAcoes.appendChild(botao('btn btn-fantasma', 'Ajustar saldo', function () {
+          fecharFolha();
+          setTimeout(function () { abrirAjusteDeSaldo(id); }, 240);
+        }));
+        duasAcoes.appendChild(botao('btn btn-fantasma', 'Editar esta conta', function () {
+          fecharFolha();
+          setTimeout(function () { abrirFolhaConta(id); }, 240);
+        }));
+        painel.appendChild(duasAcoes);
+        var cc = cartaoConferido(id);
+        cc.style.marginTop = '12px';
+        painel.appendChild(cc);
+      }
+      juntar(topo, pergunta, painel);
+      if (abrirPainel) { montarPainel(); painel.hidden = false; marcarPergunta(true); }
       folha.appendChild(topo);
 
       // Os extratos importados desta conta (pedido de 16/11/2026): antes
@@ -27229,11 +27287,11 @@
         .sort(function (a, b) { return (b.ate || '') < (a.ate || '') ? -1 : (b.ate || '') > (a.ate || '') ? 1 : (b.quando || 0) - (a.quando || 0); });
       var semExtrato = conta.tipo === 'Dinheiro físico' && !levas.length;
       var cExt = cartao('liso cartao-extratos');
-      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', versao: 2, itens: [
+      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', versao: 3, itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
         'Toque num extrato para ver os detalhes, baixar o arquivo guardado, reler ou tirar tudo o que ele trouxe de uma vez.',
         'O número de arquivos no topo conta só os dos extratos da lista. O arquivo de uma importação que você tirou é apagado sozinho, sem perguntar.',
-        '"conferido ✓" é o extrato que você conferiu em "Conferir esta conta": ele fica guardado numa versão compacta e cifrada com a senha dos extratos.',
+        '"conferido ✓" é o extrato que você confirmou em "O saldo está correto?" (embaixo do saldo): ele fica guardado numa versão compacta e cifrada com a senha dos extratos.',
         '"+ Importar" lê o extrato do banco em PDF, Excel, OFX ou CSV. Lançamento que já existe na conta vem desmarcado, para não entrar duas vezes.'] });
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
@@ -37532,7 +37590,7 @@
         if (falhas) partes.push(falhas + ' arquivo(s) não deu para trocar agora e ficaram como vieram. Confira a internet e tente de novo.');
         if (!partes.length) partes.push('Não havia arquivo para conferir.');
         avisarCaixa(feitos ? 'Conferido ✓' : 'Nada foi trocado', partes.join('\n\n'), function () {
-          setTimeout(function () { abrirFolhaConferencia(id); }, 200);
+          setTimeout(function () { abrirExtratoConta(id, true); }, 200);
         });
       });
     }).catch(function () { limparAviso(); });

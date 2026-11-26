@@ -111,6 +111,7 @@ conferir('5. a conta com os lançamentos está no Início',
 // chega a "Conferir esta conta".
 await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")');
 await page.waitForTimeout(1400);
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Conferir esta conta")');
 await page.waitForTimeout(3000);
 const naConferencia = limpo(await page.textContent('#folha'));

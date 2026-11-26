@@ -58,28 +58,44 @@ const abrirConta = async () => {
   await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(800);
   await page.click('#telaInicio .cartao:has-text("Contas") .linha:has-text("Inter")'); await page.waitForTimeout(1200);
 };
-const abrirConferencia = async () => {
+const abrirPainel = async () => {
   await abrirConta();
+  await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); });
+  await page.waitForTimeout(500);
+  await page.waitForFunction(() => !/Vendo os arquivos/.test((document.querySelector('#folha .estado-conferido') || {}).textContent || 'Vendo os arquivos'), null, { timeout: 15000 }).catch(() => {});
+};
+const abrirConferencia = async () => {
+  await abrirPainel();
   await page.click('#folha .btn-ouro:has-text("Conferir esta conta")'); await page.waitForTimeout(1200);
   await page.waitForFunction(() => !/Vendo os arquivos/.test((document.querySelector('#folha .estado-conferido') || {}).textContent || 'Vendo os arquivos'), null, { timeout: 15000 }).catch(() => {});
 };
 
-// ---- o cartão na conferência ----
+// ---- embaixo do saldo: só a pergunta; abrindo, as 3 opções e o conferido ----
 await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(8000);
-await abrirConferencia();
+await abrirConta();
+const fechado = await page.evaluate(() => {
+  const vis = (el) => !!el && el.offsetParent !== null;
+  const f = document.querySelector('#folha');
+  const achar = (t) => [...f.querySelectorAll('button')].find(b => b.textContent.trim() === t);
+  return { pergunta: vis(f.querySelector('.botao-saldo-correto')), conferir: vis(achar('Conferir esta conta')), ajustar: vis(achar('Ajustar saldo')),
+    editar: vis(achar('Editar esta conta')), cartao: vis(f.querySelector('.cartao-conferido')) };
+});
+conferir('1. embaixo do saldo aparece só "O saldo está correto?"', fechado.pergunta && !fechado.conferir && !fechado.ajustar && !fechado.editar && !fechado.cartao, JSON.stringify(fechado));
+await page.screenshot({ path: dir + '/z196-pergunta-fechada.png' });
+await abrirPainel();
+const aberto = await page.evaluate(() => {
+  const vis = (el) => !!el && el.offsetParent !== null;
+  const f = document.querySelector('#folha');
+  const achar = (t) => [...f.querySelectorAll('button')].find(b => b.textContent.trim() === t);
+  return { conferir: vis(achar('Conferir esta conta')), ajustar: vis(achar('Ajustar saldo')), editar: vis(achar('Editar esta conta')), cartao: vis(f.querySelector('.cartao-conferido')) };
+});
 const card = limpo(await folha().locator('.cartao-conferido').textContent());
-conferir('1. a conferência mostra "Está tudo certo?" com o arquivo ainda como veio e o botão ligado',
+conferir('2. tocando, abrem as 3 opções e o "Está tudo certo?" com o botão ligado',
+  aberto.conferir && aberto.ajustar && aberto.editar && aberto.cartao &&
   /Está tudo certo\?/.test(card) && /1 arquivo\(s\) ainda como vieram do banco/.test(card) &&
-  await folha().locator('.botao-conferido:not([disabled])').count() === 1 && await folha().locator('.cartao-conferido [data-dica="conta.conferido.v2"]').count() === 1, card);
+  await folha().locator('.botao-conferido:not([disabled])').count() === 1 && await folha().locator('.cartao-conferido [data-dica="conta.conferido.v3"]').count() === 1, JSON.stringify(aberto) + ' ' + card.slice(0, 120));
+await page.screenshot({ path: dir + '/z196-pergunta-aberta.png' });
 await folha().locator('.cartao-conferido').screenshot({ path: dir + '/z196-conferido-antes.png' }).catch(() => {});
-
-// saldo que não bate desliga o botão
-const campoBanco = folha().locator('.campo:has-text("Saldo que o banco mostra") input').first();
-const valorBanco = await campoBanco.inputValue();
-await campoBanco.fill('99999'); await campoBanco.dispatchEvent('input'); await page.waitForTimeout(300);
-conferir('2. com o saldo do banco diferente, o botão desliga e diz por quê',
-  await folha().locator('.botao-conferido[disabled]').count() === 1 && /ainda não bate/.test(limpo(await folha().locator('.cartao-conferido').textContent())));
-await campoBanco.fill(valorBanco); await campoBanco.dispatchEvent('input'); await page.waitForTimeout(300);
 
 // ---- conferindo: a senha nasce aqui ----
 // Sob carga a lista de arquivos demora: espera o botão ligar antes de tocar.
@@ -113,8 +129,11 @@ conferir('6. no servidor: o mesmo arquivo, agora conferido, menor, cifrado e sem
 await page.click('#dialogoAcoes button'); await page.waitForTimeout(1500);
 await page.waitForFunction(() => !/Vendo os arquivos/.test((document.querySelector('#folha .estado-conferido') || {}).textContent || 'Vendo os arquivos'), null, { timeout: 15000 }).catch(() => {});
 const card2 = limpo(await folha().locator('.cartao-conferido').textContent().catch(() => ''));
-conferir('7. a conferência volta dizendo que está conferido, sem o botão',
-  /Conferido ✓ O extrato desta conta está guardado na versão compacta e cifrada/.test(card2) && !(await folha().locator('.botao-conferido:visible').count()), card2);
+conferir('7. a conta volta com a pergunta aberta, dizendo que está conferido, sem o botão',
+  /Conferido ✓ O extrato desta conta está guardado na versão compacta e cifrada/.test(card2) && !(await folha().locator('.botao-conferido:visible').count()) &&
+  await folha().locator('.botao-saldo-correto[aria-expanded="true"]').count() === 1, card2);
+await abrirConferencia();
+conferir('7b. a conferência não mostra mais o cartão do conferido', await folha().locator('.cartao-conferido').count() === 0);
 await page.waitForFunction(() => /Conferido ✓/.test((document.querySelector('#folha [data-leva] button') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
 conferir('8. na lista de extratos importados, o "Baixar" virou "Conferido ✓"',
   await folha().locator('[data-leva] button[disabled]:has-text("Conferido ✓")').count() === 1);

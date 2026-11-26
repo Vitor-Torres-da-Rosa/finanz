@@ -41,6 +41,7 @@ console.log('   tela:', (await page.textContent('#telaInicio')).replace(/\s+/g,'
 await page.screenshot({ path: dir+'/i05-dbg.png', fullPage:true });
 await page.click('#telaInicio *:has-text("Banco Inter") >> nth=-1'); await page.waitForTimeout(1200);
 console.log('2. saldo Inter:', await page.textContent('#folha .valorao'));
+await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
 await page.click('#folha .btn-ouro:has-text("Conferir esta conta")'); await page.waitForTimeout(1400);
 console.log('3. repetidos apontados?', await page.locator('#folha .rotulo:has-text("Possíveis repetidos")').count());
 console.log('4. aviso de importações:', await page.$$eval('#folha .linha-nota', ns=>ns.map(n=>n.textContent).filter(t=>/antes desta versão/.test(t))));
