@@ -27,20 +27,17 @@ page.on('filechooser', async fc => { await fc.setFiles(arquivo); });
 
 // O que está guardado no servidor, sem baixar o conteúdo.
 const arquivosNaNuvem = async () => page.evaluate(async () => {
-  const pac = localStorage.getItem('caixa.nuvem.v4');
-  if (!pac) return 'sem sessão';
-  const tok = JSON.parse(pac).access_token;
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/arquivos_extrato?select=id,nome,tipo,tamanho,importacao_id,conteudo', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });
-  return (await r.json()).map((a) => ({
+  if (!localStorage.getItem('caixa.nuvem.v4')) return 'sem sessão';
+  // Com a senha dos dados o nome e o conteúdo vão cifrados: o atalho de
+  // teste devolve o nome aberto e se o conteúdo está cifrado.
+  return (await window.__finanzTeste.arquivos()).map((a) => ({
     nome: a.nome, tipo: a.tipo, tamanho: a.tamanho,
-    temConteudo: !!(a.conteudo && a.conteudo.length), leva: !!a.importacao_id
+    temConteudo: a.bytes > 0 && a.cifrado, leva: !!a.importacao_id
   }));
 });
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1800);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);

@@ -44,13 +44,9 @@ const irParaInicio = async () => {
   }
 };
 const naConta = async () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token };
-  const pegar = async (t, q) => {
-    const r = await fetch(cfg.supabaseUrl + '/rest/v1/' + t + '?' + q, { headers: cab });
-    const j = await r.json();
-    return Array.isArray(j) ? j : [];
+  // Cifrado no servidor (senha dos dados): lê decifrando.
+  const pegar = async (t) => {
+    try { const j = await window.__finanzTeste.tabela(t); return Array.isArray(j) ? j : []; } catch (e) { return []; }
   };
   return {
     pagamentos: await pegar('pagamentos', 'select=valor,lancamento_id&excluido_em=is.null'),
@@ -68,7 +64,7 @@ const avisoDeSincronia = async () => {
 };
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);

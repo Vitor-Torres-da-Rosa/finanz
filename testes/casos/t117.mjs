@@ -45,12 +45,10 @@ const irParaInicio = async () => {
 
 // Quantos lançamentos o SERVIDOR tem. É a única prova que vale: a tela
 // mostra o que está no aparelho, que continua certo mesmo sem subir.
+// Com a senha dos dados (5.111.0), o servidor guarda cifrado: lê decifrando.
 const noServidor = async () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=descricao&excluido_em=is.null', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-  return (await r.json()).map((l) => l.descricao).sort();
+  const r = await window.__finanzTeste.tabela('lancamentos');
+  return Array.isArray(r) ? r.map((l) => l.descricao).sort() : [];
 });
 
 // A linha de sincronização em Mais, como a pessoa a lê.
@@ -78,7 +76,7 @@ const novoLancamento = async (nome, valor) => {
 };
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);

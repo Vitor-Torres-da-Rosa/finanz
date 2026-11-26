@@ -63,7 +63,7 @@ page.on('response', async (r) => {
 });
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -99,14 +99,10 @@ conferir('3. e os dados continuam na tela', (await totalEmContas()) === '-R$ 320
 // seria só deixar de ver o que os outros fazem.
 await page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
-    method: 'POST',
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-               'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify([{ id: 'outro-' + Date.now(), user_id: pac.usuario.id,
+  // Grava cifrado, como o outro aparelho gravaria (senha dos dados).
+  await window.__finanzTeste.gravar('lancamentos', [{ id: 'outro-' + Date.now(), user_id: pac.usuario.id,
       tipo: 'saida', valor: 7700, descricao: 'Veio do outro aparelho',
-      categoria: 'Outros', data: new Date().toISOString().slice(0, 10), conta_id: null }]) });
+      categoria: 'Outros', data: new Date().toISOString().slice(0, 10), conta_id: null }]);
 });
 
 baixado = 0;

@@ -71,7 +71,7 @@ const totalEmContas = async () => {
 
 // ---- a conta, uma conta bancária e um lançamento de R$ 320,00 ----
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -105,10 +105,8 @@ await semDialogo();
 // a conta final ser uma só e óbvia: 32000 + 1100 = 33100 centavos.
 const semeadura = await page.evaluate(async (quantos) => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-                'Content-Type': 'application/json', Prefer: 'return=minimal' };
-  const contas = await (await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id', { headers: cab })).json();
+  // Com a senha dos dados tudo mora cifrado no cofre: lê e grava por ele.
+  const contas = await window.__finanzTeste.tabela('contas');
   const contaId = contas[0].id;
   const hoje = new Date().toISOString().slice(0, 10);
   const linhas = [];
@@ -120,9 +118,7 @@ const semeadura = await page.evaluate(async (quantos) => {
   }
   const estados = [];
   for (let i = 0; i < linhas.length; i += 275) {
-    const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
-      method: 'POST', headers: cab, body: JSON.stringify(linhas.slice(i, i + 275)) });
-    estados.push(r.status);
+    estados.push(await window.__finanzTeste.gravar('lancamentos', linhas.slice(i, i + 275)));
   }
   return estados.join(' ');
 }, SEMEADOS);
@@ -132,7 +128,7 @@ console.log('semeadura ·', semeadura);
 const cortado = await page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
   const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=id&excluido_em=is.null',
+  const r = await fetch(cfg.supabaseUrl + '/rest/v1/cofre?select=id&tabela=eq.lancamentos&excluido_em=is.null',
     { headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
   return (await r.json()).length;
 });
@@ -165,7 +161,7 @@ await page.screenshot({ path: dir+'/y17-saldo-inteiro.png', fullPage: true });
 //
 // O outro caminho de download, que não passa pela sincronização: trocar
 // de celular, reinstalar o app, entrar do navegador de outra pessoa.
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-contorno:has-text("Entrar na minha conta")'); await page.waitForTimeout(1200);

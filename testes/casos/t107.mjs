@@ -130,7 +130,7 @@ const totalEmContas = async () => {
 };
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 
 // ---- conta A: R$ 320,00 de saída, e nada disso sobe para a nuvem ----
@@ -195,7 +195,7 @@ const noServidor = async (quando) => {
     if (!tok) return { semToken: Object.keys(pacote), chaves };
     const cfg = window.FINANZ_CONFIG;
     const h = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok };
-    const pega = async (t) => (await (await fetch(cfg.supabaseUrl + '/rest/v1/' + t + '?select=*&excluido_em=is.null', { headers: h })).json());
+    const pega = async (t) => { try { return await window.__finanzTeste.tabela(t); } catch (e) { return []; } };
     const contas = await pega('contas');
     const lanc = await pega('lancamentos');
     return { contas: contas.map((c) => c.nome), lancamentos: lanc.map((l) => l.descricao + '=' + (l.valor / 100).toFixed(2)) };

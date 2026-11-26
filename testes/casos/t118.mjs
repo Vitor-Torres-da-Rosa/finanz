@@ -62,7 +62,7 @@ await ctx.route(
   });
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -115,12 +115,10 @@ conferir('2. nenhuma renovação começou com outra ainda no ar',
 // não será mais intermitente.
 await page.waitForTimeout(14000);
 const noServidor = await page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=descricao&excluido_em=is.null', {
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-  const j = await r.json();
-  return Array.isArray(j) ? j.map((l) => l.descricao) : ('erro ' + r.status);
+  try {
+    const j = await window.__finanzTeste.tabela('lancamentos');
+    return j.map((l) => l.descricao);
+  } catch (e) { return 'erro ' + (e && e.message); }
 });
 conferir('3. e o lançamento chegou ao servidor', JSON.stringify(noServidor) === '["Aluguel"]',
   JSON.stringify(noServidor));

@@ -69,9 +69,7 @@ const noServidor = async () => page.evaluate(async () => {
   if (!pac) return { erro: 'sem sessão' };
   const tok = JSON.parse(pac).access_token;
   const cfg = window.FINANZ_CONFIG;
-  const pega = async (t) => (await (await fetch(cfg.supabaseUrl + '/rest/v1/' + t +
-    '?select=*&excluido_em=is.null',
-    { headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } })).json());
+  const pega = async (t) => { try { return await window.__finanzTeste.tabela(t); } catch (e) { return []; } };
   return { contas: (await pega('contas')).map((c) => c.nome).sort(),
            lancamentos: (await pega('lancamentos')).map((l) => l.descricao).sort() };
 });
@@ -100,7 +98,7 @@ async function porDinheiroNaConta(nome, reais, descricao) {
 }
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 
 // ---- conta A, com tudo subindo para a nuvem: é o que arma a colisão ----

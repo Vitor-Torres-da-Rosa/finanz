@@ -11,7 +11,7 @@ const conferir = (rotulo, ok, achado) => { if (!ok) falhas++; console.log((ok ? 
 
 await page.clock.setFixedTime(new Date(2026, 10, 17, 9, 0, 0));
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -34,11 +34,7 @@ const restaurar = async (quantos) => {
   await page.click('#dialogoAcoes button:has-text("Restaurar")'); await page.waitForTimeout(1500);
 };
 const ativosNaNuvem = () => page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?select=id&excluido_em=is.null',
-    { headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-  return (await r.json()).length;
+  return (await window.__finanzTeste.tabela('lancamentos')).length;
 });
 const esperarNuvem = async (alvo, seg) => {
   let n = -1;
@@ -51,7 +47,8 @@ conferir('1. os 600 lançamentos sobem para a nuvem', (await esperarNuvem(600, 6
 
 // A rede tropeça no primeiro pedido de exclusão.
 let patches = 0, derrubados = 0;
-await page.route('**/rest/v1/lancamentos?id=in.*', async (route) => {
+// Com a senha dos dados as exclusões vão para o cofre (cofre?id=in.(...)).
+await page.route('**/rest/v1/cofre?id=in.*', async (route) => {
   if (route.request().method() !== 'PATCH') return route.continue();
   patches++;
   if (derrubados === 0) { derrubados++; return route.abort('failed'); }

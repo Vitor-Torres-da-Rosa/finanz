@@ -76,7 +76,7 @@ const vivosNoServidor = async () => page.evaluate(async () => {
   let total = 0, pulo = 0;
   for (let i = 0; i < 20; i++) {
     const r = await fetch(cfg.supabaseUrl +
-      '/rest/v1/lancamentos?select=id&excluido_em=is.null&order=id.asc&limit=1000&offset=' + pulo,
+      '/rest/v1/cofre?select=id&tabela=eq.lancamentos&excluido_em=is.null&order=id.asc&limit=1000&offset=' + pulo,
       { headers: cab });
     const pagina = await r.json();
     if (!pagina.length) break;
@@ -87,7 +87,7 @@ const vivosNoServidor = async () => page.evaluate(async () => {
 
 // ---- conta, conta bancária e um lançamento de R$ 320,00 ----
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -121,10 +121,8 @@ console.log('backup guardado com 1 lançamento');
 // ---- e agora o servidor cresce para 1101 ----
 const semeadura = await page.evaluate(async (quantos) => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-                'Content-Type': 'application/json', Prefer: 'return=minimal' };
-  const contas = await (await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id', { headers: cab })).json();
+  // Com a senha dos dados tudo mora cifrado no cofre: lê e grava por ele.
+  const contas = await window.__finanzTeste.tabela('contas');
   const hoje = new Date().toISOString().slice(0, 10);
   const marca = pac.usuario.id.slice(0, 8);
   const linhas = [];
@@ -135,9 +133,7 @@ const semeadura = await page.evaluate(async (quantos) => {
   }
   const estados = [];
   for (let i = 0; i < linhas.length; i += 275) {
-    const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
-      method: 'POST', headers: cab, body: JSON.stringify(linhas.slice(i, i + 275)) });
-    estados.push(r.status);
+    estados.push(await window.__finanzTeste.gravar('lancamentos', linhas.slice(i, i + 275)));
   }
   return estados.join(' ');
 }, SEMEADOS);

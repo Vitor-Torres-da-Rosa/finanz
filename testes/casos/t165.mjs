@@ -30,7 +30,7 @@ const dinheiro = async (page, loc, digitos) => {
 async function criarConta(page, nome, email) {
   await page.clock.setFixedTime(new Date(2026, 10, 10, 9, 0, 0));
   await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
   await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
   await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
   await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -83,6 +83,11 @@ await reabrir(ana);
 const dialogo = limpo(await ana.textContent('#dialogoFundo').catch(() => ''));
 conferir('3. Ana recebe o convite das Contas de casa', /Vitor quer compartilhar com você/.test(dialogo) && /Contas de casa/.test(dialogo), dialogo.slice(0, 120));
 await ana.click('#dialogoAcoes button:has-text("Aceitar")'); await ana.waitForTimeout(7000);
+// Compartilhado cifrado: ele abre o app uma vez e embrulha a chave da
+// área para ela; ela abre de novo e desembrulha.
+await sincronizar(ana);
+await reabrir(vitor); await sincronizar(vitor);
+await reabrir(ana); await sincronizar(ana);
 await fechar(ana);
 const cardA = limpo(await ana.textContent('#telaInicio .cartao-casa'));
 conferir('4. aceitando, ela vê as contas do Vitor, com a parte dela', /Total por mês\s*R\$ 100,00/.test(cardA) && /Sua parte\s*R\$ 50,00/.test(cardA) && /Compartilhadas por Vitor/.test(cardA), cardA);

@@ -1,6 +1,8 @@
 // Conferido ✓ (pedido do Vitor em 25/11/2026): com a conta batendo, a pessoa
 // confirma e os PDFs da conta viram uma versão compacta (o que o app leu),
-// cifrada com a senha dos extratos. Reler e Relançar continuam funcionando.
+// cifrada com a senha dos dados (desde a 5.111.0, sem ela nada vai para o
+// servidor, então o arquivo só existe lá com a senha). Reler e Relançar
+// continuam funcionando, sem pedir senha de novo.
 import { chromium, dir, amostras, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -16,7 +18,7 @@ const folha = () => page.locator('#folha');
 
 await page.clock.setFixedTime(new Date(2026, 10, 17, 9, 0, 0));
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -97,7 +99,7 @@ conferir('2. tocando, abrem as 3 opções e o "Está tudo certo?" com o botão l
 await page.screenshot({ path: dir + '/z196-pergunta-aberta.png' });
 await folha().locator('.cartao-conferido').screenshot({ path: dir + '/z196-conferido-antes.png' }).catch(() => {});
 
-// ---- conferindo: a senha nasce aqui ----
+// ---- conferindo: usa a senha dos dados, já aberta ----
 // Sob carga a lista de arquivos demora: espera o botão ligar antes de tocar.
 await page.waitForSelector('#folha .botao-conferido:not([disabled])', { timeout: 60000 });
 await folha().locator('.botao-conferido').click();
@@ -105,14 +107,8 @@ await page.waitForSelector('#dialogoFundo.aberta'); await page.waitForTimeout(40
 const perg = limpo(await page.textContent('#dialogoFundo'));
 conferir('3. pergunta antes, explicando o que muda', /Marcar como conferido\?/.test(perg) && /Baixar o PDF original deixa de dar/.test(perg), perg.slice(0, 160));
 await page.click('#dialogoAcoes button:has-text("Conferido")');
-await page.waitForSelector('#folha .campo-senha-extratos2', { timeout: 15000 });
-await folha().locator('.campo-senha-extratos').fill('segredo123');
-await folha().locator('.campo-senha-extratos2').fill('outra123');
-await folha().locator('.btn-ouro:has-text("Continuar")').click(); await page.waitForTimeout(400);
-conferir('4. as duas senhas precisam ser iguais', /não são iguais/.test(limpo(await folha().textContent())));
-await page.screenshot({ path: dir + '/z196-senha-extratos.png' });
-await folha().locator('.campo-senha-extratos2').fill('segredo123');
-await folha().locator('.btn-ouro:has-text("Continuar")').click();
+await page.waitForTimeout(800);
+conferir('4. com a senha dos dados, não pede outra senha', await folha().locator('.campo-senha-extratos').count() === 0);
 await page.waitForFunction(() => /Conferido ✓|Nada foi trocado/.test((document.querySelector('#dialogoFundo.aberta') || {}).textContent || ''), null, { timeout: 60000 });
 const fim = limpo(await page.textContent('#dialogoFundo'));
 conferir('5. conferido: diz de quanto para quanto o arquivo foi', /1 extrato\(s\) conferido\(s\) ✓/.test(fim) && /foram de \d+ KB para [\d,]+ (KB|bytes)/.test(fim), fim);
@@ -123,7 +119,7 @@ let pac = {}; try { pac = JSON.parse(guardado.conteudo); } catch (e) { /* */ }
 console.log('tamanho original', original.tamanho, '| conferido', guardado.tamanho);
 conferir('6. no servidor: o mesmo arquivo, agora conferido, menor, cifrado e sem o texto à vista',
   guardado.id === original.id && guardado.tipo === 'application/vnd.finanz.conferido' && guardado.tamanho < original.tamanho &&
-  pac.formato === 'extrato-conferido' && pac.cifra && pac.cifra.nome === 'AES-GCM' && pac.kdf && pac.kdf.voltas >= 100000 &&
+  pac.formato === 'extrato-conferido' && pac.cifra && pac.cifra.nome === 'AES-GCM' && pac.kdf && pac.kdf.nome === 'cofre' &&
   !/Boleto|Tarifa|%PDF/.test(guardado.conteudo), guardado.tipo + ' ' + guardado.tamanho);
 
 await page.click('#dialogoAcoes button'); await page.waitForTimeout(1500);
@@ -163,14 +159,8 @@ await abrirConta();
 await page.click('#folha .cartao-extratos .linha:has-text("03/11/2026")'); await page.waitForTimeout(1500);
 await page.waitForSelector('#folha .botao-reler:not([disabled])', { timeout: 20000 });
 await page.click('#folha .botao-reler');
-await page.waitForSelector('#folha .campo-senha-extratos', { timeout: 20000 });
-conferir('11. para reler o conferido, pede a senha (uma só caixa)', await folha().locator('.campo-senha-extratos2').count() === 0);
-await folha().locator('.campo-senha-extratos').fill('errada99');
-await folha().locator('.btn-ouro:has-text("Continuar")').click();
-await page.waitForFunction(() => /Senha errada/.test((document.querySelector('#folha') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
-conferir('12. senha errada não abre', /Senha errada/.test(limpo(await folha().textContent())));
-await folha().locator('.campo-senha-extratos').fill('segredo123');
-await folha().locator('.btn-ouro:has-text("Continuar")').click();
+await page.waitForTimeout(800);
+conferir('11. reler o conferido não pede senha: abre com a senha dos dados', await folha().locator('.campo-senha-extratos').count() === 0);
 await page.waitForSelector('#dialogoFundo.aberta', { timeout: 60000 }); await page.waitForTimeout(500);
 const pergunta = limpo(await page.textContent('#dialogoFundo'));
 conferir('13. relendo a versão compacta, acha o boleto com o sinal trocado', /Corrigir 1 lançamento\(s\)\?/.test(pergunta) &&

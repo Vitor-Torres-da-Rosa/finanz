@@ -32,7 +32,7 @@ const abertas = await page.$$eval('#folha .guia-secao.aberta', ns => ns.map(n =>
 const nSo = await page.locator('#folha .guia-secao').count();
 const dados = (await page.locator('#folha .guia-secao[data-assunto="dados"]').textContent()).replace(/\s+/g, ' ');
 conferir('6. "Dados protegidos" abre só aquele assunto, aberto, com o detalhe honesto', nSo === 1 && abertas.join() === 'dados' &&
-  /ponta a ponta/.test(dados) && /Ninguém mais lê/.test(dados) && /Ainda abertos/.test(dados) && /HTTPS/.test(dados), nSo + ' | ' + dados.slice(0, 120));
+  /ponta a ponta/.test(dados) && /Ninguém mais lê/.test(dados) && /Sem senha, só no celular/.test(dados) && /HTTPS/.test(dados), nSo + ' | ' + dados.slice(0, 120));
 await page.screenshot({ path: dir + '/z197-guia-dados.png' });
 await page.click('#folha .botao-guia-todos'); await page.waitForTimeout(1200);
 const nAssuntos = await page.locator('#folha .guia-secao').count();

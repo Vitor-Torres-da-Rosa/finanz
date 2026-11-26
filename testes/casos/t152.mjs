@@ -23,7 +23,7 @@ const emailEsposa = 'esposa-t152-' + suf + '@exemplo.com';
 
 async function criarConta(page, nome, email) {
   await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
   await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
   await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
   await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -94,6 +94,11 @@ const dialogo = limpo(await esposa.textContent('#dialogoFundo').catch(() => ''))
 conferir('2. ela recebe o convite dentro do app', /Vitor quer compartilhar com você/.test(dialogo) && /Venda de Doces/.test(dialogo), dialogo.slice(0, 120));
 await esposa.screenshot({ path: dir + '/z51-convite.png', fullPage: true });
 await esposa.click('#dialogoAcoes button:has-text("Aceitar")'); await esposa.waitForTimeout(7000);
+// Compartilhado cifrado: ele abre o app uma vez e embrulha a chave da
+// área para ela; ela abre de novo e desembrulha.
+await sincronizar(esposa);
+await reabrir(vitor); await sincronizar(vitor);
+await reabrir(esposa); await sincronizar(esposa);
 await irParaProdutos(esposa);
 let telaE = limpo(await esposa.textContent('#telaInicio'));
 conferir('3. aceitando, ela vê os doces do Vitor e não os dela', /Brigadeiro do Vitor/.test(telaE) && !/Doce dela/.test(telaE), telaE.slice(0, 200));

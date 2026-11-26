@@ -50,9 +50,10 @@ await page.evaluate(async (suf) => {
   // O servidor só aceita cópia cifrada: o gancho de teste cifra como o app.
   await window.__finanzTeste.inserirCopias([{ id: 'inst-' + suf, user_id: pac.usuario.id, dia: new Date().toISOString().slice(0, 10),
       motivo: 'alteração', resumo: 'teste', dados: b64, tamanho: texto.length }]);
-  await fetch(cfg.supabaseUrl + '/rest/v1/empreendedor_registros', { method: 'POST', headers: h,
-    body: JSON.stringify([{ id: 'apagado-' + suf, user_id: pac.usuario.id, tipo: 'doce_produto',
-      dados: { nome: 'Bolo apagado' }, excluido_em: new Date().toISOString() }]) });
+  // Apagado de propósito noutro aparelho: grava cifrado e marca como apagado.
+  await window.__finanzTeste.gravar('empreendedor_registros', [{ id: 'apagado-' + suf, user_id: pac.usuario.id, tipo: 'doce_produto',
+      dados: { nome: 'Bolo apagado' } }]);
+  await window.__finanzTeste.apagar('empreendedor_registros', ['apagado-' + suf]);
   localStorage.removeItem('finanz.recuperouModulos.v1');
 }, suf);
 

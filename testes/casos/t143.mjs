@@ -22,7 +22,7 @@ const dinheiro = async (loc, digitos) => {
 };
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -91,11 +91,7 @@ conferir('8. o painel desconta as despesas de Serviços',
 let noServidor = null;
 for (let i = 0; i < 20 && !noServidor; i++) {
   const linhas = await page.evaluate(async () => {
-    const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-    const cfg = window.FINANZ_CONFIG;
-    const r = await fetch(cfg.supabaseUrl + '/rest/v1/servicos?select=*', {
-      headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-    return r.json();
+    try { return await window.__finanzTeste.tabela('servicos'); } catch (e) { return []; }
   });
   noServidor = (linhas || []).find(l => l.nome === 'Poco f5' && Array.isArray(l.despesas) && l.despesas.length === 1) || null;
   if (!noServidor) await page.waitForTimeout(1000);

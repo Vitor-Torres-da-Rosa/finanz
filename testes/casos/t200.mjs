@@ -40,7 +40,7 @@ await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeou
 const mais = limpo(await page.textContent('#telaMais'));
 conferir('1. em Mais, uma entrada só: "Proteja seus dados", e os itens soltos saíram', await page.locator('#telaMais .botao-proteja').count() === 1 &&
   !/Fazer backup \(com senha\)/.test(mais) && !/Voltar a uma data/.test(mais) && !/Restaurar backup/.test(mais) &&
-  !/Como seus dados são protegidos/.test(mais) && await page.locator('#telaMais .linha:has-text("Senha dos dados")').count() === 1, (mais.match(/Proteja.{0,80}/) || [''])[0]);
+  !/Como seus dados são protegidos/.test(mais) && await page.locator('#telaMais .botao-proteja:has-text("Senha dos dados")').count() === 1, (mais.match(/Proteja.{0,80}/) || [''])[0]);
 await page.locator('#telaMais .botao-proteja').screenshot({ path: dir + '/z200-entrada.png' }).catch(() => {});
 await page.click('#telaMais .botao-proteja'); await page.waitForTimeout(900);
 await page.waitForFunction(() => !/Procurando/.test((document.querySelector('#folha .botao-backup-nuvem') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
@@ -49,7 +49,7 @@ conferir('2. dentro: senha dos dados, backups com as senhas diferentes e os text
   /Senha dos dados/.test(hub) && /Backup na nuvem/.test(hub) && /Backup no celular/.test(hub) && /senhas são diferentes/.test(hub) &&
   await page.locator('#folha .duvida').count() === 0 && /Política de Privacidade/.test(hub) && /Como seus dados são protegidos/.test(hub), hub.slice(0, 200));
 await page.screenshot({ path: dir + '/z200-proteja.png', fullPage: true });
-await page.click('#folha [data-dica="mais.protecao"]'); await page.waitForTimeout(600);
+await page.click('#folha [data-dica^="mais.protecao"]'); await page.waitForTimeout(600);
 const resp = limpo(await page.evaluate(() => { const d = document.querySelector('.dica-flutuante, .dica-pop, [role="dialog"].dica'); return d ? d.textContent : document.body.innerText; }));
 conferir('3. as dúvidas ficam no "i": pergunta e resposta', /As senhas são diferentes\?/.test(resp) && /senha do backup abre só o arquivo \.finanz/.test(resp) &&
   /E se eu esquecer a senha dos dados\?/.test(resp) && await page.locator('.dica-pergunta').count() >= 7, resp.slice(0, 160));

@@ -55,8 +55,12 @@ await p1.evaluate(() => new Promise(res => {
   inp.dispatchEvent(new Event('change')); setTimeout(() => res(true), 900);
 }));
 await p1.click('#dialogoAcoes button:has-text("Restaurar")'); await p1.waitForTimeout(6000);
+// Desde a 5.111.0: sem a senha dos dados, nada vai para o servidor, e a
+// tabela antiga fica fechada (o servidor recusa, não devolve vazio).
 let abertos = await nuvem(p1, 'GET', '/rest/v1/lancamentos?select=id,descricao&excluido_em=is.null');
-conferir('2. antes do cofre, os lançamentos estão abertos no servidor (o jeito antigo)', abertos.length === 3 && abertos.some(x => /Mercado Segredo/.test(x.descricao)), abertos.length);
+const antesNoCofre = await nuvem(p1, 'GET', '/rest/v1/cofre?select=id');
+conferir('2. antes do cofre, nada vai para o servidor: a tabela antiga recusa e o cofre está vazio',
+  !Array.isArray(abertos) && Array.isArray(antesNoCofre) && antesNoCofre.length === 0, JSON.stringify(abertos).slice(0, 80));
 
 // ---- cria a senha dos dados em Mais ----
 await p1.click('#navegacao button:has-text("Mais")'); await p1.waitForTimeout(900);
@@ -88,8 +92,8 @@ await p1.click('#dialogoAcoes button').catch(() => {}); await p1.waitForTimeout(
 
 // a conversão roda depois da sincronia: espera as linhas abertas sumirem
 for (let i = 0; i < 30; i++) {
-  abertos = await nuvem(p1, 'GET', '/rest/v1/lancamentos?select=id');
-  if (!abertos.length) break;
+  const n = await nuvem(p1, 'GET', '/rest/v1/cofre?select=id&tabela=eq.lancamentos');
+  if (Array.isArray(n) && n.length >= 3) break;
   await p1.waitForTimeout(1000);
 }
 const cofreLinhas = await nuvem(p1, 'GET', '/rest/v1/cofre?select=id,tabela,dados,excluido_em');

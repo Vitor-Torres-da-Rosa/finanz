@@ -23,11 +23,7 @@ const doServidor = async (ate) => {
   let linhas = [];
   for (let i = 0; i < 20; i++) {
     linhas = await page.evaluate(async () => {
-      const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-      const cfg = window.FINANZ_CONFIG;
-      const r = await fetch(cfg.supabaseUrl + '/rest/v1/empreendedor_registros?select=*', {
-        headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-      return r.json();
+      try { return await window.__finanzTeste.tabela('empreendedor_registros'); } catch (e) { return []; }
     });
     linhas = (Array.isArray(linhas) ? linhas : []).filter(l => !l.excluido_em);
     if (ate(linhas)) return linhas;
@@ -37,7 +33,7 @@ const doServidor = async (ate) => {
 };
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);

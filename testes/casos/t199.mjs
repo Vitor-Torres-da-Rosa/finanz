@@ -14,7 +14,7 @@ const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
 const folha = () => page.locator('#folha');
 
 await page.goto(ENDERECO, { waitUntil: 'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); sessionStorage.setItem('finanz.privado', '0'); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); sessionStorage.setItem('finanz.privado', '0'); });
 await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -115,10 +115,7 @@ await page.goBack(); await page.waitForTimeout(600);
 // ---- nuvem ----
 await page.waitForTimeout(4000);
 const nuvem = await page.evaluate(async () => {
-  const tok = JSON.parse(localStorage.getItem('caixa.nuvem.v4')).access_token;
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/empreendedor_registros?select=tipo&excluido_em=is.null', { headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + tok } });
-  return r.json();
+  try { return await window.__finanzTeste.tabela('empreendedor_registros'); } catch (e) { return []; }
 });
 const tipos = nuvem.map(x => x.tipo);
 conferir('12. sobe para a nuvem com o resto do Empreendedor', tipos.filter(t => t === 'estoque_item').length === 2 && tipos.filter(t => t === 'estoque_mov').length >= 5, tipos.length);

@@ -2926,7 +2926,7 @@
       versao: '5.111.0',
       data: '2026-11-26',
       itens: [
-        { r: "Sem a senha dos dados, nada sincroniza: seus dados ficam só no celular até você criar a senha.", d: "Na prática: sincronizar() lê o cofre (perfis.cofre) depois do carimbo; sem cofre criado, para ali com o erro semSenha, que não conta como falha (sem aviso vermelho e sem novas tentativas). Em Mais, a linha vira \"Sincronização desligada\"; tocando, ligarSincronia() oferece criar a senha. Com a senha criada, tudo sobe cifrado na tabela cofre, como antes. Cofre trancado (senha criada, mas não digitada neste aparelho) continua pedindo a senha.\nArquivos de extrato: sem a senha não sobem (guardarArquivoDeExtrato para antes). Cópias automáticas já não subiam (5.105.0). \"Apagar tudo\" sem a senha só apaga o celular, porque não há nada no servidor.\nServidor (migração 25): as tabelas antigas (contas, lancamentos, ativos, ativo_historico, clientes, servicos, pagamentos, parcelas, metas, orcamentos, categorias_extras, subcategorias_extras) foram esvaziadas (truncate, todas juntas por causa das chaves entre elas) e FECHADAS (revoke). Fechar, e não só esvaziar, protege quem está numa versão antiga: a versão antiga, vendo o servidor vazio, trocaria os dados do celular pelo vazio; com a tabela fechada ela recebe 403, mostra \"Não está sincronizando\" e não mexe no celular.\nperfis: um gatilho (perfis_sempre_neutro) zera todos os campos abertos em toda gravação; ficam só id e cofre. arquivos_extrato e empreendedor_registros só aceitam conteúdo cifrado (check constraints); o que estava aberto foi apagado. carimbo_da_conta passou a olhar só perfis, empreendedor_registros e cofre.\nDepende: quem não tem a senha e troca de celular só recupera os dados por um backup .finanz. A conversão para o cofre (criar a senha) sobe tudo do celular e trata as tabelas fechadas como já limpas." }
+        { r: "Sem a senha dos dados, nada sincroniza: seus dados ficam só no celular até você criar a senha.", d: "Na prática: sincronizar() lê o cofre (perfis.cofre) depois do carimbo; sem cofre criado, para ali com o erro semSenha, que não conta como falha (sem aviso vermelho e sem novas tentativas). Em Mais, a linha vira \"Sincronização desligada\"; tocando, ligarSincronia() oferece criar a senha. Com a senha criada, tudo sobe cifrado na tabela cofre, como antes. Cofre trancado (senha criada, mas não digitada neste aparelho) continua pedindo a senha.\nArquivos de extrato: sem a senha não sobem (guardarArquivoDeExtrato para antes). Cópias automáticas já não subiam (5.105.0). \"Apagar tudo\" sem a senha só apaga o celular, porque não há nada no servidor.\nServidor (migração 25): as tabelas antigas (contas, lancamentos, ativos, ativo_historico, clientes, servicos, pagamentos, parcelas, metas, orcamentos, categorias_extras, subcategorias_extras) foram esvaziadas (truncate, todas juntas por causa das chaves entre elas) e FECHADAS (revoke). Fechar, e não só esvaziar, protege quem está numa versão antiga: a versão antiga, vendo o servidor vazio, trocaria os dados do celular pelo vazio; com a tabela fechada ela recebe 403, mostra \"Não está sincronizando\" e não mexe no celular.\nperfis: um gatilho (perfis_sempre_neutro) zera todos os campos abertos em toda gravação; ficam só id e cofre. arquivos_extrato e empreendedor_registros só aceitam conteúdo cifrado (check constraints); o que estava aberto foi apagado. carimbo_da_conta passou a olhar só perfis, empreendedor_registros e cofre.\nDepende: quem não tem a senha e troca de celular só recupera os dados por um backup .finanz. A conversão para o cofre (criar a senha) sobe tudo do celular para o cofre e não mexe mais nas tabelas antigas (já vazias e fechadas). \"Trazer dados de outra conta\" sem a senha diz que os dados ficaram neste aparelho, sem chamar isso de falha." }
       ]
     },
     {
@@ -7003,6 +7003,10 @@
       return lerChaveDoCofre(info.kdf.sal).then(function (k) {
         if (k) { cofre.chave = k; cofre.sal = info.kdf.sal; return; }
         cofre.chave = null;
+        // Só nos testes automáticos: o "outro aparelho" da mesma conta abre
+        // com a senha de teste, sem tela.
+        var auto = senhaDeTesteDoCofre();
+        if (auto) return destrancarCofre(auto);
         abrirSenhaDoCofre();
         var e = new Error('Digite a senha dos dados para sincronizar.');
         e.trancado = true;
@@ -7441,7 +7445,9 @@
         }).catch(function (e) { if (ehTabelaQueFalta(e) || ehTabelaFechada(e)) return null; throw e; });
       };
       TABELAS_SINCRONIA.slice().reverse().forEach(function (t) {
-        if (t !== 'empreendedor_registros') { apagar(t, 'user_id=eq.' + uid); return; }
+        // As tabelas antigas já estão vazias e fechadas no servidor
+        // (migração 25): não há o que apagar nelas.
+        if (t !== 'empreendedor_registros') return;
         // Do Empreendedor, só o que não está compartilhado.
         t2 = t2.then(function () {
           return baixarTudo(t, 'select=id,tipo&user_id=eq.' + uid).catch(function (e) {
@@ -7462,7 +7468,6 @@
           return g;
         });
       });
-      ['orcamentos', 'categorias_extras', 'subcategorias_extras'].forEach(function (t) { apagar(t, 'user_id=eq.' + uid); });
       t2 = t2.then(function () {
         return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
           metodo: 'PATCH', corpo: perfilNeutro(uid), cabecalhos: { 'Prefer': 'return=minimal' }
@@ -7495,6 +7500,28 @@
   if (navigator.webdriver) {
     window.__finanzTeste = {
       cofreLigado: function () { return cofreLigado(); },
+      // Grava como o app grava (cifrado no cofre): é o "outro aparelho".
+      gravar: function (t, linhas, conflito) {
+        return comTokenValido().then(function () { return enviarLinhas(t, linhas, conflito || 'id'); })
+          .then(function () { return 201; }, function (e) { return 'erro: ' + (e && e.message); });
+      },
+      apagar: function (t, ids) {
+        return comTokenValido().then(function () { return marcarApagadosNaNuvem(t, ids, new Date().toISOString()); })
+          .then(function () { return 204; }, function (e) { return 'erro: ' + (e && e.message); });
+      },
+      // Os arquivos de extrato, com o nome aberto e o tamanho do conteúdo.
+      arquivos: function () {
+        return comTokenValido().then(function () {
+          return pedirNuvem('/rest/v1/arquivos_extrato?select=id,nome,tipo,tamanho,importacao_id,conta_id,conteudo', {});
+        }).then(function (r) {
+          return Promise.all((r || []).map(function (x) {
+            return (ehDoCofre(x.nome) ? textoDoCofre(x.nome) : Promise.resolve(x.nome)).then(function (nome) {
+              return { id: x.id, nome: nome, tipo: x.tipo, tamanho: x.tamanho, importacao_id: x.importacao_id, conta_id: x.conta_id,
+                       cifrado: ehDoCofre(x.conteudo), bytes: (x.conteudo || '').length };
+            });
+          }));
+        });
+      },
       copias: function () { return listarInstantaneos(); },
       tabela: function (t, apagados) {
         return comTokenValido().then(function () {
@@ -7534,12 +7561,16 @@
   // não pede sozinho. Quem quer o backup na nuvem vai em Proteja seus
   // dados e liga. Nos testes automáticos, 'finanz.cofre.auto' cria a senha
   // sem tela, para a suíte poder usar a nuvem cifrada.
+  function senhaDeTesteDoCofre() {
+    if (!navigator.webdriver) return '';
+    try { return localStorage.getItem('finanz.cofre.auto') || ''; } catch (e) { return ''; }
+  }
   function talvezPedirCriarCofre() {
-    if (pediuCriarCofre || cofre.ativo || !navigator.webdriver) return;
+    if (pediuCriarCofre === eu() || cofre.ativo || !navigator.webdriver) return;
     var auto = '';
     try { auto = localStorage.getItem('finanz.cofre.auto') || ''; } catch (e) { auto = ''; }
     if (!auto) return;
-    pediuCriarCofre = true;
+    pediuCriarCofre = eu();
     setTimeout(function () { criarCofre(auto).catch(function () { pediuCriarCofre = false; }); }, 300);
   }
 
@@ -9080,7 +9111,12 @@
       });
       return corrente;
     }).then(function () {
-      return baixarTudo('empreendedor_registros', 'select=id');
+      // Vivas e apagadas, pelo cofre quando ele está ligado: com a senha
+      // dos dados, o que é só da pessoa mora lá, não na tabela aberta.
+      return Promise.all([
+        baixarTabela('empreendedor_registros', 'select=id&excluido_em=is.null'),
+        baixarTabela('empreendedor_registros', 'select=id&excluido_em=not.is.null')
+      ]).then(function (r) { return (r[0] || []).concat(r[1] || []); });
     }).then(function (linhas) {
       (linhas || []).forEach(function (l) { naNuvem[l.id] = true; });
       var voltaram = 0;
@@ -9601,6 +9637,13 @@
       if (subiu) {
         avisarCaixa('Pronto',
           'Trouxe ' + b.resumo + ' para esta conta. Agora estão aqui e na nuvem.',
+          function () {});
+        return;
+      }
+      // Sem a senha dos dados nada vai para a nuvem, e isso não é falha.
+      if (sincroniaSemSenha && !cofre.ativo) {
+        avisarCaixa('Pronto',
+          'Trouxe ' + b.resumo + ' para esta conta. Estão neste aparelho: sem a senha dos dados, nada vai para a nuvem.',
           function () {});
         return;
       }

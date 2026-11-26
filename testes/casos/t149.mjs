@@ -31,7 +31,7 @@ const semTabela = (r) => r.fulfill({ status: 404, contentType: 'application/json
 await ctx.route('**/rest/v1/empreendedor_registros**', semTabela);
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -59,11 +59,7 @@ await ctx.unroute('**/rest/v1/empreendedor_registros**', semTabela);
 // Outro aparelho mexe na conta: o carimbo do servidor muda.
 await page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  await fetch(cfg.supabaseUrl + '/rest/v1/clientes', { method: 'POST',
-    headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-               'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify([{ id: 'cli-t149-' + Date.now(), user_id: pac.usuario.id, nome: 'Cliente do outro aparelho' }]) });
+  await window.__finanzTeste.gravar('clientes', [{ id: 'cli-t149-' + Date.now(), user_id: pac.usuario.id, nome: 'Cliente do outro aparelho' }]);
 });
 // Abre o app de novo: a sincronização encontra novidade lá.
 await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(6000);
@@ -77,11 +73,8 @@ conferir('2. depois de trazer a versão da nuvem, o produto continua', /Pote de 
 let noServidor = false;
 for (let i = 0; i < 20 && !noServidor; i++) {
   noServidor = await page.evaluate(async () => {
-    const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-    const cfg = window.FINANZ_CONFIG;
-    const r = await fetch(cfg.supabaseUrl + '/rest/v1/empreendedor_registros?select=*', {
-      headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-    const linhas = await r.json();
+    let linhas = [];
+    try { linhas = await window.__finanzTeste.tabela('empreendedor_registros'); } catch (e) { linhas = []; }
     return Array.isArray(linhas) && linhas.some(l => l.dados && l.dados.nome === 'Pote de vidro');
   });
   if (!noServidor) await page.waitForTimeout(1000);

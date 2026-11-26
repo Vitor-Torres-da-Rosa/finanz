@@ -45,7 +45,7 @@ fs.writeFileSync(arquivo,
   '01/09/2026;JUROS LIMITE DA CONTA;-188,17\r\n', 'utf8');
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -172,13 +172,8 @@ await page.click('#navegacao button:has-text("Mais")'); await page.waitForTimeou
 await page.click('#telaMais .linha:has-text("Sincronizar agora")'); await page.waitForTimeout(9000);
 await semDialogo();
 const vivoNoServidor = await page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl +
-    '/rest/v1/lancamentos?select=id,valor,excluido_em&valor=eq.70000',
-    { headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-  const linhas = await r.json();
-  return linhas.filter((l) => !l.excluido_em).length;
+  const linhas = await window.__finanzTeste.tabela('lancamentos');
+  return linhas.filter((l) => Number(l.valor) === 70000).length;
 });
 conferir('15. depois de sincronizar, o apagado não existe mais no servidor',
   vivoNoServidor === 0, vivoNoServidor + ' vivo(s) de R$ 700,00');

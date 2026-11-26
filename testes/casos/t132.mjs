@@ -60,7 +60,7 @@ fs.writeFileSync(arquivo,
   '31/08/2026;PIX TRANSF VITOR T29/08;541,40\r\n', 'utf8');
 
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -90,10 +90,8 @@ await semDialogo();
 // os dois extratos. O que está em teste é o que vem DEPOIS de juntar.
 const semeadura = await page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-                'Content-Type': 'application/json', Prefer: 'return=minimal' };
-  const contas = await (await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id,nome', { headers: cab })).json();
+  // Com a senha dos dados tudo mora cifrado no cofre: lê e grava por ele.
+  const contas = await window.__finanzTeste.tabela('contas');
   const c6 = contas.find((x) => /C6/.test(x.nome)).id;
   const inter = contas.find((x) => /Inter/.test(x.nome)).id;
   const m = pac.usuario.id.slice(0, 8);
@@ -106,9 +104,7 @@ const semeadura = await page.evaluate(async () => {
     Object.assign({ id: 'p2s-' + m, tipo: 'saida',   valor: 54140, descricao: 'Pix enviado para VITOR T', data: '2026-08-29', conta_id: c6 }, base),
     Object.assign({ id: 'p2e-' + m, tipo: 'entrada', valor: 54140, descricao: 'PIX TRANSF VITOR T29/08', data: '2026-08-31', conta_id: inter }, base)
   ];
-  const r = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
-    method: 'POST', headers: cab, body: JSON.stringify(linhas) });
-  return r.status;
+  return window.__finanzTeste.gravar('lancamentos', linhas);
 }, null);
 console.log('semeadura ·', semeadura);
 
@@ -136,12 +132,9 @@ await page.locator('#dialogoAcoes button').nth(0).click(); await page.waitForTim
 await semDialogo();
 
 const viraram = await page.evaluate(async () => {
-  const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const r = await fetch(cfg.supabaseUrl +
-    '/rest/v1/lancamentos?select=tipo,valor,data,data_destino&excluido_em=is.null&order=valor.asc',
-    { headers: { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token } });
-  return await r.json();
+  const r = await window.__finanzTeste.tabela('lancamentos');
+  return r.map((l) => ({ tipo: l.tipo, valor: l.valor, data: l.data, data_destino: l.data_destino }))
+    .sort((a, b) => a.valor - b.valor);
 });
 console.log('no servidor:', JSON.stringify(viraram));
 
@@ -186,26 +179,22 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(1200);
 await semDialogo();
 const virouAntigo = await page.evaluate(async () => {
   const pac = JSON.parse(localStorage.getItem('caixa.nuvem.v4'));
-  const cfg = window.FINANZ_CONFIG;
-  const cab = { apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + pac.access_token,
-                'Content-Type': 'application/json', Prefer: 'return=minimal' };
-  const contas = await (await fetch(cfg.supabaseUrl + '/rest/v1/contas?select=id,nome', { headers: cab })).json();
+  const contas = await window.__finanzTeste.tabela('contas');
   const c6 = contas.find((x) => /C6/.test(x.nome)).id;
   const inter = contas.find((x) => /Inter/.test(x.nome)).id;
   const m = pac.usuario.id.slice(0, 8);
-  const fora = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos?valor=eq.54140',
-    { method: 'DELETE', headers: cab });
-  const dentro = await fetch(cfg.supabaseUrl + '/rest/v1/lancamentos', {
-    method: 'POST', headers: cab, body: JSON.stringify([{
+  const ids = (await window.__finanzTeste.tabela('lancamentos')).filter((l) => Number(l.valor) === 54140).map((l) => l.id);
+  const fora = { status: await window.__finanzTeste.apagar('lancamentos', ids) };
+  const dentro = { status: await window.__finanzTeste.gravar('lancamentos', [{
       id: 'velha-' + m, user_id: pac.usuario.id, tipo: 'transferencia', valor: 54140,
       descricao: 'Pix enviado para VITOR T', categoria: 'Transferência', subcategoria: '',
       importacao_id: '', data: '2026-08-29', conta_id: c6, conta_destino_id: inter
-    }]) });
+    }]) };
   return 'DELETE ' + fora.status + ' POST ' + dentro.status;
 });
 console.log('forma antiga posta no lugar ·', virouAntigo);
 
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-contorno:has-text("Entrar na minha conta")'); await page.waitForTimeout(1200);

@@ -18,7 +18,7 @@ const folha = () => page.locator('#folha');
 
 await page.clock.setFixedTime(new Date(2026, 10, 17, 9, 0, 0));
 await page.goto(ENDERECO, { waitUntil:'networkidle' }); await page.waitForTimeout(400);
-await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(1600);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-dourado:has-text("Criar minha conta")'); await page.waitForTimeout(500);
@@ -89,7 +89,7 @@ const nuvem = (metodo, caminho, corpo) => page.evaluate(async ({ metodo, caminho
 const jaTem = await nuvem('GET', '/rest/v1/arquivos_extrato?select=id,conta_id,user_id');
 const dono = jaTem[0];
 const solto = (id, quando) => nuvem('POST', '/rest/v1/arquivos_extrato', [{ id, user_id: dono.user_id, importacao_id: 'leva-que-sumiu-' + id,
-  conta_id: dono.conta_id, nome: id + '.pdf', tipo: 'application/pdf', tamanho: 50000, conteudo: 'JVBERi0=', criado_em: quando.toISOString() }]);
+  conta_id: dono.conta_id, nome: id + '.pdf', tipo: 'application/pdf', tamanho: 50000, conteudo: 'cofre1:AAAA', criado_em: quando.toISOString() }]);
 await solto('solto-velho', new Date(2026, 10, 10, 12, 0, 0));
 await solto('solto-novo', new Date(2026, 10, 18, 8, 0, 0));
 for (let i = 0; i < 5 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
