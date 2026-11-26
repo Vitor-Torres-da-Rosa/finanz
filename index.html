@@ -2853,6 +2853,11 @@
   @keyframes novidadesSeta { 0%, 100% { transform: translateY(-2px) rotate(45deg); opacity: .6; } 50% { transform: translateY(4px) rotate(45deg); opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .novidades-mais-seta { animation: none; } }
   .novidades-rodape { display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--borda); }
+  .novidade li { margin-bottom: 6px; }
+  .novidade-ver { display: block; margin: 2px 0 0; padding: 2px 0; background: none; border: 0; font: inherit;
+    font-size: 11px; color: var(--fraco); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .novidade-detalhe { white-space: pre-line; font-size: 12px; line-height: 1.55; color: var(--fraco);
+    margin: 6px 0 4px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--borda); }
 </style>
 </head>
 <body>
@@ -2921,104 +2926,88 @@
       versao: '5.110.0',
       data: '2026-11-26',
       itens: [
-        'Em Mais → Preferências, a nova opção "Contar quando eu abro o app". Ela vem ligada; desligando, o servidor apaga a hora da sua última abertura e sua conta deixa de entrar na contagem de quantas pessoas usam o Finanz. Vale em todos os seus aparelhos.',
-        '"Versões guardadas" saiu do fim de Mais e foi para Proteja seus dados. Não é backup dos seus dados: são as versões anteriores do próprio app, para abrir uma delas se uma atualização der problema.',
-        'As novidades agora abrem numa janela flutuante, quase do tamanho da tela, depois de atualizar. Se você pulou atualizações, aparecem todas, cada uma com o seu título; o que não cabe, é só arrastar para ler.'
+        { r: "As novidades agora abrem numa janela, com um resumo de cada versão que você pulou.", d: "Como funciona: VERSAO (no index.html e na 1ª linha do sw.js) é comparada com \"finanz.versaoVista\", guardado neste aparelho. novidadesNaoVistas() pega as entradas de NOVIDADES com versão maior que a vista e até a atual (compararVersao, número a número). Primeira vez no aparelho: conta vazia marca como vista e não mostra nada; conta com dados vê só a versão atual.\nQuando: ao desenhar o Início, agendarNovidades() espera 0,7 s e tenta de novo a cada 1,5 s (até 40 vezes) enquanto houver boas-vindas, folha ou diálogo aberto, ou outra aba na frente. Nunca cobre outra tela.\nA janela: div fixo (z-index 125: acima das folhas, abaixo dos diálogos e do \"i\"), do tamanho da tela menos 14 px de margem (respeita a área segura do celular). Trava a rolagem da página e rola por dentro; a seta \"Arraste para ler mais\" some quando falta menos de 12 px para o fim.\nFechar: \"Entendi\", \"✕\" ou o voltar do celular (ela entra na pilha de navegação). Fechar grava a versão atual como vista. \"Ver todas as versões\" fecha e abre o histórico completo.\nResumo e detalhe: cada item tem as duas partes; o \"ver detalhes\" só aparece para a conta staff (souStaff, a mesma resposta do servidor que libera o Staff). Itens marcados como só da equipe não aparecem para mais ninguém. Até a 5.99.0 não havia resumo separado: lá o resumo é a primeira frase e o detalhe é o texto inteiro de antes.\nTestes: com navigator.webdriver a janela só abre se \"finanz.novidades.teste\" = \"1\"." },
+        { r: "Nova opção em Preferências: \"Contar quando eu abro o app\".", d: "Liga e desliga a contagem de uso da 5.109.0. Vem ligada.\nOnde mora: no servidor, na coluna atividade.contar (migração 24), para valer em todos os aparelhos da conta. O aparelho guarda só a última resposta em \"finanz.contarAtividade.v1:<id>\", para a tela abrir já marcada.\nNa prática: Salvar com a opção mudada chama marcar_atividade(p_contar). false grava contar = false e apaga visto_em; true grava contar = true e visto_em = agora. As aberturas normais chamam sem p_contar, e o servidor só anota se contar não for false. Por isso um aparelho novo, que ainda não sabe da escolha, não religa a contagem.\nEfeito: desligada, a conta sai dos ativos também pelo último login, e entra só no número \"Pediram para não contar\" do Staff.\nSem internet ao salvar: aparece o aviso e nada muda no servidor; as outras preferências salvam normalmente." },
+        { r: "\"Versões guardadas\" foi para Proteja seus dados.", d: "Só aparece para a conta de manutenção (souODono: e-mail igual a FINANZ_CONFIG.dono; sem dono configurado, aparece). Abre versoes/ na mesma aba, para o voltar do celular voltar ao app.\nCada pasta em versoes/ é uma cópia inteira do app de uma versão anterior, gerada pelo guardar-versao.sh a cada lançamento; fica um número limitado delas e a mais antiga sai.\nNão é backup de dados: as versões antigas usam o mesmo servidor e o mesmo armazenamento do aparelho, então abrem os mesmos dados." }
       ]
     },
     {
       versao: '5.109.0',
       data: '2026-11-26',
       itens: [
-        'Para saber quantas pessoas usam o Finanz, o app agora anota no servidor a data e a hora da última vez que você abriu o app. Só a última, sem histórico e sem nada do que você viu ou fez. Vira só números; ninguém aparece pelo nome. A Política de Privacidade foi atualizada com isso.'
+        { r: "O app passa a contar quantas pessoas usam o Finanz: só a hora da última vez que você abriu, sem mais nada.", d: "Migração 23. Tabela atividade (user_id, visto_em): uma linha por conta, apagada junto com a conta (on delete cascade). RLS ligado e sem políticas: ninguém lê nem escreve direto, só pelas funções security definer.\nQuando anota: o app chama marcar_atividade() no começo de cada sincronização (abrir o app, voltar para ele depois de 1 min, a internet voltar), no máximo uma vez a cada 10 min por aparelho; o servidor só regrava se a última hora tiver mais de 10 min.\nO que guarda: só a hora. Sem IP, sem histórico, sem nada do que a pessoa viu ou fez.\nSem a função no servidor (banco sem a migração), o app desiste em silêncio até a próxima abertura.\nTextos: Política de Privacidade, guia e boas-vindas atualizados (a frase \"sem estatísticas de uso\" saiu do modo com nuvem)." },
+        { r: "Staff: tela com usuários cadastrados e ativos.", d: "Onde: linha ★ Staff no topo de Mais, só quando o servidor responde staff = true em marcar_atividade (o aparelho guarda em \"finanz.staff.v1:<id>\").\nQuem é staff: tabela staff com o SHA-256 do e-mail (o e-mail não fica escrito no repositório, que é público). sou_staff() compara com o e-mail da conta logada em auth.users e exige e-mail confirmado. staff_resumo() recusa (erro 42501) para quem não é staff, mesmo chamada direto, sem o app.\nOs números: cadastrados = auth.users sem deleted_at, e quantos confirmaram o e-mail; ativos hoje/7/30 dias = a maior entre a última abertura (atividade.visto_em) e o último login (last_sign_in_at) dentro do prazo, só de quem não desligou a contagem; novos 7/30 dias por created_at; com a senha dos dados = perfis com cofre; pediram para não contar = atividade.contar false.\nSó números, nunca quem é quem. \"Atualizar\" busca de novo. Quem ainda não abriu a 5.109.0 ou depois conta só pelo último login.", so: 'staff' }
       ]
     },
     {
       versao: '5.108.0',
       data: '2026-11-26',
       itens: [
-        'Dentro de cada conta, embaixo do saldo, agora aparece só "O saldo está correto?". Tocando, abrem "Conferir esta conta", "Ajustar saldo", "Editar esta conta" e o "Conferido ✓", que saiu da conferência e veio para cá.',
-        'Confirmou que está tudo certo (Conferido ✓)? A lista de "Possíveis repetidos" daquela conta some. Repetido que aparecer depois, de um extrato novo, volta a aparecer.'
+        { r: "Na conta, embaixo do saldo, ficou só \"O saldo está correto?\"; tocando, aparecem as opções.", d: "abrirExtratoConta(id, abrirPainel). O botão abre e fecha um painel, montado na primeira vez, com Conferir esta conta (abrirFolhaConferencia), Ajustar saldo (abrirAjusteDeSaldo), Editar esta conta (abrirFolhaConta) e o cartão Conferido ✓ (cartaoConferido), que saiu de dentro da conferência.\nAberto, o botão vira contorno com a seta para cima. Depois de \"Conferido ✓\", a conta reabre com o painel aberto.\nO botão Conferido fica ligado sempre que a conta tem PDF ainda como veio do banco. Antes ele também exigia o \"saldo que o banco mostra\" batendo, mas esse campo ficou na conferência." },
+        { r: "Depois de confirmar a conta, os \"Possíveis repetidos\" dela somem.", d: "Ao confirmar \"Conferido ✓\", o app grava estado.revisados[\"repetidos:<conta>\"] = a hora. Isso sincroniza com a conta; a limpeza do estado aceita esse número.\nrepetidosAbertosDaConta() mostra só os grupos (mesma data, valor, tipo e descrição) com pelo menos um lançamento criado depois dessa hora (criadoEm). Vale o momento em que o lançamento entrou no app, não a data dele: extrato antigo importado depois volta a mostrar.\n\"Tirar as cópias repetidas\" usa a mesma lista, então não apaga grupos já confirmados.\nLimite: conta sem PDF pendente não tem o botão Conferido, e os repetidos dela continuam aparecendo." }
       ]
     },
     {
       versao: '5.107.0',
       data: '2026-11-25',
       itens: [
-        'Compartilhado cifrado de ponta a ponta: com a senha dos dados dos dois lados, a área do Empreendedor que você compartilha (Doces, Uber, Casa) vai cifrada com uma chave só de vocês dois. O servidor não lê.',
-        'Cada pessoa ganha um par de chaves (a privada fica trancada com a senha dela). A chave da área vai no convite, embrulhada para quem foi convidado: só essa pessoa desembrulha.',
-        'Se quem foi convidado ainda não criou a senha dos dados, o app avisa: até criar, a área não abre, e nada dela sobe aberto. Depois de criar, quem compartilhou precisa abrir o app uma vez para liberar a chave.'
+        { r: "A área do Empreendedor que você compartilha também vai cifrada.", d: "Migração 20. Cada conta ganha um par de chaves ECDH P-256 (garantirParDeChaves): a pública em perfis.cofre.par.publica; a privada cifrada com a chave mestra.\nCada área compartilhada (doces, uber, casa) tem uma chave AES-GCM de 256 bits, guardada no cofre do dono (linha \"chave_area|<área>\").\nNo convite (compartilhamentos) vão as duas chaves públicas e, em chaves[área], a chave da área embrulhada para a pessoa convidada (ECDH entre a privada do dono e a pública dela). A convidada publica a pública dela pela função publicar_minha_chave.\nOs registros continuam em empreendedor_registros (o RLS do compartilhamento segue valendo), mas dados = {c: base64} cifrado com a chave da área.\nDepende: as duas pessoas com a senha dos dados. Se a convidada ainda não tem, a área aparece trancada e nada dela sobe aberto; depois que ela cria, o dono precisa abrir o app uma vez para embrulhar a chave para ela." }
       ]
     },
     {
       versao: '5.106.0',
       data: '2026-11-25',
       itens: [
-        'Quando o app atualiza, as novidades aparecem aqui no Início, no topo. "Entendi" fecha; "Ver tudo" mostra cada versão. Pulou várias versões? Aparece o que mudou em todas desde a última vez.'
+        { r: "As novidades passaram a aparecer depois de atualizar.", d: "Primeira versão do aviso: um cartão no topo do Início (virou janela flutuante na 5.110.0). A última versão vista fica em \"finanz.versaoVista\", neste aparelho." }
       ]
     },
     {
       versao: '5.105.0',
       data: '2026-11-25',
       itens: [
-        'Backup na nuvem agora é escolha sua: sem a senha dos dados, nenhuma cópia vai para a nuvem (nem das versões antigas do app: o servidor recusa cópia que não chegue cifrada). Para ligar, vá em Mais → Proteja seus dados → Backup na nuvem e crie a senha.',
-        'O app não pede mais sozinho para criar a senha dos dados.',
-        'O backup no celular (o arquivo .finanz, com senha própria) continua funcionando com ou sem a senha dos dados.',
-        'Num aparelho novo, depois de digitar a senha dos dados, o app volta a oferecer a cópia da nuvem quando a conta está vazia.'
+        { r: "O backup na nuvem agora só funciona com a senha dos dados, e o app não pede mais sozinho para criá-la.", d: "Sem o cofre ligado (cofreLigado), guardarInstantaneo não envia nada.\nNo servidor, a migração 21 só aceita cópia em instantaneos cujo conteúdo comece com \"cofre1:\" (cifrado com a chave mestra), então nem versão antiga do app consegue subir cópia aberta. A migração 22 apagou as cópias abertas que existiam.\nLigar: Mais → Proteja seus dados → Backup na nuvem → criar a senha.\nApagar algo sem backup na nuvem não pede mais confirmação por falta de cópia.\nA sincronização dos dados não mudou: sem senha, sincroniza do jeito antigo, protegida só pelo login." },
+        { r: "O backup no celular continua funcionando com ou sem a senha dos dados.", d: "É o arquivo .finanz, com senha própria (ver 5.101.0). Num aparelho novo, depois de digitar a senha dos dados, se a conta deste aparelho estiver vazia, o app oferece trazer a cópia da nuvem." }
       ]
     },
     {
       versao: '5.104.0',
       data: '2026-11-25',
       itens: [
-        'Mais → "Proteja seus dados": uma linha com tudo dentro: Senha dos dados, Backup na nuvem (as cópias automáticas, para voltar a uma data) e Backup no celular (o arquivo .finanz: gerar, restaurar e a lista dos que você gerou neste aparelho). Os itens soltos de antes foram para dentro dela.',
-        'As dúvidas ficam no "i" de "Senha e backups", em pergunta e resposta: o que é a senha dos dados, a diferença entre os backups, por que as senhas são diferentes, o que fazer se esquecer a senha ou perder o celular, e quem consegue ver os seus dados.',
-        'Todo campo de senha ganhou o olho: toque para ver o que digitou e toque de novo para esconder.'
+        { r: "Em Mais, \"Proteja seus dados\" junta a senha dos dados e os backups; os campos de senha ganharam o olho.", d: "abrirProtejaSeusDados tem as linhas Senha dos dados (abrirFolhaCofre), Backup na nuvem (abrirFolhaInstantaneos, ou ligarBackupNaNuvem quando está desligado) e Backup no celular (abrirBackupNoCelular).\nAs dúvidas ficam no \"i\" de \"Senha e backups\", em pares de pergunta e resposta (abrirDicaFlutuante aceita [pergunta, resposta]).\nTodo campo de senha que passa por campo() ganha senhaComOlho: um botão alterna o tipo do campo entre password e text." }
       ]
     },
     {
       versao: '5.103.0',
       data: '2026-11-25',
       itens: [
-        'Criptografia de ponta a ponta: em Mais → "Senha dos dados", você cria uma senha e tudo o que vai para a nuvem passa a sair do celular já cifrado — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato (até o nome deles). Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
-        'O que já estava na nuvem é convertido sozinho: sobe cifrado, o app confere que abre e só então apaga a versão aberta.',
-        'Em outro aparelho, o app pede a senha dos dados uma vez. Não existe recuperação: esquecendo, "Esqueci a senha" deixa você apagar a nuvem e recomeçar (ou restaurar um backup .finanz).',
-        'Com a senha dos dados, o "Conferido ✓" usa a mesma senha: uma senha só para tudo.',
-        'As áreas do Empreendedor compartilhadas com outra pessoa ainda ficam abertas para ela; a versão cifrada do compartilhado vem a seguir.',
-        'Novo no Empreendedor: Estoque e Ferramentas. Cada ferramenta com data e valor da compra, vida útil, situação, cada uso e cada manutenção; cada consumível (disco de corte, broca…) com quantidade, mínimo e custo. "Usei hoje" e "−1 usei" anotam com um toque na "obra de hoje".',
-        'Estoque: "Registrar uso" anota várias coisas de uma vez numa obra; "Obras" mostra o custo de material de cada obra (consumíveis + desgaste das ferramentas); "Estimar uma obra" soma o material de uma obra nova, podendo partir de uma que você já fez.',
-        'Abertura: tocar num item abre só aquele assunto; o botão "Como funciona, termos e privacidade" saiu.'
+        { r: "Nova \"Senha dos dados\": com ela, tudo o que vai para a nuvem sai cifrado do celular.", d: "Migração 19. Chave mestra AES-GCM de 256 bits, aleatória, embrulhada pela senha (PBKDF2-SHA-256, 210 mil voltas, sal aleatório) e guardada em perfis.cofre. A senha nunca sai do aparelho.\nOs dados sobem na tabela cofre: uma linha por registro, id \"tabela|chave\", dados = iv + texto cifrado em base64, com o id como dado adicional (AAD), para uma linha não poder ser trocada por outra. O servidor vê só quantas linhas, de que tabela, quando mudaram e o tamanho.\nNeste aparelho a chave fica embrulhada por uma chave do próprio aparelho; em outro aparelho, a senha é pedida uma vez.\nConversão: sobe tudo cifrado, baixa e confere que abre; só então apaga as linhas abertas antigas e cifra as cópias e os arquivos de extrato (prefixo \"cofre1:\").\nSem recuperação: \"Esqueci a senha\" apaga a nuvem para recomeçar; os dados deste aparelho ficam. O Conferido passa a usar a mesma chave." },
+        { r: "Novo no Empreendedor: Estoque e Ferramentas.", d: "Ferramentas com data e valor da compra, vida útil, situação, cada uso e cada manutenção. Consumíveis com quantidade, mínimo e custo.\n\"Usei hoje\" e \"−1 usei\" anotam com um toque na obra do dia; \"Registrar uso\" anota várias coisas de uma vez.\n\"Obras\" soma o custo de material de cada obra (consumíveis mais o desgaste das ferramentas pelo uso). \"Estimar uma obra\" soma o material de uma obra nova, podendo partir de uma que já foi feita.\nFica em empreendedor_registros e sincroniza como o resto do Empreendedor." },
+        { r: "Na abertura, cada item abre só o assunto dele.", d: "O botão \"Como funciona, termos e privacidade\" saiu; o guia abre já no assunto tocado." }
       ]
     },
     {
       versao: '5.102.0',
       data: '2026-11-25',
       itens: [
-        'Conferido ✓: em "Conferir esta conta", quando o saldo bate com o banco, você confirma que está tudo certo. Os arquivos dos extratos da conta deixam de ser guardados como vieram do banco: fica só o que o app leu deles, compacto e cifrado com a "senha dos extratos". Reler e Relançar continuam funcionando; baixar o PDF original deixa de dar.',
-        'A senha dos extratos é criada na primeira conferência e pedida uma vez enquanto o app está aberto. Não dá para recuperá-la; esquecendo, os lançamentos continuam todos no app.',
-        'O extrato conferido fica guardado sem prazo. O que não foi conferido continua saindo sozinho depois de 6 meses.',
-        'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.',
-        'Na abertura do app, uma seta dourada e discreta, que sobe e desce, mostra que tem mais embaixo. Tocar nela desce a tela; descendo, ela some.',
-        'Conta nova: abre direto o aviso de preencher os dados. As páginas sobre a proteção dos dados ficam só em Mais, em "Como seus dados são protegidos".',
-        'Abertura: cada item (Dados protegidos, Metas, Cobranças…) virou um botão, com o "+" dourado no canto e "Saiba mais". Tocando, abre o guia "Como o Finanz funciona", já no assunto, com tudo explicado em detalhe, os termos de uso e a política de privacidade. Os desenhos ganharam brilho e cada item tem o seu.'
+        { r: "\"Conferido ✓\": confirmando a conta, os extratos dela viram uma versão compacta e cifrada.", d: "Em arquivos_extrato, o PDF é trocado pelo que o app leu (linhas e saldos), comprimido e cifrado (tipo application/vnd.finanz.conferido). Reler e Relançar funcionam com essa versão; baixar o PDF original deixa de dar.\nPrazo: o conferido fica sem prazo; o não conferido sai depois de 6 meses.\nChave: nesta versão vinha da \"senha dos extratos\" (PBKDF2); a partir da 5.103.0 usa a chave mestra da senha dos dados." },
+        { r: "Arquivos de importações desfeitas agora somem sozinhos.", d: "O arquivo cuja importação já não existe é apagado depois de 1 dia, para não pegar uma importação recém-feita em outro celular. O aviso com o botão \"Apagar\" saiu." },
+        { r: "A abertura do app ficou mais clara, com uma seta indicando que tem mais embaixo.", d: "Seta dourada que sobe e desce; tocar desce a tela, e descendo ela some. Cada item da abertura virou um botão que abre o guia \"Como o Finanz funciona\", já no assunto. Conta nova abre direto o aviso de preencher os dados." }
       ]
     },
     {
       versao: '5.101.0',
       data: '2026-11-25',
       itens: [
-        'Backup com senha: "Fazer backup" pede uma senha (duas vezes) e gera um arquivo .finanz cifrado (AES-GCM de 256 bits) e comprimido. Sem a senha, ninguém abre, nem o Finanz. Para restaurar, escolha o arquivo e digite a senha. Os backups antigos em JSON continuam abrindo.',
-        'Planejamento: na escolha de categorias, tocar no valor gasto abre embaixo as subcategorias, cada uma com quantos gastos tem e o total; na subcategoria, cada gasto; e no gasto, de onde ele veio. Tocar no nome continua marcando a categoria.',
-        'O orçamento do mês e a escolha de categorias ganharam o "i", no lugar das explicações soltas.'
+        { r: "O backup no celular agora sai cifrado com uma senha que você escolhe.", d: "\"Fazer backup\" pede a senha duas vezes e gera um arquivo .finanz: os dados em JSON, comprimidos e cifrados com AES-GCM de 256 bits, com a chave tirada da senha por PBKDF2. Sem a senha, ninguém abre. Restaurar: escolher o arquivo e digitar a senha. Os backups antigos em JSON continuam abrindo." },
+        { r: "No planejamento, dá para abrir cada categoria até chegar no gasto.", d: "Na escolha de categorias, tocar no valor gasto abre as subcategorias (quantos gastos e o total); na subcategoria, cada gasto; no gasto, de onde ele veio. Tocar no nome continua marcando a categoria. O orçamento do mês e a escolha de categorias ganharam o \"i\"." }
       ]
     },
     {
       versao: '5.100.0',
       data: '2026-11-25',
       itens: [
-        'Conta nova: as boas-vindas explicam onde seus dados ficam e quem vê, como o app lê os extratos (no seu celular, e você confere antes de entrar), o que nunca acontece (nada é vendido, compartilhado ou rastreado) e avisam bem grande que sem dados o app não consegue estimar seus gastos e receitas. Dá para reler em Mais, em "Como seus dados são protegidos".',
-        'No Início, enquanto faltam dados, um cartão grande em primeiro lugar mostra o que preencher: conta de banco, extrato importado, cartão e 3 meses de lançamentos, com o botão de cada um. Ele some quando o app já tem o que precisa.',
-        'Distribuição de gastos: saiu a nota "fatura paga ficou de fora" embaixo da lista. A conta é a mesma.'
+        { r: "Conta nova ganhou boas-vindas explicando onde ficam os dados e o que preencher.", d: "As boas-vindas explicam onde os dados ficam e quem vê, como o app lê os extratos (no celular, e a pessoa confere antes de entrar) e o que nunca acontece. Dá para reler em Mais → \"Como seus dados são protegidos\". No Início, enquanto faltam dados, um cartão em primeiro lugar mostra o que preencher (conta de banco, extrato, cartão e 3 meses de lançamentos), e some quando o app já tem o suficiente." },
+        { r: "Distribuição de gastos: saiu a nota da fatura paga.", d: "A nota \"fatura paga ficou de fora\" embaixo da lista saiu. A conta é a mesma." }
       ]
     },
     {
@@ -29998,6 +29987,45 @@
     setTimeout(tentar, 700);
   }
 
+  // Cada novidade tem um resumo (para todo mundo) e o detalhe técnico, que
+  // só a conta staff vê, em "ver detalhes" (pedido de 26/11/2026). As
+  // versões até a 5.99.0 eram um texto só: o resumo é a primeira frase e o
+  // detalhe é o texto inteiro.
+  function primeiraFrase(t) {
+    t = String(t || '');
+    var m = t.match(/^[\s\S]*?[.!?](?=\s+["“A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9]|$)/);
+    var r = m ? m[0] : t;
+    if (r.length > 170) { var c = r.slice(0, 160); r = c.slice(0, c.lastIndexOf(' ')) + '…'; }
+    return r;
+  }
+  function itensDaNovidade(n) {
+    var staff = souStaff();
+    return n.itens.map(function (it) {
+      if (typeof it === 'string') { var r = primeiraFrase(it); return { r: r, d: r !== it ? it : '' }; }
+      return it;
+    }).filter(function (it) { return it.so !== 'staff' || staff; });
+  }
+  function listaDaNovidade(n) {
+    var staff = souStaff();
+    var ul = no('ul');
+    itensDaNovidade(n).forEach(function (it) {
+      var li = no('li');
+      li.appendChild(no('span', 'novidade-resumo', it.r));
+      if (staff && it.d) {
+        var det = no('div', 'novidade-detalhe', it.d);
+        det.hidden = true;
+        var ver = botao('novidade-ver', 'ver detalhes', function () {
+          det.hidden = !det.hidden;
+          ver.textContent = det.hidden ? 'ver detalhes' : 'esconder detalhes';
+        });
+        li.appendChild(ver);
+        li.appendChild(det);
+      }
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
   function abrirNovidadesFlutuantes(lista) {
     if (novidadesAbertas) return;
     novidadesAbertas = true;
@@ -30022,9 +30050,7 @@
       var bloco = no('div', 'novidade');
       bloco.appendChild(no('div', 'v', 'Versão ' + n.versao + (n.versao === VERSAO ? ' · atual' : '')));
       bloco.appendChild(no('div', 'q', dataBr(n.data)));
-      var ul = no('ul');
-      n.itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
-      bloco.appendChild(ul);
+      bloco.appendChild(listaDaNovidade(n));
       rolo.appendChild(bloco);
     });
     var mais = no('div', 'novidades-mais');
@@ -30077,9 +30103,7 @@
         var bloco = no('div', 'novidade');
         bloco.appendChild(no('div', 'v', 'Versão ' + n.versao + (n.versao === VERSAO ? ' · atual' : '')));
         bloco.appendChild(no('div', 'q', dataBr(n.data)));
-        var ul = no('ul');
-        n.itens.forEach(function (item) { ul.appendChild(no('li', null, item)); });
-        bloco.appendChild(ul);
+        bloco.appendChild(listaDaNovidade(n));
         lista.appendChild(bloco);
       });
       folha.appendChild(lista);

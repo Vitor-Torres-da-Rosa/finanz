@@ -49,6 +49,10 @@ try {
   const comum = await criarConta(emailComum);
   await comum.click('#navegacao button:has-text("Mais")'); await comum.waitForTimeout(900);
   conferir('1. conta comum: Mais não mostra o Staff', await comum.locator('#telaMais .botao-staff').count() === 0);
+  await comum.click('#telaMais .linha:has-text("Novidades da versão")'); await comum.waitForTimeout(900);
+  conferir('1b. conta comum: as novidades não têm "ver detalhes" nem o item só da equipe',
+    await comum.locator('#folha .novidade-ver').count() === 0 && await comum.locator('#folha .novidade-resumo:has-text("Staff:")').count() === 0);
+  await comum.goBack(); await comum.waitForTimeout(600);
   const recusa = await rpc(comum, 'staff_resumo');
   conferir('2. conta comum pedindo os números direto: o servidor recusa', recusa.status !== 200 && !/cadastrados/.test(recusa.corpo), recusa.status + ' ' + recusa.corpo.slice(0, 80));
   const idComum = (await db.query('select id from auth.users where email = $1', [emailComum])).rows[0].id;
@@ -105,6 +109,15 @@ try {
   const linhaVersoes = (await staff.locator('#folha .botao-versoes').textContent().catch(() => '')).replace(/\s+/g, ' ');
   conferir('11. ela está em Proteja seus dados, dizendo que não é backup', /Versões guardadas do app/.test(linhaVersoes) && /Não é backup dos dados/.test(linhaVersoes), linhaVersoes);
   await staff.screenshot({ path: dir + '/z204-proteja.png' });
+  for (let i = 0; i < 4 && await staff.locator('#folha.aberta').count(); i++) { await staff.goBack(); await staff.waitForTimeout(600); }
+  await staff.click('#telaMais .linha:has-text("Novidades da versão")'); await staff.waitForTimeout(900);
+  const nVer = await staff.locator('#folha .novidade-ver').count();
+  await staff.locator('#folha .novidade-ver').first().click(); await staff.waitForTimeout(300);
+  const det = (await staff.locator('#folha .novidade-detalhe:visible').first().textContent().catch(() => '')) || '';
+  const soStaff = await staff.locator('#folha .novidade-resumo:has-text("Staff: tela com usuários")').count();
+  conferir('12. staff: cada novidade tem "ver detalhes", que abre o detalhe técnico, e vê o item só da equipe',
+    nVer > 10 && det.length > 200 && soStaff === 1, nVer + ' · ' + det.slice(0, 80));
+  await staff.screenshot({ path: dir + '/z204-novidades-staff.png' });
 
   // ---- religando ----
   await abrirPreferencias();

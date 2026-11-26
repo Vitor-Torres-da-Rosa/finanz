@@ -58,6 +58,9 @@ conferir('2. vindo da 5.107.0, abre flutuando com cada versão pulada, cada uma 
 conferir('3. cobre quase a tela toda', !!info && info.cobre > 0.85, info && info.cobre.toFixed(2));
 conferir('4. o que não cabe arrasta, e a seta avisa', !!info && info.rola && info.seta);
 await page.screenshot({ path: dir + '/z201-novidades.png' });
+const itens = await page.evaluate(() => [...document.querySelectorAll('.novidades-fundo .novidade li .novidade-resumo')].map(x => x.textContent));
+conferir('4b. cada novidade é um resumo curto, sem "ver detalhes" para quem não é staff',
+  itens.length >= 3 && itens.every(t => t.length <= 175) && await page.locator('.novidades-fundo .novidade-ver').count() === 0, itens.map(t => t.length).join(','));
 await page.evaluate(() => { const r = document.querySelector('.novidades-rolo'); r.scrollTop = r.scrollHeight; r.dispatchEvent(new Event('scroll')); });
 await page.waitForTimeout(400);
 conferir('5. lendo até o fim, a seta some', await page.locator('.novidades-mais.some').count() === 1);
