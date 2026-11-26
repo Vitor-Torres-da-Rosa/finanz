@@ -2913,7 +2913,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.110.0';
+  var VERSAO = '5.111.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2922,6 +2922,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.111.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "Sem a senha dos dados, nada sincroniza: seus dados ficam só no celular até você criar a senha.", d: "Na prática: sincronizar() lê o cofre (perfis.cofre) depois do carimbo; sem cofre criado, para ali com o erro semSenha, que não conta como falha (sem aviso vermelho e sem novas tentativas). Em Mais, a linha vira \"Sincronização desligada\"; tocando, ligarSincronia() oferece criar a senha. Com a senha criada, tudo sobe cifrado na tabela cofre, como antes. Cofre trancado (senha criada, mas não digitada neste aparelho) continua pedindo a senha.\nArquivos de extrato: sem a senha não sobem (guardarArquivoDeExtrato para antes). Cópias automáticas já não subiam (5.105.0). \"Apagar tudo\" sem a senha só apaga o celular, porque não há nada no servidor.\nServidor (migração 25): as tabelas antigas (contas, lancamentos, ativos, ativo_historico, clientes, servicos, pagamentos, parcelas, metas, orcamentos, categorias_extras, subcategorias_extras) foram esvaziadas (truncate, todas juntas por causa das chaves entre elas) e FECHADAS (revoke). Fechar, e não só esvaziar, protege quem está numa versão antiga: a versão antiga, vendo o servidor vazio, trocaria os dados do celular pelo vazio; com a tabela fechada ela recebe 403, mostra \"Não está sincronizando\" e não mexe no celular.\nperfis: um gatilho (perfis_sempre_neutro) zera todos os campos abertos em toda gravação; ficam só id e cofre. arquivos_extrato e empreendedor_registros só aceitam conteúdo cifrado (check constraints); o que estava aberto foi apagado. carimbo_da_conta passou a olhar só perfis, empreendedor_registros e cofre.\nDepende: quem não tem a senha e troca de celular só recupera os dados por um backup .finanz. A conversão para o cofre (criar a senha) sobe tudo do celular e trata as tabelas fechadas como já limpas." }
+      ]
+    },
     {
       versao: '5.110.0',
       data: '2026-11-26',
@@ -7431,7 +7438,7 @@
       var apagar = function (t, filtro) {
         t2 = t2.then(function () {
           return pedirNuvem('/rest/v1/' + t + '?' + filtro, { metodo: 'DELETE' });
-        }).catch(function (e) { if (ehTabelaQueFalta(e)) return null; throw e; });
+        }).catch(function (e) { if (ehTabelaQueFalta(e) || ehTabelaFechada(e)) return null; throw e; });
       };
       TABELAS_SINCRONIA.slice().reverse().forEach(function (t) {
         if (t !== 'empreendedor_registros') { apagar(t, 'user_id=eq.' + uid); return; }
@@ -7516,6 +7523,7 @@
 
   var INFO_COFRE = [
     'Com a senha dos dados, tudo o que vai para a nuvem sai do seu celular já cifrado. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+    'Sem ela, nada sincroniza: os dados ficam só neste celular, sem aparecer nos seus outros aparelhos.',
     'A senha nunca sai do celular. Em cada aparelho novo, o app pede a senha uma vez.',
     'Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais. Aí você pode apagar a nuvem e recomeçar, ou restaurar um backup .finanz.',
     'O servidor continua vendo só o mínimo: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.'
@@ -7547,7 +7555,7 @@
     abrirFolha('Proteja seus dados', function (folha) {
       var forma = no('div', 'forma');
       var topo = no('div', 'cartao-topo');
-      juntar(topo, no('div', 'rotulo', 'Crie a senha dos dados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      juntar(topo, no('div', 'rotulo', 'Crie a senha dos dados'), botaoDeInfo('cofre.senha.v2', 'Senha dos dados', INFO_COFRE));
       forma.appendChild(topo);
       forma.appendChild(no('p', 'linha-sub', 'Com ela, seus dados vão para a nuvem embaralhados, e só você consegue abrir. Guarde bem: esquecendo, não tem como recuperar.'));
       var s1 = campoDeSenha('campo-senha-dados', 'Pelo menos 8 caracteres', true);
@@ -7591,7 +7599,7 @@
       abrirFolha('Senha dos dados', function (folha) {
         var forma = no('div', 'forma');
         var topo = no('div', 'cartao-topo');
-        juntar(topo, no('div', 'rotulo', 'Seus dados estão cifrados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+        juntar(topo, no('div', 'rotulo', 'Seus dados estão cifrados'), botaoDeInfo('cofre.senha.v2', 'Senha dos dados', INFO_COFRE));
         forma.appendChild(topo);
         forma.appendChild(no('p', 'linha-sub', 'Digite a senha dos dados para abrir o que está na nuvem neste aparelho. Ela é pedida uma vez só.'));
         var s1 = campoDeSenha('campo-senha-dados', '', false);
@@ -7708,7 +7716,7 @@
     abrirFolha('Senha dos dados', function (folha) {
       var c = cartao();
       var topo = no('div', 'cartao-topo');
-      juntar(topo, no('div', 'rotulo', 'Criptografia de ponta a ponta'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      juntar(topo, no('div', 'rotulo', 'Criptografia de ponta a ponta'), botaoDeInfo('cofre.senha.v2', 'Senha dos dados', INFO_COFRE));
       c.appendChild(topo);
       c.appendChild(no('div', 'linha-nota verde estado-cofre', cofre.info && cofre.info.convertido
         ? 'Ligada ✓ Tudo o que está na nuvem está cifrado com a sua senha.'
@@ -7745,6 +7753,12 @@
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
   // rodou): o app segue sem elas, e o que é delas fica no aparelho.
   var TABELAS_OPCIONAIS = ['empreendedor_registros'];
+
+  // Tabela antiga fechada no servidor (migração 25): "permissão negada".
+  function ehTabelaFechada(e) {
+    var codigo = String((e && e.codigo) || '');
+    return codigo === '42501' || /permission denied/i.test(String((e && e.message) || ''));
+  }
 
   function ehTabelaQueFalta(e) {
     var codigo = String((e && e.codigo) || '');
@@ -9088,6 +9102,21 @@
     }).catch(function () { return 0; });
   }
 
+  // Sem a senha dos dados, a sincronização fica desligada (5.111.0).
+  var sincroniaSemSenha = false;
+  function ligarSincronia() {
+    if (!NUVEM.ligada || !sessaoNuvem) return;
+    if (faltaNoBanco['cofre']) { avisarCaixa('Ainda não dá', 'O servidor ainda não recebeu a atualização do cofre. Tente de novo mais tarde.'); return; }
+    if (cofreTrancado()) { abrirSenhaDoCofre(true); return; }
+    perguntar({
+      titulo: 'Ligar a sincronização?',
+      texto: 'Sem a senha dos dados, nada vai para o servidor: seus dados ficam só neste celular.\n\n' +
+             'Criando a senha, tudo sincroniza cifrado: aparece nos seus outros aparelhos e só você consegue ler. ' +
+             'Não tem recuperação: guarde bem a senha.',
+      ok: 'Criar a senha e ligar', cancelar: 'Agora não'
+    }, function () { setTimeout(abrirCriarCofre, 260); });
+  }
+
   function sincronizar(silenciosa) {
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (sincronizando) return Promise.resolve(false);
@@ -9105,6 +9134,15 @@
       return carimboDaConta();
     }).then(function (carimbo) {
       return prepararCofre(!carimbo || carimbo !== estado.carimbo).then(function () {
+        // Sem a senha dos dados, nada sincroniza (pedido de 26/11/2026):
+        // os dados ficam só neste celular. O servidor também recusa dado
+        // aberto (migração 25), mesmo vindo de versão antiga do app.
+        if (!cofreLigado()) {
+          var semSenha = new Error('Sem a senha dos dados, a sincronização fica desligada.');
+          semSenha.semSenha = true;
+          throw semSenha;
+        }
+        sincroniaSemSenha = false;
         return prepararCompartilhadoCifrado();
       }).then(function () { return estado.carimbo === '' ? null : carimbo; });
     }).then(function (carimbo) {
@@ -9210,6 +9248,16 @@
       sincronizando = false;
       // Cofre trancado não é falha: espera a senha.
       if (e && e.trancado) { if (!silenciosa) avisar(e.message); return false; }
+      // Sem a senha dos dados não é falha: é a sincronização desligada.
+      if (e && e.semSenha) {
+        var mudou = !sincroniaSemSenha || tinhaFalha;
+        sincroniaSemSenha = true;
+        falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
+        if (!silenciosa) ligarSincronia();
+        else if (mudou && telaAtiva === 'mais') desenhar();
+        return false;
+      }
       var f = marcarFalhaDeSincronia(e);
       agendarNovaTentativa(f.seguidas);
       if (!silenciosa) { avisar('Não sincronizou: ' + f.mensagem); return false; }
@@ -11516,7 +11564,7 @@
         ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo sai do seu celular já embaralhado com uma chave que só a sua senha abre.'],
         ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram, o tamanho e a hora da última vez que você abriu o app.'],
         ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede uma vez. Não tem recuperação: esquecendo, a nuvem não abre mais.'],
-        ['Guardados na sua conta.', 'No servidor do Finanz (Supabase, em São Paulo) e numa cópia cifrada no seu celular.'],
+        ['Onde ficam.', 'Com a senha dos dados, no servidor do Finanz (Supabase, em São Paulo), cifrados, e numa cópia no seu celular. Sem ela, só no seu celular.'],
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
@@ -11662,7 +11710,7 @@
         'Criptografia de ponta a ponta: com a senha dos dados criada (Mais → Senha dos dados), tudo o que vai para o servidor — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato — sai do seu celular já cifrado (AES-GCM de 256 bits) com uma chave que só a sua senha abre. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
         'A senha dos dados nunca sai do celular. O servidor guarda só a chave embrulhada por ela (PBKDF2 com 210 mil voltas). Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais, e você pode apagá-los para recomeçar.',
         'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram, o tamanho deles e a data e a hora da última vez que você abriu o app.',
-        'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, quando as duas têm a senha dos dados.',
+        'Sem a senha dos dados, nada sincroniza: seus dados ficam só no seu celular, e o servidor recusa receber dado sem cifra. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, e por isso as duas precisam da senha dos dados.',
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
@@ -11698,12 +11746,12 @@
         ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo o que vai para a nuvem sai do seu celular já cifrado: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.'],
         ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram, o tamanho e a hora da última vez que você abriu o app.'],
         ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede a senha uma vez. Não existe recuperação: esquecendo, a nuvem não abre mais, e você escolhe se apaga para recomeçar.'],
-        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia cifrada no seu celular.'],
+        ['Onde ficam.', 'Com a senha dos dados, na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), cifrados, e numa cópia no seu celular. Sem a senha dos dados, só no seu celular.'],
         ['Só você vê os seus.', 'Além da cifra, cada linha tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security).'],
         ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
         ['Compartilhado também.', 'A área do Empreendedor que você compartilha vai cifrada com uma chave só de vocês dois (cada um com o seu par de chaves).'],
-        ['Ainda abertos.', 'Sem a senha dos dados criada, a sincronia continua do jeito antigo: protegida pelo login, mas legível para quem administra o servidor.'],
+        ['Sem senha, só no celular.', 'Sem a senha dos dados criada, nada sincroniza: os dados ficam só no seu celular, e o servidor recusa dado sem cifra.'],
         ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento e sem cookies de terceiros.'],
         ['Só uma contagem.', 'Ao abrir, o app anota no servidor a hora da última vez que você abriu o app (só a última, sem histórico). Serve para contar quantas pessoas usam o Finanz; ninguém aparece pelo nome. Dá para desligar em Mais → Preferências.']
       ] : [
@@ -29845,7 +29893,17 @@
       cDados.appendChild(linha);
     });
 
-    if (NUVEM.ligada) {
+    if (NUVEM.ligada && sincroniaSemSenha && !cofre.ativo) {
+      var sincOff = botao('linha botao-sincronia-desligada', null, ligarSincronia);
+      juntar(sincOff,
+        selo('#94A3B4', '↻'),
+        juntar(no('div', 'linha-texto'),
+          no('div', 'linha-titulo', 'Sincronização desligada'),
+          no('div', 'linha-sub', 'Sem a senha dos dados, tudo fica só neste celular. Toque para ligar.')));
+      var subOff = sincOff.querySelector('.linha-sub');
+      subOff.style.whiteSpace = 'normal';
+      cDados.appendChild(sincOff);
+    } else if (NUVEM.ligada) {
       var sinc = botao('linha', null, function () {
         avisar('Sincronizando…');
         sincronizar(false);
@@ -36986,12 +37044,12 @@
       'A nuvem não abre mais, e não existe recuperação: nem você, nem quem desenvolve o app consegue abrir.',
       'Mas este celular continua com tudo (a cópia de trabalho do app abre com o seu login). Em "Esqueci a senha", você apaga a nuvem, cria uma senha nova e o app sobe tudo de novo.']],
     ['E se eu perder o celular?', [
-      'Num aparelho novo, entre na conta e digite a senha dos dados: tudo desce da nuvem.',
+      'Num aparelho novo, entre na conta e digite a senha dos dados: tudo desce da nuvem. Sem a senha dos dados criada, não há nada na nuvem: só o arquivo .finanz salva.',
       'Se perdeu o celular e esqueceu a senha dos dados, o arquivo .finanz é a rede de segurança: restaure ele e crie uma senha dos dados nova.']],
     ['Quem consegue ver meus dados?', [
       'Com a senha dos dados ligada, só você. O servidor guarda tudo embaralhado.',
       'O servidor ainda vê o mínimo para funcionar: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.',
-      'Sem a senha dos dados criada, os dados ficam protegidos pelo login, mas quem administra o servidor consegue ler.']],
+      'Sem a senha dos dados criada, nada vai para o servidor: os dados ficam só no seu celular.']],
     ['E o que eu compartilho com outra pessoa?', [
       'As áreas do Empreendedor que você compartilha (Doces, Uber, Casa) a outra pessoa vê, porque é para isso que serve compartilhar.',
       'Com a senha dos dados ligada dos dois lados, a área vai cifrada de ponta a ponta: cada um tem um par de chaves, e a chave da área só abre para vocês dois. O servidor não lê.',
@@ -37025,7 +37083,7 @@
       var semNuvem = !NUVEM.ligada || !sessaoNuvem;
       var cx = cartao('liso cartao-proteja-opcoes');
       // As dúvidas moram no "i" (pedido de 25/11/2026): pergunta e resposta.
-      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.protecao', titulo: 'Dúvidas sobre senha e backups',
+      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.protecao', versao: 2, titulo: 'Dúvidas sobre senha e backups',
         itens: DUVIDAS_DE_PROTECAO.map(function (d) { return [d[0], d[1].join(' ')]; }) });
       topoP.style.padding = '16px 16px 0';
       topoP.style.marginBottom = '6px';
@@ -37545,7 +37603,8 @@
     }).then(function () {
       // Cofre trancado aqui: o arquivo não sobe aberto. Fica sem guardar.
       if (!podeSubirAvulso()) throw new Error('cofre trancado');
-      if (!cofreLigado()) return { nome: nomeArq, conteudo: paraBase64(bytes) };
+      // Sem a senha dos dados, o arquivo fica só no celular (5.111.0).
+      if (!cofreLigado()) throw new Error('sem a senha dos dados');
       // Com o cofre, o arquivo e o nome dele sobem cifrados.
       return Promise.all([cifrarParaOCofre(bytes), textoParaOCofre(nomeArq)]).then(function (r) {
         return { nome: r[1], conteudo: r[0] };
@@ -38433,7 +38492,8 @@
   function apagarTudo() {
     var quanto = estado.lancamentos.length + estado.contas.length + estado.ativos.length + estado.metas.length;
     if (!quanto) { avisar('Não há nada para apagar.'); return; }
-    var naNuvem = NUVEM.ligada && sessaoNuvem;
+    // Sem a senha dos dados não há nada no servidor (5.111.0).
+    var naNuvem = NUVEM.ligada && sessaoNuvem && cofreLigado();
     perguntar({
       titulo: 'Apagar todos os seus dados?',
       texto: 'São ' + quanto + ' registros' + (naNuvem

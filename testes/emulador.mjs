@@ -304,7 +304,8 @@ const servidor = http.createServer(async (req, res) => {
     // teste via 400 onde o celular do Vitor via 409 — mesmo erro, número
     // diferente, e qualquer verificação em cima do número mentiria.
     const codigo = e && e.code;
-    const status = (codigo === '23503' || codigo === '23505') ? 409 : 400;
+    // Permissão negada (tabela fechada, migração 25) vira 403, como lá.
+    const status = (codigo === '23503' || codigo === '23505') ? 409 : codigo === '42501' ? 403 : 400;
     return json(res, status, { message: e.message, code: codigo || '' });
   }
 });
