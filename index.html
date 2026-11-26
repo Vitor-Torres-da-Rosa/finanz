@@ -2884,7 +2884,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.109.0';
+  var VERSAO = '5.110.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2893,6 +2893,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.110.0',
+      data: '2026-11-26',
+      itens: [
+        'Em Mais → Preferências, a nova opção "Contar quando eu abro o app". Ela vem ligada; desligando, o servidor apaga a hora da sua última abertura e sua conta deixa de entrar na contagem de quantas pessoas usam o Finanz. Vale em todos os seus aparelhos.',
+        '"Versões guardadas" saiu do fim de Mais e foi para Proteja seus dados. Não é backup dos seus dados: são as versões anteriores do próprio app, para abrir uma delas se uma atualização der problema.'
+      ]
+    },
     {
       versao: '5.109.0',
       data: '2026-11-26',
@@ -8799,23 +8807,38 @@
   // Staff conta quem está ativo (abriu nos últimos 7 dias). A resposta diz
   // se esta conta é staff; a trava de verdade é no servidor (migração 23).
   var CHAVE_STAFF = 'finanz.staff.v1:';
+  // A escolha de contar ou não (Preferências) mora no servidor; aqui fica
+  // só a última resposta, para a tela abrir já mostrando.
+  var CHAVE_CONTAR = 'finanz.contarAtividade.v1:';
   var ultimaAtividade = 0;
+  function contagemLigada() {
+    try { return localStorage.getItem(CHAVE_CONTAR + eu()) !== '0'; } catch (e) { return true; }
+  }
   function souStaff() {
     if (!NUVEM.ligada || !eu()) return false;
     try { return localStorage.getItem(CHAVE_STAFF + eu()) === '1'; } catch (e) { return false; }
   }
-  function marcarAtividade() {
-    if (!NUVEM.ligada || !sessaoNuvem || !eu() || faltaNoBanco['funcao:atividade']) return;
-    if (Date.now() - ultimaAtividade < 10 * 60 * 1000) return;
+  // escolha: sem ela, só anota a hora (se a pessoa não desligou); true ou
+  // false liga ou desliga a contagem (Preferências).
+  function marcarAtividade(escolha) {
+    var mudar = escolha === true || escolha === false;
+    if (!NUVEM.ligada || !sessaoNuvem || !eu() || faltaNoBanco['funcao:atividade']) {
+      return mudar ? Promise.reject(new Error('sem a nuvem')) : Promise.resolve();
+    }
+    if (!mudar && Date.now() - ultimaAtividade < 10 * 60 * 1000) return Promise.resolve();
     ultimaAtividade = Date.now();
     var quem = eu();
     var antes = souStaff();
-    pedirNuvem('/rest/v1/rpc/marcar_atividade', { metodo: 'POST', corpo: {} }).then(function (r) {
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/rpc/marcar_atividade', { metodo: 'POST', corpo: mudar ? { p_contar: escolha } : {} });
+    }).then(function (r) {
       if (eu() !== quem) return;
       var agora = !!(r && r.staff === true);
       try {
         if (agora) localStorage.setItem(CHAVE_STAFF + quem, '1');
         else localStorage.removeItem(CHAVE_STAFF + quem);
+        if (r && r.contar === false) localStorage.setItem(CHAVE_CONTAR + quem, '0');
+        else localStorage.removeItem(CHAVE_CONTAR + quem);
       } catch (e) { /* sem espaço: só não guarda */ }
       if (agora !== antes && telaAtiva === 'mais') desenharMais();
     }).catch(function (e) {
@@ -8823,9 +8846,10 @@
       if (String((e && e.codigo) || '') === 'PGRST202' ||
           /could not find the function|function .* does not exist/.test(msg)) {
         faltaNoBanco['funcao:atividade'] = true;
-        return;
+      } else {
+        ultimaAtividade = 0; // sem rede: tenta de novo na próxima
       }
-      ultimaAtividade = 0; // sem rede: tenta de novo na próxima
+      if (mudar) throw e;
     });
   }
 
@@ -8838,8 +8862,9 @@
         'Ativos: contas que abriram o app nos últimos 7 dias. Só abrir para olhar já conta, não precisa mexer em nada. Hoje e 30 dias usam a mesma regra, em outro prazo.',
         'Como o app sabe: ao abrir, ele anota no servidor a hora da última abertura daquela conta (só a última, sem histórico e sem nada do que a pessoa viu). O último login também conta.',
         'Contas que não abriram o app desde a versão 5.109.0 só contam pelo último login.',
+        'Cada pessoa pode desligar a contagem em Mais → Preferências. Desligada, a conta não entra nos ativos (nem pelo login) e aparece só no número "Pediram para não contar".',
         'Com a senha dos dados: contas que criaram a senha dos dados (os dados delas sobem cifrados).',
-        'Aqui só há números. Ninguém aparece pelo nome ou e-mail, e os dados das pessoas continuam fechados.'] }));
+        'Aqui só há números. Ninguém aparece pelo nome ou e-mail, e os dados das pessoas continuam fechados.'], versao: 2 }));
       var corpo = no('div', 'staff-corpo', 'Buscando os números…');
       c.appendChild(corpo);
       folha.appendChild(c);
@@ -8872,7 +8897,7 @@
           ], 2);
           g2.style.marginTop = '12px';
           corpo.appendChild(g2);
-          var g3 = gradeDeTiles([tile('Com a senha dos dados', n('com_senha'))], 1);
+          var g3 = gradeDeTiles([tile('Com a senha dos dados', n('com_senha')), tile('Pediram para não contar', n('sem_contar'))], 2);
           g3.style.marginTop = '12px';
           corpo.appendChild(g3);
           nota.textContent = 'Atualizado às ' + horaDe(r.agora ? Date.parse(r.agora) : Date.now()) + '. Ativo = abriu o app nos últimos 7 dias.';
@@ -11491,7 +11516,7 @@
       ] },
       { icone: '🛡️', titulo: 'O que nunca acontece', itens: [
         ['Nada é vendido nem compartilhado.', 'Seus dados não vão para anunciantes, parceiros ou terceiros.'],
-        naNuvem ? ['Sem rastreamento.', 'Não há propaganda nem cookies de terceiros. O servidor anota só a hora da última vez que você abriu o app (sem histórico e sem nada do que você viu), para contar quantas pessoas usam o Finanz.']
+        naNuvem ? ['Sem rastreamento.', 'Não há propaganda nem cookies de terceiros. O servidor anota só a hora da última vez que você abriu o app (sem histórico e sem nada do que você viu), para contar quantas pessoas usam o Finanz. Dá para desligar em Preferências.']
           : ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
         ['Taxas públicas.', 'Em Investimentos, o app busca Selic, CDI e IPCA no Banco Central. Esse pedido não leva nenhum dado seu.'],
         ['Backup com senha.', 'O arquivo de backup sai cifrado com uma senha que você escolhe. Sem ela, ninguém abre — nem o Finanz.']
@@ -11627,7 +11652,7 @@
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
-        'Não há rastreamento, publicidade ou cookies de terceiros. A única estatística é a contagem de quantas pessoas usam o Finanz: ao abrir, o app anota no servidor a data e a hora da última abertura da sua conta (só a última, sem histórico e sem nada do que você viu ou fez). Ela vira só números, como "quantas contas abriram o app nesta semana"; ninguém aparece pelo nome. Apagando a conta, essa anotação some junto.',
+        'Não há rastreamento, publicidade ou cookies de terceiros. A única estatística é a contagem de quantas pessoas usam o Finanz: ao abrir, o app anota no servidor a data e a hora da última abertura da sua conta (só a última, sem histórico e sem nada do que você viu ou fez). Ela vira só números, como "quantas contas abriram o app nesta semana"; ninguém aparece pelo nome. Ela vem ligada e dá para desligar em Mais → Preferências: desligada, a hora é apagada e sua conta não entra na contagem. Apagando a conta, essa anotação some junto.',
         'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup a qualquer momento. O arquivo de backup sai cifrado (AES-GCM de 256 bits) com uma senha que você escolhe na hora: sem ela, ninguém abre, nem o Finanz.'
       ] : [
         'Hoje o Finanz funciona inteiramente dentro do seu aparelho. Não existe servidor, não há cadastro em nenhum lugar e nada do que você digita sai do navegador.',
@@ -11666,7 +11691,7 @@
         ['Compartilhado também.', 'A área do Empreendedor que você compartilha vai cifrada com uma chave só de vocês dois (cada um com o seu par de chaves).'],
         ['Ainda abertos.', 'Sem a senha dos dados criada, a sincronia continua do jeito antigo: protegida pelo login, mas legível para quem administra o servidor.'],
         ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento e sem cookies de terceiros.'],
-        ['Só uma contagem.', 'Ao abrir, o app anota no servidor a hora da última vez que você abriu o app (só a última, sem histórico). Serve para contar quantas pessoas usam o Finanz; ninguém aparece pelo nome.']
+        ['Só uma contagem.', 'Ao abrir, o app anota no servidor a hora da última vez que você abriu o app (só a última, sem histórico). Serve para contar quantas pessoas usam o Finanz; ninguém aparece pelo nome. Dá para desligar em Mais → Preferências.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
         ['Cifrados.', 'Guardados com AES-GCM de 256 bits, com a chave tirada da sua senha (PBKDF2).'],
@@ -29795,7 +29820,7 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
+      ['⚙', 'Preferências', 'Seu nome, a reserva e a contagem de uso', abrirFolhaPreferencias]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha' + (o[4] ? ' ' + o[4] : ''), null, o[3]);
       juntar(linha,
@@ -29836,17 +29861,6 @@
       cDados.appendChild(sinc);
     }
 
-    // Mesma aba, e não _blank: numa aba nova o botão voltar do celular não
-    // volta para o app, fecha ele. Na mesma aba o voltar faz o que a pessoa
-    // espera — e a página tem um "‹ Voltar ao app" no topo.
-    var versoes = botao('linha', null, function () { location.href = 'versoes/'; });
-    juntar(versoes,
-      selo('#94A3B4', '↩'),
-      juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', 'Versões guardadas'),
-        no('div', 'linha-sub', 'Se uma atualização der problema, abra a anterior')));
-    // Manutenção não é assunto de quem só usa o app.
-    if (souODono()) cDados.appendChild(versoes);
 
     var novidades = botao('linha', null, abrirNovidades);
     juntar(novidades,
@@ -32206,6 +32220,27 @@
       forma.appendChild(no('div', 'linha-nota',
         'Desmarcado, o cartão da reserva some da tela Planejar. Nada do que você já ajustou se perde.'));
 
+      // Contar a abertura do app (pedido de 26/11/2026): vem ligada, e
+      // a pessoa pode desligar. A escolha vale em todos os aparelhos.
+      var comNuvem = NUVEM.ligada && !!sessaoNuvem;
+      var contarAntes = contagemLigada();
+      var contar = contarAntes;
+      var marcaContar = null;
+      if (comNuvem) {
+        marcaContar = botao('lembrar marca-contar-atividade', null, function () {
+          contar = !contar;
+          marcaContar.setAttribute('aria-pressed', contar ? 'true' : 'false');
+          marcaContar.querySelector('.caixinha').textContent = contar ? '✓' : '';
+        });
+        marcaContar.setAttribute('aria-pressed', contar ? 'true' : 'false');
+        marcaContar.style.margin = '14px 0 6px';
+        marcaContar.appendChild(no('span', 'caixinha', contar ? '✓' : ''));
+        marcaContar.appendChild(no('span', null, 'Contar quando eu abro o app'));
+        forma.appendChild(marcaContar);
+        forma.appendChild(no('div', 'linha-nota',
+          'Ligado, o servidor anota só a hora da última vez que você abriu o app, para contar quantas pessoas usam o Finanz. Vira só números: ninguém aparece pelo nome. Desligado, essa hora é apagada e sua conta não entra na contagem de ativos.'));
+      }
+
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         estado.perfil.nome = campoNome.value.trim().slice(0, 40);
@@ -32217,6 +32252,13 @@
         fecharFolha();
         desenhar();
         avisar('Preferências salvas.');
+        if (comNuvem && contar !== contarAntes) {
+          marcarAtividade(contar).then(function () {
+            avisar(contar ? 'A contagem voltou a ficar ligada.' : 'Pronto: sua conta não entra mais na contagem.');
+          }).catch(function () {
+            avisarCaixa('Não consegui mudar a contagem', 'O servidor não respondeu agora. Confira a internet e tente de novo em Preferências.');
+          });
+        }
       }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
@@ -36884,7 +36926,12 @@
         ['🔐', 'Senha dos dados', no('div', 'linha-sub estado-senha-dados', estadoTxt), function () { abrirFolhaCofre(); }, 'botao-senha-dados'],
         ['☁', 'Backup na nuvem', subNuvem, function () { nuvemLigada ? abrirFolhaInstantaneos() : ligarBackupNaNuvem(); }, 'botao-backup-nuvem'],
         ['📱', 'Backup no celular', no('div', 'linha-sub', 'Arquivo .finanz · ' + resumoDosBackupsDoCelular().toLowerCase()), function () { abrirBackupNoCelular(); }, 'botao-backup-celular']
-      ].forEach(function (o) {
+      ].concat(souODono() ? [
+        // Versões guardadas (pedido de 26/11/2026): saiu do fim de Mais e
+        // veio para cá. Não é backup dos dados: são as versões antigas do
+        // próprio app. Mesma aba, para o voltar do celular voltar ao app.
+        ['↩', 'Versões guardadas do app', no('div', 'linha-sub', 'Não é backup dos dados: abre uma versão anterior do app'), function () { location.href = 'versoes/'; }, 'botao-versoes']
+      ] : []).forEach(function (o) {
         var l = botao('linha ' + o[4], null, o[3]);
         juntar(l, selo('#60A5FA', o[0]), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', o[1]), o[2]));
         cx.appendChild(l);
