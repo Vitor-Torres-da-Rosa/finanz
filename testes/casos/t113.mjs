@@ -143,7 +143,8 @@ const apagados = await page.evaluate(async () => {
 console.log('linhas vivas apagadas ·', apagados);
 
 // E apago TUDO do aparelho, como quem reinstala o app ou troca de celular.
-await page.evaluate(() => { localStorage.clear(); localStorage.setItem('finanz.cofre.auto', 'senha-do-cofre-123'); sessionStorage.clear(); });
+// Sem a senha automática dos testes: aqui a pessoa digita a senha.
+await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
 await page.reload({ waitUntil:'networkidle' }); await page.waitForTimeout(2500);
 await page.evaluate(() => { document.getElementById('entrada').scrollTop = 99999; });
 await page.click('.btn-contorno:has-text("Entrar na minha conta")'); await page.waitForTimeout(1200);
