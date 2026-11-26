@@ -92,8 +92,8 @@ const aberto = await page.evaluate(() => {
   return { conferir: vis(achar('Conferir esta conta')), ajustar: vis(achar('Ajustar saldo')), editar: vis(achar('Editar esta conta')), cartao: vis(f.querySelector('.cartao-conferido')) };
 });
 const card = limpo(await folha().locator('.cartao-conferido').textContent());
-conferir('2. tocando, abrem as 3 opções e o "Está tudo certo?" com o botão ligado',
-  aberto.conferir && aberto.ajustar && aberto.editar && aberto.cartao &&
+conferir('2. tocando, abre "Conferir esta conta" e o "Está tudo certo?" com o botão ligado (sem Ajustar e Editar)',
+  aberto.conferir && !aberto.ajustar && !aberto.editar && aberto.cartao &&
   /Está tudo certo\?/.test(card) && /1 arquivo\(s\) ainda como vieram do banco/.test(card) &&
   await folha().locator('.botao-conferido:not([disabled])').count() === 1 && await folha().locator('.cartao-conferido [data-dica="conta.conferido.v3"]').count() === 1, JSON.stringify(aberto) + ' ' + card.slice(0, 120));
 await page.screenshot({ path: dir + '/z196-pergunta-aberta.png' });

@@ -2470,8 +2470,9 @@
      valores em todas as telas, e o app sempre abre com ele ligado. */
   /* Desde 18/11/2026 só a tela Início embaça, na Visão geral e no resumo
      do Empreendedor. Dentro de um módulo (Serviços, Uber, Doces, Painel),
-     nas outras abas e nas folhas, tudo fica à vista. */
-  html.privado #telaInicio :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel):not(input):not(textarea):not(select):not(.modulo-corpo *) {
+     nas outras abas e nas folhas, tudo fica à vista. As porcentagens
+     embaçam junto (26/11/2026): com elas dá para deduzir os valores. */
+  html.privado #telaInicio :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel, .pct, .top-pct, .rl-pct, .painel-pct):not(input):not(textarea):not(select):not(.modulo-corpo *) {
     filter: blur(7px); -webkit-user-select: none; user-select: none; }
   .marca-botao.marca-olho[aria-pressed="true"] { color: var(--ouro); }
   .marca-botao {
@@ -2858,6 +2859,9 @@
     font-size: 11px; color: var(--fraco); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
   .novidade-detalhe { white-space: pre-line; font-size: 12px; line-height: 1.55; color: var(--fraco);
     margin: 6px 0 4px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--borda); }
+  .saldo-editavel { display: inline-flex; align-items: baseline; gap: 10px; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+  .saldo-editavel.vermelho { color: var(--vermelho); }
+  .saldo-lapis { font-size: 18px; color: var(--ouro); opacity: .75; }
 </style>
 </head>
 <body>
@@ -2913,7 +2917,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.111.0';
+  var VERSAO = '5.112.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2922,6 +2926,14 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.112.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "Para corrigir o saldo de uma conta, toque nele: a diferença vira uma receita ou despesa para você completar.", d: "abrirExtratoConta: o valor do saldo virou um botão (.saldo-editavel, com o ✎). Tocando, aparece no lugar um campo \"Saldo certo hoje\" (entradaValor; o sinal de menos deixa negativo) e a diferença ao vivo. \"Continuar\" abre o formulário de lançamento (abrirFolhaLancamento) já com o tipo (entrada se o saldo certo é maior, saída se menor), o valor da diferença, a conta e a data de hoje; a descrição e a categoria a pessoa completa. Só salvando o lançamento o saldo muda; saindo sem salvar, nada acontece. \"Cancelar\" volta o saldo como estava.\nSaíram do painel de \"O saldo está correto?\": \"Ajustar saldo\" (a função abrirAjusteDeSaldo foi apagada; a opção de mudar o saldo inicial por ali deixou de existir, porque tudo passa por receita ou despesa) e \"Editar esta conta\" (a conta se edita pelo lápis da lista de contas do Início). Fica \"Conferir esta conta\" e o \"Conferido ✓\"." },
+        { r: "No modo privado, as porcentagens do Início também ficam borradas.", d: "A regra html.privado #telaInicio, que embaça os valores com filter: blur(7px), passou a incluir .pct (legenda da rosca de gastos e variações), .top-pct, .rl-pct e .painel-pct. Com as porcentagens à vista dava para deduzir os valores. Continua só no Início, fora dos módulos, como antes." }
+      ]
+    },
     {
       versao: '5.111.0',
       data: '2026-11-26',
@@ -27388,77 +27400,6 @@
     });
   }
 
-  function abrirAjusteDeSaldo(id) {
-    var conta = achar(estado.contas, id);
-    if (!conta) return;
-    var noApp = saldoConta(id, null);
-    abrirFolha('Ajustar saldo', function (folha) {
-      var forma = no('div', 'forma');
-      forma.appendChild(no('p', 'linha-sub', 'Diga quanto tem de verdade em ' + conta.nome + ' hoje. Depois você escolhe se a diferença vira uma receita ou despesa, ou se muda o saldo inicial.'));
-      var info = cartao();
-      info.appendChild(no('div', 'rotulo', 'Saldo no app'));
-      info.appendChild(no('div', 'valorao pequeno num' + (noApp < 0 ? ' vermelho' : ''), emReais(noApp)));
-      forma.appendChild(info);
-      var campoSaldo = entradaValor(Math.abs(noApp), true, true);
-      if (noApp < 0) campoSaldo.value = '-' + emReais(Math.abs(noApp));
-      campoSaldo.classList.add('campo-saldo-certo');
-      forma.appendChild(campo('Saldo certo hoje', campoSaldo));
-      var difEl = no('div', 'linha-nota diferenca-ajuste');
-      forma.appendChild(difEl);
-      var lerSaldo = function () {
-        var v = digitosParaCentavos(campoSaldo.value);
-        return /[-−]/.test(campoSaldo.value) ? -v : v;
-      };
-      var mostrarDif = function () {
-        var d = lerSaldo() - noApp;
-        difEl.className = 'linha-nota diferenca-ajuste' + (d > 0 ? ' verde' : d < 0 ? ' vermelho' : '');
-        difEl.textContent = d === 0 ? 'Igual ao do app: nada para ajustar.'
-          : (d > 0 ? emReais(d) + ' a mais do que o app mostra.' : emReais(-d) + ' a menos do que o app mostra.');
-      };
-      campoSaldo.addEventListener('input', mostrarDif);
-      mostrarDif();
-      forma.appendChild(no('p', 'linha-sub', 'Dica: com o sinal de menos (-) na frente, o saldo fica negativo.'));
-
-      var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', 'Continuar', function () {
-        var certo = lerSaldo();
-        var dif = certo - noApp;
-        if (!dif) { avisar('O saldo já está certo.'); return; }
-        var ehMais = dif > 0;
-        var novoInicial = (conta.saldoInicial || 0) + dif;
-        abrirEscolha({ titulo: 'Como ajustar ' + emReais(Math.abs(dif)) + '?', semMarca: true, opcoes: [
-          { valor: 'transacao', rotulo: ehMais ? 'Lançar uma receita de ' + emReais(dif) : 'Lançar uma despesa de ' + emReais(-dif),
-            detalhe: 'Entra hoje em ' + conta.nome + '. Na próxima tela você escolhe a descrição, a categoria e a data.' },
-          { valor: 'inicial', rotulo: 'Mudar o saldo inicial',
-            detalhe: 'De ' + emReais(conta.saldoInicial || 0) + ' para ' + emReais(novoInicial) + '. Não cria lançamento e não mexe nas receitas e despesas.' }
-        ] }, function (v) {
-          if (v === undefined) return;
-          if (v === 'inicial') {
-            var c = achar(estado.contas, id);
-            if (!c) return;
-            comMotivo('você ajustou o saldo inicial de ' + c.nome + ' de ' + emReais(c.saldoInicial || 0) + ' para ' + emReais(novoInicial));
-            c.saldoInicial = novoInicial;
-            salvar();
-            fecharFolha();
-            desenhar();
-            setTimeout(function () { abrirExtratoConta(id); }, 240);
-            avisar('Saldo ajustado: ' + emReais(certo) + '.');
-            return;
-          }
-          var r = novoRascunho(ehMais ? 'entrada' : 'saida', id, '');
-          r.valor = Math.abs(dif);
-          r.descricao = 'Ajuste de saldo';
-          r.data = hojeTexto();
-          r.contaId = id;
-          fecharFolha();
-          setTimeout(function () { abrirFolhaLancamento(null, r); }, 240);
-        });
-      }));
-      forma.appendChild(acoes);
-      folha.appendChild(forma);
-    });
-  }
-
   function abrirExtratoConta(id, abrirPainel) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
@@ -27467,9 +27408,65 @@
       var saldo = saldoConta(id, null);
 
       var topo = cartao();
-      topo.appendChild(no('div', 'rotulo', 'Saldo atual'));
-      topo.appendChild(no('div', 'valorao num' + (saldo < 0 ? ' vermelho' : ''), emReais(saldo)));
-      topo.appendChild(no('div', 'linha-nota', conta.tipo + ' · saldo inicial de ' + emReais(conta.saldoInicial)));
+      var rotuloSaldo = no('div', 'rotulo', 'Saldo atual');
+      topo.appendChild(rotuloSaldo);
+      // O saldo se corrige tocando nele (pedido de 26/11/2026): digita o
+      // certo e a diferença vira uma receita (a mais) ou uma despesa (a
+      // menos) para completar. Saindo sem salvar, nada muda: o saldo só
+      // muda por receita ou despesa.
+      var caixaSaldo = no('div', 'caixa-saldo');
+      var valorSaldo = botao('valorao num saldo-editavel' + (saldo < 0 ? ' vermelho' : ''), null, function () { editarSaldo(); });
+      juntar(valorSaldo, no('span', null, emReais(saldo)), no('span', 'saldo-lapis', '✎'));
+      valorSaldo.setAttribute('aria-label', 'Corrigir o saldo de ' + conta.nome);
+      caixaSaldo.appendChild(valorSaldo);
+      topo.appendChild(caixaSaldo);
+      var notaSaldo = no('div', 'linha-nota', conta.tipo + ' · toque no saldo para corrigir');
+      topo.appendChild(notaSaldo);
+      function editarSaldo() {
+        caixaSaldo.textContent = '';
+        rotuloSaldo.hidden = true;
+        notaSaldo.hidden = true;
+        var campoSaldo = entradaValor(Math.abs(saldo), true, true);
+        if (saldo < 0) campoSaldo.value = '-' + emReais(Math.abs(saldo));
+        campoSaldo.classList.add('campo-saldo-certo');
+        caixaSaldo.appendChild(campo('Saldo certo hoje', campoSaldo));
+        var difEl = no('div', 'linha-nota diferenca-ajuste');
+        caixaSaldo.appendChild(difEl);
+        var lerSaldo = function () {
+          var v = digitosParaCentavos(campoSaldo.value);
+          return /[-−]/.test(campoSaldo.value) ? -v : v;
+        };
+        var mostrarDif = function () {
+          var d = lerSaldo() - saldo;
+          difEl.className = 'linha-nota diferenca-ajuste' + (d > 0 ? ' verde' : d < 0 ? ' vermelho' : '');
+          difEl.textContent = d === 0 ? 'Igual ao do app. Com o sinal de menos (-) na frente, o saldo fica negativo.'
+            : d > 0 ? emReais(d) + ' a mais: vira uma receita para você completar.'
+            : emReais(-d) + ' a menos: vira uma despesa para você completar.';
+        };
+        campoSaldo.addEventListener('input', mostrarDif);
+        mostrarDif();
+        var acoesSaldo = no('div', 'duas');
+        acoesSaldo.style.marginTop = '10px';
+        juntar(acoesSaldo,
+          botao('btn btn-fantasma botao-saldo-cancelar', 'Cancelar', function () {
+            caixaSaldo.textContent = '';
+            caixaSaldo.appendChild(valorSaldo);
+            rotuloSaldo.hidden = false;
+            notaSaldo.hidden = false;
+          }),
+          botao('btn btn-ouro botao-saldo-continuar', 'Continuar', function () {
+            var dif = lerSaldo() - saldo;
+            if (!dif) { avisar('O saldo já está certo.'); return; }
+            var r = novoRascunho(dif > 0 ? 'entrada' : 'saida', id, '');
+            r.valor = Math.abs(dif);
+            r.data = hojeTexto();
+            r.contaId = id;
+            fecharFolha();
+            setTimeout(function () { abrirFolhaLancamento(null, r); }, 240);
+          }));
+        caixaSaldo.appendChild(acoesSaldo);
+        setTimeout(function () { try { campoSaldo.focus(); } catch (e) { /* teclado */ } }, 120);
+      }
 
       // Embaixo do saldo, só a pergunta (pedido de 26/11/2026). Tocando,
       // abrem as três opções e o "Conferido ✓".
@@ -27497,19 +27494,8 @@
         });
         conferir.style.marginTop = '12px';
         painel.appendChild(conferir);
-        // Ajustar saldo (pedido de 19/11/2026): diz o saldo certo e escolhe se
-        // a diferença vira receita/despesa ou muda o saldo inicial.
-        var duasAcoes = no('div', 'duas');
-        duasAcoes.style.marginTop = '8px';
-        duasAcoes.appendChild(botao('btn btn-fantasma', 'Ajustar saldo', function () {
-          fecharFolha();
-          setTimeout(function () { abrirAjusteDeSaldo(id); }, 240);
-        }));
-        duasAcoes.appendChild(botao('btn btn-fantasma', 'Editar esta conta', function () {
-          fecharFolha();
-          setTimeout(function () { abrirFolhaConta(id); }, 240);
-        }));
-        painel.appendChild(duasAcoes);
+        // "Ajustar saldo" e "Editar esta conta" saíram (26/11/2026): o saldo
+        // se corrige tocando nele, e a conta se edita pelo lápis do Início.
         var cc = cartaoConferido(id);
         cc.style.marginTop = '12px';
         painel.appendChild(cc);

@@ -1,6 +1,8 @@
 // Pedidos do Vitor em 19/11/2026: (1) conta de dinheiro físico não tem
-// "Importar extrato"; (2) "Ajustar saldo": digita o saldo certo e escolhe
-// mudar o saldo inicial ou lançar a diferença como receita ou despesa.
+// "Importar extrato". E em 26/11/2026: (2) o saldo se corrige tocando nele;
+// a diferença vira uma receita (a mais) ou despesa (a menos) para completar,
+// e sair sem salvar não muda nada. "Ajustar saldo" e "Editar esta conta"
+// saíram do painel.
 import { chromium, dir, ENDERECO } from '../comum.mjs';
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2 })).newPage();
@@ -41,38 +43,44 @@ conferir('1. a carteira (dinheiro físico) não tem "Extratos" nem "+ Importar"'
   (await page.locator('#folha .cartao-extratos').count()) === 0 && (await page.locator('#folha button:has-text("+ Importar")').count()) === 0);
 await page.screenshot({ path: dir + '/z115-carteira-sem-extrato.png' });
 
-// Ajusta para R$ 2.400,00: lança uma despesa de R$ 300,00.
+// Corrige para R$ 2.400,00: vira uma despesa de R$ 300,00.
 await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
-await page.click('#folha button:has-text("Ajustar saldo")'); await page.waitForTimeout(900);
+conferir('2. o painel não tem mais "Ajustar saldo" nem "Editar esta conta"',
+  (await page.locator('#folha button:has-text("Ajustar saldo")').count()) === 0 && (await page.locator('#folha button:has-text("Editar esta conta")').count()) === 0);
+await page.click('#folha .saldo-editavel'); await page.waitForTimeout(500);
 const campoSaldo = page.locator('#folha .campo-saldo-certo');
 await campoSaldo.evaluate(n => { n.value = '240000'; n.dispatchEvent(new Event('input')); }); await page.waitForTimeout(300);
 const dif = limpo(await page.textContent('#folha .diferenca-ajuste'));
-conferir('2. mostra a diferença', /R\$ 300,00 a menos do que o app mostra/.test(dif), dif);
+conferir('3. tocando no saldo, dá para digitar o certo e ele mostra a diferença', /R\$ 300,00 a menos: vira uma despesa/.test(dif), dif);
 await page.screenshot({ path: dir + '/z116-ajustar-saldo.png' });
-await page.click('#folha button:has-text("Continuar")'); await page.waitForTimeout(800);
-const ops = limpo(await page.textContent('#escolhaLista').catch(() => ''));
-conferir('3. pergunta: lançar a despesa ou mudar o saldo inicial', /Lançar uma despesa de R\$ 300,00/.test(ops) && /Mudar o saldo inicial.*De R\$ 0,00 para -R\$ 300,00/.test(ops), ops);
-await page.screenshot({ path: dir + '/z117-como-ajustar.png' });
-await page.click('#escolhaLista .escolha-item:has-text("Lançar uma despesa")'); await page.waitForTimeout(1200);
+await page.click('#folha .botao-saldo-continuar'); await page.waitForTimeout(1200);
 const form = limpo(await page.textContent('#folha').catch(() => ''));
-conferir('4. abre a despesa preenchida para completar', /Nova despesa/.test(form) && (await page.$$eval('#folha input', ns => ns.map(n => n.value).join('|'))).includes('300,00') && (await page.$$eval('#folha input', ns => ns.map(n => n.value))).includes('Ajuste de saldo'), form.slice(0, 80));
+conferir('4. abre a despesa com a diferença, para completar', /Nova despesa/.test(form) && (await page.$$eval('#folha input', ns => ns.map(n => n.value).join('|'))).includes('300,00'), form.slice(0, 80));
 await page.screenshot({ path: dir + '/z118-despesa-do-ajuste.png' });
 await page.click('#folha .btn-ouro:has-text("Salvar")'); await page.waitForTimeout(1500);
 await page.click('#navegacao button:has-text("Início")'); await page.waitForTimeout(1000);
-conferir('5. a carteira fica com R$ 2.400,00', (await saldoDe('Carteira')) === 'R$ 2.400,00', await saldoDe('Carteira'));
+conferir('5. salvando a despesa, a carteira fica com R$ 2.400,00', (await saldoDe('Carteira')) === 'R$ 2.400,00', await saldoDe('Carteira'));
 
-// No Inter, ajusta o saldo inicial: R$ 100,00 → R$ 250,00.
+// No Inter: corrige para R$ 250,00 (a mais) e desiste da receita.
 await contas.locator('.linha-alvo', { hasText: 'Banco Inter' }).click(); await page.waitForTimeout(1200);
 conferir('6. a conta do banco continua com "Extratos"', (await page.locator('#folha .cartao-extratos').count()) === 1);
-await page.evaluate(() => { const b = document.querySelector('#folha .botao-saldo-correto'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }); await page.waitForTimeout(400);
-await page.click('#folha button:has-text("Ajustar saldo")'); await page.waitForTimeout(900);
+await page.click('#folha .saldo-editavel'); await page.waitForTimeout(500);
 await campoSaldo.evaluate(n => { n.value = '25000'; n.dispatchEvent(new Event('input')); }); await page.waitForTimeout(300);
-await page.click('#folha button:has-text("Continuar")'); await page.waitForTimeout(800);
-await page.click('#escolhaLista .escolha-item:has-text("Mudar o saldo inicial")'); await page.waitForTimeout(1500);
-const nota = limpo(await page.textContent('#folha .linha-nota').catch(() => ''));
-conferir('7. mudou o saldo inicial, sem lançamento novo', /saldo inicial de R\$ 250,00/.test(nota), nota);
+const dif2 = limpo(await page.textContent('#folha .diferenca-ajuste'));
+await page.click('#folha .botao-saldo-continuar'); await page.waitForTimeout(1200);
+const form2 = limpo(await page.textContent('#folha').catch(() => ''));
+conferir('7. a mais vira uma receita para completar', /R\$ 150,00 a mais: vira uma receita/.test(dif2) && /Nova receita/.test(form2), dif2 + ' | ' + form2.slice(0, 40));
+for (let i = 0; i < 4 && await page.locator('#folha.aberta').count(); i++) { await page.goBack(); await page.waitForTimeout(600); }
+await page.click('#dialogoAcoes button:has-text("Descartar")').catch(() => {}); await page.waitForTimeout(600);
 await page.click('#navegacao button:has-text("Início")').catch(() => {}); await page.waitForTimeout(1000);
-conferir('8. o Inter fica com R$ 250,00', (await saldoDe('Banco Inter')) === 'R$ 250,00', await saldoDe('Banco Inter'));
+conferir('8. saindo sem salvar a receita, o saldo não muda', (await saldoDe('Banco Inter')) === 'R$ 100,00', await saldoDe('Banco Inter'));
+
+// Cancelar a correção devolve o saldo como estava.
+await contas.locator('.linha-alvo', { hasText: 'Banco Inter' }).click(); await page.waitForTimeout(1200);
+await page.click('#folha .saldo-editavel'); await page.waitForTimeout(500);
+await page.click('#folha .botao-saldo-cancelar'); await page.waitForTimeout(400);
+const saldoTela = limpo(await page.textContent('#folha .saldo-editavel').catch(() => ''));
+conferir('9. "Cancelar" volta a mostrar o saldo, sem mudar nada', /R\$ 100,00/.test(saldoTela) && (await page.locator('#folha .campo-saldo-certo').count()) === 0, saldoTela);
 
 console.log(falhas ? falhas + ' falha(s)' : 'tudo certo');
 await browser.close();

@@ -28,6 +28,14 @@ const valor = '#telaInicio .heroi-valor';
 conferir('1. abrindo o app, os valores já vêm escondidos', /blur/.test(await filtro(valor)) &&
   (await page.getAttribute('#telaInicio .marca-olho', 'aria-label')) === 'Mostrar os valores', await filtro(valor));
 await page.screenshot({ path: dir + '/z97-privacidade-ligada.png', clip: { x: 0, y: 0, width: 390, height: 600 } });
+// As porcentagens também (26/11/2026): a da legenda da rosca de gastos.
+const pctFiltro = await page.evaluate(() => {
+  const d = document.createElement('div'); d.className = 'legenda-item';
+  const p = document.createElement('span'); p.className = 'pct'; p.textContent = '67%';
+  d.appendChild(p); document.querySelector('#telaInicio').appendChild(d);
+  const f = getComputedStyle(p).filter; d.remove(); return f;
+});
+conferir('1b. as porcentagens também ficam borradas', /blur/.test(pctFiltro), pctFiltro);
 await page.click('#telaInicio .marca-olho'); await page.waitForTimeout(500);
 conferir('2. tocando no olho, os valores aparecem', (await filtro(valor)) === 'none' &&
   (await page.getAttribute('#telaInicio .marca-olho', 'aria-label')) === 'Esconder os valores', await filtro(valor));
