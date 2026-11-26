@@ -95,7 +95,8 @@ await page.click('#telaInicio .cartao:has-text("Contas") .cartao-acao'); await p
 await folha().locator('input.entrada[type=text]').first().fill('Banco Inter');
 await page.click('#folha .btn-ouro'); await page.waitForTimeout(1300);
 await novoLancamento('Aluguel', '32000');
-await page.waitForTimeout(3000);
+// Sob carga a primeira subida demora: espera chegar (até 20 s), sem prazo fixo.
+for (let i = 0; i < 20 && JSON.stringify(await noServidor()) !== '["Aluguel"]'; i++) await page.waitForTimeout(1000);
 conferir('1. o que eu lanço chega ao servidor',
   JSON.stringify(await noServidor()) === '["Aluguel"]', JSON.stringify(await noServidor()));
 
