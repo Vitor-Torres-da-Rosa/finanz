@@ -2829,6 +2829,30 @@
   .botao-saldo-correto::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
     transform: translateY(-2px) rotate(45deg); transition: transform .2s ease; opacity: .8; }
   .botao-saldo-correto.aberto::after { transform: translateY(2px) rotate(225deg); }
+  .novidades-fundo { position: fixed; inset: 0; z-index: 125; background: rgba(4,4,6,.66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    display: flex; align-items: stretch; justify-content: center; opacity: 0; transition: opacity .2s ease;
+    padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom)); }
+  .novidades-fundo.aberta { opacity: 1; }
+  .novidades-painel { width: 100%; max-width: 560px; display: flex; flex-direction: column; min-height: 0;
+    border: 1px solid rgba(233,180,76,.55); border-radius: 22px; overflow: hidden;
+    background: linear-gradient(165deg, rgba(48,36,14,.98), rgba(12,11,10,.99) 45%);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6); transform: translateY(18px); transition: transform .24s ease; }
+  .novidades-fundo.aberta .novidades-painel { transform: none; }
+  .novidades-cab { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 6px; }
+  .novidades-titulo { font-size: 20px; }
+  .novidades-resumo { padding: 0 20px 12px; font-size: 13.5px; color: var(--suave); line-height: 1.5; border-bottom: 1px solid var(--borda); }
+  .novidades-meio { position: relative; flex: 1 1 auto; min-height: 0; }
+  .novidades-rolo { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px 20px 56px; }
+  .novidades-rolo .novidade ul { font-size: 14.5px; }
+  .novidades-mais { position: absolute; left: 0; right: 0; bottom: 0; padding: 44px 0 10px; text-align: center; pointer-events: none;
+    font-size: 12px; color: var(--ouro); display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: linear-gradient(to bottom, rgba(12,11,10,0), rgba(12,11,10,.97) 42%, rgb(12,11,10) 60%); transition: opacity .2s ease; }
+  .novidades-mais.some { opacity: 0; }
+  .novidades-mais-seta { width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: rotate(45deg); animation: novidadesSeta 1.4s ease-in-out infinite; }
+  @keyframes novidadesSeta { 0%, 100% { transform: translateY(-2px) rotate(45deg); opacity: .6; } 50% { transform: translateY(4px) rotate(45deg); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .novidades-mais-seta { animation: none; } }
+  .novidades-rodape { display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--borda); }
 </style>
 </head>
 <body>
@@ -2898,7 +2922,8 @@
       data: '2026-11-26',
       itens: [
         'Em Mais → Preferências, a nova opção "Contar quando eu abro o app". Ela vem ligada; desligando, o servidor apaga a hora da sua última abertura e sua conta deixa de entrar na contagem de quantas pessoas usam o Finanz. Vale em todos os seus aparelhos.',
-        '"Versões guardadas" saiu do fim de Mais e foi para Proteja seus dados. Não é backup dos seus dados: são as versões anteriores do próprio app, para abrir uma delas se uma atualização der problema.'
+        '"Versões guardadas" saiu do fim de Mais e foi para Proteja seus dados. Não é backup dos seus dados: são as versões anteriores do próprio app, para abrir uma delas se uma atualização der problema.',
+        'As novidades agora abrem numa janela flutuante, quase do tamanho da tela, depois de atualizar. Se você pulou atualizações, aparecem todas, cada uma com o seu título; o que não cabe, é só arrastar para ler.'
       ]
     },
     {
@@ -12825,9 +12850,8 @@
     }));
 
     ajustarFab();
-    // Atualizou? As novidades aparecem no topo, até a pessoa dar "Entendi".
-    var nov = cartaoNovidades();
-    if (nov) tela.appendChild(nov);
+    // Atualizou? As novidades abrem flutuando por cima, até "Entendi".
+    agendarNovidades();
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
     var faltam = cartaoFaltamDados();
@@ -29944,36 +29968,104 @@
     }
     return NOVIDADES.filter(function (n) { return compararVersao(n.versao, vista) > 0 && compararVersao(n.versao, VERSAO) <= 0; });
   }
-  function cartaoNovidades() {
+  // Novidades flutuando (pedido de 26/11/2026): depois de atualizar, abre
+  // por cima do Início, cobrindo quase a tela toda, com TODAS as versões
+  // que a pessoa pulou (da 5.107 direto para a 5.109 vêm as duas), cada
+  // uma com o seu título. O que não cabe, arrasta para ler.
+  var novidadesAbertas = false;
+  var novidadesAgendadas = false;
+  function agendarNovidades() {
+    if (novidadesAbertas || novidadesAgendadas) return;
     if (navigator.webdriver) {
       var querTeste = false;
       try { querTeste = localStorage.getItem('finanz.novidades.teste') === '1'; } catch (e) { querTeste = false; }
-      if (!querTeste) return null;
+      if (!querTeste) return;
     }
-    var lista = novidadesNaoVistas();
-    if (!lista.length) return null;
-    var c = cartao('cartao-novidades');
-    var topo = no('div', 'cartao-topo');
-    var fechar = function () { marcarVersaoVista(); if (c.parentNode) c.parentNode.removeChild(c); };
-    var x = botao('novidades-fechar', '✕', fechar);
+    if (!novidadesNaoVistas().length) return;
+    novidadesAgendadas = true;
+    var tentativas = 0;
+    var tentar = function () {
+      tentativas++;
+      // Não passa por cima das boas-vindas, de uma folha ou de um diálogo.
+      if (document.querySelector('.boas-vindas') || folhaAberta || dialogoAberto || telaAtiva !== 'inicio') {
+        if (tentativas < 40) { setTimeout(tentar, 1500); return; }
+        novidadesAgendadas = false; return;
+      }
+      novidadesAgendadas = false;
+      var lista = novidadesNaoVistas();
+      if (lista.length) abrirNovidadesFlutuantes(lista);
+    };
+    setTimeout(tentar, 700);
+  }
+
+  function abrirNovidadesFlutuantes(lista) {
+    if (novidadesAbertas) return;
+    novidadesAbertas = true;
+    var fundo = no('div', 'novidades-fundo');
+    fundo.setAttribute('role', 'dialog');
+    fundo.setAttribute('aria-modal', 'true');
+    fundo.setAttribute('aria-label', 'Novidades');
+    var painel = no('div', 'novidades-painel');
+
+    var topo = no('div', 'novidades-cab');
+    var x = botao('novidades-fechar', '✕', function () { fechar(); });
     x.setAttribute('aria-label', 'Fechar as novidades');
-    juntar(topo, juntar(no('div', 'novidades-titulo'), no('span', 'novidades-brilho', '✨'),
-      no('span', null, 'Novidades da versão ' + VERSAO)), x);
-    c.appendChild(topo);
-    if (lista.length > 1) c.appendChild(no('div', 'linha-nota', lista.length + ' versões desde a última vez que você abriu o app.'));
-    var itens = [];
-    lista.forEach(function (n) { n.itens.forEach(function (t) { itens.push(t); }); });
-    var MOSTRAR = 4;
-    var ul = no('ul', 'novidades-lista');
-    itens.slice(0, MOSTRAR).forEach(function (t) { ul.appendChild(no('li', null, t)); });
-    c.appendChild(ul);
-    var acoes = no('div', 'duas');
-    acoes.style.marginTop = '12px';
-    juntar(acoes,
-      botao('btn btn-fantasma', itens.length > MOSTRAR ? 'Ver tudo (' + itens.length + ')' : 'Ver todas as versões', function () { abrirNovidades(); }),
-      botao('btn btn-ouro botao-novidades-ok', 'Entendi', fechar));
-    c.appendChild(acoes);
-    return c;
+    juntar(topo, juntar(no('div', 'novidades-titulo'), no('span', 'novidades-brilho', '✨'), no('span', null, 'Novidades')), x);
+    painel.appendChild(topo);
+    painel.appendChild(no('div', 'novidades-resumo', lista.length > 1
+      ? 'Você pulou ' + lista.length + ' atualizações. Veja o que mudou em cada uma, da mais nova para a mais antiga.'
+      : 'O que mudou na versão ' + lista[0].versao + '.'));
+
+    var meio = no('div', 'novidades-meio');
+    var rolo = no('div', 'novidades-rolo');
+    lista.forEach(function (n) {
+      var bloco = no('div', 'novidade');
+      bloco.appendChild(no('div', 'v', 'Versão ' + n.versao + (n.versao === VERSAO ? ' · atual' : '')));
+      bloco.appendChild(no('div', 'q', dataBr(n.data)));
+      var ul = no('ul');
+      n.itens.forEach(function (t) { ul.appendChild(no('li', null, t)); });
+      bloco.appendChild(ul);
+      rolo.appendChild(bloco);
+    });
+    var mais = no('div', 'novidades-mais');
+    juntar(mais, no('span', null, 'Arraste para ler mais'), no('span', 'novidades-mais-seta'));
+    juntar(meio, rolo, mais);
+    painel.appendChild(meio);
+    var pintarMais = function () {
+      var falta = rolo.scrollHeight - rolo.clientHeight - rolo.scrollTop;
+      mais.classList.toggle('some', falta < 12);
+    };
+    rolo.addEventListener('scroll', pintarMais, { passive: true });
+
+    var rodape = no('div', 'novidades-rodape');
+    juntar(rodape,
+      botao('btn btn-ouro botao-novidades-ok', 'Entendi', function () { fechar(); }),
+      botao('btn btn-fantasma botao-novidades-todas', 'Ver todas as versões', function () {
+        fechar();
+        setTimeout(abrirNovidades, 320);
+      }));
+    painel.appendChild(rodape);
+    fundo.appendChild(painel);
+    document.body.appendChild(fundo);
+    var rolagemAntes = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { fundo.classList.add('aberta'); pintarMais(); });
+
+    function fecharDeVez() {
+      if (!novidadesAbertas) return;
+      novidadesAbertas = false;
+      marcarVersaoVista();
+      document.body.style.overflow = rolagemAntes;
+      fundo.classList.remove('aberta');
+      setTimeout(function () { if (fundo.parentNode) fundo.parentNode.removeChild(fundo); }, 220);
+    }
+    // O voltar do celular também fecha.
+    var naPilha = { tipo: 'aba', voltar: fecharDeVez };
+    empilhar(naPilha);
+    function fechar() {
+      if (pilha.length && pilha[pilha.length - 1] === naPilha) history.back();
+      else fecharDeVez();
+    }
   }
 
   function abrirNovidades() {
