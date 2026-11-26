@@ -29,3 +29,9 @@ $$;
 
 grant usage on schema auth to anon, authenticated;
 grant select on auth.users to authenticated;
+
+-- Colunas do auth.users do Supabase que o Staff (migração 23) usa.
+alter table auth.users add column if not exists created_at timestamptz default now();
+alter table auth.users add column if not exists email_confirmed_at timestamptz default now();
+alter table auth.users add column if not exists last_sign_in_at timestamptz;
+alter table auth.users add column if not exists deleted_at timestamptz;

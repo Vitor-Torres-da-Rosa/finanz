@@ -2884,7 +2884,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.108.0';
+  var VERSAO = '5.109.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2893,6 +2893,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.109.0',
+      data: '2026-11-26',
+      itens: [
+        'Para saber quantas pessoas usam o Finanz, o app agora anota no servidor a data e a hora da última vez que você abriu o app. Só a última, sem histórico e sem nada do que você viu ou fez. Vira só números; ninguém aparece pelo nome. A Política de Privacidade foi atualizada com isso.'
+      ]
+    },
     {
       versao: '5.108.0',
       data: '2026-11-26',
@@ -8785,6 +8792,104 @@
     return salvar(true) || Promise.resolve();
   }
 
+  // ---------- Atividade e Staff (pedido de 26/11/2026) ----------
+  //
+  // Ao abrir o app (e ao voltar para ele), o servidor anota a hora: só a
+  // última, sem histórico e sem nada do que a pessoa viu. É assim que o
+  // Staff conta quem está ativo (abriu nos últimos 7 dias). A resposta diz
+  // se esta conta é staff; a trava de verdade é no servidor (migração 23).
+  var CHAVE_STAFF = 'finanz.staff.v1:';
+  var ultimaAtividade = 0;
+  function souStaff() {
+    if (!NUVEM.ligada || !eu()) return false;
+    try { return localStorage.getItem(CHAVE_STAFF + eu()) === '1'; } catch (e) { return false; }
+  }
+  function marcarAtividade() {
+    if (!NUVEM.ligada || !sessaoNuvem || !eu() || faltaNoBanco['funcao:atividade']) return;
+    if (Date.now() - ultimaAtividade < 10 * 60 * 1000) return;
+    ultimaAtividade = Date.now();
+    var quem = eu();
+    var antes = souStaff();
+    pedirNuvem('/rest/v1/rpc/marcar_atividade', { metodo: 'POST', corpo: {} }).then(function (r) {
+      if (eu() !== quem) return;
+      var agora = !!(r && r.staff === true);
+      try {
+        if (agora) localStorage.setItem(CHAVE_STAFF + quem, '1');
+        else localStorage.removeItem(CHAVE_STAFF + quem);
+      } catch (e) { /* sem espaço: só não guarda */ }
+      if (agora !== antes && telaAtiva === 'mais') desenharMais();
+    }).catch(function (e) {
+      var msg = String((e && e.message) || '').toLowerCase();
+      if (String((e && e.codigo) || '') === 'PGRST202' ||
+          /could not find the function|function .* does not exist/.test(msg)) {
+        faltaNoBanco['funcao:atividade'] = true;
+        return;
+      }
+      ultimaAtividade = 0; // sem rede: tenta de novo na próxima
+    });
+  }
+
+  function abrirStaff() {
+    abrirFolha('Staff', function (folha) {
+      var c = cartao('cartao-staff');
+      c.appendChild(topoDeCartao('Usuários', null, null, null, { chave: 'staff.usuarios', titulo: 'Staff', itens: [
+        'Só aparece para a sua conta. Quem decide é o servidor: para qualquer outra conta, ele recusa os números, mesmo que alguém force o botão.',
+        'Cadastrados: todas as contas criadas no Finanz. Embaixo, quantas já confirmaram o e-mail.',
+        'Ativos: contas que abriram o app nos últimos 7 dias. Só abrir para olhar já conta, não precisa mexer em nada. Hoje e 30 dias usam a mesma regra, em outro prazo.',
+        'Como o app sabe: ao abrir, ele anota no servidor a hora da última abertura daquela conta (só a última, sem histórico e sem nada do que a pessoa viu). O último login também conta.',
+        'Contas que não abriram o app desde a versão 5.109.0 só contam pelo último login.',
+        'Com a senha dos dados: contas que criaram a senha dos dados (os dados delas sobem cifrados).',
+        'Aqui só há números. Ninguém aparece pelo nome ou e-mail, e os dados das pessoas continuam fechados.'] }));
+      var corpo = no('div', 'staff-corpo', 'Buscando os números…');
+      c.appendChild(corpo);
+      folha.appendChild(c);
+      var nota = no('div', 'linha-nota staff-nota', '');
+      nota.style.margin = '4px 4px 12px';
+      folha.appendChild(nota);
+      var atualizar = botao('btn btn-fantasma', 'Atualizar', function () { buscar(); });
+      folha.appendChild(atualizar);
+
+      function buscar() {
+        corpo.textContent = 'Buscando os números…';
+        atualizar.disabled = true;
+        comTokenValido().then(function () {
+          return pedirNuvem('/rest/v1/rpc/staff_resumo', { metodo: 'POST', corpo: {} });
+        }).then(function (r) {
+          atualizar.disabled = false;
+          if (!r || typeof r !== 'object') throw new Error('resposta vazia');
+          var n = function (k) { return String(Number(r[k]) || 0); };
+          corpo.textContent = '';
+          corpo.appendChild(gradeDeTiles([
+            tile('Cadastrados', n('cadastrados')),
+            tile('Ativos (7 dias)', n('ativos_7'), 'verde')
+          ], 2));
+          corpo.appendChild(no('div', 'linha-nota', n('confirmados') + ' com e-mail confirmado'));
+          var g2 = gradeDeTiles([
+            tile('Ativos hoje', n('ativos_1')),
+            tile('Ativos 30 dias', n('ativos_30')),
+            tile('Novos 7 dias', n('novos_7')),
+            tile('Novos 30 dias', n('novos_30'))
+          ], 2);
+          g2.style.marginTop = '12px';
+          corpo.appendChild(g2);
+          var g3 = gradeDeTiles([tile('Com a senha dos dados', n('com_senha'))], 1);
+          g3.style.marginTop = '12px';
+          corpo.appendChild(g3);
+          nota.textContent = 'Atualizado às ' + horaDe(r.agora ? Date.parse(r.agora) : Date.now()) + '. Ativo = abriu o app nos últimos 7 dias.';
+        }).catch(function (e) {
+          atualizar.disabled = false;
+          var proibido = /42501|403|equipe/.test(String((e && (e.codigo || e.status)) || '') + ' ' + String((e && e.message) || ''));
+          corpo.textContent = proibido ? 'O servidor não liberou os números para esta conta.'
+            : 'Não consegui buscar agora. Confira a internet e toque em Atualizar.';
+          if (proibido) {
+            try { localStorage.removeItem(CHAVE_STAFF + eu()); } catch (x) { /* segue */ }
+          }
+        });
+      }
+      buscar();
+    });
+  }
+
   function carimboDaConta() {
     if (faltaNoBanco['funcao:carimbo']) return Promise.resolve(null);
     return pedirNuvem('/rest/v1/rpc/carimbo_da_conta', { metodo: 'POST', corpo: {} })
@@ -8955,6 +9060,7 @@
     var tinhaFalha = !!falhaDaSincronia;
 
     return comTokenValido().then(function () {
+      marcarAtividade();
       return carregarCompartilhamentos();
     }).then(function () {
       return carimboDaConta();
@@ -11369,7 +11475,7 @@
     return [
       { icone: '🔒', titulo: 'Seus dados são seus', itens: naNuvem ? [
         ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo sai do seu celular já embaralhado com uma chave que só a sua senha abre.'],
-        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram, o tamanho e a hora da última vez que você abriu o app.'],
         ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede uma vez. Não tem recuperação: esquecendo, a nuvem não abre mais.'],
         ['Guardados na sua conta.', 'No servidor do Finanz (Supabase, em São Paulo) e numa cópia cifrada no seu celular.'],
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
@@ -11385,7 +11491,8 @@
       ] },
       { icone: '🛡️', titulo: 'O que nunca acontece', itens: [
         ['Nada é vendido nem compartilhado.', 'Seus dados não vão para anunciantes, parceiros ou terceiros.'],
-        ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
+        naNuvem ? ['Sem rastreamento.', 'Não há propaganda nem cookies de terceiros. O servidor anota só a hora da última vez que você abriu o app (sem histórico e sem nada do que você viu), para contar quantas pessoas usam o Finanz.']
+          : ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
         ['Taxas públicas.', 'Em Investimentos, o app busca Selic, CDI e IPCA no Banco Central. Esse pedido não leva nenhum dado seu.'],
         ['Backup com senha.', 'O arquivo de backup sai cifrado com uma senha que você escolhe. Sem ela, ninguém abre — nem o Finanz.']
       ] },
@@ -11515,12 +11622,12 @@
         'Com a conta ligada, seus dados ficam em duas casas: neste aparelho e no servidor do Finanz, hospedado no Supabase, na região de São Paulo.',
         'Criptografia de ponta a ponta: com a senha dos dados criada (Mais → Senha dos dados), tudo o que vai para o servidor — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato — sai do seu celular já cifrado (AES-GCM de 256 bits) com uma chave que só a sua senha abre. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
         'A senha dos dados nunca sai do celular. O servidor guarda só a chave embrulhada por ela (PBKDF2 com 210 mil voltas). Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais, e você pode apagá-los para recomeçar.',
-        'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram e o tamanho deles.',
+        'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram, o tamanho deles e a data e a hora da última vez que você abriu o app.',
         'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, quando as duas têm a senha dos dados.',
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
-        'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
+        'Não há rastreamento, publicidade ou cookies de terceiros. A única estatística é a contagem de quantas pessoas usam o Finanz: ao abrir, o app anota no servidor a data e a hora da última abertura da sua conta (só a última, sem histórico e sem nada do que você viu ou fez). Ela vira só números, como "quantas contas abriram o app nesta semana"; ninguém aparece pelo nome. Apagando a conta, essa anotação some junto.',
         'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup a qualquer momento. O arquivo de backup sai cifrado (AES-GCM de 256 bits) com uma senha que você escolhe na hora: sem ela, ninguém abre, nem o Finanz.'
       ] : [
         'Hoje o Finanz funciona inteiramente dentro do seu aparelho. Não existe servidor, não há cadastro em nenhum lugar e nada do que você digita sai do navegador.',
@@ -11550,7 +11657,7 @@
       ] },
       { id: 'dados', icone: 'escudo', titulo: 'Dados protegidos', resumo: 'Onde ficam, quem vê e como são cifrados', itens: naNuvem ? [
         ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo o que vai para a nuvem sai do seu celular já cifrado: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.'],
-        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram, o tamanho e a hora da última vez que você abriu o app.'],
         ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede a senha uma vez. Não existe recuperação: esquecendo, a nuvem não abre mais, e você escolhe se apaga para recomeçar.'],
         ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia cifrada no seu celular.'],
         ['Só você vê os seus.', 'Além da cifra, cada linha tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security).'],
@@ -11558,7 +11665,8 @@
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
         ['Compartilhado também.', 'A área do Empreendedor que você compartilha vai cifrada com uma chave só de vocês dois (cada um com o seu par de chaves).'],
         ['Ainda abertos.', 'Sem a senha dos dados criada, a sincronia continua do jeito antigo: protegida pelo login, mas legível para quem administra o servidor.'],
-        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
+        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento e sem cookies de terceiros.'],
+        ['Só uma contagem.', 'Ao abrir, o app anota no servidor a hora da última vez que você abriu o app (só a última, sem histórico). Serve para contar quantas pessoas usam o Finanz; ninguém aparece pelo nome.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
         ['Cifrados.', 'Guardados com AES-GCM de 256 bits, com a chave tirada da sua senha (PBKDF2).'],
@@ -29622,6 +29730,17 @@
     var tela = $('telaMais');
     tela.textContent = '';
     tela.appendChild(cabecalho('Mais', null, true));
+
+    // Staff (pedido de 26/11/2026): só na conta do Vitor.
+    if (souStaff()) {
+      var cStaff = cartao('liso cartao-staff-mais');
+      var lStaff = botao('linha botao-staff', null, abrirStaff);
+      juntar(lStaff, selo('#E9B44C', '★'),
+        juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Staff'), no('div', 'linha-sub', 'Usuários cadastrados e ativos')),
+        no('div', 'linha-nota', '›'));
+      cStaff.appendChild(lStaff);
+      tela.appendChild(cStaff);
+    }
 
     tela.appendChild(blocoDeAnalise());
 
