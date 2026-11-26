@@ -2470,8 +2470,9 @@
      valores em todas as telas, e o app sempre abre com ele ligado. */
   /* Desde 18/11/2026 só a tela Início embaça, na Visão geral e no resumo
      do Empreendedor. Dentro de um módulo (Serviços, Uber, Doces, Painel),
-     nas outras abas e nas folhas, tudo fica à vista. */
-  html.privado #telaInicio :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel):not(input):not(textarea):not(select):not(.modulo-corpo *) {
+     nas outras abas e nas folhas, tudo fica à vista. As porcentagens
+     embaçam junto (26/11/2026): com elas dá para deduzir os valores. */
+  html.privado #telaInicio :is(.num, .valorao, .linha-valor, .item-valor, .dia-valor, .resumo-grade .v, .parcela-linha .v, .kpi-extra .v, .rosca-centro .v, .val, .item-com, .privavel, .pct, .top-pct, .rl-pct, .painel-pct):not(input):not(textarea):not(select):not(.modulo-corpo *) {
     filter: blur(7px); -webkit-user-select: none; user-select: none; }
   .marca-botao.marca-olho[aria-pressed="true"] { color: var(--ouro); }
   .marca-botao {
@@ -2825,6 +2826,42 @@
     .tela.entrando > .cartao, .tela.entrando > .kpis, .tela.entrando > .modulos-lista { animation: none !important; }
     .heroi-linha { stroke-dashoffset: 0; }
   }
+  .botao-saldo-correto { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .botao-saldo-correto::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg); transition: transform .2s ease; opacity: .8; }
+  .botao-saldo-correto.aberto::after { transform: translateY(2px) rotate(225deg); }
+  .novidades-fundo { position: fixed; inset: 0; z-index: 125; background: rgba(4,4,6,.66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    display: flex; align-items: stretch; justify-content: center; opacity: 0; transition: opacity .2s ease;
+    padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom)); }
+  .novidades-fundo.aberta { opacity: 1; }
+  .novidades-painel { width: 100%; max-width: 560px; display: flex; flex-direction: column; min-height: 0;
+    border: 1px solid rgba(233,180,76,.55); border-radius: 22px; overflow: hidden;
+    background: linear-gradient(165deg, rgba(48,36,14,.98), rgba(12,11,10,.99) 45%);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6); transform: translateY(18px); transition: transform .24s ease; }
+  .novidades-fundo.aberta .novidades-painel { transform: none; }
+  .novidades-cab { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 6px; }
+  .novidades-titulo { font-size: 20px; }
+  .novidades-resumo { padding: 0 20px 12px; font-size: 13.5px; color: var(--suave); line-height: 1.5; border-bottom: 1px solid var(--borda); }
+  .novidades-meio { position: relative; flex: 1 1 auto; min-height: 0; }
+  .novidades-rolo { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px 20px 56px; }
+  .novidades-rolo .novidade ul { font-size: 14.5px; }
+  .novidades-mais { position: absolute; left: 0; right: 0; bottom: 0; padding: 44px 0 10px; text-align: center; pointer-events: none;
+    font-size: 12px; color: var(--ouro); display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: linear-gradient(to bottom, rgba(12,11,10,0), rgba(12,11,10,.97) 42%, rgb(12,11,10) 60%); transition: opacity .2s ease; }
+  .novidades-mais.some { opacity: 0; }
+  .novidades-mais-seta { width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: rotate(45deg); animation: novidadesSeta 1.4s ease-in-out infinite; }
+  @keyframes novidadesSeta { 0%, 100% { transform: translateY(-2px) rotate(45deg); opacity: .6; } 50% { transform: translateY(4px) rotate(45deg); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .novidades-mais-seta { animation: none; } }
+  .novidades-rodape { display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--borda); }
+  .novidade li { margin-bottom: 6px; }
+  .novidade-ver { display: block; margin: 2px 0 0; padding: 2px 0; background: none; border: 0; font: inherit;
+    font-size: 11px; color: var(--fraco); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .novidade-detalhe { white-space: pre-line; font-size: 12px; line-height: 1.55; color: var(--fraco);
+    margin: 6px 0 4px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--borda); }
+  .saldo-editavel { display: inline-flex; align-items: baseline; gap: 10px; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+  .saldo-editavel.vermelho { color: var(--vermelho); }
+  .saldo-lapis { font-size: 18px; color: var(--ouro); opacity: .75; }
 </style>
 </head>
 <body>
@@ -2880,7 +2917,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.107.0';
+  var VERSAO = '5.112.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2890,83 +2927,106 @@
 
   var NOVIDADES = [
     {
+      versao: '5.112.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "Para corrigir o saldo de uma conta, toque nele: a diferença vira uma receita ou despesa para você completar.", d: "abrirExtratoConta: o valor do saldo virou um botão (.saldo-editavel, com o ✎). Tocando, aparece no lugar um campo \"Saldo certo hoje\" (entradaValor; o sinal de menos deixa negativo) e a diferença ao vivo. \"Continuar\" abre o formulário de lançamento (abrirFolhaLancamento) já com o tipo (entrada se o saldo certo é maior, saída se menor), o valor da diferença, a conta e a data de hoje; a descrição e a categoria a pessoa completa. Só salvando o lançamento o saldo muda; saindo sem salvar, nada acontece. \"Cancelar\" volta o saldo como estava.\nSaíram do painel de \"O saldo está correto?\": \"Ajustar saldo\" (a função abrirAjusteDeSaldo foi apagada; a opção de mudar o saldo inicial por ali deixou de existir, porque tudo passa por receita ou despesa) e \"Editar esta conta\" (a conta se edita pelo lápis da lista de contas do Início). Fica \"Conferir esta conta\" e o \"Conferido ✓\"." },
+        { r: "No modo privado, as porcentagens do Início também ficam borradas.", d: "A regra html.privado #telaInicio, que embaça os valores com filter: blur(7px), passou a incluir .pct (legenda da rosca de gastos e variações), .top-pct, .rl-pct e .painel-pct. Com as porcentagens à vista dava para deduzir os valores. Continua só no Início, fora dos módulos, como antes." }
+      ]
+    },
+    {
+      versao: '5.111.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "Sem a senha dos dados, nada sincroniza: seus dados ficam só no celular até você criar a senha.", d: "Na prática: sincronizar() lê o cofre (perfis.cofre) depois do carimbo; sem cofre criado, para ali com o erro semSenha, que não conta como falha (sem aviso vermelho e sem novas tentativas). Em Mais, a linha vira \"Sincronização desligada\"; tocando, ligarSincronia() oferece criar a senha. Com a senha criada, tudo sobe cifrado na tabela cofre, como antes. Cofre trancado (senha criada, mas não digitada neste aparelho) continua pedindo a senha.\nArquivos de extrato: sem a senha não sobem (guardarArquivoDeExtrato para antes). Cópias automáticas já não subiam (5.105.0). \"Apagar tudo\" sem a senha só apaga o celular, porque não há nada no servidor.\nServidor (migração 25): as tabelas antigas (contas, lancamentos, ativos, ativo_historico, clientes, servicos, pagamentos, parcelas, metas, orcamentos, categorias_extras, subcategorias_extras) foram esvaziadas (truncate, todas juntas por causa das chaves entre elas) e FECHADAS (revoke). Fechar, e não só esvaziar, protege quem está numa versão antiga: a versão antiga, vendo o servidor vazio, trocaria os dados do celular pelo vazio; com a tabela fechada ela recebe 403, mostra \"Não está sincronizando\" e não mexe no celular.\nperfis: um gatilho (perfis_sempre_neutro) zera todos os campos abertos em toda gravação; ficam só id e cofre. arquivos_extrato e empreendedor_registros só aceitam conteúdo cifrado (check constraints); o que estava aberto foi apagado. carimbo_da_conta passou a olhar só perfis, empreendedor_registros e cofre.\nDepende: quem não tem a senha e troca de celular só recupera os dados por um backup .finanz. A conversão para o cofre (criar a senha) sobe tudo do celular para o cofre e não mexe mais nas tabelas antigas (já vazias e fechadas). \"Trazer dados de outra conta\" sem a senha diz que os dados ficaram neste aparelho, sem chamar isso de falha." }
+      ]
+    },
+    {
+      versao: '5.110.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "As novidades agora abrem numa janela, com um resumo de cada versão que você pulou.", d: "Como funciona: VERSAO (no index.html e na 1ª linha do sw.js) é comparada com \"finanz.versaoVista\", guardado neste aparelho. novidadesNaoVistas() pega as entradas de NOVIDADES com versão maior que a vista e até a atual (compararVersao, número a número). Primeira vez no aparelho: conta vazia marca como vista e não mostra nada; conta com dados vê só a versão atual.\nQuando: ao desenhar o Início, agendarNovidades() espera 0,7 s e tenta de novo a cada 1,5 s (até 40 vezes) enquanto houver boas-vindas, folha ou diálogo aberto, ou outra aba na frente. Nunca cobre outra tela.\nA janela: div fixo (z-index 125: acima das folhas, abaixo dos diálogos e do \"i\"), do tamanho da tela menos 14 px de margem (respeita a área segura do celular). Trava a rolagem da página e rola por dentro; a seta \"Arraste para ler mais\" some quando falta menos de 12 px para o fim.\nFechar: \"Entendi\", \"✕\" ou o voltar do celular (ela entra na pilha de navegação). Fechar grava a versão atual como vista. \"Ver todas as versões\" fecha e abre o histórico completo.\nResumo e detalhe: cada item tem as duas partes; o \"ver detalhes\" só aparece para a conta staff (souStaff, a mesma resposta do servidor que libera o Staff). Itens marcados como só da equipe não aparecem para mais ninguém. Até a 5.99.0 não havia resumo separado: lá o resumo é a primeira frase e o detalhe é o texto inteiro de antes.\nTestes: com navigator.webdriver a janela só abre se \"finanz.novidades.teste\" = \"1\"." },
+        { r: "Nova opção em Preferências: \"Contar quando eu abro o app\".", d: "Liga e desliga a contagem de uso da 5.109.0. Vem ligada.\nOnde mora: no servidor, na coluna atividade.contar (migração 24), para valer em todos os aparelhos da conta. O aparelho guarda só a última resposta em \"finanz.contarAtividade.v1:<id>\", para a tela abrir já marcada.\nNa prática: Salvar com a opção mudada chama marcar_atividade(p_contar). false grava contar = false e apaga visto_em; true grava contar = true e visto_em = agora. As aberturas normais chamam sem p_contar, e o servidor só anota se contar não for false. Por isso um aparelho novo, que ainda não sabe da escolha, não religa a contagem.\nEfeito: desligada, a conta sai dos ativos também pelo último login, e entra só no número \"Pediram para não contar\" do Staff.\nSem internet ao salvar: aparece o aviso e nada muda no servidor; as outras preferências salvam normalmente." },
+        { r: "\"Versões guardadas\" foi para Proteja seus dados.", d: "Só aparece para a conta de manutenção (souODono: e-mail igual a FINANZ_CONFIG.dono; sem dono configurado, aparece). Abre versoes/ na mesma aba, para o voltar do celular voltar ao app.\nCada pasta em versoes/ é uma cópia inteira do app de uma versão anterior, gerada pelo guardar-versao.sh a cada lançamento; fica um número limitado delas e a mais antiga sai.\nNão é backup de dados: as versões antigas usam o mesmo servidor e o mesmo armazenamento do aparelho, então abrem os mesmos dados." }
+      ]
+    },
+    {
+      versao: '5.109.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "O app passa a contar quantas pessoas usam o Finanz: só a hora da última vez que você abriu, sem mais nada.", d: "Migração 23. Tabela atividade (user_id, visto_em): uma linha por conta, apagada junto com a conta (on delete cascade). RLS ligado e sem políticas: ninguém lê nem escreve direto, só pelas funções security definer.\nQuando anota: o app chama marcar_atividade() no começo de cada sincronização (abrir o app, voltar para ele depois de 1 min, a internet voltar), no máximo uma vez a cada 10 min por aparelho; o servidor só regrava se a última hora tiver mais de 10 min.\nO que guarda: só a hora. Sem IP, sem histórico, sem nada do que a pessoa viu ou fez.\nSem a função no servidor (banco sem a migração), o app desiste em silêncio até a próxima abertura.\nTextos: Política de Privacidade, guia e boas-vindas atualizados (a frase \"sem estatísticas de uso\" saiu do modo com nuvem)." },
+        { r: "Staff: tela com usuários cadastrados e ativos.", d: "Onde: linha ★ Staff no topo de Mais, só quando o servidor responde staff = true em marcar_atividade (o aparelho guarda em \"finanz.staff.v1:<id>\").\nQuem é staff: tabela staff com o SHA-256 do e-mail (o e-mail não fica escrito no repositório, que é público). sou_staff() compara com o e-mail da conta logada em auth.users e exige e-mail confirmado. staff_resumo() recusa (erro 42501) para quem não é staff, mesmo chamada direto, sem o app.\nOs números: cadastrados = auth.users sem deleted_at, e quantos confirmaram o e-mail; ativos hoje/7/30 dias = a maior entre a última abertura (atividade.visto_em) e o último login (last_sign_in_at) dentro do prazo, só de quem não desligou a contagem; novos 7/30 dias por created_at; com a senha dos dados = perfis com cofre; pediram para não contar = atividade.contar false.\nSó números, nunca quem é quem. \"Atualizar\" busca de novo. Quem ainda não abriu a 5.109.0 ou depois conta só pelo último login.", so: 'staff' }
+      ]
+    },
+    {
+      versao: '5.108.0',
+      data: '2026-11-26',
+      itens: [
+        { r: "Na conta, embaixo do saldo, ficou só \"O saldo está correto?\"; tocando, aparecem as opções.", d: "abrirExtratoConta(id, abrirPainel). O botão abre e fecha um painel, montado na primeira vez, com Conferir esta conta (abrirFolhaConferencia), Ajustar saldo (abrirAjusteDeSaldo), Editar esta conta (abrirFolhaConta) e o cartão Conferido ✓ (cartaoConferido), que saiu de dentro da conferência.\nAberto, o botão vira contorno com a seta para cima. Depois de \"Conferido ✓\", a conta reabre com o painel aberto.\nO botão Conferido fica ligado sempre que a conta tem PDF ainda como veio do banco. Antes ele também exigia o \"saldo que o banco mostra\" batendo, mas esse campo ficou na conferência." },
+        { r: "Depois de confirmar a conta, os \"Possíveis repetidos\" dela somem.", d: "Ao confirmar \"Conferido ✓\", o app grava estado.revisados[\"repetidos:<conta>\"] = a hora. Isso sincroniza com a conta; a limpeza do estado aceita esse número.\nrepetidosAbertosDaConta() mostra só os grupos (mesma data, valor, tipo e descrição) com pelo menos um lançamento criado depois dessa hora (criadoEm). Vale o momento em que o lançamento entrou no app, não a data dele: extrato antigo importado depois volta a mostrar.\n\"Tirar as cópias repetidas\" usa a mesma lista, então não apaga grupos já confirmados.\nLimite: conta sem PDF pendente não tem o botão Conferido, e os repetidos dela continuam aparecendo." }
+      ]
+    },
+    {
       versao: '5.107.0',
       data: '2026-11-25',
       itens: [
-        'Compartilhado cifrado de ponta a ponta: com a senha dos dados dos dois lados, a área do Empreendedor que você compartilha (Doces, Uber, Casa) vai cifrada com uma chave só de vocês dois. O servidor não lê.',
-        'Cada pessoa ganha um par de chaves (a privada fica trancada com a senha dela). A chave da área vai no convite, embrulhada para quem foi convidado: só essa pessoa desembrulha.',
-        'Se quem foi convidado ainda não criou a senha dos dados, o app avisa: até criar, a área não abre, e nada dela sobe aberto. Depois de criar, quem compartilhou precisa abrir o app uma vez para liberar a chave.'
+        { r: "A área do Empreendedor que você compartilha também vai cifrada.", d: "Migração 20. Cada conta ganha um par de chaves ECDH P-256 (garantirParDeChaves): a pública em perfis.cofre.par.publica; a privada cifrada com a chave mestra.\nCada área compartilhada (doces, uber, casa) tem uma chave AES-GCM de 256 bits, guardada no cofre do dono (linha \"chave_area|<área>\").\nNo convite (compartilhamentos) vão as duas chaves públicas e, em chaves[área], a chave da área embrulhada para a pessoa convidada (ECDH entre a privada do dono e a pública dela). A convidada publica a pública dela pela função publicar_minha_chave.\nOs registros continuam em empreendedor_registros (o RLS do compartilhamento segue valendo), mas dados = {c: base64} cifrado com a chave da área.\nDepende: as duas pessoas com a senha dos dados. Se a convidada ainda não tem, a área aparece trancada e nada dela sobe aberto; depois que ela cria, o dono precisa abrir o app uma vez para embrulhar a chave para ela." }
       ]
     },
     {
       versao: '5.106.0',
       data: '2026-11-25',
       itens: [
-        'Quando o app atualiza, as novidades aparecem aqui no Início, no topo. "Entendi" fecha; "Ver tudo" mostra cada versão. Pulou várias versões? Aparece o que mudou em todas desde a última vez.'
+        { r: "As novidades passaram a aparecer depois de atualizar.", d: "Primeira versão do aviso: um cartão no topo do Início (virou janela flutuante na 5.110.0). A última versão vista fica em \"finanz.versaoVista\", neste aparelho." }
       ]
     },
     {
       versao: '5.105.0',
       data: '2026-11-25',
       itens: [
-        'Backup na nuvem agora é escolha sua: sem a senha dos dados, nenhuma cópia vai para a nuvem (nem das versões antigas do app: o servidor recusa cópia que não chegue cifrada). Para ligar, vá em Mais → Proteja seus dados → Backup na nuvem e crie a senha.',
-        'O app não pede mais sozinho para criar a senha dos dados.',
-        'O backup no celular (o arquivo .finanz, com senha própria) continua funcionando com ou sem a senha dos dados.',
-        'Num aparelho novo, depois de digitar a senha dos dados, o app volta a oferecer a cópia da nuvem quando a conta está vazia.'
+        { r: "O backup na nuvem agora só funciona com a senha dos dados, e o app não pede mais sozinho para criá-la.", d: "Sem o cofre ligado (cofreLigado), guardarInstantaneo não envia nada.\nNo servidor, a migração 21 só aceita cópia em instantaneos cujo conteúdo comece com \"cofre1:\" (cifrado com a chave mestra), então nem versão antiga do app consegue subir cópia aberta. A migração 22 apagou as cópias abertas que existiam.\nLigar: Mais → Proteja seus dados → Backup na nuvem → criar a senha.\nApagar algo sem backup na nuvem não pede mais confirmação por falta de cópia.\nA sincronização dos dados não mudou: sem senha, sincroniza do jeito antigo, protegida só pelo login." },
+        { r: "O backup no celular continua funcionando com ou sem a senha dos dados.", d: "É o arquivo .finanz, com senha própria (ver 5.101.0). Num aparelho novo, depois de digitar a senha dos dados, se a conta deste aparelho estiver vazia, o app oferece trazer a cópia da nuvem." }
       ]
     },
     {
       versao: '5.104.0',
       data: '2026-11-25',
       itens: [
-        'Mais → "Proteja seus dados": uma linha com tudo dentro: Senha dos dados, Backup na nuvem (as cópias automáticas, para voltar a uma data) e Backup no celular (o arquivo .finanz: gerar, restaurar e a lista dos que você gerou neste aparelho). Os itens soltos de antes foram para dentro dela.',
-        'As dúvidas ficam no "i" de "Senha e backups", em pergunta e resposta: o que é a senha dos dados, a diferença entre os backups, por que as senhas são diferentes, o que fazer se esquecer a senha ou perder o celular, e quem consegue ver os seus dados.',
-        'Todo campo de senha ganhou o olho: toque para ver o que digitou e toque de novo para esconder.'
+        { r: "Em Mais, \"Proteja seus dados\" junta a senha dos dados e os backups; os campos de senha ganharam o olho.", d: "abrirProtejaSeusDados tem as linhas Senha dos dados (abrirFolhaCofre), Backup na nuvem (abrirFolhaInstantaneos, ou ligarBackupNaNuvem quando está desligado) e Backup no celular (abrirBackupNoCelular).\nAs dúvidas ficam no \"i\" de \"Senha e backups\", em pares de pergunta e resposta (abrirDicaFlutuante aceita [pergunta, resposta]).\nTodo campo de senha que passa por campo() ganha senhaComOlho: um botão alterna o tipo do campo entre password e text." }
       ]
     },
     {
       versao: '5.103.0',
       data: '2026-11-25',
       itens: [
-        'Criptografia de ponta a ponta: em Mais → "Senha dos dados", você cria uma senha e tudo o que vai para a nuvem passa a sair do celular já cifrado — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato (até o nome deles). Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
-        'O que já estava na nuvem é convertido sozinho: sobe cifrado, o app confere que abre e só então apaga a versão aberta.',
-        'Em outro aparelho, o app pede a senha dos dados uma vez. Não existe recuperação: esquecendo, "Esqueci a senha" deixa você apagar a nuvem e recomeçar (ou restaurar um backup .finanz).',
-        'Com a senha dos dados, o "Conferido ✓" usa a mesma senha: uma senha só para tudo.',
-        'As áreas do Empreendedor compartilhadas com outra pessoa ainda ficam abertas para ela; a versão cifrada do compartilhado vem a seguir.',
-        'Novo no Empreendedor: Estoque e Ferramentas. Cada ferramenta com data e valor da compra, vida útil, situação, cada uso e cada manutenção; cada consumível (disco de corte, broca…) com quantidade, mínimo e custo. "Usei hoje" e "−1 usei" anotam com um toque na "obra de hoje".',
-        'Estoque: "Registrar uso" anota várias coisas de uma vez numa obra; "Obras" mostra o custo de material de cada obra (consumíveis + desgaste das ferramentas); "Estimar uma obra" soma o material de uma obra nova, podendo partir de uma que você já fez.',
-        'Abertura: tocar num item abre só aquele assunto; o botão "Como funciona, termos e privacidade" saiu.'
+        { r: "Nova \"Senha dos dados\": com ela, tudo o que vai para a nuvem sai cifrado do celular.", d: "Migração 19. Chave mestra AES-GCM de 256 bits, aleatória, embrulhada pela senha (PBKDF2-SHA-256, 210 mil voltas, sal aleatório) e guardada em perfis.cofre. A senha nunca sai do aparelho.\nOs dados sobem na tabela cofre: uma linha por registro, id \"tabela|chave\", dados = iv + texto cifrado em base64, com o id como dado adicional (AAD), para uma linha não poder ser trocada por outra. O servidor vê só quantas linhas, de que tabela, quando mudaram e o tamanho.\nNeste aparelho a chave fica embrulhada por uma chave do próprio aparelho; em outro aparelho, a senha é pedida uma vez.\nConversão: sobe tudo cifrado, baixa e confere que abre; só então apaga as linhas abertas antigas e cifra as cópias e os arquivos de extrato (prefixo \"cofre1:\").\nSem recuperação: \"Esqueci a senha\" apaga a nuvem para recomeçar; os dados deste aparelho ficam. O Conferido passa a usar a mesma chave." },
+        { r: "Novo no Empreendedor: Estoque e Ferramentas.", d: "Ferramentas com data e valor da compra, vida útil, situação, cada uso e cada manutenção. Consumíveis com quantidade, mínimo e custo.\n\"Usei hoje\" e \"−1 usei\" anotam com um toque na obra do dia; \"Registrar uso\" anota várias coisas de uma vez.\n\"Obras\" soma o custo de material de cada obra (consumíveis mais o desgaste das ferramentas pelo uso). \"Estimar uma obra\" soma o material de uma obra nova, podendo partir de uma que já foi feita.\nFica em empreendedor_registros e sincroniza como o resto do Empreendedor." },
+        { r: "Na abertura, cada item abre só o assunto dele.", d: "O botão \"Como funciona, termos e privacidade\" saiu; o guia abre já no assunto tocado." }
       ]
     },
     {
       versao: '5.102.0',
       data: '2026-11-25',
       itens: [
-        'Conferido ✓: em "Conferir esta conta", quando o saldo bate com o banco, você confirma que está tudo certo. Os arquivos dos extratos da conta deixam de ser guardados como vieram do banco: fica só o que o app leu deles, compacto e cifrado com a "senha dos extratos". Reler e Relançar continuam funcionando; baixar o PDF original deixa de dar.',
-        'A senha dos extratos é criada na primeira conferência e pedida uma vez enquanto o app está aberto. Não dá para recuperá-la; esquecendo, os lançamentos continuam todos no app.',
-        'O extrato conferido fica guardado sem prazo. O que não foi conferido continua saindo sozinho depois de 6 meses.',
-        'Os arquivos de importações que você tirou agora são apagados sozinhos, sem perguntar (depois de um dia, para não pegar uma importação recém-feita em outro celular). O aviso com o botão "Apagar" saiu.',
-        'Na abertura do app, uma seta dourada e discreta, que sobe e desce, mostra que tem mais embaixo. Tocar nela desce a tela; descendo, ela some.',
-        'Conta nova: abre direto o aviso de preencher os dados. As páginas sobre a proteção dos dados ficam só em Mais, em "Como seus dados são protegidos".',
-        'Abertura: cada item (Dados protegidos, Metas, Cobranças…) virou um botão, com o "+" dourado no canto e "Saiba mais". Tocando, abre o guia "Como o Finanz funciona", já no assunto, com tudo explicado em detalhe, os termos de uso e a política de privacidade. Os desenhos ganharam brilho e cada item tem o seu.'
+        { r: "\"Conferido ✓\": confirmando a conta, os extratos dela viram uma versão compacta e cifrada.", d: "Em arquivos_extrato, o PDF é trocado pelo que o app leu (linhas e saldos), comprimido e cifrado (tipo application/vnd.finanz.conferido). Reler e Relançar funcionam com essa versão; baixar o PDF original deixa de dar.\nPrazo: o conferido fica sem prazo; o não conferido sai depois de 6 meses.\nChave: nesta versão vinha da \"senha dos extratos\" (PBKDF2); a partir da 5.103.0 usa a chave mestra da senha dos dados." },
+        { r: "Arquivos de importações desfeitas agora somem sozinhos.", d: "O arquivo cuja importação já não existe é apagado depois de 1 dia, para não pegar uma importação recém-feita em outro celular. O aviso com o botão \"Apagar\" saiu." },
+        { r: "A abertura do app ficou mais clara, com uma seta indicando que tem mais embaixo.", d: "Seta dourada que sobe e desce; tocar desce a tela, e descendo ela some. Cada item da abertura virou um botão que abre o guia \"Como o Finanz funciona\", já no assunto. Conta nova abre direto o aviso de preencher os dados." }
       ]
     },
     {
       versao: '5.101.0',
       data: '2026-11-25',
       itens: [
-        'Backup com senha: "Fazer backup" pede uma senha (duas vezes) e gera um arquivo .finanz cifrado (AES-GCM de 256 bits) e comprimido. Sem a senha, ninguém abre, nem o Finanz. Para restaurar, escolha o arquivo e digite a senha. Os backups antigos em JSON continuam abrindo.',
-        'Planejamento: na escolha de categorias, tocar no valor gasto abre embaixo as subcategorias, cada uma com quantos gastos tem e o total; na subcategoria, cada gasto; e no gasto, de onde ele veio. Tocar no nome continua marcando a categoria.',
-        'O orçamento do mês e a escolha de categorias ganharam o "i", no lugar das explicações soltas.'
+        { r: "O backup no celular agora sai cifrado com uma senha que você escolhe.", d: "\"Fazer backup\" pede a senha duas vezes e gera um arquivo .finanz: os dados em JSON, comprimidos e cifrados com AES-GCM de 256 bits, com a chave tirada da senha por PBKDF2. Sem a senha, ninguém abre. Restaurar: escolher o arquivo e digitar a senha. Os backups antigos em JSON continuam abrindo." },
+        { r: "No planejamento, dá para abrir cada categoria até chegar no gasto.", d: "Na escolha de categorias, tocar no valor gasto abre as subcategorias (quantos gastos e o total); na subcategoria, cada gasto; no gasto, de onde ele veio. Tocar no nome continua marcando a categoria. O orçamento do mês e a escolha de categorias ganharam o \"i\"." }
       ]
     },
     {
       versao: '5.100.0',
       data: '2026-11-25',
       itens: [
-        'Conta nova: as boas-vindas explicam onde seus dados ficam e quem vê, como o app lê os extratos (no seu celular, e você confere antes de entrar), o que nunca acontece (nada é vendido, compartilhado ou rastreado) e avisam bem grande que sem dados o app não consegue estimar seus gastos e receitas. Dá para reler em Mais, em "Como seus dados são protegidos".',
-        'No Início, enquanto faltam dados, um cartão grande em primeiro lugar mostra o que preencher: conta de banco, extrato importado, cartão e 3 meses de lançamentos, com o botão de cada um. Ele some quando o app já tem o que precisa.',
-        'Distribuição de gastos: saiu a nota "fatura paga ficou de fora" embaixo da lista. A conta é a mesma.'
+        { r: "Conta nova ganhou boas-vindas explicando onde ficam os dados e o que preencher.", d: "As boas-vindas explicam onde os dados ficam e quem vê, como o app lê os extratos (no celular, e a pessoa confere antes de entrar) e o que nunca acontece. Dá para reler em Mais → \"Como seus dados são protegidos\". No Início, enquanto faltam dados, um cartão em primeiro lugar mostra o que preencher (conta de banco, extrato, cartão e 3 meses de lançamentos), e some quando o app já tem o suficiente." },
+        { r: "Distribuição de gastos: saiu a nota da fatura paga.", d: "A nota \"fatura paga ficou de fora\" embaixo da lista saiu. A conta é a mesma." }
       ]
     },
     {
@@ -5467,6 +5527,9 @@
         var v = bruto.revisados[k];
         if (typeof k === 'string' && (v === 'manter' || v === 'revisar' || v === 'fora')) {
           limpo.revisados[k.slice(0, 80)] = v;
+        } else if (typeof k === 'string' && k.indexOf('repetidos:') === 0 && inteiro(v) > 0) {
+          // Quando a pessoa confirmou o saldo da conta (Conferido ✓).
+          limpo.revisados[k.slice(0, 80)] = inteiro(v);
         }
       });
     }
@@ -6952,6 +7015,10 @@
       return lerChaveDoCofre(info.kdf.sal).then(function (k) {
         if (k) { cofre.chave = k; cofre.sal = info.kdf.sal; return; }
         cofre.chave = null;
+        // Só nos testes automáticos: o "outro aparelho" da mesma conta abre
+        // com a senha de teste, sem tela.
+        var auto = senhaDeTesteDoCofre();
+        if (auto) return destrancarCofre(auto);
         abrirSenhaDoCofre();
         var e = new Error('Digite a senha dos dados para sincronizar.');
         e.trancado = true;
@@ -7387,10 +7454,12 @@
       var apagar = function (t, filtro) {
         t2 = t2.then(function () {
           return pedirNuvem('/rest/v1/' + t + '?' + filtro, { metodo: 'DELETE' });
-        }).catch(function (e) { if (ehTabelaQueFalta(e)) return null; throw e; });
+        }).catch(function (e) { if (ehTabelaQueFalta(e) || ehTabelaFechada(e)) return null; throw e; });
       };
       TABELAS_SINCRONIA.slice().reverse().forEach(function (t) {
-        if (t !== 'empreendedor_registros') { apagar(t, 'user_id=eq.' + uid); return; }
+        // As tabelas antigas já estão vazias e fechadas no servidor
+        // (migração 25): não há o que apagar nelas.
+        if (t !== 'empreendedor_registros') return;
         // Do Empreendedor, só o que não está compartilhado.
         t2 = t2.then(function () {
           return baixarTudo(t, 'select=id,tipo&user_id=eq.' + uid).catch(function (e) {
@@ -7411,7 +7480,6 @@
           return g;
         });
       });
-      ['orcamentos', 'categorias_extras', 'subcategorias_extras'].forEach(function (t) { apagar(t, 'user_id=eq.' + uid); });
       t2 = t2.then(function () {
         return pedirNuvem('/rest/v1/perfis?id=eq.' + encodeURIComponent(uid), {
           metodo: 'PATCH', corpo: perfilNeutro(uid), cabecalhos: { 'Prefer': 'return=minimal' }
@@ -7444,6 +7512,28 @@
   if (navigator.webdriver) {
     window.__finanzTeste = {
       cofreLigado: function () { return cofreLigado(); },
+      // Grava como o app grava (cifrado no cofre): é o "outro aparelho".
+      gravar: function (t, linhas, conflito) {
+        return comTokenValido().then(function () { return enviarLinhas(t, linhas, conflito || 'id'); })
+          .then(function () { return 201; }, function (e) { return 'erro: ' + (e && e.message); });
+      },
+      apagar: function (t, ids) {
+        return comTokenValido().then(function () { return marcarApagadosNaNuvem(t, ids, new Date().toISOString()); })
+          .then(function () { return 204; }, function (e) { return 'erro: ' + (e && e.message); });
+      },
+      // Os arquivos de extrato, com o nome aberto e o tamanho do conteúdo.
+      arquivos: function () {
+        return comTokenValido().then(function () {
+          return pedirNuvem('/rest/v1/arquivos_extrato?select=id,nome,tipo,tamanho,importacao_id,conta_id,conteudo', {});
+        }).then(function (r) {
+          return Promise.all((r || []).map(function (x) {
+            return (ehDoCofre(x.nome) ? textoDoCofre(x.nome) : Promise.resolve(x.nome)).then(function (nome) {
+              return { id: x.id, nome: nome, tipo: x.tipo, tamanho: x.tamanho, importacao_id: x.importacao_id, conta_id: x.conta_id,
+                       cifrado: ehDoCofre(x.conteudo), bytes: (x.conteudo || '').length };
+            });
+          }));
+        });
+      },
       copias: function () { return listarInstantaneos(); },
       tabela: function (t, apagados) {
         return comTokenValido().then(function () {
@@ -7472,6 +7562,7 @@
 
   var INFO_COFRE = [
     'Com a senha dos dados, tudo o que vai para a nuvem sai do seu celular já cifrado. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
+    'Sem ela, nada sincroniza: os dados ficam só neste celular, sem aparecer nos seus outros aparelhos.',
     'A senha nunca sai do celular. Em cada aparelho novo, o app pede a senha uma vez.',
     'Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais. Aí você pode apagar a nuvem e recomeçar, ou restaurar um backup .finanz.',
     'O servidor continua vendo só o mínimo: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.'
@@ -7482,12 +7573,16 @@
   // não pede sozinho. Quem quer o backup na nuvem vai em Proteja seus
   // dados e liga. Nos testes automáticos, 'finanz.cofre.auto' cria a senha
   // sem tela, para a suíte poder usar a nuvem cifrada.
+  function senhaDeTesteDoCofre() {
+    if (!navigator.webdriver) return '';
+    try { return localStorage.getItem('finanz.cofre.auto') || ''; } catch (e) { return ''; }
+  }
   function talvezPedirCriarCofre() {
-    if (pediuCriarCofre || cofre.ativo || !navigator.webdriver) return;
+    if (pediuCriarCofre === eu() || cofre.ativo || !navigator.webdriver) return;
     var auto = '';
     try { auto = localStorage.getItem('finanz.cofre.auto') || ''; } catch (e) { auto = ''; }
     if (!auto) return;
-    pediuCriarCofre = true;
+    pediuCriarCofre = eu();
     setTimeout(function () { criarCofre(auto).catch(function () { pediuCriarCofre = false; }); }, 300);
   }
 
@@ -7503,7 +7598,7 @@
     abrirFolha('Proteja seus dados', function (folha) {
       var forma = no('div', 'forma');
       var topo = no('div', 'cartao-topo');
-      juntar(topo, no('div', 'rotulo', 'Crie a senha dos dados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      juntar(topo, no('div', 'rotulo', 'Crie a senha dos dados'), botaoDeInfo('cofre.senha.v2', 'Senha dos dados', INFO_COFRE));
       forma.appendChild(topo);
       forma.appendChild(no('p', 'linha-sub', 'Com ela, seus dados vão para a nuvem embaralhados, e só você consegue abrir. Guarde bem: esquecendo, não tem como recuperar.'));
       var s1 = campoDeSenha('campo-senha-dados', 'Pelo menos 8 caracteres', true);
@@ -7547,7 +7642,7 @@
       abrirFolha('Senha dos dados', function (folha) {
         var forma = no('div', 'forma');
         var topo = no('div', 'cartao-topo');
-        juntar(topo, no('div', 'rotulo', 'Seus dados estão cifrados'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+        juntar(topo, no('div', 'rotulo', 'Seus dados estão cifrados'), botaoDeInfo('cofre.senha.v2', 'Senha dos dados', INFO_COFRE));
         forma.appendChild(topo);
         forma.appendChild(no('p', 'linha-sub', 'Digite a senha dos dados para abrir o que está na nuvem neste aparelho. Ela é pedida uma vez só.'));
         var s1 = campoDeSenha('campo-senha-dados', '', false);
@@ -7664,7 +7759,7 @@
     abrirFolha('Senha dos dados', function (folha) {
       var c = cartao();
       var topo = no('div', 'cartao-topo');
-      juntar(topo, no('div', 'rotulo', 'Criptografia de ponta a ponta'), botaoDeInfo('cofre.senha', 'Senha dos dados', INFO_COFRE));
+      juntar(topo, no('div', 'rotulo', 'Criptografia de ponta a ponta'), botaoDeInfo('cofre.senha.v2', 'Senha dos dados', INFO_COFRE));
       c.appendChild(topo);
       c.appendChild(no('div', 'linha-nota verde estado-cofre', cofre.info && cofre.info.convertido
         ? 'Ligada ✓ Tudo o que está na nuvem está cifrado com a sua senha.'
@@ -7701,6 +7796,12 @@
   // Tabelas que podem ainda não existir no banco de alguém (a migração não
   // rodou): o app segue sem elas, e o que é delas fica no aparelho.
   var TABELAS_OPCIONAIS = ['empreendedor_registros'];
+
+  // Tabela antiga fechada no servidor (migração 25): "permissão negada".
+  function ehTabelaFechada(e) {
+    var codigo = String((e && e.codigo) || '');
+    return codigo === '42501' || /permission denied/i.test(String((e && e.message) || ''));
+  }
 
   function ehTabelaQueFalta(e) {
     var codigo = String((e && e.codigo) || '');
@@ -8770,6 +8871,121 @@
     return salvar(true) || Promise.resolve();
   }
 
+  // ---------- Atividade e Staff (pedido de 26/11/2026) ----------
+  //
+  // Ao abrir o app (e ao voltar para ele), o servidor anota a hora: só a
+  // última, sem histórico e sem nada do que a pessoa viu. É assim que o
+  // Staff conta quem está ativo (abriu nos últimos 7 dias). A resposta diz
+  // se esta conta é staff; a trava de verdade é no servidor (migração 23).
+  var CHAVE_STAFF = 'finanz.staff.v1:';
+  // A escolha de contar ou não (Preferências) mora no servidor; aqui fica
+  // só a última resposta, para a tela abrir já mostrando.
+  var CHAVE_CONTAR = 'finanz.contarAtividade.v1:';
+  var ultimaAtividade = 0;
+  function contagemLigada() {
+    try { return localStorage.getItem(CHAVE_CONTAR + eu()) !== '0'; } catch (e) { return true; }
+  }
+  function souStaff() {
+    if (!NUVEM.ligada || !eu()) return false;
+    try { return localStorage.getItem(CHAVE_STAFF + eu()) === '1'; } catch (e) { return false; }
+  }
+  // escolha: sem ela, só anota a hora (se a pessoa não desligou); true ou
+  // false liga ou desliga a contagem (Preferências).
+  function marcarAtividade(escolha) {
+    var mudar = escolha === true || escolha === false;
+    if (!NUVEM.ligada || !sessaoNuvem || !eu() || faltaNoBanco['funcao:atividade']) {
+      return mudar ? Promise.reject(new Error('sem a nuvem')) : Promise.resolve();
+    }
+    if (!mudar && Date.now() - ultimaAtividade < 10 * 60 * 1000) return Promise.resolve();
+    ultimaAtividade = Date.now();
+    var quem = eu();
+    var antes = souStaff();
+    return comTokenValido().then(function () {
+      return pedirNuvem('/rest/v1/rpc/marcar_atividade', { metodo: 'POST', corpo: mudar ? { p_contar: escolha } : {} });
+    }).then(function (r) {
+      if (eu() !== quem) return;
+      var agora = !!(r && r.staff === true);
+      try {
+        if (agora) localStorage.setItem(CHAVE_STAFF + quem, '1');
+        else localStorage.removeItem(CHAVE_STAFF + quem);
+        if (r && r.contar === false) localStorage.setItem(CHAVE_CONTAR + quem, '0');
+        else localStorage.removeItem(CHAVE_CONTAR + quem);
+      } catch (e) { /* sem espaço: só não guarda */ }
+      if (agora !== antes && telaAtiva === 'mais') desenharMais();
+    }).catch(function (e) {
+      var msg = String((e && e.message) || '').toLowerCase();
+      if (String((e && e.codigo) || '') === 'PGRST202' ||
+          /could not find the function|function .* does not exist/.test(msg)) {
+        faltaNoBanco['funcao:atividade'] = true;
+      } else {
+        ultimaAtividade = 0; // sem rede: tenta de novo na próxima
+      }
+      if (mudar) throw e;
+    });
+  }
+
+  function abrirStaff() {
+    abrirFolha('Staff', function (folha) {
+      var c = cartao('cartao-staff');
+      c.appendChild(topoDeCartao('Usuários', null, null, null, { chave: 'staff.usuarios', titulo: 'Staff', itens: [
+        'Só aparece para a sua conta. Quem decide é o servidor: para qualquer outra conta, ele recusa os números, mesmo que alguém force o botão.',
+        'Cadastrados: todas as contas criadas no Finanz. Embaixo, quantas já confirmaram o e-mail.',
+        'Ativos: contas que abriram o app nos últimos 7 dias. Só abrir para olhar já conta, não precisa mexer em nada. Hoje e 30 dias usam a mesma regra, em outro prazo.',
+        'Como o app sabe: ao abrir, ele anota no servidor a hora da última abertura daquela conta (só a última, sem histórico e sem nada do que a pessoa viu). O último login também conta.',
+        'Contas que não abriram o app desde a versão 5.109.0 só contam pelo último login.',
+        'Cada pessoa pode desligar a contagem em Mais → Preferências. Desligada, a conta não entra nos ativos (nem pelo login) e aparece só no número "Pediram para não contar".',
+        'Com a senha dos dados: contas que criaram a senha dos dados (os dados delas sobem cifrados).',
+        'Aqui só há números. Ninguém aparece pelo nome ou e-mail, e os dados das pessoas continuam fechados.'], versao: 2 }));
+      var corpo = no('div', 'staff-corpo', 'Buscando os números…');
+      c.appendChild(corpo);
+      folha.appendChild(c);
+      var nota = no('div', 'linha-nota staff-nota', '');
+      nota.style.margin = '4px 4px 12px';
+      folha.appendChild(nota);
+      var atualizar = botao('btn btn-fantasma', 'Atualizar', function () { buscar(); });
+      folha.appendChild(atualizar);
+
+      function buscar() {
+        corpo.textContent = 'Buscando os números…';
+        atualizar.disabled = true;
+        comTokenValido().then(function () {
+          return pedirNuvem('/rest/v1/rpc/staff_resumo', { metodo: 'POST', corpo: {} });
+        }).then(function (r) {
+          atualizar.disabled = false;
+          if (!r || typeof r !== 'object') throw new Error('resposta vazia');
+          var n = function (k) { return String(Number(r[k]) || 0); };
+          corpo.textContent = '';
+          corpo.appendChild(gradeDeTiles([
+            tile('Cadastrados', n('cadastrados')),
+            tile('Ativos (7 dias)', n('ativos_7'), 'verde')
+          ], 2));
+          corpo.appendChild(no('div', 'linha-nota', n('confirmados') + ' com e-mail confirmado'));
+          var g2 = gradeDeTiles([
+            tile('Ativos hoje', n('ativos_1')),
+            tile('Ativos 30 dias', n('ativos_30')),
+            tile('Novos 7 dias', n('novos_7')),
+            tile('Novos 30 dias', n('novos_30'))
+          ], 2);
+          g2.style.marginTop = '12px';
+          corpo.appendChild(g2);
+          var g3 = gradeDeTiles([tile('Com a senha dos dados', n('com_senha')), tile('Pediram para não contar', n('sem_contar'))], 2);
+          g3.style.marginTop = '12px';
+          corpo.appendChild(g3);
+          nota.textContent = 'Atualizado às ' + horaDe(r.agora ? Date.parse(r.agora) : Date.now()) + '. Ativo = abriu o app nos últimos 7 dias.';
+        }).catch(function (e) {
+          atualizar.disabled = false;
+          var proibido = /42501|403|equipe/.test(String((e && (e.codigo || e.status)) || '') + ' ' + String((e && e.message) || ''));
+          corpo.textContent = proibido ? 'O servidor não liberou os números para esta conta.'
+            : 'Não consegui buscar agora. Confira a internet e toque em Atualizar.';
+          if (proibido) {
+            try { localStorage.removeItem(CHAVE_STAFF + eu()); } catch (x) { /* segue */ }
+          }
+        });
+      }
+      buscar();
+    });
+  }
+
   function carimboDaConta() {
     if (faltaNoBanco['funcao:carimbo']) return Promise.resolve(null);
     return pedirNuvem('/rest/v1/rpc/carimbo_da_conta', { metodo: 'POST', corpo: {} })
@@ -8907,7 +9123,12 @@
       });
       return corrente;
     }).then(function () {
-      return baixarTudo('empreendedor_registros', 'select=id');
+      // Vivas e apagadas, pelo cofre quando ele está ligado: com a senha
+      // dos dados, o que é só da pessoa mora lá, não na tabela aberta.
+      return Promise.all([
+        baixarTabela('empreendedor_registros', 'select=id&excluido_em=is.null'),
+        baixarTabela('empreendedor_registros', 'select=id&excluido_em=not.is.null')
+      ]).then(function (r) { return (r[0] || []).concat(r[1] || []); });
     }).then(function (linhas) {
       (linhas || []).forEach(function (l) { naNuvem[l.id] = true; });
       var voltaram = 0;
@@ -8929,6 +9150,21 @@
     }).catch(function () { return 0; });
   }
 
+  // Sem a senha dos dados, a sincronização fica desligada (5.111.0).
+  var sincroniaSemSenha = false;
+  function ligarSincronia() {
+    if (!NUVEM.ligada || !sessaoNuvem) return;
+    if (faltaNoBanco['cofre']) { avisarCaixa('Ainda não dá', 'O servidor ainda não recebeu a atualização do cofre. Tente de novo mais tarde.'); return; }
+    if (cofreTrancado()) { abrirSenhaDoCofre(true); return; }
+    perguntar({
+      titulo: 'Ligar a sincronização?',
+      texto: 'Sem a senha dos dados, nada vai para o servidor: seus dados ficam só neste celular.\n\n' +
+             'Criando a senha, tudo sincroniza cifrado: aparece nos seus outros aparelhos e só você consegue ler. ' +
+             'Não tem recuperação: guarde bem a senha.',
+      ok: 'Criar a senha e ligar', cancelar: 'Agora não'
+    }, function () { setTimeout(abrirCriarCofre, 260); });
+  }
+
   function sincronizar(silenciosa) {
     if (!NUVEM.ligada || !sessaoNuvem || !sessaoNuvem.usuario.id) return Promise.resolve(false);
     if (sincronizando) return Promise.resolve(false);
@@ -8940,11 +9176,21 @@
     var tinhaFalha = !!falhaDaSincronia;
 
     return comTokenValido().then(function () {
+      marcarAtividade();
       return carregarCompartilhamentos();
     }).then(function () {
       return carimboDaConta();
     }).then(function (carimbo) {
       return prepararCofre(!carimbo || carimbo !== estado.carimbo).then(function () {
+        // Sem a senha dos dados, nada sincroniza (pedido de 26/11/2026):
+        // os dados ficam só neste celular. O servidor também recusa dado
+        // aberto (migração 25), mesmo vindo de versão antiga do app.
+        if (!cofreLigado()) {
+          var semSenha = new Error('Sem a senha dos dados, a sincronização fica desligada.');
+          semSenha.semSenha = true;
+          throw semSenha;
+        }
+        sincroniaSemSenha = false;
         return prepararCompartilhadoCifrado();
       }).then(function () { return estado.carimbo === '' ? null : carimbo; });
     }).then(function (carimbo) {
@@ -9050,6 +9296,16 @@
       sincronizando = false;
       // Cofre trancado não é falha: espera a senha.
       if (e && e.trancado) { if (!silenciosa) avisar(e.message); return false; }
+      // Sem a senha dos dados não é falha: é a sincronização desligada.
+      if (e && e.semSenha) {
+        var mudou = !sincroniaSemSenha || tinhaFalha;
+        sincroniaSemSenha = true;
+        falhaDaSincronia = null;
+        ultimaSincronia = Date.now();
+        if (!silenciosa) ligarSincronia();
+        else if (mudou && telaAtiva === 'mais') desenhar();
+        return false;
+      }
       var f = marcarFalhaDeSincronia(e);
       agendarNovaTentativa(f.seguidas);
       if (!silenciosa) { avisar('Não sincronizou: ' + f.mensagem); return false; }
@@ -9393,6 +9649,13 @@
       if (subiu) {
         avisarCaixa('Pronto',
           'Trouxe ' + b.resumo + ' para esta conta. Agora estão aqui e na nuvem.',
+          function () {});
+        return;
+      }
+      // Sem a senha dos dados nada vai para a nuvem, e isso não é falha.
+      if (sincroniaSemSenha && !cofre.ativo) {
+        avisarCaixa('Pronto',
+          'Trouxe ' + b.resumo + ' para esta conta. Estão neste aparelho: sem a senha dos dados, nada vai para a nuvem.',
           function () {});
         return;
       }
@@ -11354,9 +11617,9 @@
     return [
       { icone: '🔒', titulo: 'Seus dados são seus', itens: naNuvem ? [
         ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo sai do seu celular já embaralhado com uma chave que só a sua senha abre.'],
-        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase. O servidor vê só seu e-mail, quantos registros existem, quando mudaram, o tamanho e a hora da última vez que você abriu o app.'],
         ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede uma vez. Não tem recuperação: esquecendo, a nuvem não abre mais.'],
-        ['Guardados na sua conta.', 'No servidor do Finanz (Supabase, em São Paulo) e numa cópia cifrada no seu celular.'],
+        ['Onde ficam.', 'Com a senha dos dados, no servidor do Finanz (Supabase, em São Paulo), cifrados, e numa cópia no seu celular. Sem ela, só no seu celular.'],
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
@@ -11370,7 +11633,8 @@
       ] },
       { icone: '🛡️', titulo: 'O que nunca acontece', itens: [
         ['Nada é vendido nem compartilhado.', 'Seus dados não vão para anunciantes, parceiros ou terceiros.'],
-        ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
+        naNuvem ? ['Sem rastreamento.', 'Não há propaganda nem cookies de terceiros. O servidor anota só a hora da última vez que você abriu o app (sem histórico e sem nada do que você viu), para contar quantas pessoas usam o Finanz. Dá para desligar em Preferências.']
+          : ['Sem rastreamento.', 'Não há propaganda, cookies de terceiros nem envio de estatísticas de uso.'],
         ['Taxas públicas.', 'Em Investimentos, o app busca Selic, CDI e IPCA no Banco Central. Esse pedido não leva nenhum dado seu.'],
         ['Backup com senha.', 'O arquivo de backup sai cifrado com uma senha que você escolhe. Sem ela, ninguém abre — nem o Finanz.']
       ] },
@@ -11500,12 +11764,12 @@
         'Com a conta ligada, seus dados ficam em duas casas: neste aparelho e no servidor do Finanz, hospedado no Supabase, na região de São Paulo.',
         'Criptografia de ponta a ponta: com a senha dos dados criada (Mais → Senha dos dados), tudo o que vai para o servidor — lançamentos, contas, cartões, metas, clientes, cópias automáticas e arquivos de extrato — sai do seu celular já cifrado (AES-GCM de 256 bits) com uma chave que só a sua senha abre. Ninguém além de você consegue ler: nem quem administra o servidor, nem o Supabase.',
         'A senha dos dados nunca sai do celular. O servidor guarda só a chave embrulhada por ela (PBKDF2 com 210 mil voltas). Não existe recuperação: esquecendo a senha, os dados da nuvem não abrem mais, e você pode apagá-los para recomeçar.',
-        'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram e o tamanho deles.',
-        'Enquanto a senha dos dados não é criada, os dados ficam no servidor do jeito antigo: protegidos pelo login, mas legíveis para quem administra o servidor. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, quando as duas têm a senha dos dados.',
+        'O servidor continua vendo o mínimo para funcionar: seu e-mail, quantos registros existem e de que tipo, quando mudaram, o tamanho deles e a data e a hora da última vez que você abriu o app.',
+        'Sem a senha dos dados, nada sincroniza: seus dados ficam só no seu celular, e o servidor recusa receber dado sem cifra. As áreas do Empreendedor que você compartilha vão cifradas com uma chave só sua e da outra pessoa, e por isso as duas precisam da senha dos dados.',
         'No servidor cada linha carrega o dono. O banco aplica uma regra chamada Row Level Security que devolve apenas as linhas de quem está logado. Isso vale mesmo se o aplicativo pedir outra coisa, porque a checagem é feita pelo banco, não pelo aplicativo.',
         'A cópia que fica no seu aparelho é cifrada com AES-GCM de 256 bits, mas a chave dessa cópia mora no próprio aparelho. Ela atrapalha uma leitura casual do armazenamento, e não substitui o bloqueio de tela do celular.',
         'A senha da sua conta nunca chega ao aplicativo em texto: quem cuida dela é o serviço de autenticação do Supabase.',
-        'Não há rastreamento, publicidade, cookies de terceiros ou envio de estatísticas.',
+        'Não há rastreamento, publicidade ou cookies de terceiros. A única estatística é a contagem de quantas pessoas usam o Finanz: ao abrir, o app anota no servidor a data e a hora da última abertura da sua conta (só a última, sem histórico e sem nada do que você viu ou fez). Ela vira só números, como "quantas contas abriram o app nesta semana"; ninguém aparece pelo nome. Ela vem ligada e dá para desligar em Mais → Preferências: desligada, a hora é apagada e sua conta não entra na contagem. Apagando a conta, essa anotação some junto.',
         'Você pode sair da conta e apagar tudo pelo menu Mais, e baixar um backup a qualquer momento. O arquivo de backup sai cifrado (AES-GCM de 256 bits) com uma senha que você escolhe na hora: sem ela, ninguém abre, nem o Finanz.'
       ] : [
         'Hoje o Finanz funciona inteiramente dentro do seu aparelho. Não existe servidor, não há cadastro em nenhum lugar e nada do que você digita sai do navegador.',
@@ -11535,15 +11799,16 @@
       ] },
       { id: 'dados', icone: 'escudo', titulo: 'Dados protegidos', resumo: 'Onde ficam, quem vê e como são cifrados', itens: naNuvem ? [
         ['Criptografia de ponta a ponta.', 'Com a senha dos dados (Mais → Senha dos dados), tudo o que vai para a nuvem sai do seu celular já cifrado: lançamentos, contas, cartões, metas, clientes, cópias automáticas e extratos.'],
-        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram e o tamanho.'],
+        ['Ninguém mais lê.', 'Nem quem administra o servidor, nem o Supabase, nem quem desenvolve o app. O servidor vê só seu e-mail, quantos registros existem, quando mudaram, o tamanho e a hora da última vez que você abriu o app.'],
         ['A senha não sai do celular.', 'Em cada aparelho novo, o app pede a senha uma vez. Não existe recuperação: esquecendo, a nuvem não abre mais, e você escolhe se apaga para recomeçar.'],
-        ['Onde ficam.', 'Na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), e numa cópia cifrada no seu celular.'],
+        ['Onde ficam.', 'Com a senha dos dados, na sua conta, no servidor do Finanz (Supabase, na região de São Paulo), cifrados, e numa cópia no seu celular. Sem a senha dos dados, só no seu celular.'],
         ['Só você vê os seus.', 'Além da cifra, cada linha tem dono, e o próprio banco só devolve as linhas de quem está logado (Row Level Security).'],
         ['Cifrados no caminho.', 'Tudo vai e volta do servidor por conexão segura (HTTPS).'],
         ['Sua senha de login não passa pelo app.', 'Quem cuida dela é o serviço de login do Supabase.'],
         ['Compartilhado também.', 'A área do Empreendedor que você compartilha vai cifrada com uma chave só de vocês dois (cada um com o seu par de chaves).'],
-        ['Ainda abertos.', 'Sem a senha dos dados criada, a sincronia continua do jeito antigo: protegida pelo login, mas legível para quem administra o servidor.'],
-        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento, sem cookies de terceiros e sem estatísticas de uso.']
+        ['Sem senha, só no celular.', 'Sem a senha dos dados criada, nada sincroniza: os dados ficam só no seu celular, e o servidor recusa dado sem cifra.'],
+        ['Nada é vendido nem compartilhado.', 'Sem anúncios, sem rastreamento e sem cookies de terceiros.'],
+        ['Só uma contagem.', 'Ao abrir, o app anota no servidor a hora da última vez que você abriu o app (só a última, sem histórico). Serve para contar quantas pessoas usam o Finanz; ninguém aparece pelo nome. Dá para desligar em Mais → Preferências.']
       ] : [
         ['Ficam só no seu celular.', 'Sem servidor ligado, nada do que você digita sai do aparelho.'],
         ['Cifrados.', 'Guardados com AES-GCM de 256 bits, com a chave tirada da sua senha (PBKDF2).'],
@@ -12677,9 +12942,8 @@
     }));
 
     ajustarFab();
-    // Atualizou? As novidades aparecem no topo, até a pessoa dar "Entendi".
-    var nov = cartaoNovidades();
-    if (nov) tela.appendChild(nov);
+    // Atualizou? As novidades abrem flutuando por cima, até "Entendi".
+    agendarNovidades();
     if (abaInicio === 'empreendedor') { desenharEmpreendedor(tela); return; }
 
     var faltam = cartaoFaltamDados();
@@ -26358,6 +26622,19 @@
     return grupos;
   }
 
+  // Os repetidos que a pessoa ainda não viu. Confirmando que o saldo está
+  // certo (Conferido ✓, pedido de 26/11/2026), os grupos de até ali saem:
+  // ela disse que estão certos. Grupo com lançamento que entrou depois da
+  // confirmação volta.
+  function repetidosAbertosDaConta(id) {
+    var marca = estado.revisados && estado.revisados['repetidos:' + id];
+    var grupos = repetidosDaConta(id);
+    if (!marca) return grupos;
+    return grupos.filter(function (g) {
+      return g.some(function (l) { return (l.criadoEm || 0) > marca; });
+    });
+  }
+
   // As cópias a mais de cada grupo repetido — o que sobra depois de guardar
   // uma de cada. É isso que um extrato importado duas vezes deixa para trás.
   //
@@ -26370,7 +26647,7 @@
       if (p.lancamentoId) apontada[p.lancamentoId] = true;
     });
     var sobrando = [];
-    repetidosDaConta(id).forEach(function (g) {
+    repetidosAbertosDaConta(id).forEach(function (g) {
       var ordenado = g.slice().sort(function (a, b) { return (a.criadoEm || 0) - (b.criadoEm || 0); });
       var ficam = ordenado.filter(function (l) { return apontada[l.id]; });
       if (!ficam.length) ficam = [ordenado[0]];
@@ -26507,6 +26784,81 @@
     });
   }
 
+  // O "Conferido ✓" (pedido de 25/11/2026), que mora dentro de "O saldo
+  // está correto?" na folha da conta (pedido de 26/11/2026).
+  function cartaoConferido(id) {
+    var conta = achar(estado.contas, id);
+      // Se o saldo bate e os lançamentos estão certos, a pessoa confirma, e
+      // os arquivos da conta viram a versão compacta e cifrada.
+      var cConf = cartao('cartao-conferido');
+      var topoConf = no('div', 'cartao-topo');
+      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido.v3', 'Conferido ✓', [
+        'Fica em "O saldo está correto?", embaixo do saldo da conta. Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
+        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado: com a senha dos dados, se ela estiver ligada (uma senha só para tudo), ou com a senha dos extratos. Fica bem menor, e só quem tem a senha lê.',
+        '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
+        'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
+        'Extrato importado depois chega como PDF de novo: é só conferir outra vez.',
+        'Confirmando, a lista de "Possíveis repetidos" desta conta (em "Conferir esta conta") some: você disse que está certo. Repetido que aparecer depois, de um extrato novo, volta a aparecer.']));
+      cConf.appendChild(topoConf);
+      var estadoConf = no('div', 'linha-nota estado-conferido', 'Vendo os arquivos guardados...');
+      cConf.appendChild(estadoConf);
+      var paraConferir = [];
+      var botaoConferido = botao('btn btn-ouro botao-conferido', 'Conferido ✓', function () {
+        if (!paraConferir.length) return;
+        perguntar({
+          titulo: 'Marcar como conferido?',
+          texto: 'Você confirma que o saldo e os lançamentos de "' + conta.nome + '" estão certos.\n\n' +
+                 'Os ' + paraConferir.length + ' arquivo(s) desta conta deixam de ser guardados como vieram do banco: ' +
+                 'fica só o que o app leu deles, compacto e cifrado com a senha dos extratos.\n\n' +
+                 '"Reler e corrigir" e "Relançar" continuam funcionando. Baixar o PDF original deixa de dar.',
+          ok: 'Conferido ✓'
+        }, function () {
+          // Confirmado que está certo: os "Possíveis repetidos" de até aqui
+          // saem da lista (pedido de 26/11/2026). Os que vierem depois, de um
+          // extrato novo, voltam a aparecer.
+          if (!estado.revisados) estado.revisados = {};
+          estado.revisados['repetidos:' + id] = Date.now();
+          salvar();
+          var lista = paraConferir.slice();
+          setTimeout(function () { conferirExtratosDaConta(id, lista); }, 260);
+        });
+      });
+      botaoConferido.style.marginTop = '10px';
+      botaoConferido.disabled = true;
+      cConf.appendChild(botaoConferido);
+      function atualizarConferido() {
+        botaoConferido.disabled = !paraConferir.length;
+      }
+      var levasDaConta = {};
+      (estado.importacoes || []).forEach(function (i) { if (i.contaId === id) levasDaConta[i.id] = true; });
+      if (!NUVEM.ligada || !sessaoNuvem) {
+        estadoConf.textContent = 'Os arquivos dos extratos ficam guardados na nuvem. Entre na sua conta para conferir.';
+        botaoConferido.style.display = 'none';
+      } else {
+        listarArquivosDeExtrato(id).then(function (lista) {
+          var daConta = (lista || []).filter(function (a) { return levasDaConta[a.importacao_id]; });
+          var jaFeitos = daConta.filter(ehConferido);
+          paraConferir = daConta.filter(function (a) { return !ehConferido(a); });
+          if (!daConta.length) {
+            estadoConf.textContent = 'Nenhum arquivo de extrato guardado nesta conta.';
+            botaoConferido.style.display = 'none';
+          } else if (!paraConferir.length) {
+            estadoConf.textContent = 'Conferido ✓ ' + (jaFeitos.length === 1 ? 'O extrato desta conta está guardado'
+              : 'Os ' + jaFeitos.length + ' extratos desta conta estão guardados') + ' na versão compacta e cifrada.';
+            estadoConf.className = 'linha-nota verde estado-conferido';
+            botaoConferido.style.display = 'none';
+          } else {
+            var pesa = paraConferir.reduce(function (t, a) { return t + inteiro(a.tamanho); }, 0);
+            estadoConf.textContent = (jaFeitos.length ? jaFeitos.length + ' extrato(s) já conferido(s). ' : '') +
+              paraConferir.length + ' arquivo(s) ainda como vieram do banco (' + tamanhoDeArquivo(pesa) + '). ' +
+              'Se o saldo bate e os lançamentos estão certos, marque como conferido.';
+          }
+          atualizarConferido();
+        });
+      }
+      return cConf;
+  }
+
   function abrirFolhaConferencia(id) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
@@ -26557,80 +26909,10 @@
       conf.appendChild(ajustar);
       forma.appendChild(conf);
 
-      // ---- conferido (pedido de 25/11/2026) ----
-      // Se o saldo bate e os lançamentos estão certos, a pessoa confirma, e
-      // os arquivos da conta viram a versão compacta e cifrada.
-      var cConf = cartao('cartao-conferido');
-      var topoConf = no('div', 'cartao-topo');
-      juntar(topoConf, no('div', 'rotulo', 'Está tudo certo?'), botaoDeInfo('conta.conferido.v2', 'Conferido ✓', [
-        'Quando o saldo desta conta bate com o banco e os lançamentos estão certos, toque em "Conferido ✓".',
-        'Aí os PDFs desta conta deixam de ser guardados como vieram do banco. O app guarda só o que leu deles, linha por linha, comprimido e cifrado: com a senha dos dados, se ela estiver ligada (uma senha só para tudo), ou com a senha dos extratos. Fica bem menor, e só quem tem a senha lê.',
-        '"Reler e corrigir" e "Relançar" continuam funcionando com a versão compacta. O que deixa de dar é baixar o PDF original.',
-        'O extrato conferido fica guardado sem prazo. O que não foi conferido sai sozinho depois de 6 meses.',
-        'Extrato importado depois chega como PDF de novo: é só conferir outra vez.']));
-      cConf.appendChild(topoConf);
-      var estadoConf = no('div', 'linha-nota estado-conferido', 'Vendo os arquivos guardados...');
-      cConf.appendChild(estadoConf);
-      var notaBate = no('div', 'linha-nota vermelho', 'O saldo do banco ainda não bate com o app. Acerte a diferença antes de conferir.');
-      notaBate.style.display = 'none';
-      cConf.appendChild(notaBate);
-      var paraConferir = [];
-      var bateComBanco = true;
-      var botaoConferido = botao('btn btn-ouro botao-conferido', 'Conferido ✓', function () {
-        if (!paraConferir.length || !bateComBanco) return;
-        perguntar({
-          titulo: 'Marcar como conferido?',
-          texto: 'Você confirma que o saldo e os lançamentos de "' + conta.nome + '" estão certos.\n\n' +
-                 'Os ' + paraConferir.length + ' arquivo(s) desta conta deixam de ser guardados como vieram do banco: ' +
-                 'fica só o que o app leu deles, compacto e cifrado com a senha dos extratos.\n\n' +
-                 '"Reler e corrigir" e "Relançar" continuam funcionando. Baixar o PDF original deixa de dar.',
-          ok: 'Conferido ✓'
-        }, function () {
-          var lista = paraConferir.slice();
-          setTimeout(function () { conferirExtratosDaConta(id, lista); }, 260);
-        });
-      });
-      botaoConferido.style.marginTop = '10px';
-      botaoConferido.disabled = true;
-      cConf.appendChild(botaoConferido);
-      function atualizarConferido() {
-        botaoConferido.disabled = !(paraConferir.length && bateComBanco);
-        notaBate.style.display = paraConferir.length && !bateComBanco ? '' : 'none';
-      }
-      var levasDaConta = {};
-      (estado.importacoes || []).forEach(function (i) { if (i.contaId === id) levasDaConta[i.id] = true; });
-      if (!NUVEM.ligada || !sessaoNuvem) {
-        estadoConf.textContent = 'Os arquivos dos extratos ficam guardados na nuvem. Entre na sua conta para conferir.';
-        botaoConferido.style.display = 'none';
-      } else {
-        listarArquivosDeExtrato(id).then(function (lista) {
-          var daConta = (lista || []).filter(function (a) { return levasDaConta[a.importacao_id]; });
-          var jaFeitos = daConta.filter(ehConferido);
-          paraConferir = daConta.filter(function (a) { return !ehConferido(a); });
-          if (!daConta.length) {
-            estadoConf.textContent = 'Nenhum arquivo de extrato guardado nesta conta.';
-            botaoConferido.style.display = 'none';
-          } else if (!paraConferir.length) {
-            estadoConf.textContent = 'Conferido ✓ ' + (jaFeitos.length === 1 ? 'O extrato desta conta está guardado'
-              : 'Os ' + jaFeitos.length + ' extratos desta conta estão guardados') + ' na versão compacta e cifrada.';
-            estadoConf.className = 'linha-nota verde estado-conferido';
-            botaoConferido.style.display = 'none';
-          } else {
-            var pesa = paraConferir.reduce(function (t, a) { return t + inteiro(a.tamanho); }, 0);
-            estadoConf.textContent = (jaFeitos.length ? jaFeitos.length + ' extrato(s) já conferido(s). ' : '') +
-              paraConferir.length + ' arquivo(s) ainda como vieram do banco (' + tamanhoDeArquivo(pesa) + '). ' +
-              'Se o saldo bate e os lançamentos estão certos, marque como conferido.';
-          }
-          atualizarConferido();
-        });
-      }
-      forma.appendChild(cConf);
 
       function medirDiferenca() {
         var alvo = digitosParaCentavosComSinal(campoBanco.value);
         var falta = alvo - saldo;
-        bateComBanco = !falta;
-        atualizarConferido();
         if (!falta) {
           diferenca.textContent = 'Está batendo com o banco.';
           diferenca.className = 'linha-nota verde';
@@ -26723,7 +27005,7 @@
       }
 
       // ---- possíveis repetidos ----
-      var grupos = repetidosDaConta(id);
+      var grupos = repetidosAbertosDaConta(id);
       if (grupos.length) {
         var rep = cartao();
         rep.appendChild(no('div', 'rotulo', 'Possíveis repetidos'));
@@ -27118,78 +27400,7 @@
     });
   }
 
-  function abrirAjusteDeSaldo(id) {
-    var conta = achar(estado.contas, id);
-    if (!conta) return;
-    var noApp = saldoConta(id, null);
-    abrirFolha('Ajustar saldo', function (folha) {
-      var forma = no('div', 'forma');
-      forma.appendChild(no('p', 'linha-sub', 'Diga quanto tem de verdade em ' + conta.nome + ' hoje. Depois você escolhe se a diferença vira uma receita ou despesa, ou se muda o saldo inicial.'));
-      var info = cartao();
-      info.appendChild(no('div', 'rotulo', 'Saldo no app'));
-      info.appendChild(no('div', 'valorao pequeno num' + (noApp < 0 ? ' vermelho' : ''), emReais(noApp)));
-      forma.appendChild(info);
-      var campoSaldo = entradaValor(Math.abs(noApp), true, true);
-      if (noApp < 0) campoSaldo.value = '-' + emReais(Math.abs(noApp));
-      campoSaldo.classList.add('campo-saldo-certo');
-      forma.appendChild(campo('Saldo certo hoje', campoSaldo));
-      var difEl = no('div', 'linha-nota diferenca-ajuste');
-      forma.appendChild(difEl);
-      var lerSaldo = function () {
-        var v = digitosParaCentavos(campoSaldo.value);
-        return /[-−]/.test(campoSaldo.value) ? -v : v;
-      };
-      var mostrarDif = function () {
-        var d = lerSaldo() - noApp;
-        difEl.className = 'linha-nota diferenca-ajuste' + (d > 0 ? ' verde' : d < 0 ? ' vermelho' : '');
-        difEl.textContent = d === 0 ? 'Igual ao do app: nada para ajustar.'
-          : (d > 0 ? emReais(d) + ' a mais do que o app mostra.' : emReais(-d) + ' a menos do que o app mostra.');
-      };
-      campoSaldo.addEventListener('input', mostrarDif);
-      mostrarDif();
-      forma.appendChild(no('p', 'linha-sub', 'Dica: com o sinal de menos (-) na frente, o saldo fica negativo.'));
-
-      var acoes = no('div', 'acoes');
-      acoes.appendChild(botao('btn btn-ouro', 'Continuar', function () {
-        var certo = lerSaldo();
-        var dif = certo - noApp;
-        if (!dif) { avisar('O saldo já está certo.'); return; }
-        var ehMais = dif > 0;
-        var novoInicial = (conta.saldoInicial || 0) + dif;
-        abrirEscolha({ titulo: 'Como ajustar ' + emReais(Math.abs(dif)) + '?', semMarca: true, opcoes: [
-          { valor: 'transacao', rotulo: ehMais ? 'Lançar uma receita de ' + emReais(dif) : 'Lançar uma despesa de ' + emReais(-dif),
-            detalhe: 'Entra hoje em ' + conta.nome + '. Na próxima tela você escolhe a descrição, a categoria e a data.' },
-          { valor: 'inicial', rotulo: 'Mudar o saldo inicial',
-            detalhe: 'De ' + emReais(conta.saldoInicial || 0) + ' para ' + emReais(novoInicial) + '. Não cria lançamento e não mexe nas receitas e despesas.' }
-        ] }, function (v) {
-          if (v === undefined) return;
-          if (v === 'inicial') {
-            var c = achar(estado.contas, id);
-            if (!c) return;
-            comMotivo('você ajustou o saldo inicial de ' + c.nome + ' de ' + emReais(c.saldoInicial || 0) + ' para ' + emReais(novoInicial));
-            c.saldoInicial = novoInicial;
-            salvar();
-            fecharFolha();
-            desenhar();
-            setTimeout(function () { abrirExtratoConta(id); }, 240);
-            avisar('Saldo ajustado: ' + emReais(certo) + '.');
-            return;
-          }
-          var r = novoRascunho(ehMais ? 'entrada' : 'saida', id, '');
-          r.valor = Math.abs(dif);
-          r.descricao = 'Ajuste de saldo';
-          r.data = hojeTexto();
-          r.contaId = id;
-          fecharFolha();
-          setTimeout(function () { abrirFolhaLancamento(null, r); }, 240);
-        });
-      }));
-      forma.appendChild(acoes);
-      folha.appendChild(forma);
-    });
-  }
-
-  function abrirExtratoConta(id) {
+  function abrirExtratoConta(id, abrirPainel) {
     var conta = achar(estado.contas, id);
     if (!conta) return;
 
@@ -27197,30 +27408,100 @@
       var saldo = saldoConta(id, null);
 
       var topo = cartao();
-      topo.appendChild(no('div', 'rotulo', 'Saldo atual'));
-      topo.appendChild(no('div', 'valorao num' + (saldo < 0 ? ' vermelho' : ''), emReais(saldo)));
-      topo.appendChild(no('div', 'linha-nota', conta.tipo + ' · saldo inicial de ' + emReais(conta.saldoInicial)));
+      var rotuloSaldo = no('div', 'rotulo', 'Saldo atual');
+      topo.appendChild(rotuloSaldo);
+      // O saldo se corrige tocando nele (pedido de 26/11/2026): digita o
+      // certo e a diferença vira uma receita (a mais) ou uma despesa (a
+      // menos) para completar. Saindo sem salvar, nada muda: o saldo só
+      // muda por receita ou despesa.
+      var caixaSaldo = no('div', 'caixa-saldo');
+      var valorSaldo = botao('valorao num saldo-editavel' + (saldo < 0 ? ' vermelho' : ''), null, function () { editarSaldo(); });
+      juntar(valorSaldo, no('span', null, emReais(saldo)), no('span', 'saldo-lapis', '✎'));
+      valorSaldo.setAttribute('aria-label', 'Corrigir o saldo de ' + conta.nome);
+      caixaSaldo.appendChild(valorSaldo);
+      topo.appendChild(caixaSaldo);
+      var notaSaldo = no('div', 'linha-nota', conta.tipo + ' · toque no saldo para corrigir');
+      topo.appendChild(notaSaldo);
+      function editarSaldo() {
+        caixaSaldo.textContent = '';
+        rotuloSaldo.hidden = true;
+        notaSaldo.hidden = true;
+        var campoSaldo = entradaValor(Math.abs(saldo), true, true);
+        if (saldo < 0) campoSaldo.value = '-' + emReais(Math.abs(saldo));
+        campoSaldo.classList.add('campo-saldo-certo');
+        caixaSaldo.appendChild(campo('Saldo certo hoje', campoSaldo));
+        var difEl = no('div', 'linha-nota diferenca-ajuste');
+        caixaSaldo.appendChild(difEl);
+        var lerSaldo = function () {
+          var v = digitosParaCentavos(campoSaldo.value);
+          return /[-−]/.test(campoSaldo.value) ? -v : v;
+        };
+        var mostrarDif = function () {
+          var d = lerSaldo() - saldo;
+          difEl.className = 'linha-nota diferenca-ajuste' + (d > 0 ? ' verde' : d < 0 ? ' vermelho' : '');
+          difEl.textContent = d === 0 ? 'Igual ao do app. Com o sinal de menos (-) na frente, o saldo fica negativo.'
+            : d > 0 ? emReais(d) + ' a mais: vira uma receita para você completar.'
+            : emReais(-d) + ' a menos: vira uma despesa para você completar.';
+        };
+        campoSaldo.addEventListener('input', mostrarDif);
+        mostrarDif();
+        var acoesSaldo = no('div', 'duas');
+        acoesSaldo.style.marginTop = '10px';
+        juntar(acoesSaldo,
+          botao('btn btn-fantasma botao-saldo-cancelar', 'Cancelar', function () {
+            caixaSaldo.textContent = '';
+            caixaSaldo.appendChild(valorSaldo);
+            rotuloSaldo.hidden = false;
+            notaSaldo.hidden = false;
+          }),
+          botao('btn btn-ouro botao-saldo-continuar', 'Continuar', function () {
+            var dif = lerSaldo() - saldo;
+            if (!dif) { avisar('O saldo já está certo.'); return; }
+            var r = novoRascunho(dif > 0 ? 'entrada' : 'saida', id, '');
+            r.valor = Math.abs(dif);
+            r.data = hojeTexto();
+            r.contaId = id;
+            fecharFolha();
+            setTimeout(function () { abrirFolhaLancamento(null, r); }, 240);
+          }));
+        caixaSaldo.appendChild(acoesSaldo);
+        setTimeout(function () { try { campoSaldo.focus(); } catch (e) { /* teclado */ } }, 120);
+      }
 
-      var conferir = botao('btn btn-ouro', 'Conferir esta conta', function () {
-        fecharFolha();
-        setTimeout(function () { abrirFolhaConferencia(id); }, 240);
+      // Embaixo do saldo, só a pergunta (pedido de 26/11/2026). Tocando,
+      // abrem as três opções e o "Conferido ✓".
+      var painel = no('div', 'painel-saldo');
+      painel.hidden = true;
+      var pergunta = botao('btn btn-ouro botao-saldo-correto', 'O saldo está correto?', function () {
+        var abrir = painel.hidden;
+        if (abrir && !painel.firstChild) montarPainel();
+        painel.hidden = !abrir;
+        marcarPergunta(abrir);
       });
-      conferir.style.marginTop = '14px';
-      topo.appendChild(conferir);
-
-      // Ajustar saldo (pedido de 19/11/2026): diz o saldo certo e escolhe se
-      // a diferença vira receita/despesa ou muda o saldo inicial.
-      var duasAcoes = no('div', 'duas');
-      duasAcoes.style.marginTop = '8px';
-      duasAcoes.appendChild(botao('btn btn-fantasma', 'Ajustar saldo', function () {
-        fecharFolha();
-        setTimeout(function () { abrirAjusteDeSaldo(id); }, 240);
-      }));
-      duasAcoes.appendChild(botao('btn btn-fantasma', 'Editar esta conta', function () {
-        fecharFolha();
-        setTimeout(function () { abrirFolhaConta(id); }, 240);
-      }));
-      topo.appendChild(duasAcoes);
+      // Aberta, a pergunta fica discreta: o destaque passa para as opções.
+      function marcarPergunta(aberta) {
+        pergunta.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+        pergunta.classList.toggle('aberto', aberta);
+        pergunta.classList.toggle('btn-ouro', !aberta);
+        pergunta.classList.toggle('btn-fantasma', aberta);
+      }
+      pergunta.setAttribute('aria-expanded', 'false');
+      pergunta.style.marginTop = '14px';
+      function montarPainel() {
+        var conferir = botao('btn btn-ouro', 'Conferir esta conta', function () {
+          fecharFolha();
+          setTimeout(function () { abrirFolhaConferencia(id); }, 240);
+        });
+        conferir.style.marginTop = '12px';
+        painel.appendChild(conferir);
+        // "Ajustar saldo" e "Editar esta conta" saíram (26/11/2026): o saldo
+        // se corrige tocando nele, e a conta se edita pelo lápis do Início.
+        var cc = cartaoConferido(id);
+        cc.style.marginTop = '12px';
+        painel.appendChild(cc);
+      }
+      juntar(topo, pergunta, painel);
+      if (abrirPainel) { montarPainel(); painel.hidden = false; marcarPergunta(true); }
       folha.appendChild(topo);
 
       // Os extratos importados desta conta (pedido de 16/11/2026): antes
@@ -27229,11 +27510,11 @@
         .sort(function (a, b) { return (b.ate || '') < (a.ate || '') ? -1 : (b.ate || '') > (a.ate || '') ? 1 : (b.quando || 0) - (a.quando || 0); });
       var semExtrato = conta.tipo === 'Dinheiro físico' && !levas.length;
       var cExt = cartao('liso cartao-extratos');
-      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', versao: 2, itens: [
+      var tExt = topoDeCartao('Extratos', '+ Importar', function () { abrirImportarExtrato(); }, 'extrato', { chave: 'conta.extratos', versao: 3, itens: [
         'Cada extrato que você importou nesta conta, com o período, quantos lançamentos entraram e o tamanho do arquivo.',
         'Toque num extrato para ver os detalhes, baixar o arquivo guardado, reler ou tirar tudo o que ele trouxe de uma vez.',
         'O número de arquivos no topo conta só os dos extratos da lista. O arquivo de uma importação que você tirou é apagado sozinho, sem perguntar.',
-        '"conferido ✓" é o extrato que você conferiu em "Conferir esta conta": ele fica guardado numa versão compacta e cifrada com a senha dos extratos.',
+        '"conferido ✓" é o extrato que você confirmou em "O saldo está correto?" (embaixo do saldo): ele fica guardado numa versão compacta e cifrada com a senha dos extratos.',
         '"+ Importar" lê o extrato do banco em PDF, Excel, OFX ou CSV. Lançamento que já existe na conta vem desmarcado, para não entrar duas vezes.'] });
       tExt.style.padding = '16px 16px 0'; tExt.style.marginBottom = '8px';
       cExt.appendChild(tExt);
@@ -29565,6 +29846,17 @@
     tela.textContent = '';
     tela.appendChild(cabecalho('Mais', null, true));
 
+    // Staff (pedido de 26/11/2026): só na conta do Vitor.
+    if (souStaff()) {
+      var cStaff = cartao('liso cartao-staff-mais');
+      var lStaff = botao('linha botao-staff', null, abrirStaff);
+      juntar(lStaff, selo('#E9B44C', '★'),
+        juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', 'Staff'), no('div', 'linha-sub', 'Usuários cadastrados e ativos')),
+        no('div', 'linha-nota', '›'));
+      cStaff.appendChild(lStaff);
+      tela.appendChild(cStaff);
+    }
+
     tela.appendChild(blocoDeAnalise());
 
     // Relatórios
@@ -29618,7 +29910,7 @@
         abrirTrazerDeOutraConta],
       ['💳', 'Taxas da maquininha', 'Por bandeira e por parcela, para os orçamentos',
         function () { abrirFolhaTaxas(); }],
-      ['⚙', 'Preferências', 'Seu nome e o cálculo da reserva', abrirFolhaPreferencias]
+      ['⚙', 'Preferências', 'Seu nome, a reserva e a contagem de uso', abrirFolhaPreferencias]
     ].forEach(function (o) {
       var linha = typeof o[3] === 'string' ? rotuloDeArquivo(o[3], 'linha') : botao('linha' + (o[4] ? ' ' + o[4] : ''), null, o[3]);
       juntar(linha,
@@ -29630,7 +29922,17 @@
       cDados.appendChild(linha);
     });
 
-    if (NUVEM.ligada) {
+    if (NUVEM.ligada && sincroniaSemSenha && !cofre.ativo) {
+      var sincOff = botao('linha botao-sincronia-desligada', null, ligarSincronia);
+      juntar(sincOff,
+        selo('#94A3B4', '↻'),
+        juntar(no('div', 'linha-texto'),
+          no('div', 'linha-titulo', 'Sincronização desligada'),
+          no('div', 'linha-sub', 'Sem a senha dos dados, tudo fica só neste celular. Toque para ligar.')));
+      var subOff = sincOff.querySelector('.linha-sub');
+      subOff.style.whiteSpace = 'normal';
+      cDados.appendChild(sincOff);
+    } else if (NUVEM.ligada) {
       var sinc = botao('linha', null, function () {
         avisar('Sincronizando…');
         sincronizar(false);
@@ -29659,17 +29961,6 @@
       cDados.appendChild(sinc);
     }
 
-    // Mesma aba, e não _blank: numa aba nova o botão voltar do celular não
-    // volta para o app, fecha ele. Na mesma aba o voltar faz o que a pessoa
-    // espera — e a página tem um "‹ Voltar ao app" no topo.
-    var versoes = botao('linha', null, function () { location.href = 'versoes/'; });
-    juntar(versoes,
-      selo('#94A3B4', '↩'),
-      juntar(no('div', 'linha-texto'),
-        no('div', 'linha-titulo', 'Versões guardadas'),
-        no('div', 'linha-sub', 'Se uma atualização der problema, abra a anterior')));
-    // Manutenção não é assunto de quem só usa o app.
-    if (souODono()) cDados.appendChild(versoes);
 
     var novidades = botao('linha', null, abrirNovidades);
     juntar(novidades,
@@ -29753,36 +30044,141 @@
     }
     return NOVIDADES.filter(function (n) { return compararVersao(n.versao, vista) > 0 && compararVersao(n.versao, VERSAO) <= 0; });
   }
-  function cartaoNovidades() {
+  // Novidades flutuando (pedido de 26/11/2026): depois de atualizar, abre
+  // por cima do Início, cobrindo quase a tela toda, com TODAS as versões
+  // que a pessoa pulou (da 5.107 direto para a 5.109 vêm as duas), cada
+  // uma com o seu título. O que não cabe, arrasta para ler.
+  var novidadesAbertas = false;
+  var novidadesAgendadas = false;
+  function agendarNovidades() {
+    if (novidadesAbertas || novidadesAgendadas) return;
     if (navigator.webdriver) {
       var querTeste = false;
       try { querTeste = localStorage.getItem('finanz.novidades.teste') === '1'; } catch (e) { querTeste = false; }
-      if (!querTeste) return null;
+      if (!querTeste) return;
     }
-    var lista = novidadesNaoVistas();
-    if (!lista.length) return null;
-    var c = cartao('cartao-novidades');
-    var topo = no('div', 'cartao-topo');
-    var fechar = function () { marcarVersaoVista(); if (c.parentNode) c.parentNode.removeChild(c); };
-    var x = botao('novidades-fechar', '✕', fechar);
+    if (!novidadesNaoVistas().length) return;
+    novidadesAgendadas = true;
+    var tentativas = 0;
+    var tentar = function () {
+      tentativas++;
+      // Não passa por cima das boas-vindas, de uma folha ou de um diálogo.
+      if (document.querySelector('.boas-vindas') || folhaAberta || dialogoAberto || telaAtiva !== 'inicio') {
+        if (tentativas < 40) { setTimeout(tentar, 1500); return; }
+        novidadesAgendadas = false; return;
+      }
+      novidadesAgendadas = false;
+      var lista = novidadesNaoVistas();
+      if (lista.length) abrirNovidadesFlutuantes(lista);
+    };
+    setTimeout(tentar, 700);
+  }
+
+  // Cada novidade tem um resumo (para todo mundo) e o detalhe técnico, que
+  // só a conta staff vê, em "ver detalhes" (pedido de 26/11/2026). As
+  // versões até a 5.99.0 eram um texto só: o resumo é a primeira frase e o
+  // detalhe é o texto inteiro.
+  function primeiraFrase(t) {
+    t = String(t || '');
+    var m = t.match(/^[\s\S]*?[.!?](?=\s+["“A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9]|$)/);
+    var r = m ? m[0] : t;
+    if (r.length > 170) { var c = r.slice(0, 160); r = c.slice(0, c.lastIndexOf(' ')) + '…'; }
+    return r;
+  }
+  function itensDaNovidade(n) {
+    var staff = souStaff();
+    return n.itens.map(function (it) {
+      if (typeof it === 'string') { var r = primeiraFrase(it); return { r: r, d: r !== it ? it : '' }; }
+      return it;
+    }).filter(function (it) { return it.so !== 'staff' || staff; });
+  }
+  function listaDaNovidade(n) {
+    var staff = souStaff();
+    var ul = no('ul');
+    itensDaNovidade(n).forEach(function (it) {
+      var li = no('li');
+      li.appendChild(no('span', 'novidade-resumo', it.r));
+      if (staff && it.d) {
+        var det = no('div', 'novidade-detalhe', it.d);
+        det.hidden = true;
+        var ver = botao('novidade-ver', 'ver detalhes', function () {
+          det.hidden = !det.hidden;
+          ver.textContent = det.hidden ? 'ver detalhes' : 'esconder detalhes';
+        });
+        li.appendChild(ver);
+        li.appendChild(det);
+      }
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  function abrirNovidadesFlutuantes(lista) {
+    if (novidadesAbertas) return;
+    novidadesAbertas = true;
+    var fundo = no('div', 'novidades-fundo');
+    fundo.setAttribute('role', 'dialog');
+    fundo.setAttribute('aria-modal', 'true');
+    fundo.setAttribute('aria-label', 'Novidades');
+    var painel = no('div', 'novidades-painel');
+
+    var topo = no('div', 'novidades-cab');
+    var x = botao('novidades-fechar', '✕', function () { fechar(); });
     x.setAttribute('aria-label', 'Fechar as novidades');
-    juntar(topo, juntar(no('div', 'novidades-titulo'), no('span', 'novidades-brilho', '✨'),
-      no('span', null, 'Novidades da versão ' + VERSAO)), x);
-    c.appendChild(topo);
-    if (lista.length > 1) c.appendChild(no('div', 'linha-nota', lista.length + ' versões desde a última vez que você abriu o app.'));
-    var itens = [];
-    lista.forEach(function (n) { n.itens.forEach(function (t) { itens.push(t); }); });
-    var MOSTRAR = 4;
-    var ul = no('ul', 'novidades-lista');
-    itens.slice(0, MOSTRAR).forEach(function (t) { ul.appendChild(no('li', null, t)); });
-    c.appendChild(ul);
-    var acoes = no('div', 'duas');
-    acoes.style.marginTop = '12px';
-    juntar(acoes,
-      botao('btn btn-fantasma', itens.length > MOSTRAR ? 'Ver tudo (' + itens.length + ')' : 'Ver todas as versões', function () { abrirNovidades(); }),
-      botao('btn btn-ouro botao-novidades-ok', 'Entendi', fechar));
-    c.appendChild(acoes);
-    return c;
+    juntar(topo, juntar(no('div', 'novidades-titulo'), no('span', 'novidades-brilho', '✨'), no('span', null, 'Novidades')), x);
+    painel.appendChild(topo);
+    painel.appendChild(no('div', 'novidades-resumo', lista.length > 1
+      ? 'Você pulou ' + lista.length + ' atualizações. Veja o que mudou em cada uma, da mais nova para a mais antiga.'
+      : 'O que mudou na versão ' + lista[0].versao + '.'));
+
+    var meio = no('div', 'novidades-meio');
+    var rolo = no('div', 'novidades-rolo');
+    lista.forEach(function (n) {
+      var bloco = no('div', 'novidade');
+      bloco.appendChild(no('div', 'v', 'Versão ' + n.versao + (n.versao === VERSAO ? ' · atual' : '')));
+      bloco.appendChild(no('div', 'q', dataBr(n.data)));
+      bloco.appendChild(listaDaNovidade(n));
+      rolo.appendChild(bloco);
+    });
+    var mais = no('div', 'novidades-mais');
+    juntar(mais, no('span', null, 'Arraste para ler mais'), no('span', 'novidades-mais-seta'));
+    juntar(meio, rolo, mais);
+    painel.appendChild(meio);
+    var pintarMais = function () {
+      var falta = rolo.scrollHeight - rolo.clientHeight - rolo.scrollTop;
+      mais.classList.toggle('some', falta < 12);
+    };
+    rolo.addEventListener('scroll', pintarMais, { passive: true });
+
+    var rodape = no('div', 'novidades-rodape');
+    juntar(rodape,
+      botao('btn btn-ouro botao-novidades-ok', 'Entendi', function () { fechar(); }),
+      botao('btn btn-fantasma botao-novidades-todas', 'Ver todas as versões', function () {
+        fechar();
+        setTimeout(abrirNovidades, 320);
+      }));
+    painel.appendChild(rodape);
+    fundo.appendChild(painel);
+    document.body.appendChild(fundo);
+    var rolagemAntes = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { fundo.classList.add('aberta'); pintarMais(); });
+
+    function fecharDeVez() {
+      if (!novidadesAbertas) return;
+      novidadesAbertas = false;
+      marcarVersaoVista();
+      document.body.style.overflow = rolagemAntes;
+      fundo.classList.remove('aberta');
+      setTimeout(function () { if (fundo.parentNode) fundo.parentNode.removeChild(fundo); }, 220);
+    }
+    // O voltar do celular também fecha.
+    var naPilha = { tipo: 'aba', voltar: fecharDeVez };
+    empilhar(naPilha);
+    function fechar() {
+      if (pilha.length && pilha[pilha.length - 1] === naPilha) history.back();
+      else fecharDeVez();
+    }
   }
 
   function abrirNovidades() {
@@ -29794,9 +30190,7 @@
         var bloco = no('div', 'novidade');
         bloco.appendChild(no('div', 'v', 'Versão ' + n.versao + (n.versao === VERSAO ? ' · atual' : '')));
         bloco.appendChild(no('div', 'q', dataBr(n.data)));
-        var ul = no('ul');
-        n.itens.forEach(function (item) { ul.appendChild(no('li', null, item)); });
-        bloco.appendChild(ul);
+        bloco.appendChild(listaDaNovidade(n));
         lista.appendChild(bloco);
       });
       folha.appendChild(lista);
@@ -32029,6 +32423,27 @@
       forma.appendChild(no('div', 'linha-nota',
         'Desmarcado, o cartão da reserva some da tela Planejar. Nada do que você já ajustou se perde.'));
 
+      // Contar a abertura do app (pedido de 26/11/2026): vem ligada, e
+      // a pessoa pode desligar. A escolha vale em todos os aparelhos.
+      var comNuvem = NUVEM.ligada && !!sessaoNuvem;
+      var contarAntes = contagemLigada();
+      var contar = contarAntes;
+      var marcaContar = null;
+      if (comNuvem) {
+        marcaContar = botao('lembrar marca-contar-atividade', null, function () {
+          contar = !contar;
+          marcaContar.setAttribute('aria-pressed', contar ? 'true' : 'false');
+          marcaContar.querySelector('.caixinha').textContent = contar ? '✓' : '';
+        });
+        marcaContar.setAttribute('aria-pressed', contar ? 'true' : 'false');
+        marcaContar.style.margin = '14px 0 6px';
+        marcaContar.appendChild(no('span', 'caixinha', contar ? '✓' : ''));
+        marcaContar.appendChild(no('span', null, 'Contar quando eu abro o app'));
+        forma.appendChild(marcaContar);
+        forma.appendChild(no('div', 'linha-nota',
+          'Ligado, o servidor anota só a hora da última vez que você abriu o app, para contar quantas pessoas usam o Finanz. Vira só números: ninguém aparece pelo nome. Desligado, essa hora é apagada e sua conta não entra na contagem de ativos.'));
+      }
+
       var acoes = no('div', 'acoes');
       acoes.appendChild(botao('btn btn-ouro', 'Salvar', function () {
         estado.perfil.nome = campoNome.value.trim().slice(0, 40);
@@ -32040,6 +32455,13 @@
         fecharFolha();
         desenhar();
         avisar('Preferências salvas.');
+        if (comNuvem && contar !== contarAntes) {
+          marcarAtividade(contar).then(function () {
+            avisar(contar ? 'A contagem voltou a ficar ligada.' : 'Pronto: sua conta não entra mais na contagem.');
+          }).catch(function () {
+            avisarCaixa('Não consegui mudar a contagem', 'O servidor não respondeu agora. Confira a internet e tente de novo em Preferências.');
+          });
+        }
       }));
       forma.appendChild(acoes);
       folha.appendChild(forma);
@@ -36651,12 +37073,12 @@
       'A nuvem não abre mais, e não existe recuperação: nem você, nem quem desenvolve o app consegue abrir.',
       'Mas este celular continua com tudo (a cópia de trabalho do app abre com o seu login). Em "Esqueci a senha", você apaga a nuvem, cria uma senha nova e o app sobe tudo de novo.']],
     ['E se eu perder o celular?', [
-      'Num aparelho novo, entre na conta e digite a senha dos dados: tudo desce da nuvem.',
+      'Num aparelho novo, entre na conta e digite a senha dos dados: tudo desce da nuvem. Sem a senha dos dados criada, não há nada na nuvem: só o arquivo .finanz salva.',
       'Se perdeu o celular e esqueceu a senha dos dados, o arquivo .finanz é a rede de segurança: restaure ele e crie uma senha dos dados nova.']],
     ['Quem consegue ver meus dados?', [
       'Com a senha dos dados ligada, só você. O servidor guarda tudo embaralhado.',
       'O servidor ainda vê o mínimo para funcionar: seu e-mail, quantos registros existem, quando mudaram e o tamanho deles.',
-      'Sem a senha dos dados criada, os dados ficam protegidos pelo login, mas quem administra o servidor consegue ler.']],
+      'Sem a senha dos dados criada, nada vai para o servidor: os dados ficam só no seu celular.']],
     ['E o que eu compartilho com outra pessoa?', [
       'As áreas do Empreendedor que você compartilha (Doces, Uber, Casa) a outra pessoa vê, porque é para isso que serve compartilhar.',
       'Com a senha dos dados ligada dos dois lados, a área vai cifrada de ponta a ponta: cada um tem um par de chaves, e a chave da área só abre para vocês dois. O servidor não lê.',
@@ -36690,7 +37112,7 @@
       var semNuvem = !NUVEM.ligada || !sessaoNuvem;
       var cx = cartao('liso cartao-proteja-opcoes');
       // As dúvidas moram no "i" (pedido de 25/11/2026): pergunta e resposta.
-      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.protecao', titulo: 'Dúvidas sobre senha e backups',
+      var topoP = topoDeCartao('Senha e backups', null, null, null, { chave: 'mais.protecao', versao: 2, titulo: 'Dúvidas sobre senha e backups',
         itens: DUVIDAS_DE_PROTECAO.map(function (d) { return [d[0], d[1].join(' ')]; }) });
       topoP.style.padding = '16px 16px 0';
       topoP.style.marginBottom = '6px';
@@ -36707,7 +37129,12 @@
         ['🔐', 'Senha dos dados', no('div', 'linha-sub estado-senha-dados', estadoTxt), function () { abrirFolhaCofre(); }, 'botao-senha-dados'],
         ['☁', 'Backup na nuvem', subNuvem, function () { nuvemLigada ? abrirFolhaInstantaneos() : ligarBackupNaNuvem(); }, 'botao-backup-nuvem'],
         ['📱', 'Backup no celular', no('div', 'linha-sub', 'Arquivo .finanz · ' + resumoDosBackupsDoCelular().toLowerCase()), function () { abrirBackupNoCelular(); }, 'botao-backup-celular']
-      ].forEach(function (o) {
+      ].concat(souODono() ? [
+        // Versões guardadas (pedido de 26/11/2026): saiu do fim de Mais e
+        // veio para cá. Não é backup dos dados: são as versões antigas do
+        // próprio app. Mesma aba, para o voltar do celular voltar ao app.
+        ['↩', 'Versões guardadas do app', no('div', 'linha-sub', 'Não é backup dos dados: abre uma versão anterior do app'), function () { location.href = 'versoes/'; }, 'botao-versoes']
+      ] : []).forEach(function (o) {
         var l = botao('linha ' + o[4], null, o[3]);
         juntar(l, selo('#60A5FA', o[0]), juntar(no('div', 'linha-texto'), no('div', 'linha-titulo', o[1]), o[2]));
         cx.appendChild(l);
@@ -37205,7 +37632,8 @@
     }).then(function () {
       // Cofre trancado aqui: o arquivo não sobe aberto. Fica sem guardar.
       if (!podeSubirAvulso()) throw new Error('cofre trancado');
-      if (!cofreLigado()) return { nome: nomeArq, conteudo: paraBase64(bytes) };
+      // Sem a senha dos dados, o arquivo fica só no celular (5.111.0).
+      if (!cofreLigado()) throw new Error('sem a senha dos dados');
       // Com o cofre, o arquivo e o nome dele sobem cifrados.
       return Promise.all([cifrarParaOCofre(bytes), textoParaOCofre(nomeArq)]).then(function (r) {
         return { nome: r[1], conteudo: r[0] };
@@ -37532,7 +37960,7 @@
         if (falhas) partes.push(falhas + ' arquivo(s) não deu para trocar agora e ficaram como vieram. Confira a internet e tente de novo.');
         if (!partes.length) partes.push('Não havia arquivo para conferir.');
         avisarCaixa(feitos ? 'Conferido ✓' : 'Nada foi trocado', partes.join('\n\n'), function () {
-          setTimeout(function () { abrirFolhaConferencia(id); }, 200);
+          setTimeout(function () { abrirExtratoConta(id, true); }, 200);
         });
       });
     }).catch(function () { limparAviso(); });
@@ -38093,7 +38521,8 @@
   function apagarTudo() {
     var quanto = estado.lancamentos.length + estado.contas.length + estado.ativos.length + estado.metas.length;
     if (!quanto) { avisar('Não há nada para apagar.'); return; }
-    var naNuvem = NUVEM.ligada && sessaoNuvem;
+    // Sem a senha dos dados não há nada no servidor (5.111.0).
+    var naNuvem = NUVEM.ligada && sessaoNuvem && cofreLigado();
     perguntar({
       titulo: 'Apagar todos os seus dados?',
       texto: 'São ' + quanto + ' registros' + (naNuvem
