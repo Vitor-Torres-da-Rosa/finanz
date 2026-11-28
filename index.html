@@ -2917,7 +2917,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.113.0';
+  var VERSAO = '5.114.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2926,6 +2926,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.114.0',
+      data: '2026-11-28',
+      itens: [
+        { r: "O extrato do C6 em planilha, que vem trancado com senha, agora abre: o app pede a senha e lê o arquivo aqui no celular.", d: "O .xlsx trancado não é um zip: é um arquivo composto do Office (CFB, assinatura D0 CF 11 E0) com dois fluxos, EncryptionInfo e EncryptedPackage. lerCfb lê o arquivo composto (FAT, mini FAT, diretório e mini fluxo). abrirOfficeTrancado abre os dois jeitos de trancar do Office:\n• Padrão (versão 4.2, a do C6): chave AES-128 tirada da senha por SHA-1 com 50 mil voltas; confere a senha pelo verificador; o pacote é AES em ECB.\n• Ágil (4.4, a do Excel de hoje): chave por SHA-512 (ou o hash que o arquivo disser) com as voltas do arquivo; confere pelo verificador; o pacote é AES em CBC, em pedaços de 4096 bytes, cada um com o seu IV.\nO WebCrypto não tem ECB nem CBC sem preenchimento: cbcSemPreencher acrescenta o bloco de preenchimento que o próprio AES gera, e o ECB sai do CBC com IV zero desfazendo a corrente. O pacote declara o tamanho sem o resto do último bloco; o leitor arredonda até o bloco inteiro.\nNa fila de importação, o arquivo trancado pede a senha na mesma tela do PDF (\"Planilha com senha\"; \"usar para todos\" vale também). Senha errada pede de novo. Tudo roda no aparelho: a senha e o arquivo não saem dele.\nDepois de aberta, a planilha do C6 (\"Data Lançamento;Data Contábil;Título;Descrição;Entrada(R$);Saída(R$);Saldo do Dia(R$)\") é lida pelas colunas Entrada e Saída, não pelo saldo do dia, e a descrição junta Título e Descrição. Planilha .xls antiga (sem cifra) continua sem leitura: o app pede para baixar em .xlsx, PDF ou CSV." }
+      ]
+    },
     {
       versao: '5.113.0',
       data: '2026-11-28',
@@ -34428,6 +34435,240 @@
       return linhas;
     }
 
+    // ---------- Planilha do Office com senha (pedido de 28/11/2026) ----------
+    //
+    // O C6 manda o extrato .xlsx trancado com senha. O arquivo trancado não
+    // é um zip: é um "arquivo composto" (CFB, o formato antigo do Office)
+    // com dois fluxos, EncryptionInfo (como foi trancado) e EncryptedPackage
+    // (o .xlsx cifrado). Aqui ele é aberto no próprio aparelho, com a senha
+    // que a pessoa digita: nada vai para lugar nenhum.
+    //   Padrão (versão 3/4.2, a do C6): AES-128 em ECB, chave de SHA-1 com
+    //     50 mil voltas.
+    //   Ágil (versão 4.4, a do Excel de hoje): AES em CBC por pedaços de
+    //     4096 bytes, chave de SHA-512 (ou outro) com as voltas do arquivo.
+    function ehOfficeTrancado(b) {
+      return b && b.length > 512 && b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0 &&
+        b[4] === 0xA1 && b[5] === 0xB1 && b[6] === 0x1A && b[7] === 0xE1;
+    }
+
+    // Lê os fluxos de um arquivo composto (CFB).
+    function lerCfb(b) {
+      var dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+      var u16 = function (o) { return dv.getUint16(o, true); };
+      var u32 = function (o) { return dv.getUint32(o, true); };
+      var tamSetor = 1 << u16(30), tamMini = 1 << u16(32);
+      var corteMini = u32(56), miniFat1 = u32(60), primeiroDir = u32(48);
+      var difat = [];
+      for (var i = 0; i < 109; i++) { var s0 = u32(76 + i * 4); if (s0 < 0xFFFFFFFA) difat.push(s0); }
+      var prox = u32(68), guarda = 0;
+      while (prox < 0xFFFFFFFA && guarda++ < 1000) {
+        var base = (prox + 1) * tamSetor;
+        for (var j = 0; j < tamSetor / 4 - 1; j++) { var s1 = u32(base + j * 4); if (s1 < 0xFFFFFFFA) difat.push(s1); }
+        prox = u32(base + tamSetor - 4);
+      }
+      var fat = [];
+      difat.forEach(function (sid) {
+        var base = (sid + 1) * tamSetor;
+        for (var k = 0; k < tamSetor / 4 && base + k * 4 + 4 <= b.length; k++) fat.push(u32(base + k * 4));
+      });
+      var cadeia = function (tabela, inicio) {
+        var lista = [], sid = inicio, n = 0;
+        while (sid < 0xFFFFFFFA && n++ < 200000) { lista.push(sid); sid = tabela[sid]; }
+        return lista;
+      };
+      var juntarSetores = function (setores) {
+        var saida = new Uint8Array(setores.length * tamSetor);
+        setores.forEach(function (sid, i) {
+          var o = (sid + 1) * tamSetor;
+          saida.set(b.subarray(o, Math.min(o + tamSetor, b.length)), i * tamSetor);
+        });
+        return saida;
+      };
+      var dir = juntarSetores(cadeia(fat, primeiroDir));
+      var ddv = new DataView(dir.buffer);
+      var entradas = [];
+      for (var e = 0; e + 128 <= dir.length; e += 128) {
+        var tamNome = ddv.getUint16(e + 64, true);
+        var nome = '';
+        for (var c = 0; c + 2 < tamNome; c += 2) nome += String.fromCharCode(ddv.getUint16(e + c, true));
+        entradas.push({ nome: nome, tipo: dir[e + 66], inicio: ddv.getUint32(e + 116, true), tamanho: ddv.getUint32(e + 120, true) });
+      }
+      var raiz = entradas[0];
+      var miniFat = miniFat1 < 0xFFFFFFFA ? (function () {
+        var bytesMf = juntarSetores(cadeia(fat, miniFat1));
+        var mdv = new DataView(bytesMf.buffer), t = [];
+        for (var x = 0; x + 4 <= bytesMf.length; x += 4) t.push(mdv.getUint32(x, true));
+        return t;
+      })() : [];
+      var miniFluxo = raiz && raiz.inicio < 0xFFFFFFFA ? juntarSetores(cadeia(fat, raiz.inicio)) : new Uint8Array(0);
+      // inteiroAte: arredonda o tamanho para cima (o pacote cifrado declara
+      // o tamanho sem o resto do último bloco, que está no setor).
+      var fluxo = function (nome, inteiroAte, depoisDe) {
+        var en = entradas.filter(function (x) { return x.nome === nome && x.tipo === 2; })[0];
+        if (!en) return null;
+        var d = depoisDe || 0;
+        var tam = inteiroAte ? d + Math.ceil((en.tamanho - d) / inteiroAte) * inteiroAte : en.tamanho;
+        var todo;
+        if (en.tamanho < corteMini) {
+          var ms = cadeia(miniFat, en.inicio);
+          todo = new Uint8Array(ms.length * tamMini);
+          ms.forEach(function (sid, i) { todo.set(miniFluxo.subarray(sid * tamMini, sid * tamMini + tamMini), i * tamMini); });
+        } else todo = juntarSetores(cadeia(fat, en.inicio));
+        return todo.subarray(0, Math.min(tam, todo.length));
+      };
+      return { fluxo: fluxo };
+    }
+
+    function juntarBytes(a, b2) { var r = new Uint8Array(a.length + b2.length); r.set(a, 0); r.set(b2, a.length); return r; }
+    function le32(n) { return new Uint8Array([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]); }
+    function hashOffice(nome, dados) { return subtle.digest(nome, dados).then(function (h) { return new Uint8Array(h); }); }
+    function senhaUtf16(senha) {
+      var r = new Uint8Array(senha.length * 2);
+      for (var i = 0; i < senha.length; i++) { var c = senha.charCodeAt(i); r[i * 2] = c & 255; r[i * 2 + 1] = c >> 8; }
+      return r;
+    }
+    // H0 = hash(sal + senha); depois "voltas" vezes hash(i + H).
+    function voltasOffice(nome, sal, senha, voltas) {
+      return hashOffice(nome, juntarBytes(sal, senhaUtf16(senha))).then(function (h) {
+        var i = 0;
+        var passo = function (hAtual) {
+          if (i >= voltas) return hAtual;
+          var lote = [];
+          // Em lotes, para não empilhar 100 mil promessas de uma vez.
+          var fim = Math.min(voltas, i + 2000);
+          var cadeia = Promise.resolve(hAtual);
+          for (; i < fim; i++) {
+            (function (k) { cadeia = cadeia.then(function (hh) { return hashOffice(nome, juntarBytes(le32(k), hh)); }); })(i);
+          }
+          return cadeia.then(passo);
+        };
+        return passo(h);
+      });
+    }
+    // AES em CBC sem preenchimento (o WebCrypto exige PKCS#7): acrescento o
+    // bloco que o próprio AES gera para o preenchimento e ele sai limpo.
+    function cbcSemPreencher(chaveBytes, iv, dados) {
+      var alg = { name: 'AES-CBC', length: chaveBytes.length * 8 };
+      return subtle.importKey('raw', chaveBytes, alg, false, ['encrypt', 'decrypt']).then(function (k) {
+        var ultimo = dados.slice(dados.length - 16);
+        return subtle.encrypt({ name: 'AES-CBC', iv: ultimo }, k, new Uint8Array(0)).then(function (pad) {
+          return subtle.decrypt({ name: 'AES-CBC', iv: iv }, k, juntarBytes(dados, new Uint8Array(pad).slice(0, 16)));
+        });
+      }).then(function (r) { return new Uint8Array(r); });
+    }
+    // ECB = CBC com IV zero, desfazendo a corrente bloco a bloco.
+    function ecbDecifrar(chaveBytes, dados) {
+      return cbcSemPreencher(chaveBytes, new Uint8Array(16), dados).then(function (p) {
+        for (var i = 16; i < p.length; i++) p[i] ^= dados[i - 16];
+        return p;
+      });
+    }
+
+    function abrirOfficePadrao(info, pacote, senha) {
+      var dv = new DataView(info.buffer, info.byteOffset, info.byteLength);
+      var tamCab = dv.getUint32(8, true);
+      var cab = 12;
+      var bitsChave = dv.getUint32(cab + 16, true) || 128;
+      var v = 12 + tamCab;
+      var tamSal = dv.getUint32(v, true);
+      var sal = info.slice(v + 4, v + 4 + tamSal);
+      var verificador = info.slice(v + 4 + tamSal, v + 4 + tamSal + 16);
+      var tamHashVer = dv.getUint32(v + 20 + tamSal, true);
+      var hashVer = info.slice(v + 24 + tamSal, v + 24 + tamSal + 32);
+      return voltasOffice('SHA-1', sal, senha, 50000).then(function (h) {
+        return hashOffice('SHA-1', juntarBytes(h, le32(0)));
+      }).then(function (hf) {
+        var b1 = new Uint8Array(64).fill(0x36), b2 = new Uint8Array(64).fill(0x5C);
+        for (var i = 0; i < hf.length; i++) { b1[i] ^= hf[i]; b2[i] ^= hf[i]; }
+        return Promise.all([hashOffice('SHA-1', b1), hashOffice('SHA-1', b2)]);
+      }).then(function (xs) {
+        var chave = juntarBytes(xs[0], xs[1]).slice(0, bitsChave / 8);
+        return Promise.all([ecbDecifrar(chave, verificador), ecbDecifrar(chave, hashVer)]).then(function (r) {
+          return hashOffice('SHA-1', r[0]).then(function (hv) {
+            for (var i = 0; i < Math.min(tamHashVer, 20); i++) if (hv[i] !== r[1][i]) return null;
+            var tam = new DataView(pacote.buffer, pacote.byteOffset, 8).getUint32(0, true);
+            var corpo = pacote.slice(8);
+            corpo = corpo.slice(0, corpo.length - corpo.length % 16);
+            return ecbDecifrar(chave, corpo).then(function (p) { return p.slice(0, tam); });
+          });
+        });
+      });
+    }
+
+    function abrirOfficeAgil(info, pacote, senha) {
+      var xml = new TextDecoder('utf-8').decode(info.slice(8));
+      var atr = function (tag, nome) {
+        var m = new RegExp('<(?:\\w+:)?' + tag + '\\b[^>]*\\s' + nome + '="([^"]*)"').exec(xml);
+        return m ? m[1] : '';
+      };
+      var b64 = function (t) { var s = atob(t); var r = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) r[i] = s.charCodeAt(i); return r; };
+      var nomeHash = function (t) { return /512/.test(t) ? 'SHA-512' : /384/.test(t) ? 'SHA-384' : /256/.test(t) ? 'SHA-256' : 'SHA-1'; };
+      var hK = nomeHash(atr('encryptedKey', 'hashAlgorithm'));
+      var salK = b64(atr('encryptedKey', 'saltValue'));
+      var voltas = parseInt(atr('encryptedKey', 'spinCount'), 10) || 100000;
+      var bitsK = parseInt(atr('encryptedKey', 'keyBits'), 10) || 256;
+      var hD = nomeHash(atr('keyData', 'hashAlgorithm'));
+      var salD = b64(atr('keyData', 'saltValue'));
+      var blocoD = parseInt(atr('keyData', 'blockSize'), 10) || 16;
+      var bitsD = parseInt(atr('keyData', 'keyBits'), 10) || 256;
+      var ajustar = function (h, n) { var r = new Uint8Array(n).fill(0x36); r.set(h.slice(0, n)); return r; };
+      return voltasOffice(hK, salK, senha, voltas).then(function (h) {
+        var chaveDo = function (bloco) {
+          return hashOffice(hK, juntarBytes(h, new Uint8Array(bloco))).then(function (x) { return ajustar(x, bitsK / 8); });
+        };
+        return Promise.all([
+          chaveDo([0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79]),
+          chaveDo([0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e]),
+          chaveDo([0x14, 0x6e, 0x0b, 0xe7, 0xab, 0xac, 0xd0, 0xd6])
+        ]);
+      }).then(function (ks) {
+        var iv = ajustar(salK, 16);
+        return Promise.all([
+          cbcSemPreencher(ks[0], iv, b64(atr('encryptedKey', 'encryptedVerifierHashInput'))),
+          cbcSemPreencher(ks[1], iv, b64(atr('encryptedKey', 'encryptedVerifierHashValue'))),
+          cbcSemPreencher(ks[2], iv, b64(atr('encryptedKey', 'encryptedKeyValue')))
+        ]);
+      }).then(function (r) {
+        return hashOffice(hK, r[0].slice(0, salK.length)).then(function (hv) {
+          for (var i = 0; i < hv.length; i++) if (hv[i] !== r[1][i]) return null;
+          var chave = r[2].slice(0, bitsD / 8);
+          var tam = new DataView(pacote.buffer, pacote.byteOffset, 8).getUint32(0, true);
+          var corpo = pacote.slice(8);
+          var partes = [];
+          for (var o = 0, n = 0; o < corpo.length; o += 4096, n++) partes.push({ n: n, dados: corpo.slice(o, Math.min(o + 4096, corpo.length)) });
+          return Promise.all(partes.map(function (pt) {
+            var d = pt.dados.slice(0, pt.dados.length - pt.dados.length % 16);
+            return hashOffice(hD, juntarBytes(salD, le32(pt.n))).then(function (ivh) {
+              return cbcSemPreencher(chave, ajustar(ivh, blocoD), d);
+            });
+          })).then(function (ps) {
+            var total = ps.reduce(function (t, x) { return t + x.length; }, 0), saida = new Uint8Array(total), at = 0;
+            ps.forEach(function (x) { saida.set(x, at); at += x.length; });
+            return saida.slice(0, tam);
+          });
+        });
+      });
+    }
+
+    // Devolve os bytes do .xlsx aberto, ou null se a senha não serviu.
+    // Estoura se não for um Office trancado que eu saiba abrir.
+    function abrirOfficeTrancado(bytes, senha) {
+      if (!subtle) return Promise.reject(new Error('este navegador não abre arquivo com senha'));
+      var cfb, info, pacote;
+      try {
+        cfb = lerCfb(bytes);
+        info = cfb.fluxo('EncryptionInfo');
+        pacote = cfb.fluxo('EncryptedPackage', 16, 8);
+      } catch (e) { return Promise.reject(new Error('planilha do Excel antiga ou estragada')); }
+      if (!info || !pacote) return Promise.reject(new Error('planilha do Excel antiga (.xls): salve como .xlsx ou baixe em CSV'));
+      var maior = info[0] | (info[1] << 8), menor = info[2] | (info[3] << 8);
+      var tarefa = (maior === 4 && menor === 4) ? abrirOfficeAgil(info, pacote, String(senha || ''))
+        : (menor === 2 && (maior === 2 || maior === 3 || maior === 4)) ? abrirOfficePadrao(info, pacote, String(senha || ''))
+        : null;
+      if (!tarefa) return Promise.reject(new Error('planilha trancada de um jeito que o app ainda não abre'));
+      return tarefa.then(function (r) { return r && r[0] === 0x50 && r[1] === 0x4B ? r : null; }, function () { return null; });
+    }
+
     function lerXlsx(bytes) {
       var zip = lerZip(bytes);
       if (!zip) return Promise.resolve(null);
@@ -35289,6 +35530,24 @@
         });
         if (ic >= 0 && idb >= 0 && (temDoc || (bancoTab && bancoTab.chave === 'bradesco'))) { colCred = ic; colDeb = idb; }
       }
+      // C6 em planilha (28/11/2026): "Data Lançamento;Data Contábil;Título;
+      // Descrição;Entrada(R$);Saída(R$);Saldo do Dia(R$)". O valor está em
+      // Entrada ou Saída; a última coluna é o saldo do dia. A descrição
+      // junta Título e Descrição. Só com esse cabeçalho.
+      var colTituloC6 = -1, colDescC6 = -1;
+      for (var h6 = 0; h6 < Math.min(linhas.length, 40) && colCred < 0; h6++) {
+        var n6 = linhas[h6].map(function (x) { return semAcento(String(x)).toLowerCase().replace(/\s+/g, ' ').trim(); });
+        var iEnt = -1, iSai = -1, temSaldoDia = false;
+        n6.forEach(function (t, i) {
+          if (/^entrada\b/.test(t)) iEnt = i;
+          else if (/^saida\b/.test(t)) iSai = i;
+          else if (/^saldo do dia\b/.test(t)) temSaldoDia = true;
+        });
+        if (iEnt >= 0 && iSai >= 0 && temSaldoDia) {
+          colCred = iEnt; colDeb = iSai;
+          colTituloC6 = n6.indexOf('titulo'); colDescC6 = n6.indexOf('descricao');
+        }
+      }
       // Inter em CSV (28/11/2026): "Data Lançamento;Histórico;Descrição;
       // Valor;Saldo". A última célula de dinheiro é o saldo da linha; o
       // valor (com sinal) está na coluna Valor. A descrição junta o
@@ -35368,6 +35627,9 @@
         if (colValorI >= 0) {
           desc = [String(partes[colHistI] || '').trim(), String(partes[colDescI] || '').trim()]
             .filter(function (x) { return x; }).join(': ');
+        } else if (colTituloC6 >= 0 && colDescC6 >= 0) {
+          desc = [String(partes[colTituloC6] || '').trim(), String(partes[colDescC6] || '').trim()]
+            .filter(function (x) { return x; }).join(': ');
         } else partes.forEach(function (p, i) {
           if (i === iData || i === iValor) return;
           var t = String(p).trim();
@@ -35442,7 +35704,7 @@
     }
 
     return { lerPdf: extrair, lerLinhas: lerLinhas, lerOfx: lerOfx, lerCsv: lerCsv,
-             lerTabela: lerTabela, lerXlsx: lerXlsx, categoriaDe: categoriaDe,
+             lerTabela: lerTabela, lerXlsx: lerXlsx, ehOfficeTrancado: ehOfficeTrancado, abrirOfficeTrancado: abrirOfficeTrancado, categoriaDe: categoriaDe,
              acharBanco: acharBanco, bancoPorChave: bancoPorChave, listaDeBancos: listaDeBancos,
              pareceFatura: pareceFatura, textoDeBytes: textoDeBytes };
   })();
@@ -35989,6 +36251,13 @@
         return;
       }
 
+      // Planilha do Excel trancada com senha (o C6 manda assim): pede a
+      // senha, abre aqui no aparelho e segue como planilha.
+      if (Extrato.ehOfficeTrancado(bytes)) {
+        abrirPlanilhaDaFila(bytes, arquivo, filaExtrato && filaExtrato.senhaDeTodos, false, pronto);
+        return;
+      }
+
       // Planilha do Excel é um zip: começa com PK.
       if ((bytes[0] === 0x50 && bytes[1] === 0x4B) || /\.xlsx?$/.test(nome)) {
         Extrato.lerXlsx(bytes).then(function (linhas) {
@@ -36038,7 +36307,24 @@
     });
   }
 
-  function pedirSenhaDoPdf(bytes, arquivo, errou, pronto) {
+  function abrirPlanilhaDaFila(bytes, arquivo, senha, errou, pronto) {
+    if (!senha) { pedirSenhaDoPdf(bytes, arquivo, errou, pronto, abrirPlanilhaDaFila, 'Planilha com senha'); return; }
+    Extrato.abrirOfficeTrancado(bytes, senha).then(function (aberto) {
+      if (!aberto) { pedirSenhaDoPdf(bytes, arquivo, true, pronto, abrirPlanilhaDaFila, 'Planilha com senha'); return; }
+      return Extrato.lerXlsx(aberto).then(function (linhas) {
+        if (!linhas || !linhas.length) { pronto(null, 'planilha'); return; }
+        var lido = Extrato.lerTabela(linhas, nomeDoArquivo(arquivo));
+        pronto(lido, lido.itens.length ? '' : 'planilha');
+      });
+    }).catch(function (e) {
+      limparAviso();
+      avisarCaixa('Não deu para abrir a planilha', 'Esta planilha está trancada: ' + ((e && e.message) || 'formato estranho') +
+        '. Se o banco oferecer, baixe o extrato em PDF ou CSV.', function () { pronto(null, 'planilha'); });
+    });
+  }
+
+  function pedirSenhaDoPdf(bytes, arquivo, errou, pronto, tentar, titulo) {
+    tentar = tentar || abrirPdfDaFila;
     // O "Lendo o arquivo" não faz sentido junto com o pedido de senha.
     limparAviso();
     var f = filaExtrato;
@@ -36046,7 +36332,7 @@
     var respondeu = false;
 
     empilhar({ tipo: 'aba', voltar: function () { if (!respondeu) { respondeu = true; pronto(null, 'senha'); } } });
-    abrirFolha('PDF com senha', function (folha) {
+    abrirFolha(titulo || 'PDF com senha', function (folha) {
       var forma = no('div');
       forma.appendChild(no('p', 'ajuda', errou
         ? 'Essa senha não abriu. Muitos bancos usam o CPF (só os números) ou a data de nascimento.'
@@ -36085,7 +36371,7 @@
         voltarNavegacao();
         setTimeout(function () {
           avisar('Abrindo...');
-          abrirPdfDaFila(bytes, arquivo, senha, true, pronto);
+          tentar(bytes, arquivo, senha, true, pronto);
         }, 240);
       }));
       if (varios) {
