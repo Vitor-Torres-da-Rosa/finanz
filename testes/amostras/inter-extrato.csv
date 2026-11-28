@@ -1,0 +1,11 @@
+ Extrato Conta Corrente 
+Conta ;12345678
+Período ;14/11/2026 a 28/11/2026
+Saldo ;73,54
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+24/11/2026;Pix enviado ;Joana Exemplo;-10,90;73,54
+20/11/2026;Pix enviado ;Mercado Exemplo;-31,64;84,44
+19/11/2026;Pix recebido;Fulano De Tal;442,00;116,08
+17/11/2026;Pix enviado ;Pix Marketplace;-75,04;-325,92
+17/11/2026;Pix enviado ;Posto Exemplo;-165,04;-250,88

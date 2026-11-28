@@ -2917,7 +2917,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '5.112.0';
+  var VERSAO = '5.113.0';
   // Estes nomes ficaram como nasceram, na época em que o app se chamava
   // Caixa. Trocar aqui apagaria os dados de quem já usa o app.
   var CHAVE = 'caixa.dados.v2';
@@ -2926,6 +2926,13 @@
   var CHAVE_SESSAO = 'caixa.sessao.v3';
 
   var NOVIDADES = [
+    {
+      versao: '5.113.0',
+      data: '2026-11-28',
+      itens: [
+        { r: "O extrato do Inter em CSV agora entra certo: valor, entrada ou saída, descrição e os repetidos.", d: "lerTabela reconhece o cabeçalho exato do CSV do Inter (\"Data Lançamento;Histórico;Descrição;Valor;Saldo\") e, só nesse formato: o valor vem da coluna Valor, com o sinal (negativo = saída); antes o app pegava a última célula de dinheiro, que é o Saldo da linha (por isso apareciam 73,54, 84,44… e entradas no lugar de saídas). A descrição junta Histórico e Descrição (\"Pix enviado: Fulano\"), como no PDF, e as linhas ficam em ordem de data (o CSV vem do mais novo para o mais velho). Com o valor certo, o que já existe na conta (mesma data e valor, vindo do PDF ou de outro CSV) volta a vir desmarcado como \"já existe\". Os outros bancos e CSVs não mudam: o Bradesco continua pelas colunas Crédito e Débito, e o resto pela última célula de dinheiro." }
+      ]
+    },
     {
       versao: '5.112.0',
       data: '2026-11-26',
@@ -35282,6 +35289,20 @@
         });
         if (ic >= 0 && idb >= 0 && (temDoc || (bancoTab && bancoTab.chave === 'bradesco'))) { colCred = ic; colDeb = idb; }
       }
+      // Inter em CSV (28/11/2026): "Data Lançamento;Histórico;Descrição;
+      // Valor;Saldo". A última célula de dinheiro é o saldo da linha; o
+      // valor (com sinal) está na coluna Valor. A descrição junta o
+      // histórico e o nome, como no PDF ("Pix enviado: Fulano"), para o
+      // repetido ser reconhecido. Reconhecido por esse cabeçalho exato,
+      // para não mexer nos outros bancos.
+      var colValorI = -1, colHistI = -1, colDescI = -1;
+      for (var hi = 0; hi < Math.min(linhas.length, 40) && colValorI < 0; hi++) {
+        var nomes = linhas[hi].map(function (x) { return semAcento(String(x)).toLowerCase().trim(); });
+        if (nomes.indexOf('data lancamento') >= 0 && nomes.indexOf('historico') >= 0 && nomes.indexOf('descricao') >= 0 &&
+            nomes.indexOf('valor') >= 0 && nomes.indexOf('saldo') >= 0) {
+          colValorI = nomes.indexOf('valor'); colHistI = nomes.indexOf('historico'); colDescI = nomes.indexOf('descricao');
+        }
+      }
       function dinheiroDaCelula(x) {
         var t = String(x == null ? '' : x).trim();
         if (!t || !/\d/.test(t)) return 0;
@@ -35308,13 +35329,20 @@
 
         // O valor: a última célula que é só dinheiro.
         var iValor = -1, valor = null;
-        if (colCred >= 0) {
+        if (colValorI >= 0) {
+          var cv = String(partes[colValorI] == null ? '' : partes[colValorI]).trim();
+          var avI = acharValores(cv);
+          var vI = avI.length ? avI[avI.length - 1].valor : dinheiroDaCelula(cv);
+          if (!vI) return;
+          valor = { valor: vI, negativo: /^\s*-/.test(cv) || (avI.length && avI[avI.length - 1].negativo), marca: null };
+          iValor = colValorI;
+        } else if (colCred >= 0) {
           var vCred = dinheiroDaCelula(partes[colCred]), vDeb = dinheiroDaCelula(partes[colDeb]);
           if (vCred) { valor = { valor: vCred, negativo: false, marca: null }; iValor = colCred; }
           else if (vDeb) { valor = { valor: vDeb, negativo: true, marca: null }; iValor = colDeb; }
           else return;
         }
-        for (var k = colCred >= 0 ? -1 : partes.length - 1; k >= 0; k--) {
+        for (var k = (colCred >= 0 || colValorI >= 0) ? -1 : partes.length - 1; k >= 0; k--) {
           if (k === iData) continue;
           var c = String(partes[k]).trim();
           if (!c || !/\d/.test(c)) continue;
@@ -35337,7 +35365,10 @@
 
         // A descrição: a maior célula de texto que sobrou.
         var desc = '';
-        partes.forEach(function (p, i) {
+        if (colValorI >= 0) {
+          desc = [String(partes[colHistI] || '').trim(), String(partes[colDescI] || '').trim()]
+            .filter(function (x) { return x; }).join(': ');
+        } else partes.forEach(function (p, i) {
           if (i === iData || i === iValor) return;
           var t = String(p).trim();
           if (!t || /^[\d.,\-+R$\s]*$/.test(t)) return;
@@ -35368,6 +35399,9 @@
                      negativoNoTexto: negativo, credito: credito });
       });
 
+      // O CSV do Inter vem do mais novo para o mais velho; o PDF, ao
+      // contrário. Na ordem do calendário, os dois ficam iguais.
+      if (colValorI >= 0) itens.sort(function (x, y) { return x.data < y.data ? -1 : x.data > y.data ? 1 : 0; });
       arrumarVirada(itens);
       var vencimento = fatura ? acharVencimento(cheio, nomeArquivo) : '';
       if (fatura) anoCertoNaFatura(itens, vencimento);
